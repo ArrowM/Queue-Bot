@@ -1,9 +1,9 @@
 {
-  "prefix": "$",
-  "token": "Njc5MDE4MzAxNTQzNjc3OTU5.XsiOaQ.N1xHj1A-Rr-pOrzt-zJ6h2o7Ods",
+  "prefix": "!",
+  "token": "YOUR_TOKEN_HERE",
   "database_type": "postgresql",
   "database_uri": "localhost:5432/mydatabase",
   "database_username": "postgres",
-  "database_password": " ",
+  "database_password": "",
   "grace_period":  "0"
 }
