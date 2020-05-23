@@ -1,7 +1,11 @@
 // Setup
 const {
 	prefix,
-	token
+	token,
+	database_type,
+	database_uri,
+	database_username,
+	database_password
 } = require('./config.json');
 
 const QUEUE_CMD = `q`;
@@ -15,11 +19,7 @@ const Keyv = require('keyv');
 
 // CMD:	service postgresql start
 const guildIdVoiceChannelDictId = (function () {
-	try {
-		return new Keyv('postgresql://meckl031: @localhost:5432/queue_db'); // guild.id | voice.channel.id
-	} catch (e) {
-		return new Keyv('postgresql://ub: @localhost:5432/queue_db'); // guild.id | voice.channel.id
-	}
+	return new Keyv(`${database_type}://${database_type}:${database_password}@${database_uri}`); // guild.id | voice.channel.id
 })();
 const guildIdGuildMemberIdDict = {};	// guild.id | [guildMember.id, ...]
 
