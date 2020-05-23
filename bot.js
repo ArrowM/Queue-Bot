@@ -19,7 +19,7 @@ const Keyv = require('keyv');
 
 // CMD:	service postgresql start
 const guildIdVoiceChannelDictId = (function () {
-	return new Keyv(`${database_type}://${database_type}:${database_password}@${database_uri}`); // guild.id | voice.channel.id
+	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`); // guild.id | voice.channel.id
 })();
 const guildIdGuildMemberIdDict = {};	// guild.id | [guildMember.id, ...]
 
