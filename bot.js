@@ -5,7 +5,8 @@ const {
 	database_type,
 	database_uri,
 	database_username,
-	database_password
+	database_password,
+	grace_period
 } = require('./config.json');
 
 const QUEUE_CMD = `q`;
@@ -42,30 +43,41 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 	try {
 		let oldChannel = oldVoiceState.channel;
 		let newChannel = newVoiceState.channel;
-		let newMember = newVoiceState.member;
+		let member = newVoiceState.member;
 		const guild = newVoiceState.guild;
 		const voiceChannelId = await guildIdVoiceChannelDictId.get(guild.id);
 
 		if (oldChannel !== newChannel && voiceChannelId) {
-			console.log(`[${guild.name}] | [${newMember.displayName}] moved from [${oldChannel ? oldChannel.name : null}] to [${newChannel ? newChannel.name : null}]`);
+			if (!guildIdGuildMemberIdDict[guild.id]) {
+				guildIdGuildMemberIdDict[guild.id] = []; // Initialize empty queue if necessary.
+			}
 
-			if (!guildIdGuildMemberIdDict[guild.id]) guildIdGuildMemberIdDict[guild.id] = []; // Initialize empty queue if necessary.
+			console.log(`[${guild.name}] | [${member.displayName}] moved from [${oldChannel ? oldChannel.name : null}] to [${newChannel ? newChannel.name : null}]`);
 
 			const queueVoiceChannel = guild.channels.cache.get(voiceChannelId);
+
 			if (newChannel === queueVoiceChannel) { // Joining Queue
-				if (!newMember.user.bot) {
-					guildIdGuildMemberIdDict[guild.id].push(newMember.id); // User joined channel, add to queue.
+				if (!member.user.bot) {
+					guildIdGuildMemberIdDict[guild.id].push(member.id); // User joined channel, add to queue.
 				}
 			} else if (oldChannel === queueVoiceChannel) { // Leaving Queue
-				if (newMember.user.bot) {
+				if (member.user.bot) {
 					if (newChannel) {
 						if (guildIdGuildMemberIdDict[guild.id].length > 0) { // Bot got pulled into another channel
 							guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0]).voice.setChannel(newChannel); // If the use queue is not empty, pull in the next in user queue.
 						}
-						newVoiceState.setChannel(oldChannel); // Return bot to queue channel
+						newVoiceState.setChannel(queueVoiceChannel); // Return bot to queue channel
 					}
 				} else {
-					guildIdGuildMemberIdDict[guild.id].splice(guildIdGuildMemberIdDict[guild.id].indexOf(newMember.id), 1); // User left channel, remove from queue.
+					console.log(`[${guild.name}] | [${member.displayName}] set to leave queue in ${grace_period} seconds`);
+					let currentUser = guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0]);
+					setTimeout(() => {
+						try {
+							if (currentUser.voice.channel !== queueVoiceChannel) {
+								guildIdGuildMemberIdDict[guild.id].splice(guildIdGuildMemberIdDict[guild.id].indexOf(member.id), 1); // User left channel, remove from queue.
+							}
+						} catch (e) { console.error(e); }
+					}, grace_period * 1000); // 5 min timer
 				}
 			}
 		}
@@ -74,8 +86,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 
 function hasPermissions(message) { 
 	const regex = RegExp(`\bmod\b|\bmods\b`);
-	const hasPerm = message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
-	return hasPerm;
+	return message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
 }
 
 async function start(message, guildIdVoiceChannelDictId) {
@@ -134,7 +145,9 @@ async function setQueueChannel(message, guildIdVoiceChannelDictId, guildIdGuildM
 			await guildIdVoiceChannelDictId.set(guild.id, voiceChannel.id);
 			guildIdGuildMemberIdDict[message.guild.id] = voiceChannel.members.filter(m => !m.user.bot).map(m => m.id);
 			message.channel.send(`Queue channel set to [${channelName}].`);
-			start(message, guildIdVoiceChannelDictId);
+			if (!guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0])) {
+				start(message, guildIdVoiceChannelDictId);
+			}
 		}
 	} catch (e) { console.error(e); }
 }
