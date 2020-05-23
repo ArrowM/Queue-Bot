@@ -4,6 +4,7 @@
   "database_type": "postgresql",
   "database_uri": "localhost:5432/mydatabase",
   "database_username": "postgres",
-  "database_password": "",
-  "grace_period":  "0"
+  "database_password": " ",
+  "grace_period": "300",
+  "permissions_regexp": "\\bmod\\b|\\bmods\\b"
 }
