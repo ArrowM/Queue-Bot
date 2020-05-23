@@ -1,4 +1,8 @@
 {
   "prefix": "!",
-  "token": "ADD YOUR KEY HERE"
+  "token": "YOUR_BOT_TOKEN",
+  "database_type": "postgresql",
+  "database_uri": "localhost:5432/YOUR_TABLE_NAME",
+  "database_username": "",
+  "database_password": " "
 }
