@@ -12,11 +12,11 @@
 | `database_type`     | Type of database for queue storage. (Default: `postgresql`)                                                                       |
 | `database_uri`      | Database URI. (Example: `localhost:5432/YOUR_TABLE_NAME`)                                                                     |
 | `database_username` |                                                                                                                                   |
-| `database_password` | Blank space for no password.                                                                                                                                  |
+| `database_password` |                                                                                                                               |
 
 ![Token Location](docs/token_location.PNG)  
 
 5. [Install NodeJS](https://discordjs.guide/preparations/#installing-node-js)
-6. Install Dependencies. Open terminal in project directory. `sudo npm install`
+6. Install Dependencies. Open terminal in project directory. `npm install`
 7. Start the Bot. `node bot.js`. If you get an error at boot, there is something wrong in your config.json.
 
