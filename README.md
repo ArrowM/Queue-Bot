@@ -12,7 +12,7 @@
 | `database_type`     | Type of database for queue storage. (Default: `postgresql`)                                                                       |
 | `database_uri`      | Database URI. (Example: `localhost:5432/YOUR_TABLE_NAME`)                                                                     |
 | `database_username` |                                                                                                                                   |
-| `database_password` | Blank space for no password.                                                                                                                                  |
+| `database_password` |                                                                                                                               |
 
 ![Token Location](docs/token_location.PNG)  
 
