@@ -1,0 +1,19 @@
+{
+  "name": "queue-bot",
+  "version": "1.0.0",
+  "description": "A Discord bot!",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Arrow",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/opus": "^0.1.0",
+    "@keyv/postgres": "^1.0.16",
+    "discord.js": "github:discordjs/discord.js",
+    "ffmpeg": "0.0.4",
+    "keyv": "^4.0.0"
+  }
+}
