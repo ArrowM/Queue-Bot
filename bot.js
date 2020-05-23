@@ -6,7 +6,8 @@ const {
 	database_uri,
 	database_username,
 	database_password,
-	grace_period
+	grace_period,
+	permissions_regexp
 } = require('./config.json');
 
 const QUEUE_CMD = `q`;
@@ -22,7 +23,9 @@ const Keyv = require('keyv');
 const guildIdVoiceChannelDictId = (function () {
 	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`); // guild.id | voice.channel.id
 })();
-const guildIdGuildMemberIdDict = {};	// guild.id | [guildMember.id, ...]
+const guildIdGuildMemberIdDict = {};	// guild.id | [guildMember.id, ...]\
+
+const guildIdDisplayMessageDict = {};
 
 client.login(token);
 guildIdVoiceChannelDictId.on('error', err => console.error('Keyv connection error:', err));
@@ -57,14 +60,16 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 			const queueVoiceChannel = guild.channels.cache.get(voiceChannelId);
 
 			if (newChannel === queueVoiceChannel) { // Joining Queue
-				if (!member.user.bot) {
+				if (!member.user.bot && !guildIdGuildMemberIdDict[guild.id].includes(member.id)) {
 					guildIdGuildMemberIdDict[guild.id].push(member.id); // User joined channel, add to queue.
+					updateDisplayQueue(guild);
 				}
 			} else if (oldChannel === queueVoiceChannel) { // Leaving Queue
 				if (member.user.bot) {
 					if (newChannel) {
 						if (guildIdGuildMemberIdDict[guild.id].length > 0) { // Bot got pulled into another channel
 							guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0]).voice.setChannel(newChannel); // If the use queue is not empty, pull in the next in user queue.
+							guildIdGuildMemberIdDict[guild.id].shift();
 						}
 						newVoiceState.setChannel(queueVoiceChannel); // Return bot to queue channel
 					}
@@ -78,6 +83,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 							}
 						} catch (e) { console.error(e); }
 					}, grace_period * 1000); // 5 min timer
+					updateDisplayQueue(guild);
 				}
 			}
 		}
@@ -85,7 +91,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 });
 
 function hasPermissions(message) { 
-	const regex = RegExp(`\bmod\b|\bmods\b`);
+	const regex = RegExp(permissions_regexp);
 	return message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
 }
 
@@ -106,15 +112,58 @@ async function start(message, guildIdVoiceChannelDictId) {
 	} catch (e) { console.error(e); }
 }
 
+function generateEmbed(guild) {
+	const memberIdQueue = guildIdGuildMemberIdDict[guild.id];
+
+	const queueEmbed = {
+		"embed": {
+			"title": "Voice Channel Queue",
+			"color": 5301186,
+			"fields": []
+		}
+	};
+
+	let fields = [];
+	if (memberIdQueue && memberIdQueue.length > 0) {
+		let position = 0;
+		memberIdQueue.map(function (memberId) {
+			fields.push({
+				"name": ++position,
+				"value": guild.members.cache.get(memberId).displayName
+			});
+		});
+	}
+	else {
+		fields.push({
+			"name": "Empty",
+			"value": "Empty"
+		});
+	}
+
+	queueEmbed['embed']['fields'].push(fields);
+
+	return queueEmbed;
+}
+
 async function displayQueue(message) {
 	try {
+		if (!hasPermissions(message)) return;
 		const guild = message.guild;
-		const memberIdQueue = guildIdGuildMemberIdDict[guild.id];
-		if (!memberIdQueue || memberIdQueue.length === 0) {
-			message.channel.send(`Current Queue: Empty`);
-		} else {
-			var i = 0;
-			message.channel.send(`Current Queue:` + memberIdQueue.map(gId => ` [${++i}] ` + guild.members.cache.get(gId).displayName));
+
+		let queueEmbed = generateEmbed(guild);
+
+		message.channel.send(queueEmbed).then(msg => guildIdDisplayMessageDict[guild.id] = msg);
+	} catch (e) { console.error(e); }
+}
+
+function updateDisplayQueue(guild) {
+	try {
+		let receivedMessage = guildIdDisplayMessageDict[guild.id];
+		if (receivedMessage) {
+			setTimeout(() => {
+				let queueEmbed = generateEmbed(guild);
+				receivedMessage.edit(queueEmbed);
+			}, 100);
 		}
 	} catch (e) { console.error(e); }
 }
