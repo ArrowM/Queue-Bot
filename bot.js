@@ -19,12 +19,13 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 const Keyv = require('keyv');
 
+const sleep = m => new Promise(r => setTimeout(r, m));
+
 // CMD:	service postgresql start
 const guildIdVoiceChannelDictId = (function () {
 	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`); // guild.id | voice.channel.id
 })();
 const guildIdGuildMemberIdDict = {};	// guild.id | [guildMember.id, ...]
-
 const guildIdDisplayMessageDict = {};
 
 client.login(token);
@@ -76,13 +77,13 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				} else {
 					console.log(`[${guild.name}] | [${member.displayName}] set to leave queue in ${grace_period} seconds`);
 					let currentUser = guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0]);
-					setTimeout(() => {
-						try {
-							if (currentUser.voice.channel !== queueVoiceChannel) {
-								guildIdGuildMemberIdDict[guild.id].splice(guildIdGuildMemberIdDict[guild.id].indexOf(member.id), 1); // User left channel, remove from queue
-							}
-						} catch (e) { console.error(e); }
-					}, grace_period * 1000);
+					let timer = 0;
+					while (timer < grace_period) {
+						await sleep(1000);
+						if (currentUser.voice.channel === queueVoiceChannel) return;
+						timer++;
+					}
+					guildIdGuildMemberIdDict[guild.id].splice(guildIdGuildMemberIdDict[guild.id].indexOf(member.id), 1); // User left channel, remove from queue
 					updateDisplayQueue(guild);
 				}
 			}
@@ -159,10 +160,8 @@ async function displayQueue(message) {
 function updateDisplayQueue(guild) {
 	let receivedMessage = guildIdDisplayMessageDict[guild.id];
 	if (receivedMessage) {
-		setTimeout(() => {
-			let queueEmbed = generateEmbed(guild);
-			receivedMessage.edit(queueEmbed);
-		}, 100);
+		let queueEmbed = generateEmbed(guild);
+		receivedMessage.edit(queueEmbed);
 	}
 }
 
