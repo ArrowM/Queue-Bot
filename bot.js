@@ -129,7 +129,7 @@ async function generateEmbed(guild) {
 		}
 		// Handle non-empty
 		else {
-			const maxEmbedSize = 25;
+			const maxEmbedSize = 1;
 			let position = 0;
 			for (var i = 0; i < memberIdQueue.length / maxEmbedSize; i++) {
 				embedList.push({
@@ -173,9 +173,14 @@ async function displayQueue(message) {
 		}
 
 		// Remove old display list
-		for (const storedEmbeds of Object.values(guildDisplayMessageDict[guild.id])) {
-			for (const storedEmbed of Object.values(storedEmbeds)) {
+		if (guildDisplayMessageDict[guild.id][channel]) {
+			for (const storedEmbed of Object.values(guildDisplayMessageDict[guild.id][channel])) {
 				storedEmbed.delete();
+				//for (const storedEmbed of Object.values(storedEmbeds)) {
+				//	console.log("-a-");
+				//	console.log(storedEmbed);
+				//	console.log("-b-");
+				//}
 			}
 		}
 
