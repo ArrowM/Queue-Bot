@@ -7,13 +7,13 @@ const {
 	database_username,
 	database_password,
 	grace_period,
-	permissions_regexp
+	permissions_regexp,
+	color,
+	queue_cmd,
+	start_cmd,
+	display_cmd,
+	help_cmd
 } = require('./config.json');
-
-const QUEUE_CMD = `q`;
-const START_CMD = `s`;
-const DISPLAY_CMD = `d`;
-const HELP_CMD = `help`;
 
 const Discord = require('discord.js');
 const client = new Discord.Client();
@@ -22,14 +22,14 @@ const Keyv = require('keyv');
 const sleep = m => new Promise(r => setTimeout(r, m));
 
 // CMD:	service postgresql start
-const guildIdVoiceChannelDictId = (function () {
+const guildVoiceChannelDictId = (function () {
 	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`); // guild.id | voice.channel.id
 })();
-const guildIdGuildMemberIdDict = {};	// guild.id | [guildMember.id, ...]
-const guildIdDisplayMessageDict = {};
+const guildGuildMemberIdDict = {};	// guild | [guildMember.id, ...]
+const guildDisplayMessageDict = {};
 
 client.login(token);
-guildIdVoiceChannelDictId.on('error', err => console.error('Keyv connection error:', err));
+guildVoiceChannelDictId.on('error', err => console.error('Keyv connection error:', err));
 
 // Basic console listeners
 client.once('ready', () => {
@@ -49,11 +49,11 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 		let newChannel = newVoiceState.channel;
 		let member = newVoiceState.member;
 		const guild = newVoiceState.guild;
-		const voiceChannelId = await guildIdVoiceChannelDictId.get(guild.id);
+		const voiceChannelId = await guildVoiceChannelDictId.get(guild.id);
 
 		if (oldChannel !== newChannel && voiceChannelId) {
-			if (!guildIdGuildMemberIdDict[guild.id]) {
-				guildIdGuildMemberIdDict[guild.id] = []; // Initialize empty queue if necessary
+			if (!guildGuildMemberIdDict[guild.id]) {
+				guildGuildMemberIdDict[guild.id] = []; // Initialize empty queue if necessary
 			}
 
 			console.log(`[${guild.name}] | [${member.displayName}] moved from [${oldChannel ? oldChannel.name : null}] to [${newChannel ? newChannel.name : null}]`);
@@ -61,31 +61,30 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 			const queueVoiceChannel = guild.channels.cache.get(voiceChannelId);
 
 			if (newChannel === queueVoiceChannel) { // Joining Queue
-				if (!member.user.bot && !guildIdGuildMemberIdDict[guild.id].includes(member.id)) {
-					guildIdGuildMemberIdDict[guild.id].push(member.id); // User joined channel, add to queue
+				if (!member.user.bot && !guildGuildMemberIdDict[guild.id].includes(member.id)) {
+					guildGuildMemberIdDict[guild.id].push(member.id); // User joined channel, add to queue
 					updateDisplayQueue(guild);
 				}
 			} else if (oldChannel === queueVoiceChannel) { // Leaving Queue
 				if (member.user.bot) {
 					if (newChannel) {
-						if (guildIdGuildMemberIdDict[guild.id].length > 0) { // Bot got pulled into another channel
-							guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0]).voice.setChannel(newChannel); // If the use queue is not empty, pull in the next in user queue
-							guildIdGuildMemberIdDict[guild.id].shift();
+						if (guildGuildMemberIdDict[guild.id].length > 0) { // Bot got pulled into another channel
+							guild.members.cache.get(guildGuildMemberIdDict[guild.id][0]).voice.setChannel(newChannel); // If the use queue is not empty, pull in the next in user queue
+							guildGuildMemberIdDict[guild.id].shift();
 						}
 						newVoiceState.setChannel(queueVoiceChannel); // Return bot to queue channel
 					}
 				} else {
 					console.log(`[${guild.name}] | [${member.displayName}] set to leave queue in ${grace_period} seconds`);
-					let currentUser = guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0]);
 					let timer = 0;
 					while (timer < grace_period) {
 						await sleep(1000);
-						if (currentUser.voice.channel === queueVoiceChannel) return;
+						if (member.voice.channel === queueVoiceChannel) return;
 						timer++;
 					}
-					guildIdGuildMemberIdDict[guild.id].splice(guildIdGuildMemberIdDict[guild.id].indexOf(member.id), 1); // User left channel, remove from queue
-					updateDisplayQueue(guild);
+					guildGuildMemberIdDict[guild.id].splice(guildGuildMemberIdDict[guild.id].indexOf(member.id), 1); // User left channel, remove from queue
 				}
+				updateDisplayQueue(guild);
 			}
 		}
 	} catch (e) { console.error(e); }
@@ -96,14 +95,14 @@ function hasPermissions(message) {
 	return message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
 }
 
-async function start(message, guildIdVoiceChannelDictId) {
+async function start(message, guildVoiceChannelDictId) {
 	try {
 		if (!hasPermissions(message)) return;
 		const guild = message.guild;
-		const queueVoiceChannel = guild.channels.cache.get(await guildIdVoiceChannelDictId.get(guild.id));
+		const queueVoiceChannel = guild.channels.cache.get(await guildVoiceChannelDictId.get(guild.id));
 
 		if (!queueVoiceChannel) {
-			message.channel.send(`Queue channel not set yet:\n${prefix}${QUEUE_CMD} {channel name}`);
+			message.channel.send(`Queue channel not set yet:\n${prefix}${queue_cmd} {channel name}`);
 		} else {
 			await queueVoiceChannel.join().then(connection => {
 				connection.voice.setSelfMute(true);
@@ -113,70 +112,128 @@ async function start(message, guildIdVoiceChannelDictId) {
 	} catch (e) { console.error(e); }
 }
 
-function generateEmbed(guild) {
-	const memberIdQueue = guildIdGuildMemberIdDict[guild.id];
-
-	const queueEmbed = {
-		"embed": {
-			"title": "Voice Channel Queue",
-			"color": 5301186,
-			"fields": []
+async function generateEmbed(guild) {
+	try {
+		const memberIdQueue = guildGuildMemberIdDict[guild.id];
+		let embedList = [];
+		// Handle empty queue
+		if (!memberIdQueue || memberIdQueue.length === 0) {
+			embedList = [{
+				"embed": {
+					"fields": {
+						"name": "Empty",
+						"value": "Empty"
+					}
+				}
+			}];
 		}
-	};
+		// Handle non-empty
+		else {
+			const maxEmbedSize = 25;
+			let position = 0;
+			for (var i = 0; i < memberIdQueue.length / maxEmbedSize; i++) {
+				embedList.push({
+					"embed": {
+						"fields": []
+					}
+				});
 
-	let fields = [];
-	if (memberIdQueue && memberIdQueue.length > 0) {
-		let position = 0;
-		memberIdQueue.map(function (memberId) {
-			fields.push({
-				"name": ++position,
-				"value": guild.members.cache.get(memberId).displayName
-			});
+				let fields = [];
+				memberIdQueue.slice(i * maxEmbedSize, (i + 1) * maxEmbedSize).map(function (memberId) {
+					fields.push({
+						"name": ++position,
+						"value": guild.members.cache.get(memberId).displayName
+					});
+				});
+				embedList[i]['embed']['fields'].push(fields);
+			}
+		}
+		// Set name and color
+		let channelName = guild.channels.cache.get(await guildVoiceChannelDictId.get(guild.id)).name;
+		embedList.forEach(queueEmbed => {
+			queueEmbed['embed']['title'] = channelName;
+			queueEmbed['embed']['color'] = color;
+			queueEmbed['content'] = "Voice Channel Queue";
 		});
-	}
-	else {
-		fields.push({
-			"name": "Empty",
-			"value": "Empty"
-		});
-	}
 
-	queueEmbed['embed']['fields'].push(fields);
-
-	return queueEmbed;
+		return embedList;
+	} catch (e) { console.error(e); }
 }
 
 async function displayQueue(message) {
 	try {
 		if (!hasPermissions(message)) return;
 		const guild = message.guild;
+		const channel = message.channel;
 
-		let queueEmbed = generateEmbed(guild);
+		let embedList = await generateEmbed(guild);
 
-		message.channel.send(queueEmbed).then(msg => guildIdDisplayMessageDict[guild.id] = msg);
+		if (!guildDisplayMessageDict[guild.id]) {
+			guildDisplayMessageDict[guild.id] = [];
+		}
+
+		// Remove old display list
+		for (const storedEmbeds of Object.values(guildDisplayMessageDict[guild.id])) {
+			for (const storedEmbed of Object.values(storedEmbeds)) {
+				storedEmbed.delete();
+			}
+		}
+
+		// Create new display list
+		guildDisplayMessageDict[guild.id][channel] = [];
+		embedList.forEach(queueEmbed =>
+			message.channel.send(queueEmbed).then(msg =>
+				guildDisplayMessageDict[guild.id][channel].push(msg)
+			)
+		);
 	} catch (e) { console.error(e); }
 }
 
-function updateDisplayQueue(guild) {
-	let receivedMessage = guildIdDisplayMessageDict[guild.id];
-	if (receivedMessage) {
-		let queueEmbed = generateEmbed(guild);
-		receivedMessage.edit(queueEmbed);
-	}
+async function updateDisplayQueue(guild) {
+	try {
+		if (guildDisplayMessageDict[guild.id]) {
+			let embedList = await generateEmbed(guild);
+
+			for (const storedEmbeds of Object.values(guildDisplayMessageDict[guild.id])) {
+				// Same number of embed messages, edit them
+				if (storedEmbeds.length === embedList.length) {
+					for (var i = 0; i < embedList.length; i++) {
+						storedEmbeds[i].edit(embedList[i]);
+					}
+				}
+
+				// Different number of embed messages, create all new messages
+				else {
+					let channel = storedEmbeds[0].channel;
+					// Remove old display list
+					for (const storedEmbed of Object.values(storedEmbeds)) {
+						storedEmbed.delete();
+					}
+					guildDisplayMessageDict[guild.id][channel] = [];
+					// Create new display list
+					embedList.forEach(queueEmbed =>
+						channel.send(queueEmbed).then(
+							msg => guildDisplayMessageDict[guild.id][channel].push(msg)
+						)
+					);
+				}
+			}
+		}
+	} catch (e) { console.error(e); }
 }
 
-async function setQueueChannel(message, guildIdVoiceChannelDictId, guildIdGuildMemberIdDict) {
+async function setQueueChannel(message, guildVoiceChannelDictId, guildGuildMemberIdDict) {
 	try {
 		if (!hasPermissions(message)) return;
 		const guild = message.guild;
-		const voiceChannelId = await guildIdVoiceChannelDictId.get(guild.id);
-		const channelName = message.content.slice(`${prefix}${START_CMD}`.length).trim(); // Extract channel name from message
+		const voiceChannelId = await guildVoiceChannelDictId.get(guild.id);
+		const channelName = message.content.slice(`${prefix}${start_cmd}`.length).trim(); // Extract channel name from message
 
 		if (channelName === "") { // Display current guild
 			if (voiceChannelId) {
 				return message.channel.send(`Current queue channel: [${guild.channels.cache.get(voiceChannelId).name}]`);
 			} else {
-				return message.channel.send(`Queue channel not set yet:\n${prefix}${QUEUE_CMD} {channel name}`);
+				return message.channel.send(`Queue channel not set yet:\n${prefix}${queue_cmd} {channel name}`);
 			}
 		} else { // Set current guild
 			const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
@@ -188,11 +245,11 @@ async function setQueueChannel(message, guildIdVoiceChannelDictId, guildIdGuildM
 				return message.channel.send('I need the permissions to join your voice channel!');
 			}
 
-			await guildIdVoiceChannelDictId.set(guild.id, voiceChannel.id);
-			guildIdGuildMemberIdDict[message.guild.id] = voiceChannel.members.filter(m => !m.user.bot).map(m => m.id);
+			await guildVoiceChannelDictId.set(guild, voiceChannel.id);
+			guildGuildMemberIdDict[guild.id] = voiceChannel.members.filter(m => !m.user.bot).map(m => m.id);
 			message.channel.send(`Queue channel set to [${channelName}].`);
-			if (!guild.members.cache.get(guildIdGuildMemberIdDict[guild.id][0])) {
-				start(message, guildIdVoiceChannelDictId);
+			if (!guild.members.cache.get(guildGuildMemberIdDict[guild.id][0])) {
+				start(message, guildVoiceChannelDictId);
 			}
 		}
 	} catch (e) { console.error(e); }
@@ -200,29 +257,28 @@ async function setQueueChannel(message, guildIdVoiceChannelDictId, guildIdGuildM
 
 async function help(message) {
 	message.channel.send(`**How to use:**`
-		+ `\n1. Setup using ${prefix}${QUEUE_CMD}, then ${prefix}${START_CMD} as explained below.`
+		+ `\n1. Setup using ${prefix}${queue_cmd}, then ${prefix}${start_cmd} as explained below.`
 		+ `\n2. When you want to pull in the next user (whoever has been in queue the longest), pull the bot into your channel and it will automatically swap with them.`
 		+ `\n3. When you are done, right-click the bot, and Disconnect it.`);
 	return message.channel.send(`**Commands:**`
-		+ `\n${prefix}${QUEUE_CMD} {channel name}\t | Set the queue channel (do this before ${prefix}${START_CMD}).`
-		+ `\n${prefix}${START_CMD}\t\t\t\t\t\t\t\t\t | Start the Queue Bot.`
-		+ `\n${prefix}${DISPLAY_CMD}\t\t\t\t\t\t\t\t\t | Display the current waiting queue.`);
+		+ `\n${prefix}${queue_cmd} {channel name}\t | Set the queue channel (do this before ${prefix}${start_cmd}).`
+		+ `\n${prefix}${start_cmd}\t\t\t\t\t\t\t\t\t | Start the Queue Bot.`
+		+ `\n${prefix}${display_cmd}\t\t\t\t\t\t\t\t\t | Display the current waiting queue.`);
 }
 
 // Monitor for chat commands
 client.on('message', async message => {
-	if (message.author.bot) return;                     // Ignore if message is from this bot.
-	if (!message.content.startsWith(prefix)) return;    // Ignore if message does not have command prefix.
+	if (message.author.bot || !message.content.startsWith(prefix)) return;
 	content = message.content.trim();
 	console.log(message.content);
 
-	if (content === `${prefix}${START_CMD}`) {
-		start(message, guildIdVoiceChannelDictId);
-	} else if (content === `${prefix}${DISPLAY_CMD}`) {
-		displayQueue(message, guildIdGuildMemberIdDict);
-	} else if (content.startsWith(`${prefix}${QUEUE_CMD}`)) {
-		setQueueChannel(message, guildIdVoiceChannelDictId, guildIdGuildMemberIdDict);
-	} else if (content === `${prefix}${HELP_CMD}`) {
+	if (content === `${prefix}${start_cmd}`) {
+		start(message, guildVoiceChannelDictId);
+	} else if (content === `${prefix}${display_cmd}`) {
+		displayQueue(message, guildGuildMemberIdDict);
+	} else if (content.startsWith(`${prefix}${queue_cmd}`)) {
+		setQueueChannel(message, guildVoiceChannelDictId, guildGuildMemberIdDict);
+	} else if (content === `${prefix}${help_cmd}`) {
 		help(message);
 	}
 });
