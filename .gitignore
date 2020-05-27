@@ -1,9 +1,11 @@
 /*
 !/.gitignore
-!README.md
-!bot.js
+!/README.md
+!/bot.js
 !/docs
 !/node_modules
 /node_modules/*
 !/node_modules/keyv
-!package.json
+/node_modules/keyv/*
+!/node_modules/keyv/src
+!/package.json
