@@ -102,6 +102,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 		const availableVoiceChannels = Object.keys(guildGuildMemberIdDict[guild.id]).map(id => client.channels.cache.get(id));
 
 		if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
+			console.log(1);
 			if (member.user.bot) {
 				if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
 					if (guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].length > 0) { // Bot got pulled into another channel
@@ -118,7 +119,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 					guildGuildMemberIdDict[guild.id][newVoiceChannel.id].push(member.id); // User joined channel, add to queue
 					updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemberIdDict, [oldVoiceChannel, newVoiceChannel]);
 				}
-				else {
+				if (availableVoiceChannels.includes(oldVoiceChannel)) {
 					console.log(`[${guild.name}] | [${member.displayName}] set to leave [${oldVoiceChannel.name}] queue in ${grace_period} seconds`);
 					let timer = 0;
 					while (timer < grace_period) {
