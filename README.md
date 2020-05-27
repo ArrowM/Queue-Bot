@@ -50,9 +50,8 @@ Created to make it easier for streamers to talk to viewers. This acts as a place
 All commands are restricted to owners or users with `mod` or `mods` in their server roles  
   
 **Commands**  
-`!q`  
-Create or delete queues using `!q {channel name}`  
-`!d`  
-Display queues in chat using `!d {channel name}`. Display messages stay updated.  
-`!s`  
-Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled into a non-queue channel and it will automatically swap with the next person in the channel queue. Right-click bot and disconnect from the voice channel when done.
+`!q` Create or delete queues using `!q {channel name}`  
+  
+`!d` Display queues in chat using `!d {channel name}`. Display messages stay updated. 
+  
+`!s` Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled into a non-queue channel and it will automatically swap with the next person in the channel queue. Right-click bot and disconnect from the voice channel when done.
