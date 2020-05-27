@@ -6,5 +6,11 @@
   "database_username": "postgres",
   "database_password": " ",
   "grace_period": "300",
-  "permissions_regexp": "\\bmod\\b|\\bmods\\b"
+  "permissions_regexp": "\\bmod\\b|\\bmods\\b",
+  "color": "478E81",
+
+  "queue_cmd": "q",
+  "start_cmd": "s",
+  "display_cmd": "d",
+  "help_cmd": "help"
 }
