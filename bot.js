@@ -102,7 +102,6 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 		const availableVoiceChannels = Object.keys(guildGuildMemberIdDict[guild.id]).map(id => client.channels.cache.get(id));
 
 		if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
-			console.log(1);
 			if (member.user.bot) {
 				if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
 					if (guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].length > 0) { // Bot got pulled into another channel
