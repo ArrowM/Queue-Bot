@@ -22,17 +22,29 @@ const Keyv = require('keyv');
 const sleep = m => new Promise(r => setTimeout(r, m));
 
 // CMD:	service postgresql start
-const guildVoiceChannelDictId = (function () {
-	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`); // guild.id | voice.channel.id
+let guildVoiceChannelDictId = (function () {
+	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`); // guild.id | [voice GuildChannel.id, ...]
 })();
-const guildGuildMemberIdDict = {};	// guild | [guildMember.id, ...]
-const guildDisplayMessageDict = {};
+const guildGuildMemberIdDict = [];	// guild.id | voice GuildChannel | [guildMember.id, ...]
+const guildDisplayMessageDict = []; // guild.id | voice GuildChannel | text channel | [message.id, ...]
 
 client.login(token);
 guildVoiceChannelDictId.on('error', err => console.error('Keyv connection error:', err));
 
 // Basic console listeners
 client.once('ready', () => {
+	console.log(Promise.resolve(guildVoiceChannelDictId.keys()));
+	//for (guildId of Object.keys(guildVoiceChannelDictId)) {
+	//	for (voiceChannel of Object.keys(guildVoiceChannelDictId[guildId])) {
+	//		guildGuildMemberIdDict[guildId] = [];
+	//		console.log("v: " + voiceChannel.name);
+	//		console.log("m: " + voiceChannel.members.length);
+	//		if (voiceChannel.members) {
+	//			guildGuildMemberIdDict[guildId][voiceChannel] = voiceChannel.members.map(member => member.id);
+	//		}
+	//	}
+	//}
+	//console.log(guildGuildMemberIdDict);
 	console.log('Ready!');
 });
 client.once('reconnecting', () => {
@@ -63,7 +75,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 			if (newChannel === queueVoiceChannel) { // Joining Queue
 				if (!member.user.bot && !guildGuildMemberIdDict[guild.id].includes(member.id)) {
 					guildGuildMemberIdDict[guild.id].push(member.id); // User joined channel, add to queue
-					updateDisplayQueue(guild);
+					updateDisplayQueue(guild, guildGuildMemberIdDict);
 				}
 			} else if (oldChannel === queueVoiceChannel) { // Leaving Queue
 				if (member.user.bot) {
@@ -84,7 +96,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 					}
 					guildGuildMemberIdDict[guild.id].splice(guildGuildMemberIdDict[guild.id].indexOf(member.id), 1); // User left channel, remove from queue
 				}
-				updateDisplayQueue(guild);
+				updateDisplayQueue(guild, guildGuildMemberIdDict);
 			}
 		}
 	} catch (e) { console.error(e); }
@@ -112,9 +124,10 @@ async function start(message, guildVoiceChannelDictId) {
 	} catch (e) { console.error(e); }
 }
 
-async function generateEmbed(guild) {
+async function generateEmbed(voiceChannel, guildGuildMemberIdDict) {
 	try {
-		const memberIdQueue = guildGuildMemberIdDict[guild.id];
+		console.log(voiceChannel);
+		const memberIdQueue = guildGuildMemberIdDict[voiceChannel.guild.id][voiceChannel];
 		let embedList = [];
 		// Handle empty queue
 		if (!memberIdQueue || memberIdQueue.length === 0) {
@@ -129,7 +142,7 @@ async function generateEmbed(guild) {
 		}
 		// Handle non-empty
 		else {
-			const maxEmbedSize = 1;
+			const maxEmbedSize = 25;
 			let position = 0;
 			for (var i = 0; i < memberIdQueue.length / maxEmbedSize; i++) {
 				embedList.push({
@@ -142,14 +155,14 @@ async function generateEmbed(guild) {
 				memberIdQueue.slice(i * maxEmbedSize, (i + 1) * maxEmbedSize).map(function (memberId) {
 					fields.push({
 						"name": ++position,
-						"value": guild.members.cache.get(memberId).displayName
+						"value": voiceChannel.guild.members.cache.get(memberId).displayName
 					});
 				});
 				embedList[i]['embed']['fields'].push(fields);
 			}
 		}
 		// Set name and color
-		let channelName = guild.channels.cache.get(await guildVoiceChannelDictId.get(guild.id)).name;
+		let channelName = voiceChannel.name;
 		embedList.forEach(queueEmbed => {
 			queueEmbed['embed']['title'] = channelName;
 			queueEmbed['embed']['color'] = color;
@@ -160,67 +173,86 @@ async function generateEmbed(guild) {
 	} catch (e) { console.error(e); }
 }
 
-async function displayQueue(message) {
+async function displayQueue(message, guildGuildMemberIdDict, guildDisplayMessageDict) {
 	try {
 		if (!hasPermissions(message)) return;
 		const guild = message.guild;
-		const channel = message.channel;
+		const textChannel = message.channel;
 
-		let embedList = await generateEmbed(guild);
-
-		if (!guildDisplayMessageDict[guild.id]) {
-			guildDisplayMessageDict[guild.id] = [];
+		// Extract channel name from message
+		const channelArg = message.content.slice(`${prefix}${start_cmd}`.length).trim();
+		if (channelArg === "") { // Display current queues
+			textChannel.send(`Must include channel name!`
+				+ `\nValid channels: ${Object.keys(guildDisplayMessageDict).map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 		}
-
-		// Remove old display list
-		if (guildDisplayMessageDict[guild.id][channel]) {
-			for (const storedEmbed of Object.values(guildDisplayMessageDict[guild.id][channel])) {
-				storedEmbed.delete();
-				//for (const storedEmbed of Object.values(storedEmbeds)) {
-				//	console.log("-a-");
-				//	console.log(storedEmbed);
-				//	console.log("-b-");
-				//}
+		else {
+			const voiceChannel = Object.keys(guildDisplayMessageDict).find(channel =>
+				channel.name.localeCompare(channelArg, undefined, { sensitivity: 'accent' }) === 0);
+			if (!voiceChannel) {
+				message.channel.send(`Invalid channel name!`
+					+ `\nValid channels: ${Object.keys(guildDisplayMessageDict).map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 			}
-		}
+			else {
+				console.log(1);
+				let embedList = await generateEmbed(voiceChannel, guildGuildMemberIdDict);
 
-		// Create new display list
-		guildDisplayMessageDict[guild.id][channel] = [];
-		embedList.forEach(queueEmbed =>
-			message.channel.send(queueEmbed).then(msg =>
-				guildDisplayMessageDict[guild.id][channel].push(msg)
-			)
-		);
-	} catch (e) { console.error(e); }
-}
+				// Initialize display message queue
+				if (!guildDisplayMessageDict[guild.id]) {
+					guildDisplayMessageDict[guild.id] = [];
+				}
+				if (!guildDisplayMessageDict[guild.id][voiceChannel]) {
+					guildDisplayMessageDict[guild.id][voiceChannel] = [];
+				}
 
-async function updateDisplayQueue(guild) {
-	try {
-		if (guildDisplayMessageDict[guild.id]) {
-			let embedList = await generateEmbed(guild);
-
-			for (const storedEmbeds of Object.values(guildDisplayMessageDict[guild.id])) {
-				// Same number of embed messages, edit them
-				if (storedEmbeds.length === embedList.length) {
-					for (var i = 0; i < embedList.length; i++) {
-						storedEmbeds[i].edit(embedList[i]);
+				// Remove old display list
+				if (guildDisplayMessageDict[guild.id][voiceChannel][textChannel]) {
+					for (const storedEmbed of Object.values(guildDisplayMessageDict[guild.id][voiceChannel][textChannel])) {
+						storedEmbed.delete();
 					}
 				}
 
-				// Different number of embed messages, create all new messages
-				else {
-					let channel = storedEmbeds[0].channel;
-					// Remove old display list
-					for (const storedEmbed of Object.values(storedEmbeds)) {
-						storedEmbed.delete();
+				// Create new display list
+				guildDisplayMessageDict[guild.id][voiceChannel][textChannel] = [];
+				embedList.forEach(queueEmbed =>
+					textChannel.send(queueEmbed).then(msg =>
+						guildDisplayMessageDict[guild.id][voiceChannel][textChannel].push(msg)
+					)
+				);
+
+				console.log(2);
+			}
+		}
+	} catch (e) { console.error(e); }
+}
+
+async function updateDisplayQueue(guild, guildGuildMemberIdDict) {
+	try {
+		if (guildDisplayMessageDict[guild.id]) {
+			for (const voiceChannel of Object.keys(guildDisplayMessageDict[guild.id])) {
+				let embedList = await generateEmbed(voiceChannel, guildGuildMemberIdDict);
+				for (const storedEmbeds of guildDisplayMessageDict[guild.id][voiceChannel]) {
+					// Same number of embed messages, edit them
+					if (storedEmbeds.length === embedList.length) {
+						for (var i = 0; i < embedList.length; i++) {
+							storedEmbeds[i].edit(embedList[i]);
+						}
 					}
-					guildDisplayMessageDict[guild.id][channel] = [];
-					// Create new display list
-					embedList.forEach(queueEmbed =>
-						channel.send(queueEmbed).then(
-							msg => guildDisplayMessageDict[guild.id][channel].push(msg)
-						)
-					);
+
+					// Different number of embed messages, create all new messages
+					else {
+						let textChannel = storedEmbeds[0].channel;
+						// Remove old display list
+						for (const storedEmbed of Object.values(storedEmbeds)) {
+							storedEmbed.delete();
+						}
+						guildDisplayMessageDict[guild.id][voiceChannel][textChannel] = [];
+						// Create new display list
+						embedList.forEach(queueEmbed =>
+							textChannel.send(queueEmbed).then(
+								msg => guildDisplayMessageDict[guild.id][voiceChannel][channel].push(msg)
+							)
+						);
+					}
 				}
 			}
 		}
@@ -231,30 +263,58 @@ async function setQueueChannel(message, guildVoiceChannelDictId, guildGuildMembe
 	try {
 		if (!hasPermissions(message)) return;
 		const guild = message.guild;
-		const voiceChannelId = await guildVoiceChannelDictId.get(guild.id);
-		const channelName = message.content.slice(`${prefix}${start_cmd}`.length).trim(); // Extract channel name from message
+		const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
 
-		if (channelName === "") { // Display current guild
-			if (voiceChannelId) {
-				return message.channel.send(`Current queue channel: [${guild.channels.cache.get(voiceChannelId).name}]`);
+		// Get stored voice channel list from database
+		const voiceChannelsString = await guildVoiceChannelDictId.get(guild.id);
+		const voiceChannelIds = voiceChannelsString ? voiceChannelsString.split(",") : [];
+
+		// Extract channel name from message
+		const channelArg = message.content.slice(`${prefix}${start_cmd}`.length).trim();
+
+		if (channelArg === "") { // Display current queues
+			if (voiceChannelIds.length > 0) {
+				message.channel.send(`Current queues: ${voiceChannelIds.map(id => ` \`${guild.channels.cache.get(id).name}\``)}`);
 			} else {
-				return message.channel.send(`Queue channel not set yet:\n${prefix}${queue_cmd} {channel name}`);
-			}
-		} else { // Set current guild
-			const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
-			const voiceChannel = availableVoiceChannels.find(x => x.name.toUpperCase() === channelName.toUpperCase());
-
-			if (!voiceChannel) return message.channel.send(`Invalid channel name!\nValid channels:${availableVoiceChannels.map(a => ` [${a.name}]`)}`);
-			const permissions = voiceChannel.permissionsFor(message.client.user);
-			if (!permissions.has('CONNECT')) {
-				return message.channel.send('I need the permissions to join your voice channel!');
+				message.channel.send(`No queue channels set:`
+					+ `\n${prefix}${queue_cmd} \`channel name\``
+					+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 			}
 
-			await guildVoiceChannelDictId.set(guild, voiceChannel.id);
-			guildGuildMemberIdDict[guild.id] = voiceChannel.members.filter(m => !m.user.bot).map(m => m.id);
-			message.channel.send(`Queue channel set to [${channelName}].`);
-			if (!guild.members.cache.get(guildGuildMemberIdDict[guild.id][0])) {
-				start(message, guildVoiceChannelDictId);
+		}
+		else {
+			const voiceChannel = availableVoiceChannels.find(channel =>
+				channel.name.localeCompare(channelArg, undefined, { sensitivity: 'accent' }) === 0);
+
+			if (!voiceChannel) {
+				message.channel.send(`Invalid channel name!`
+					+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
+			}
+			else {
+				// Check Perms
+				if (!voiceChannel.permissionsFor(message.client.user).has('CONNECT')) {
+					return message.channel.send('I need the permissions to join your voice channel!');
+				}
+
+				// Initialize member queue
+				if (!guildGuildMemberIdDict[guild.id]) {
+					guildGuildMemberIdDict[guild.id] = [];
+				}
+				guildGuildMemberIdDict[guild.id][voiceChannel] = [];
+
+				// Toggle Queue
+				if (voiceChannelIds.includes(voiceChannel.id)) { // If it's in the list, remove it
+					voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
+					message.channel.send(`Deleted queue for \`${voiceChannel.name}\`.`);
+				}
+				else { // If it's not in the list, add it
+					voiceChannelIds.push(voiceChannel.id);
+					message.channel.send(`Created queue for \`${voiceChannel.name}\`.`);
+					guildGuildMemberIdDict[guild.id][voiceChannel].concat(voiceChannel.members.filter(m => !m.user.bot).map(m => m.id));
+				}
+
+				// Store channel to database
+				guildVoiceChannelDictId.set(guild.id, voiceChannelIds.toString());
 			}
 		}
 	} catch (e) { console.error(e); }
@@ -277,13 +337,16 @@ client.on('message', async message => {
 	content = message.content.trim();
 	console.log(message.content);
 
-	if (content === `${prefix}${start_cmd}`) {
+	if (content.startsWith(prefix + start_cmd)) {
 		start(message, guildVoiceChannelDictId);
-	} else if (content === `${prefix}${display_cmd}`) {
-		displayQueue(message, guildGuildMemberIdDict);
-	} else if (content.startsWith(`${prefix}${queue_cmd}`)) {
+
+	} else if (content.startsWith(prefix + display_cmd)) {
+		displayQueue(message, guildGuildMemberIdDict, guildDisplayMessageDict);
+
+	} else if (content.startsWith(prefix + queue_cmd)) {
 		setQueueChannel(message, guildVoiceChannelDictId, guildGuildMemberIdDict);
-	} else if (content === `${prefix}${help_cmd}`) {
+
+	} else if (content.startsWith(prefix + help_cmd)) {
 		help(message);
 	}
 });
