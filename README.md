@@ -1,5 +1,5 @@
 # Debate-Queue-Bot
-Created to make it easier for streamers to talk to viewers. This acts as a placeholder for whoever has been waiting in a voice channel the longest.  
+Tracks user waiting in voice channel queues. Provides live queue displays in chat and assists in pulling out users in queue order. 
   
 ## Setup
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
