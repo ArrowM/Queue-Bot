@@ -46,8 +46,9 @@ Created to make it easier for streamers to talk to viewers. This acts as a place
 	8c. To stop the bot, enter `forever stop bot.js`
   
 ## How to use
-### Access  
+**Access**  
 All commands are restricted to owners or users with `mod` or `mods` in their server roles  
+**Commands**
 `!q`  
 Create or delete queues using `!q {channel name}`  
 `!d`  
