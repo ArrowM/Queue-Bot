@@ -48,7 +48,8 @@ Created to make it easier for streamers to talk to viewers. This acts as a place
 ## How to use
 **Access**  
 All commands are restricted to owners or users with `mod` or `mods` in their server roles  
-**Commands**
+  
+**Commands**  
 `!q`  
 Create or delete queues using `!q {channel name}`  
 `!d`  
