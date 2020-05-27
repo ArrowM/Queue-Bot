@@ -1,4 +1,6 @@
 # Debate-Queue-Bot
+Created to make it easier for streamers to talk to viewers. This acts as a placeholder for whoever has been waiting in a voice channel the longest.  
+  
 ## Setup
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
 2. Clone/download this repository  
@@ -42,4 +44,13 @@
 	8a. In command prompt (set to the project directory), enter `npm install forever`
 	8b. To start the bot, enter `forever start bot.js`
 	8c. To stop the bot, enter `forever stop bot.js`
-
+  
+## How to use
+###Access  
+All commands are restricted to owners or users with `mod` or `mods` in their server roles  
+###!q  
+Create or delete queues using `!q {channel name}`  
+###!d  
+Display queues in chat using `!d {channel name}`. Display messages stay updated.  
+###!s  
+Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled into a non-queue channel and it will automatically swap with the next person in the channel queue. Right-click bot and disconnect from the voice channel when done.
