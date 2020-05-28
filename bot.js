@@ -49,7 +49,7 @@ client.once('ready', async () => {
 					if (!guildGuildMemberIdDict[guild.id]) {
 						guildGuildMemberIdDict[guild.id] = [];
 					}
-					guildGuildMemberIdDict[guild.id][voiceChannel.id] = voiceChannel.members.map(member => member.id);
+					guildGuildMemberIdDict[guild.id][voiceChannel.id] = voiceChannel.members.filter(member => !member.user.bot).map(member => member.id);
 				}	
 				else {
 					// Cleanup deleted Channels
@@ -75,7 +75,7 @@ client.once('reconnecting', async () => {
 			// Add users who joined during disconnect
 			for (let i = 0; i < voiceChannel.members.length; i++) {
 				const memberId = voiceChannel.members[i].id;
-				if (!guildGuildMemberIdDict[guildId][voiceChannel].includes(memberId)) {
+				if (!member.user.bot && !guildGuildMemberIdDict[guildId][voiceChannel].includes(memberId)) {
 					guildGuildMemberIdDict[guildId][voiceChannel].push(memberId);
 				}
 			}
@@ -104,7 +104,8 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 		if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
 			if (member.user.bot) {
 				if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
-					if (guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].length > 0) { // Bot got pulled into another channel
+					if (guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].length > 0) { 
+						// Person to swap
 						guild.members.cache.get(guildGuildMemberIdDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel); // If the use queue is not empty, pull in the next in user queue
 						guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].shift();
 					}
@@ -114,7 +115,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 			else {
 				console.log(`[${guild.name}] | [${member.displayName}] moved from [${oldVoiceChannel ? oldVoiceChannel.name : null}] to [${newVoiceChannel ? newVoiceChannel.name : null}]`);
 
-				if (availableVoiceChannels.includes(newVoiceChannel)) { // Joining Queue
+				if (availableVoiceChannels.includes(newVoiceChannel) && !guildGuildMemberIdDict[guild.id][newVoiceChannel.id].includes(member.id)) { // Joining Queue
 					guildGuildMemberIdDict[guild.id][newVoiceChannel.id].push(member.id); // User joined channel, add to queue
 					updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemberIdDict, [oldVoiceChannel, newVoiceChannel]);
 				}
