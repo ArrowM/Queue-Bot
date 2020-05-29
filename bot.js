@@ -86,6 +86,8 @@ client.once('reconnecting', async () => {
 client.once('disconnect', () => {
 	console.log('Disconnect!');
 });
+// Error log
+// client.on('debug', console.log);
 
 // Monitor for users joining voice channels
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
@@ -141,31 +143,43 @@ async function hasPermissions(message) {
 	return message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
 }
 
-async function start(message, guildVoiceChannelDict) {
-	if (!await hasPermissions(message)) return;
+async function fetchVoiceChannel(cmd, message, guildGuildMemberIdDict) {
 	const guild = message.guild;
+	let voiceChannel;
 
-	const availableVoiceChannels = Object.keys(guildGuildMemberIdDict[guild.id]).map(id => client.channels.cache.get(id));
+	if (guildGuildMemberIdDict[guild.id]) {
+		// Extract channel name from message
+		const channelArg = message.content.slice(`${prefix}${cmd}`.length).trim();
+		const availableVoiceChannels = Object.keys(guildGuildMemberIdDict[guild.id]).map(id => client.channels.cache.get(id));
 
-	// Extract channel name from message
-	const channelArg = message.content.slice(`${prefix}${start_cmd}`.length).trim();
-	if (channelArg === "") { // Display current queues
-		message.channel.send(`Must include channel name!`
+		if (availableVoiceChannels.length === 1 && channelArg === "") {
+			voiceChannel = availableVoiceChannels[0];
+		}
+		else if (channelArg !== "") {
+			voiceChannel = availableVoiceChannels.find(channel => channel.name.localeCompare(channelArg, undefined, { sensitivity: 'accent' }) === 0);
+		}
+
+		if (voiceChannel) return voiceChannel;
+
+		message.channel.send(`Invalid channel name!`
 			+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ' `' + voiceChannel.name + '`')}`);
 	}
 	else {
-		const voiceChannel = availableVoiceChannels.find(channel =>
-			channel.name.localeCompare(channelArg, undefined, { sensitivity: 'accent' }) === 0);
-		if (voiceChannel) {
-			await voiceChannel.join().then(connection => {
-				connection.voice.setSelfMute(true);
-			});
-			console.log("Successfully connected.");
-		}
-		else {
-			message.channel.send(`Invalid channel name!`
-				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ' `' + voiceChannel.name + '`')}`);
-		}
+		message.channel.send(`No queue channels set. Set a queue first using \`${prefix}${queue_cmd} channel name\``
+			+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
+	}
+}
+
+async function start(message, guildGuildMemberIdDict) {
+	if (!await hasPermissions(message)) return;
+
+	const voiceChannel = await fetchVoiceChannel(start_cmd, message, guildGuildMemberIdDict);
+
+	if (voiceChannel) {
+		await voiceChannel.join().then(connection => {
+			connection.voice.setSelfMute(true);
+		});
+		console.log("Successfully connected.");
 	}
 }
 
@@ -219,47 +233,33 @@ async function displayQueue(message, guildGuildMemberIdDict, guildDisplayMessage
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const textChannel = message.channel;
-	const availableVoiceChannels = Object.keys(guildGuildMemberIdDict[guild.id]).map(id => client.channels.cache.get(id));
+	const voiceChannel = await fetchVoiceChannel(display_cmd, message, guildGuildMemberIdDict);
 
-	// Extract channel name from message
-	const channelArg = message.content.slice(`${prefix}${start_cmd}`.length).trim();
-	if (channelArg === "") { // Display current queues
-		textChannel.send(`Must include channel name!`
-			+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ' `' + voiceChannel.name + '`')}`);
-	}
-	else {
-		const voiceChannel = availableVoiceChannels.find(channel =>
-			channel.name.localeCompare(channelArg, undefined, { sensitivity: 'accent' }) === 0);
-		if (!voiceChannel) {
-			message.channel.send(`Invalid channel name!`
-				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ' `' + voiceChannel.name + '`')}`);
+	if (voiceChannel) {
+		let embedList = await generateEmbed(voiceChannel, guildGuildMemberIdDict);
+
+		// Initialize display message queue
+		if (!guildDisplayMessageDict[guild.id]) {
+			guildDisplayMessageDict[guild.id] = [];
 		}
-		else {
-			let embedList = await generateEmbed(voiceChannel, guildGuildMemberIdDict);
-
-			// Initialize display message queue
-			if (!guildDisplayMessageDict[guild.id]) {
-				guildDisplayMessageDict[guild.id] = [];
-			}
-			if (!guildDisplayMessageDict[guild.id][voiceChannel.id]) {
-				guildDisplayMessageDict[guild.id][voiceChannel.id] = [];
-			}
-
-			// Remove old display list
-			if (guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id]) {
-				for (const storedEmbed of Object.values(guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id])) {
-					storedEmbed.delete();
-				}
-			}
-
-			// Create new display list
-			guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id] = [];
-			embedList.forEach(queueEmbed =>
-				textChannel.send(queueEmbed).then(msg =>
-					guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id].push(msg)
-				)
-			);
+		if (!guildDisplayMessageDict[guild.id][voiceChannel.id]) {
+			guildDisplayMessageDict[guild.id][voiceChannel.id] = [];
 		}
+
+		// Remove old display list
+		if (guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id]) {
+			for (const storedEmbed of Object.values(guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id])) {
+				storedEmbed.delete();
+			}
+		}
+
+		// Create new display list
+		guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id] = [];
+		embedList.forEach(queueEmbed =>
+			textChannel.send(queueEmbed).then(msg =>
+				guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id].push(msg)
+			)
+		);
 	}
 }
 
@@ -307,7 +307,7 @@ async function setQueueChannel(message, guildVoiceChannelDict, guildGuildMemberI
 	const voiceChannelIds = voiceChannelsString ? voiceChannelsString.split(",") : [];
 
 	// Extract channel name from message
-	const channelArg = message.content.slice(`${prefix}${start_cmd}`.length).trim();
+	const channelArg = message.content.slice(`${prefix}${queue_cmd}`.length).trim();
 
 	// No argument. Display current queues
 	if (channelArg === "") {
@@ -398,7 +398,7 @@ client.on('message', async message => {
 	console.log(message.content);
 
 	if (content.startsWith(prefix + start_cmd)) {
-		start(message, guildVoiceChannelDict);
+		start(message, guildGuildMemberIdDict);
 
 	} else if (content.startsWith(prefix + display_cmd)) {
 		displayQueue(message, guildGuildMemberIdDict, guildDisplayMessageDict);

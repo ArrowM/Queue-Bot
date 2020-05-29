@@ -1,11 +1,19 @@
+# General
 /*
 !/.gitignore
 !/README.md
 !/bot.js
 !/docs
+
+# keyv
 !/node_modules
 /node_modules/*
 !/node_modules/keyv
-/node_modules/keyv/*
-!/node_modules/keyv/src
+
+# @keyv
+!/node_modules/@keyv
+/node_modules/@keyv/*
+!/node_modules/@keyv/sql
+
+# Package
 !/package.json
