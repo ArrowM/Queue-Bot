@@ -86,8 +86,6 @@ client.once('reconnecting', async () => {
 client.once('disconnect', () => {
 	console.log('Disconnect!');
 });
-// Error log
-// client.on('debug', console.log);
 
 // Monitor for users joining voice channels
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
@@ -371,19 +369,19 @@ async function help(message) {
 			"fields": [
 				{
 					"name": "Access",
-					"value": "All commands are restricted to owners or users with `mod` or `mods` in their server roles"
+					"value": "All commands are restricted to owners or users with `mod` or `mods` in their server roles."
 				},
 				{
-					"name": "!q ",
-					"value": "Create or delete queues using  `!q {channel name}`"
+					"name": prefix + start_cmd,
+					"value": `Create or delete queues using  \`${prefix}${start_cmd} {channel name}\`.`
 				},
 				{
-					"name": "!d",
-					"value": "Display queues in chat using  `!d {channel name}`. Display messages stay updated."
+					"name": prefix + display_cmd,
+					"value": `Display queues in chat using  \`${prefix}${display_cmd} {channel name}\`. Display messages stay updated.`
 				},
 				{
-					"name": "!s",
-					"value": "Add the bot to a voice channel using  `!s {channel name}`. The bot can be pulled into a non-queue channel and it will automatically swap with the next person in the channel queue. Right-click bot and disconnect from the voice channel when done."
+					"name": prefix + queue_cmd,
+					"value": `Add the bot to a voice channel using  \`${prefix}${queue_cmd} {channel name}\`. The bot can be pulled into a non-queue channel and it will automatically swap with the next person in the channel queue. Right-click bot and disconnect from the voice channel when done.`
 				}
 			]
 		}
