@@ -20,6 +20,7 @@ const client = new Discord.Client();
 const Keyv = require('keyv');
 
 const sleep = m => new Promise(r => setTimeout(r, m));
+let grace_period_string;
 
 // CMD:	service postgresql start
 let guildVoiceChannelDict = (function () {
@@ -59,6 +60,12 @@ client.once('ready', async () => {
 			}
 		}
 	}
+	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'idle' }).then().catch(console.error);
+	// Prep parameters
+	const grace_minutes = Math.round(grace_period / 60);
+	const grace_seconds = grace_period % 60;
+	grace_period_string = (grace_minutes > 0 ? grace_minutes + ' minute' : '') + (grace_minutes > 1 ? 's' : '')
+		+ (grace_minutes > 0 && grace_seconds > 0 ? ' and ' : '') + (grace_seconds > 0 ? grace_seconds + ' second' : '') + (grace_seconds > 1 ? 's' : '');
 	console.log('Ready!');
 });
 client.once('reconnecting', async () => {
@@ -113,14 +120,14 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				}
 			}
 			else {
-				console.log(`[${guild.name}] | [${member.displayName}] moved from [${oldVoiceChannel ? oldVoiceChannel.name : null}] to [${newVoiceChannel ? newVoiceChannel.name : null}]`);
+				// console.log(`[${guild.name}] | [${member.displayName}] moved from [${oldVoiceChannel ? oldVoiceChannel.name : null}] to [${newVoiceChannel ? newVoiceChannel.name : null}]`);
 
 				if (availableVoiceChannels.includes(newVoiceChannel) && !guildGuildMemberIdDict[guild.id][newVoiceChannel.id].includes(member.id)) { // Joining Queue
 					guildGuildMemberIdDict[guild.id][newVoiceChannel.id].push(member.id); // User joined channel, add to queue
 					updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemberIdDict, [oldVoiceChannel, newVoiceChannel]);
 				}
 				if (availableVoiceChannels.includes(oldVoiceChannel)) {
-					console.log(`[${guild.name}] | [${member.displayName}] set to leave [${oldVoiceChannel.name}] queue in ${grace_period} seconds`);
+					// console.log(`[${guild.name}] | [${member.displayName}] set to leave [${oldVoiceChannel.name}] queue in ${grace_period} seconds`);
 					let timer = 0;
 					while (timer < grace_period) {
 						await sleep(1000);
@@ -128,7 +135,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 						timer++;
 					}
 					guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].splice(guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].indexOf(member.id), 1); // User left channel, remove from queue
-					console.log(`[${guild.name}] | [${member.displayName}] left [${oldVoiceChannel.name}] queue`);
+					// console.log(`[${guild.name}] | [${member.displayName}] left [${oldVoiceChannel.name}] queue`);
 				}
 				updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemberIdDict, [oldVoiceChannel, newVoiceChannel]);
 			}
@@ -183,47 +190,41 @@ async function start(message, guildGuildMemberIdDict) {
 
 async function generateEmbed(voiceChannel, guildGuildMemberIdDict) {
 	const memberIdQueue = guildGuildMemberIdDict[voiceChannel.guild.id][voiceChannel.id];
-	let embedList = [];
+	let embedList = [{
+		"embed": {
+			"fields": [{
+				"name": `Current queue length: **${memberIdQueue.length}**`,
+				"value": "\u200b"
+			}]
+		}
+	}];
 	// Handle empty queue
 	if (!memberIdQueue || memberIdQueue.length === 0) {
-		embedList = [{
-			"embed": {
-				"fields": {
-					"name": "Empty",
-					"value": "Empty"
-				}
-			}
-		}];
+		embedList[0]['embed']['fields'][0]['value'] = 'No members in queue.';
 	}
 	// Handle non-empty
 	else {
+		// Set embed names
 		const maxEmbedSize = 25;
-		let position = 0;
+		let position = 1;
 		for (var i = 0; i < memberIdQueue.length / maxEmbedSize; i++) {
-			embedList.push({
-				"embed": {
-					"fields": []
-				}
-			});
-
 			let fields = [];
 			memberIdQueue.slice(i * maxEmbedSize, (i + 1) * maxEmbedSize).map(function (memberId) {
 				fields.push({
-					"name": ++position,
+					"name": position++,
 					"value": voiceChannel.guild.members.cache.get(memberId).displayName
 				});
 			});
 			embedList[i]['embed']['fields'].push(fields);
 		}
 	}
-	// Set name and color
-	let channelName = voiceChannel.name;
+	// Set embed details
 	embedList.forEach(queueEmbed => {
-		queueEmbed['embed']['title'] = channelName;
+		queueEmbed['embed']['title'] = `${voiceChannel.name} Queue`;
 		queueEmbed['embed']['color'] = color;
-		queueEmbed['content'] = "Voice Channel Queue";
+		queueEmbed['embed']['description'] = `Join the **${voiceChannel.name}** voice channel to join the waiting queue.`
+			+ ` If you leave, you have ${grace_period_string} to rejoin before being removed from the queue.`;
 	});
-
 	return embedList;
 }
 
@@ -393,7 +394,7 @@ async function help(message) {
 client.on('message', async message => {
 	if (message.author.bot || !message.content.startsWith(prefix)) return;
 	content = message.content.trim();
-	console.log(message.content);
+	// console.log(message.content);
 
 	if (content.startsWith(prefix + start_cmd)) {
 		start(message, guildGuildMemberIdDict);
