@@ -1,6 +1,6 @@
 # Debate-Queue-Bot
-Tracks user waiting in voice channel queues. Provides live queue displays in chat and assists in pulling out users in queue order. 
-  
+Created to manage voice channel waiting rooms. This bot allows you to display the order of people waiting and easily pull them to another channel.  
+
 ## Setup
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
 2. Clone/download this repository  
@@ -46,15 +46,14 @@ Tracks user waiting in voice channel queues. Provides live queue displays in cha
 	8c. To stop the bot, enter `forever stop bot.js`
   
 ## How to use
-**Access**  
-All commands are restricted to owners or users with `mod` or `mods` in their server roles  
-  
-**Commands**  
+### Access  
+All commands are restricted to owners or users with `mod` or `mods` in their server roles.  
+### Commands  
 `!q`  
-Create or delete queues using `!q {channel name}`  
+Create or delete queues using `!q {channel name}`. Show current queues using `!q`.  
   
 `!d`  
-Display queues in chat using `!d {channel name}`. Display messages stay updated.  
+Display a queue in chat using `!d {channel name}`. Display messages stay updated.  
   
 `!s`  
-Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled into a non-queue channel and it will automatically swap with the next person in the channel queue. Right-click bot and disconnect from the voice channel when done.
+Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. 
