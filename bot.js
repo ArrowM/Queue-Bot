@@ -370,11 +370,11 @@ async function help(message) {
 	const embed = {
 		"embed": {
 			"title": "How to use",
-			"color": 4689537,
+			"color": color,
 			"author": {
 				"name": "Queue Bot",
 				"url": "https://top.gg/bot/679018301543677959",
-				"icon_url": "https://images.discordapp.net/avatars/679018301543677959/e079987fa20e09e43f4327147b30b54e.png"
+				"icon_url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/icon.png"
 			},
 			"fields": [
 				{
@@ -383,7 +383,7 @@ async function help(message) {
 				},
 				{
 					"name": prefix + start_cmd,
-					"value": `Create or delete queues using  \`${prefix}${start_cmd} {channel name}\`.`
+					"value": `Create or delete queues using  \`${prefix}${start_cmd} {channel name}\`. Show current queues using \`${prefix}${start_cmd}\`.`
 				},
 				{
 					"name": prefix + display_cmd,
@@ -391,7 +391,9 @@ async function help(message) {
 				},
 				{
 					"name": prefix + queue_cmd,
-					"value": `Add the bot to a voice channel using  \`${prefix}${queue_cmd} {channel name}\`. The bot can be pulled into a non-queue channel and it will automatically swap with the next person in the channel queue. Right-click bot and disconnect from the voice channel when done.`
+					"value": `Add the bot to a voice channel using  \`${prefix}${queue_cmd} {channel name}\`.`
+						+ ` The bot can be pulled into a non- queue channel to automatically swap with person at the front of the queue.`
+						+ ` Right-click the bot to disconnect it from the voice channel when done.`
 				}
 			]
 		}
