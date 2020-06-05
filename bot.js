@@ -96,6 +96,7 @@ client.once('disconnect', () => {
 
 // Monitor for users joining voice channels
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
+
 	const oldVoiceChannel = oldVoiceState.channel;
 	const newVoiceChannel = newVoiceState.channel;
 	const member = newVoiceState.member;
@@ -124,7 +125,6 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 
 				if (availableVoiceChannels.includes(newVoiceChannel) && !guildGuildMemberIdDict[guild.id][newVoiceChannel.id].includes(member.id)) { // Joining Queue
 					guildGuildMemberIdDict[guild.id][newVoiceChannel.id].push(member.id); // User joined channel, add to queue
-					updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemberIdDict, [oldVoiceChannel, newVoiceChannel]);
 				}
 				if (availableVoiceChannels.includes(oldVoiceChannel)) {
 					// console.log(`[${guild.name}] | [${member.displayName}] set to leave [${oldVoiceChannel.name}] queue in ${grace_period} seconds`);
@@ -137,7 +137,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 					guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].splice(guildGuildMemberIdDict[guild.id][oldVoiceChannel.id].indexOf(member.id), 1); // User left channel, remove from queue
 					// console.log(`[${guild.name}] | [${member.displayName}] left [${oldVoiceChannel.name}] queue`);
 				}
-				updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemberIdDict, [oldVoiceChannel, newVoiceChannel]);
+				updateDisplayQueue(guild, [oldVoiceChannel, newVoiceChannel]);
 			}
 		}
 	}
@@ -148,7 +148,7 @@ async function hasPermissions(message) {
 	return message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
 }
 
-async function fetchVoiceChannel(cmd, message, guildGuildMemberIdDict) {
+async function fetchVoiceChannel(cmd, message) {
 	const guild = message.guild;
 	let voiceChannel;
 
@@ -175,10 +175,10 @@ async function fetchVoiceChannel(cmd, message, guildGuildMemberIdDict) {
 	}
 }
 
-async function start(message, guildGuildMemberIdDict) {
+async function start(message) {
 	if (!await hasPermissions(message)) return;
 
-	const voiceChannel = await fetchVoiceChannel(start_cmd, message, guildGuildMemberIdDict);
+	const voiceChannel = await fetchVoiceChannel(start_cmd, message);
 
 	if (voiceChannel) {
 		await voiceChannel.join().then(connection => {
@@ -188,10 +188,14 @@ async function start(message, guildGuildMemberIdDict) {
 	}
 }
 
-async function generateEmbed(voiceChannel, guildGuildMemberIdDict) {
+async function generateEmbed(voiceChannel) {
 	const memberIdQueue = guildGuildMemberIdDict[voiceChannel.guild.id][voiceChannel.id];
 	let embedList = [{
 		"embed": {
+			"title": `${voiceChannel.name} Queue`,
+			"color": color,
+			"description": `Join the **${voiceChannel.name}** voice channel to join the waiting queue.`
+				+ ` If you leave, you have ${grace_period_string} to rejoin before being removed from the queue.`,
 			"fields": [{
 				"name": `Current queue length: **${memberIdQueue.length}**`,
 				"value": "\u200b"
@@ -204,38 +208,43 @@ async function generateEmbed(voiceChannel, guildGuildMemberIdDict) {
 	}
 	// Handle non-empty
 	else {
-		// Set embed names
 		const maxEmbedSize = 25;
-		let position = 1;
-		for (var i = 0; i < memberIdQueue.length / maxEmbedSize; i++) {
-			let fields = [];
-			memberIdQueue.slice(i * maxEmbedSize, (i + 1) * maxEmbedSize).map(function (memberId) {
+		let position = 0;					// 0 , 24, 49, 74
+		let sliceStop = maxEmbedSize - 1;	// 24, 49, 74, 99 
+		for (var i = 0; i <= memberIdQueue.length / maxEmbedSize; i++) {
+			if (i > 0) { // Creating additional embed after the first embed
+				embedList.push({
+					"embed": {
+						"color": color,
+						"fields": []
+					}
+				});
+			}
+
+			// Populate with names and numbers
+			const fields = [];
+			memberIdQueue.slice(position, sliceStop).map(function (memberId) {
 				fields.push({
-					"name": position++,
+					"name": ++position,
 					"value": voiceChannel.guild.members.cache.get(memberId).displayName
 				});
 			});
 			embedList[i]['embed']['fields'].push(fields);
+
+			sliceStop += maxEmbedSize;
 		}
 	}
-	// Set embed details
-	embedList.forEach(queueEmbed => {
-		queueEmbed['embed']['title'] = `${voiceChannel.name} Queue`;
-		queueEmbed['embed']['color'] = color;
-		queueEmbed['embed']['description'] = `Join the **${voiceChannel.name}** voice channel to join the waiting queue.`
-			+ ` If you leave, you have ${grace_period_string} to rejoin before being removed from the queue.`;
-	});
 	return embedList;
 }
 
-async function displayQueue(message, guildGuildMemberIdDict, guildDisplayMessageDict) {
+async function displayQueue(message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const textChannel = message.channel;
-	const voiceChannel = await fetchVoiceChannel(display_cmd, message, guildGuildMemberIdDict);
+	const voiceChannel = await fetchVoiceChannel(display_cmd, message);
 
 	if (voiceChannel) {
-		let embedList = await generateEmbed(voiceChannel, guildGuildMemberIdDict);
+		let embedList = await generateEmbed(voiceChannel);
 
 		// Initialize display message queue
 		if (!guildDisplayMessageDict[guild.id]) {
@@ -262,13 +271,13 @@ async function displayQueue(message, guildGuildMemberIdDict, guildDisplayMessage
 	}
 }
 
-async function updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemberIdDict, voiceChannels) {
+async function updateDisplayQueue(guild, voiceChannels) {
 	if (guildDisplayMessageDict[guild.id]) {
 		for (const voiceChannel of voiceChannels) {
 			if (voiceChannel && guildDisplayMessageDict[guild.id][voiceChannel.id]) {
-				let embedList = await generateEmbed(voiceChannel, guildGuildMemberIdDict);
+				const embedList = await generateEmbed(voiceChannel, guildGuildMemberIdDict);
 				for (const textChannelId of Object.keys(guildDisplayMessageDict[guild.id][voiceChannel.id])) {
-					storedEmbeds = Object.values(guildDisplayMessageDict[guild.id][voiceChannel.id][textChannelId]);
+					const storedEmbeds = Object.values(guildDisplayMessageDict[guild.id][voiceChannel.id][textChannelId]);
 					// Same number of embed messages, edit them
 					if (storedEmbeds.length === embedList.length) {
 						for (var i = 0; i < embedList.length; i++) {
@@ -282,11 +291,11 @@ async function updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemb
 						for (const storedEmbed of Object.values(storedEmbeds)) {
 							storedEmbed.delete();
 						}
-						guildDisplayMessageDict[guild.id][voiceChannel.id][textChannel.id] = [];
+						guildDisplayMessageDict[guild.id][voiceChannel.id][textChannelId] = [];
 						// Create new display list
 						embedList.forEach(queueEmbed =>
 							textChannel.send(queueEmbed).then(
-								msg => guildDisplayMessageDict[guild.id][voiceChannel.id][channel].push(msg)
+								msg => guildDisplayMessageDict[guild.id][voiceChannel.id][textChannelId].push(msg)
 							)
 						);
 					}
@@ -296,7 +305,7 @@ async function updateDisplayQueue(guild, guildDisplayMessageDict, guildGuildMemb
 	}
 }
 
-async function setQueueChannel(message, guildVoiceChannelDict, guildGuildMemberIdDict) {
+async function setQueueChannel(message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
@@ -397,13 +406,13 @@ client.on('message', async message => {
 	// console.log(message.content);
 
 	if (content.startsWith(prefix + start_cmd)) {
-		start(message, guildGuildMemberIdDict);
+		start(message);
 
 	} else if (content.startsWith(prefix + display_cmd)) {
-		displayQueue(message, guildGuildMemberIdDict, guildDisplayMessageDict);
+		displayQueue(message);
 
 	} else if (content.startsWith(prefix + queue_cmd)) {
-		setQueueChannel(message, guildVoiceChannelDict, guildGuildMemberIdDict);
+		setQueueChannel(message);
 
 	} else if (content.startsWith(prefix + help_cmd)) {
 		help(message);
