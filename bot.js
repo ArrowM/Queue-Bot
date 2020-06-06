@@ -450,6 +450,10 @@ async function help(message) {
 					"value": `Add the bot to a voice channel using  \`${prefix}${queue_cmd} {channel name}\`.`
 						+ ` The bot can be pulled into a non- queue channel to automatically swap with person at the front of the queue.`
 						+ ` Right-click the bot to disconnect it from the voice channel when done.`
+				},
+				{
+					"name": prefix + grace_period_cmd,
+					"value": `Change how long a person can leave a voice channel before being removed using  \`${prefix}${grace_period_cmd} {time in seconds}\`.`
 				}
 			]
 		}
