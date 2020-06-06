@@ -60,7 +60,7 @@ client.once('ready', async () => {
 			}
 		}
 	}
-	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'idle' }).then().catch(console.error);
+	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'online' }).then().catch(console.error);
 	// Prep parameters
 	const grace_minutes = Math.round(grace_period / 60);
 	const grace_seconds = grace_period % 60;
