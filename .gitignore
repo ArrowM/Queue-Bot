@@ -12,8 +12,7 @@
 
 # @keyv
 !/node_modules/@keyv
-/node_modules/@keyv/*
-!/node_modules/@keyv/sql
+/node_modules/@key
 
 # Package
 !/package.json

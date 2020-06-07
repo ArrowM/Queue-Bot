@@ -173,9 +173,9 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel, newVoiceChannel
 	const gracePeriod = (await voiceChannelDict.get(guild.id))[0];
 	let timer = 0;
 	while (timer < gracePeriod) {
-		await sleep(1000);
+		await sleep(2000);
 		if (member.voice.channel === oldVoiceChannel) return;
-		timer++;
+		timer+=2;
 	}
 	await guildMemberLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		guildMemberDict[guild.id][oldVoiceChannel.id].splice(guildMemberDict[guild.id][oldVoiceChannel.id].indexOf(member.id), 1); // User left channel, remove from queue
