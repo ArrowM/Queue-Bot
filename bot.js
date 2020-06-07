@@ -56,8 +56,8 @@ client.once('ready', async () => {
 			const voiceChannelRelease = await voiceChannelLocks.get(guild.id).acquire();
 			try {
 				const guildDBData = guildIdVoiceChannelPair[1];
-				const gracePeriod = guildDBData[0] ? guildDBData[0] : grace_period; // Set grace period to default from config on new servers.
-				const voiceChannelIds = guildDBData.slice(1);
+				const gracePeriod = (guildDBData && guildDBData[0]) ? guildDBData[0] : grace_period; // Set grace period to default from config on new servers.
+				const voiceChannelIds = (guildDBData && guildDBData[10]) ? guildDBData.slice(10) : [];
 
 				for (const voiceChannelId of voiceChannelIds) {
 					const voiceChannel = client.channels.cache.get(voiceChannelId);
@@ -71,8 +71,9 @@ client.once('ready', async () => {
 					else {
 						// Cleanup deleted Channels
 						voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
-						voiceChannelIds.unshift(gracePeriod);
-						voiceChannelDict.set(guild, voiceChannelIds);
+						voiceChannelDict.set(guild.id,
+							[gracePeriod,"","","","","","","","",""].concat(voiceChannelIds)
+						);
 					}
 				}
 			}
@@ -366,7 +367,7 @@ async function setQueueChannel(message) {
 		// Get stored voice channel list from database
 		const guildDBData = await voiceChannelDict.get(guild.id);
 		const gracePeriod = (guildDBData && guildDBData[0]) ? guildDBData[0] : grace_period; // Set grace period to default from config on new servers.
-		const voiceChannelIds = guildDBData ? guildDBData.slice(1) : [];
+		const voiceChannelIds = (guildDBData && guildDBData[10]) ? guildDBData.slice(10) : [];
 
 		// Extract channel name from message
 		const channelArg = message.content.slice(`${prefix}${queue_cmd}`.length).trim();
@@ -415,8 +416,9 @@ async function setQueueChannel(message) {
 				}
 
 				// Store channel to database
-				voiceChannelIds.unshift(gracePeriod);
-				voiceChannelDict.set(guild.id, voiceChannelIds);
+				voiceChannelDict.set(guild.id,
+					[gracePeriod,"","","","","","","","",""].concat(voiceChannelIds)
+				);
 			}
 		}
 	});
@@ -467,11 +469,12 @@ async function setGracePeriod(message) {
 	const newGracePeriod = message.content.slice(`${prefix}${grace_period_cmd}`.length).trim();
 	const guildDBData = await voiceChannelDict.get(guild.id);
 	if (guildDBData) {
-		if (newGracePeriod >= 0 && newGracePeriod <= 600) {
-			const voiceChannelIds = guildDBData.slice(1);
+		if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
+			const voiceChannelIds = guildDBData.slice(10);
 			// Store channel to database
-			voiceChannelIds.unshift(newGracePeriod);
-			voiceChannelDict.set(guild.id, voiceChannelIds);
+			voiceChannelDict.set(guild.id,
+				[newGracePeriod,"","","","","","","","",""].concat(voiceChannelIds)
+			);
 			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
 			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
 		}
