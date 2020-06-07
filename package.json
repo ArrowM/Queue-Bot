@@ -13,7 +13,7 @@
     "@discordjs/opus": "^0.3.2",
     "@keyv/postgres": "^1.0.16",
     "async-mutex": "^0.2.2",
-    "discord.js": "github:discordjs/discord.js",
+    "discord.js": "12.2.0",
     "ffmpeg": "0.0.4",
     "keyv": "^4.0.1"
   }
