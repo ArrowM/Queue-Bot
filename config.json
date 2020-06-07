@@ -12,5 +12,6 @@
   "queue_cmd": "q",
   "start_cmd": "s",
   "display_cmd": "d",
+  "grace_period_cmd": "g",
   "help_cmd": "help"
 }
