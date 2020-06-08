@@ -84,9 +84,7 @@ client.once('ready', async () => {
 						voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
 					}
 				}
-				voiceChannelDict.set(guild.id,
-					otherData.concat(voiceChannelIds)
-				);
+				voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
 			}
 			finally {
 				// UNLOCK
@@ -426,9 +424,7 @@ async function setQueueChannel(message) {
 				}
 
 				// Store channel to database
-				voiceChannelDict.set(guild.id,
-					otherData.concat(voiceChannelIds)
-				);
+				voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
 			}
 		}
 	});
@@ -486,25 +482,20 @@ async function setGracePeriod(storedPrefix, message) {
 	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		const guildDBData = await voiceChannelDict.get(guild.id);
+		const otherData = guildDBData ? guildDBData.slice(0, 10) : [grace_period, prefix, "", "", "", "", "", "", "", ""];
+		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
 
-		if (guildDBData) {
-			if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
-				guildDBData[0] = newGracePeriod;
-				const voiceChannelIds = guildDBData.slice(10);
-				// Store channel to database
-				voiceChannelDict.set(guild.id, guildDBData);
-				updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
-				message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
-			}
-			else {
-				message.channel.send(`Invalid grace period!\n`
-					+ `\n${storedPrefix}${grace_period_cmd} \`grace period\``
-					+ `Grace period must be between \`0\` and \`600\` seconds.`);
-			}
+		if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
+			guildDBData[0] = newGracePeriod;
+			// Store channel to database
+			voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
+			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
 		}
 		else {
-			message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
-				+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
+			message.channel.send(`Invalid grace period!\n`
+				+ `\n${storedPrefix}${grace_period_cmd} \`grace period\``
+				+ `Grace period must be between \`0\` and \`600\` seconds.`);
 		}
 	});
 }
@@ -516,21 +507,18 @@ async function setCommandPrefix(storedPrefix, message) {
 	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		const guildDBData = await voiceChannelDict.get(guild.id);
-		if (guildDBData) {
-			if (newCommandPrefix) {
-				guildDBData[1] = newCommandPrefix;
-				// Store channel to database
-				voiceChannelDict.set(guild.id, guildDBData);
-				message.channel.send(`Command prefix set to \`${newCommandPrefix}\`.`);
-			}
-			else {
-				message.channel.send(`Invalid command prefix!`
-					+ `\n${storedPrefix}${command_prefix_cmd} \`command prefix\``);
-			}
+		const otherData = guildDBData ? guildDBData.slice(0, 10) : [grace_period, prefix, "", "", "", "", "", "", "", ""];
+		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
+
+		if (newCommandPrefix) {
+			otherData[1] = newCommandPrefix;
+			// Store channel to database
+			voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+			message.channel.send(`Command prefix set to \`${newCommandPrefix}\`.`);
 		}
 		else {
-			message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
-				+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
+			message.channel.send(`Invalid command prefix!`
+				+ `\n${storedPrefix}${command_prefix_cmd} \`command prefix\``);
 		}
 	});
 }
