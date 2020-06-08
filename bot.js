@@ -1,4 +1,4 @@
-// Setup
+// Read Config file
 const {
 	prefix,
 	token,
@@ -16,34 +16,35 @@ const {
 	grace_period_cmd,
 	help_cmd
 } = require('./config.json');
-
+// Setup client
 const { Client } = require('discord.js');
 const client = new Client({
 	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
+// Sleep function
+const sleep = m => new Promise(r => setTimeout(r, m));
+// Keyv long term DB storage
 const Keyv = require('keyv');
-
+const voiceChannelDict = (function () {
+	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`);	// guild.id | grace_period, [voice Channel.id, ...]
+})();
+voiceChannelDict.on('error', err => console.error('Keyv connection error:', err));
+// Short term storage
+const guildMemberDict = [];		// guild.id | voice GuildChannel.id | [guildMember.id, ...]
+const displayEmbedDict = [];	// guild.id | voice GuildChannel.id | text GuildChannel.id | [message.id, ...]
+// Storage Mutexes
 const Mutex = require('async-mutex');
 const voiceChannelLocks = new Map();	// Map<guild.id, MutexInterface>;
 const guildMemberLocks = new Map();		// Map<guild.id, MutexInterface>;
 const displayEmbedLocks = new Map();	// Map<guild.id, MutexInterface>;
 
-const sleep = m => new Promise(r => setTimeout(r, m));
-
-const voiceChannelDict = (function () {
-	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`);	// guild.id | grace_period, [voice Channel.id, ...]
-})();
-const guildMemberDict = [];		// guild.id | voice GuildChannel.id | [guildMember.id, ...]
-const displayEmbedDict = [];	// guild.id | voice GuildChannel.id | text GuildChannel.id | [message.id, ...]
-
-client.login(token);
-voiceChannelDict.on('error', err => console.error('Keyv connection error:', err));
-
+//Functions
 async function setupLocks(guildId) {
 	voiceChannelLocks.set(guildId, new Mutex.Mutex());
 	guildMemberLocks.set(guildId, new Mutex.Mutex());
 	displayEmbedLocks.set(guildId, new Mutex.Mutex());
 }
 
+client.login(token);
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once('ready', async () => {
 	const storedvoiceChannelDict = await voiceChannelDict.entries();
@@ -137,7 +138,6 @@ async function getGracePeriodString(guildId) {
 
 // Monitor for users joining voice channels
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
-
 	const oldVoiceChannel = oldVoiceState.channel;
 	const newVoiceChannel = newVoiceState.channel;
 	const member = newVoiceState.member;
@@ -229,8 +229,6 @@ async function fetchVoiceChannel(cmd, message) {
 }
 
 async function start(message) {
-	if (!await hasPermissions(message)) return;
-
 	const voiceChannel = await fetchVoiceChannel(start_cmd, message);
 
 	if (voiceChannel) {
@@ -291,7 +289,6 @@ async function generateEmbed(voiceChannel) {
 }
 
 async function displayQueue(message) {
-	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const textChannel = message.channel;
 	const voiceChannel = await fetchVoiceChannel(display_cmd, message);
@@ -379,7 +376,6 @@ async function updateDisplayQueue(guild, voiceChannels) {
 }
 
 async function setQueueChannel(message) {
-	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
 	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
@@ -495,7 +491,6 @@ async function help(message) {
 }
 
 async function setGracePeriod(storedPrefix, message) {
-	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newGracePeriod = message.content.slice(`${storedPrefix}${grace_period_cmd}`.length).trim();
 	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
@@ -520,7 +515,6 @@ async function setGracePeriod(storedPrefix, message) {
 }
 
 async function setCommandPrefix(storedPrefix, message) {
-	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newCommandPrefix = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
 	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
@@ -544,12 +538,14 @@ async function setCommandPrefix(storedPrefix, message) {
 
 // Monitor for chat commands
 client.on('message', async message => {
+	if (message.author.bot || !(await hasPermissions(message))) return;
+
 	const dbData = await voiceChannelDict.get(message.guild.id);
 	const storedPrefix = dbData ? dbData[1] : prefix;
+	if (!message.content.startsWith(storedPrefix)) return;
 
-	if (message.author.bot || !message.content.startsWith(storedPrefix)) return;
-	content = message.content.trim();
-	// console.log(message.content);
+	content = message.content;
+	// console.log(content.trim());
 
 	if (content.startsWith(storedPrefix + start_cmd)) {
 		start(message);
