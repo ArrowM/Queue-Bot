@@ -203,7 +203,8 @@ async function hasPermissions(message) {
 
 async function fetchVoiceChannel(cmd, message) {
 	const guild = message.guild;
-	const storedPrefix = (await voiceChannelDict.get(guild.id))[1];
+	const dbData = await voiceChannelDict.get(message.guild.id);
+	const storedPrefix = dbData ? dbData[1] : prefix;
 	let voiceChannel;
 
 	if (guildMemberDict[guild.id]) {
@@ -378,7 +379,7 @@ async function setQueueChannel(message) {
 		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
 
 		// Extract channel name from message
-		const storedPrefix = guildDBData[1];
+		const storedPrefix = otherData[1];
 		const channelArg = message.content.slice(`${storedPrefix}${queue_cmd}`.length).trim();
 
 		// No argument. Display current queues
