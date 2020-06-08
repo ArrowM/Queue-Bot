@@ -482,49 +482,54 @@ async function setGracePeriod(storedPrefix, message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newGracePeriod = message.content.slice(`${storedPrefix}${grace_period_cmd}`.length).trim();
-	const guildDBData = await voiceChannelDict.get(guild.id);
-	if (guildDBData) {
-		if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
-			guildDBData[0] = newGracePeriod;
-			const voiceChannelIds = guildDBData.slice(10);
-			// Store channel to database
-			voiceChannelDict.set(guild.id, guildDBData);
-			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
-			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
+	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
+		const guildDBData = await voiceChannelDict.get(guild.id);
+
+		if (guildDBData) {
+			if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
+				guildDBData[0] = newGracePeriod;
+				const voiceChannelIds = guildDBData.slice(10);
+				// Store channel to database
+				voiceChannelDict.set(guild.id, guildDBData);
+				updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
+				message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
+			}
+			else {
+				message.channel.send(`Invalid grace period!\n`
+					+ `\n${storedPrefix}${grace_period_cmd} \`grace period\``
+					+ `Grace period must be between \`0\` and \`600\` seconds.`);
+			}
 		}
 		else {
-			message.channel.send(`Invalid grace period!\n`
-				+ `\n${storedPrefix}${grace_period_cmd} \`grace period\``
-				+ `Grace period must be between \`0\` and \`600\` seconds.`);
+			message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
+				+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
 		}
-	}
-	else {
-		message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
-			+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
-	}
+	});
 }
 
 async function setCommandPrefix(storedPrefix, message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newCommandPrefix = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
-	const guildDBData = await voiceChannelDict.get(guild.id);
-	if (guildDBData) {
-		if (newCommandPrefix) {
-			guildDBData[1] = newCommandPrefix;
-			// Store channel to database
-			voiceChannelDict.set(guild.id, guildDBData);
-			message.channel.send(`Command prefix set to \`${newCommandPrefix}\`.`);
+	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
+		const guildDBData = await voiceChannelDict.get(guild.id);
+		if (guildDBData) {
+			if (newCommandPrefix) {
+				guildDBData[1] = newCommandPrefix;
+				// Store channel to database
+				voiceChannelDict.set(guild.id, guildDBData);
+				message.channel.send(`Command prefix set to \`${newCommandPrefix}\`.`);
+			}
+			else {
+				message.channel.send(`Invalid command prefix!`
+					+ `\n${storedPrefix}${command_prefix_cmd} \`command prefix\``);
+			}
 		}
 		else {
-			message.channel.send(`Invalid command prefix!`
-				+ `\n${storedPrefix}${command_prefix_cmd} \`command prefix\``);
+			message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
+				+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
 		}
-	}
-	else {
-		message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
-			+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
-	}
+	});
 }
 
 // Monitor for chat commands
