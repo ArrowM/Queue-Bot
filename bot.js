@@ -18,7 +18,7 @@ const {
 } = require('./config.json');
 
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Client({ ws: { intents: ['GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
 const Keyv = require('keyv');
 
 const Mutex = require('async-mutex');
@@ -185,6 +185,7 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel, newVoiceChannel
 	while (timer < gracePeriod) {
 		await sleep(2000);
 		if (member.voice.channel === oldVoiceChannel) return;
+		console.log(timer);
 		timer+=2;
 	}
 	await guildMemberLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
