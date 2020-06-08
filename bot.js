@@ -428,6 +428,12 @@ async function setQueueChannel(message) {
 				if (voiceChannelIds.includes(voiceChannel.id)) { // If it's in the list, remove it
 					voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
 					delete guildMemberDict[guild.id][voiceChannel.id];
+					// Remove old display list
+					if (displayEmbedDict[guild.id][voiceChannel.id][message.channel.id]) {
+						for (const storedEmbed of Object.values(displayEmbedDict[guild.id][voiceChannel.id][message.channel.id])) {
+							storedEmbed.delete();
+						}
+					}
 					message.channel.send(`Deleted queue for \`${voiceChannel.name}\`.`);
 				}
 				else { // If it's not in the list, add it
