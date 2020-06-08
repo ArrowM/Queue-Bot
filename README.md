@@ -35,10 +35,11 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 | grace_period          | Number of seconds a user can leave the queue without being removed                                                                |
 | permissions_regexp    | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
 | color                 | The color of bot messages.                                                                                                        |
+| command_prefix_cmd    | Discord chat command to change the command prefix.                                                                                |
 | queue_cmd             | Discord chat command to change queues.                                                                                            |
 | start_cmd             | Discord chat command to make the bot join a voice channel.                                                                        |
 | display_cmd           | Discord chat command to display a queue in a text channel.                                                                        |
-| grace_period_cmd      | Discord chat command to change the grave period.                                                                                  |
+| grace_period_cmd      | Discord chat command to change the grace period.                                                                                  |
 | help_cmd              | Discord chat command to display the help information.                                                                             |
 
 ![Token Location](docs/token_location.PNG)  
@@ -66,3 +67,6 @@ Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled 
 
 `!g`
 Change how long a person can leave a voice channel before being removed using `!g {time in seconds}`.
+
+`!p`
+Change the command prefix using `!p {new prefix}`.

@@ -10,6 +10,7 @@ const {
 	permissions_regexp,
 	color,
 	queue_cmd,
+	command_prefix_cmd,
 	start_cmd,
 	display_cmd,
 	grace_period_cmd,
@@ -56,8 +57,13 @@ client.once('ready', async () => {
 			const voiceChannelRelease = await voiceChannelLocks.get(guild.id).acquire();
 			try {
 				const guildDBData = guildIdVoiceChannelPair[1];
-				const gracePeriod = (guildDBData && guildDBData[0]) ? guildDBData[0] : grace_period; // Set grace period to default from config on new servers.
-				const voiceChannelIds = (guildDBData && guildDBData[10]) ? guildDBData.slice(10) : [];
+				const defaultDBData = [grace_period, prefix, "", "", "", "", "", "", "", ""]; 
+				const otherData = guildDBData ? guildDBData.slice(0, 10) : defaultDBData;
+				// Set unset values to default
+				for (let i = 0; i < otherData.length; i++) {
+					if (!otherData[i]) otherData[i] = defaultDBData[i];
+				}
+				const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
 
 				for (const voiceChannelId of voiceChannelIds) {
 					const voiceChannel = client.channels.cache.get(voiceChannelId);
@@ -69,13 +75,14 @@ client.once('ready', async () => {
 						guildMemberDict[guild.id][voiceChannel.id] = voiceChannel.members.filter(member => !member.user.bot).map(member => member.id);
 					}
 					else {
+						console.log(otherData.concat(voiceChannelIds));
 						// Cleanup deleted Channels
 						voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
-						voiceChannelDict.set(guild.id,
-							[gracePeriod,"","","","","","","","",""].concat(voiceChannelIds)
-						);
 					}
 				}
+				voiceChannelDict.set(guild.id,
+					otherData.concat(voiceChannelIds)
+				);
 			}
 			finally {
 				// UNLOCK
@@ -192,11 +199,12 @@ async function hasPermissions(message) {
 
 async function fetchVoiceChannel(cmd, message) {
 	const guild = message.guild;
+	const storedPrefix = (await voiceChannelDict.get(guild.id))[1];
 	let voiceChannel;
 
 	if (guildMemberDict[guild.id]) {
 		// Extract channel name from message
-		const channelArg = message.content.slice(`${prefix}${cmd}`.length).trim();
+		const channelArg = message.content.slice(`${storedPrefix}${cmd}`.length).trim();
 		const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
 
 		if (availableVoiceChannels.length === 1 && channelArg === "") {
@@ -212,7 +220,7 @@ async function fetchVoiceChannel(cmd, message) {
 			+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ' `' + voiceChannel.name + '`')}`);
 	}
 	else {
-		message.channel.send(`No queue channels set. Set a queue first using \`${prefix}${queue_cmd} channel name\``
+		message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
 			+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
 	}
 }
@@ -366,11 +374,12 @@ async function setQueueChannel(message) {
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		// Get stored voice channel list from database
 		const guildDBData = await voiceChannelDict.get(guild.id);
-		const gracePeriod = (guildDBData && guildDBData[0]) ? guildDBData[0] : grace_period; // Set grace period to default from config on new servers.
-		const voiceChannelIds = (guildDBData && guildDBData[10]) ? guildDBData.slice(10) : [];
+		const otherData = guildDBData ? guildDBData.slice(0, 10) : [grace_period, prefix, "", "", "", "", "", "", "", ""];
+		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
 
 		// Extract channel name from message
-		const channelArg = message.content.slice(`${prefix}${queue_cmd}`.length).trim();
+		const storedPrefix = guildDBData[1];
+		const channelArg = message.content.slice(`${storedPrefix}${queue_cmd}`.length).trim();
 
 		// No argument. Display current queues
 		if (channelArg === "") {
@@ -378,7 +387,7 @@ async function setQueueChannel(message) {
 				message.channel.send(`Current queues: ${voiceChannelIds.map(id => ` \`${guild.channels.cache.get(id).name}\``)}`);
 			} else {
 				message.channel.send(`No queue channels set:`
-					+ `\n${prefix}${queue_cmd} \`channel name\``
+					+ `\n${storedPrefix}${queue_cmd} \`channel name\``
 					+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 			}
 
@@ -417,7 +426,7 @@ async function setQueueChannel(message) {
 
 				// Store channel to database
 				voiceChannelDict.set(guild.id,
-					[gracePeriod,"","","","","","","","",""].concat(voiceChannelIds)
+					otherData.concat(voiceChannelIds)
 				);
 			}
 		}
@@ -425,6 +434,7 @@ async function setQueueChannel(message) {
 }
 
 async function help(message) {
+	const storedPrefix = (await voiceChannelDict.get(message.guild.id))[1];
 	const embed = {
 		"embed": {
 			"title": "How to use",
@@ -440,22 +450,26 @@ async function help(message) {
 					"value": "All commands are restricted to owners or users with `mod` or `mods` in their server roles."
 				},
 				{
-					"name": prefix + start_cmd,
-					"value": `Create or delete queues using  \`${prefix}${start_cmd} {channel name}\`. Show current queues using \`${prefix}${start_cmd}\`.`
+					"name": storedPrefix + start_cmd,
+					"value": `Create or delete queues using  \`${storedPrefix}${start_cmd} {channel name}\`. Show current queues using \`${storedPrefix}${start_cmd}\`.`
 				},
 				{
-					"name": prefix + display_cmd,
-					"value": `Display queues in chat using  \`${prefix}${display_cmd} {channel name}\`. Display messages stay updated.`
+					"name": storedPrefix + display_cmd,
+					"value": `Display queues in chat using  \`${storedPrefix}${display_cmd} {channel name}\`. Display messages stay updated.`
 				},
 				{
-					"name": prefix + queue_cmd,
-					"value": `Add the bot to a voice channel using  \`${prefix}${queue_cmd} {channel name}\`.`
+					"name": storedPrefix + queue_cmd,
+					"value": `Add the bot to a voice channel using  \`${storedPrefix}${queue_cmd} {channel name}\`.`
 						+ ` The bot can be pulled into a non- queue channel to automatically swap with person at the front of the queue.`
 						+ ` Right-click the bot to disconnect it from the voice channel when done.`
 				},
 				{
-					"name": prefix + grace_period_cmd,
-					"value": `Change how long a person can leave a voice channel before being removed using  \`${prefix}${grace_period_cmd} {time in seconds}\`.`
+					"name": storedPrefix + grace_period_cmd,
+					"value": `Change how long a person can leave a voice channel before being removed using  \`${storedPrefix}${grace_period_cmd} {time in seconds}\`.`
+				},
+				{
+					"name": storedPrefix + command_prefix_cmd,
+					"value": `Change the command prefix using \`${storedPrefix}${command_prefix_cmd} {new prefix}\`.`
 				}
 			]
 		}
@@ -463,51 +477,80 @@ async function help(message) {
 	message.channel.send(embed);
 }
 
-async function setGracePeriod(message) {
+async function setGracePeriod(storedPrefix, message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
-	const newGracePeriod = message.content.slice(`${prefix}${grace_period_cmd}`.length).trim();
+	const newGracePeriod = message.content.slice(`${storedPrefix}${grace_period_cmd}`.length).trim();
 	const guildDBData = await voiceChannelDict.get(guild.id);
 	if (guildDBData) {
 		if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
+			guildDBData[0] = newGracePeriod;
 			const voiceChannelIds = guildDBData.slice(10);
 			// Store channel to database
-			voiceChannelDict.set(guild.id,
-				[newGracePeriod,"","","","","","","","",""].concat(voiceChannelIds)
-			);
+			voiceChannelDict.set(guild.id, guildDBData);
 			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
 			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
 		}
 		else {
 			message.channel.send(`Invalid grace period!\n`
+				+ `\n${storedPrefix}${grace_period_cmd} \`grace period\``
 				+ `Grace period must be between \`0\` and \`600\` seconds.`);
 		}
 	}
 	else {
-		message.channel.send(`No queue channels set. Set a queue first using \`${prefix}${queue_cmd} channel name\``
+		message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
+			+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
+	}
+}
+
+async function setCommandPrefix(storedPrefix, message) {
+	if (!await hasPermissions(message)) return;
+	const guild = message.guild;
+	const newCommandPrefix = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
+	const guildDBData = await voiceChannelDict.get(guild.id);
+	if (guildDBData) {
+		if (newCommandPrefix) {
+			guildDBData[1] = newCommandPrefix;
+			// Store channel to database
+			voiceChannelDict.set(guild.id, guildDBData);
+			message.channel.send(`Command prefix set to \`${newCommandPrefix}\`.`);
+		}
+		else {
+			message.channel.send(`Invalid command prefix!`
+				+ `\n${storedPrefix}${command_prefix_cmd} \`command prefix\``);
+		}
+	}
+	else {
+		message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
 			+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
 	}
 }
 
 // Monitor for chat commands
 client.on('message', async message => {
-	if (message.author.bot || !message.content.startsWith(prefix)) return;
+	const dbData = await voiceChannelDict.get(message.guild.id);
+	const storedPrefix = dbData ? dbData[1] : prefix;
+
+	if (message.author.bot || !message.content.startsWith(storedPrefix)) return;
 	content = message.content.trim();
 	// console.log(message.content);
 
-	if (content.startsWith(prefix + start_cmd)) {
+	if (content.startsWith(storedPrefix + start_cmd)) {
 		start(message);
 
-	} else if (content.startsWith(prefix + display_cmd)) {
+	} else if (content.startsWith(storedPrefix + display_cmd)) {
 		displayQueue(message);
 
-	} else if (content.startsWith(prefix + queue_cmd)) {
+	} else if (content.startsWith(storedPrefix + queue_cmd)) {
 		setQueueChannel(message);
 
-	} else if (content.startsWith(prefix + help_cmd)) {
+	} else if (content.startsWith(storedPrefix + help_cmd)) {
 		help(message);
 
-	} else if (content.startsWith(prefix + grace_period_cmd)) {
-		setGracePeriod(message);
+	} else if (content.startsWith(storedPrefix + grace_period_cmd)) {
+		setGracePeriod(storedPrefix, message);
+
+	} else if (content.startsWith(storedPrefix + command_prefix_cmd)) {
+		setCommandPrefix(storedPrefix, message);
 	}
 });
