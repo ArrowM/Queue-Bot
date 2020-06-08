@@ -37,6 +37,12 @@ const displayEmbedDict = [];	// guild.id | voice GuildChannel.id | text GuildCha
 client.login(token);
 voiceChannelDict.on('error', err => console.error('Keyv connection error:', err));
 
+async function setupLocks(guildId) {
+	voiceChannelLocks.set(guildId, new Mutex.Mutex());
+	guildMemberLocks.set(guildId, new Mutex.Mutex());
+	displayEmbedLocks.set(guildId, new Mutex.Mutex());
+}
+
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once('ready', async () => {
 	const storedvoiceChannelDict = await voiceChannelDict.entries();
@@ -48,9 +54,7 @@ client.once('ready', async () => {
 		}
 		else {
 			// Create locks
-			guildMemberLocks.set(guild.id, new Mutex.Mutex());
-			displayEmbedLocks.set(guild.id, new Mutex.Mutex());
-			voiceChannelLocks.set(guild.id, new Mutex.Mutex());
+			await setupLocks(guild.id);
 			// LOCK
 			const guildMemberRelease = await guildMemberLocks.get(guild.id).acquire();
 			const displayEmbedRelease = await displayEmbedLocks.get(guild.id).acquire();
@@ -366,11 +370,7 @@ async function setQueueChannel(message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
-	if (!voiceChannelLocks.get(guild.id)) {
-		voiceChannelLocks.set(guild.id, new Mutex.Mutex());
-		guildMemberLocks.set(guild.id, new Mutex.Mutex());
-		displayEmbedLocks.set(guild.id, new Mutex.Mutex());
-	}
+	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guildId);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		// Get stored voice channel list from database
 		const guildDBData = await voiceChannelDict.get(guild.id);
@@ -482,6 +482,7 @@ async function setGracePeriod(storedPrefix, message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newGracePeriod = message.content.slice(`${storedPrefix}${grace_period_cmd}`.length).trim();
+	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guildId);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		const guildDBData = await voiceChannelDict.get(guild.id);
 
@@ -511,6 +512,7 @@ async function setCommandPrefix(storedPrefix, message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newCommandPrefix = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
+	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guildId);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		const guildDBData = await voiceChannelDict.get(guild.id);
 		if (guildDBData) {
