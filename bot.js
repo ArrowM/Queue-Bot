@@ -463,16 +463,16 @@ async function help(message) {
 					"value": "All commands are restricted to owners or users with `mod` or `mods` in their server roles."
 				},
 				{
-					"name": storedPrefix + start_cmd,
-					"value": `Create or delete queues using  \`${storedPrefix}${start_cmd} {channel name}\`. Show current queues using \`${storedPrefix}${start_cmd}\`.`
+					"name": storedPrefix + queue_cmd,
+					"value": `Create or delete queues using  \`${storedPrefix}${queue_cmd} {channel name}\`. Show current queues using \`${storedPrefix}${queue_cmd}\`.`
 				},
 				{
 					"name": storedPrefix + display_cmd,
 					"value": `Display queues in chat using  \`${storedPrefix}${display_cmd} {channel name}\`. Display messages stay updated.`
 				},
 				{
-					"name": storedPrefix + queue_cmd,
-					"value": `Add the bot to a voice channel using  \`${storedPrefix}${queue_cmd} {channel name}\`.`
+					"name": storedPrefix + start_cmd,
+					"value": `Add the bot to a voice channel using  \`${storedPrefix}${start_cmd} {channel name}\`.`
 						+ ` The bot can be pulled into a non- queue channel to automatically swap with person at the front of the queue.`
 						+ ` Right-click the bot to disconnect it from the voice channel when done.`
 				},
