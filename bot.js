@@ -434,7 +434,8 @@ async function setQueueChannel(message) {
 }
 
 async function help(message) {
-	const storedPrefix = (await voiceChannelDict.get(message.guild.id))[1];
+	const dbData = await voiceChannelDict.get(message.guild.id);
+	const storedPrefix = dbData ? dbData[1] : prefix;
 	const embed = {
 		"embed": {
 			"title": "How to use",
