@@ -36,6 +36,7 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 | permissions_regexp    | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
 | color                 | The color of bot messages.                                                                                                        |
 | command_prefix_cmd    | Discord chat command to change the command prefix.                                                                                |
+| color_cmd             | Discord chat command to change the color.                                                                                         |
 | queue_cmd             | Discord chat command to change queues.                                                                                            |
 | start_cmd             | Discord chat command to make the bot join a voice channel.                                                                        |
 | display_cmd           | Discord chat command to display a queue in a text channel.                                                                        |
@@ -69,4 +70,7 @@ Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled 
 Change how long a person can leave a voice channel before being removed using `!g {time in seconds}`.
 
 `!p`  
-Change the command prefix using `!p {new prefix}`.
+Change the command prefix using `!p {new prefix}`.  
+
+`!c`  
+Change the color using `!c {new color}`.  

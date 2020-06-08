@@ -14,6 +14,7 @@ const {
 	start_cmd,
 	display_cmd,
 	grace_period_cmd,
+	color_cmd,
 	help_cmd
 } = require('./config.json');
 
@@ -22,7 +23,13 @@ const { Client } = require('discord.js');
 const client = new Client({ ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
 
 // Default DB Settings
-const defaultDBData = [grace_period, prefix, "", "", "", "", "", "", "", ""]; 
+const defaultDBData = [grace_period, prefix, color, "", "", "", "", "", "", ""];
+const CustomFields = {
+	GRACE: { index: 0, str: "grace period" },
+	PREFIX: { index: 1, str: "command prefix" },
+	COLOR: { index: 2, str: "color" }
+};
+Object.freeze(CustomFields);
 
 // Keyv long term DB storage
 const Keyv = require('keyv');
@@ -208,7 +215,8 @@ async function hasPermissions(message) {
 	return message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
 }
 
-async function fetchVoiceChannel(storedPrefix, cmd, message) {
+async function fetchVoiceChannel(dbData, cmd, message) {
+	const storedPrefix = dbData[1];
 	const guild = message.guild;
 	let voiceChannel;
 
@@ -246,12 +254,13 @@ async function start(storedPrefix, message) {
 	}
 }
 
-async function generateEmbed(voiceChannel) {
+async function generateEmbed(dbData, voiceChannel) {
+	const storedColor = dbData[2];
 	const memberIdQueue = guildMemberDict[voiceChannel.guild.id][voiceChannel.id];
 	let embedList = [{
 		"embed": {
 			"title": `${voiceChannel.name} Queue`,
-			"color": color,
+			"color": storedColor,
 			"description": `Join the **${voiceChannel.name}** voice channel to join the waiting queue.`
 				+ ` If you leave, you have ${await getGracePeriodString(voiceChannel.guild.id)} to rejoin before being removed from the queue.`,
 			"fields": [{
@@ -273,7 +282,7 @@ async function generateEmbed(voiceChannel) {
 			if (i > 0) { // Creating additional embed after the first embed
 				embedList.push({
 					"embed": {
-						"color": color,
+						"color": storedColor,
 						"fields": []
 					}
 				});
@@ -295,13 +304,13 @@ async function generateEmbed(voiceChannel) {
 	return embedList;
 }
 
-async function displayQueue(storedPrefix, message) {
+async function displayQueue(dbData, message) {
 	const guild = message.guild;
 	const textChannel = message.channel;
-	const voiceChannel = await fetchVoiceChannel(storedPrefix, display_cmd, message);
+	const voiceChannel = await fetchVoiceChannel(dbData, display_cmd, message);
 
 	if (voiceChannel) {
-		let embedList = await generateEmbed(voiceChannel);
+		let embedList = await generateEmbed(dbData, voiceChannel);
 
 		if (displayEmbedLocks.get(guild.id)) {
 			await displayEmbedLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
@@ -335,8 +344,11 @@ async function displayQueue(storedPrefix, message) {
 
 async function updateDisplayQueue(guild, voiceChannels) {
 	const currentChannelIds = guild.channels.cache.map(c => c.id);
+	const dbData = await voiceChannelDict.get(guild.id);
+
 	if (displayEmbedDict[guild.id] && displayEmbedLocks.get(guild.id)) {
 		await displayEmbedLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
+
 			for (const voiceChannel of voiceChannels) {
 				if (voiceChannel && displayEmbedDict[guild.id][voiceChannel.id]) {
 
@@ -345,7 +357,7 @@ async function updateDisplayQueue(guild, voiceChannels) {
 						continue;
 					}
 
-					const embedList = await generateEmbed(voiceChannel); 
+					const embedList = await generateEmbed(dbData, voiceChannel); 
 					for (const textChannelId of Object.keys(displayEmbedDict[guild.id][voiceChannel.id])) {
 
 						if (!currentChannelIds.includes(textChannelId)) { // Handled delete channels
@@ -382,81 +394,79 @@ async function updateDisplayQueue(guild, voiceChannels) {
 	}
 }
 
-async function setQueueChannel(message) {
+async function setQueueChannel(dbData, message) {
 	const guild = message.guild;
 	const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
-	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
-	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
-		// Get stored voice channel list from database
-		const guildDBData = await voiceChannelDict.get(guild.id);
-		const otherData = guildDBData ? guildDBData.slice(0, 10) : defaultDBData;
-		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
+	// Get stored voice channel list from database
+	const otherData = dbData ? dbData.slice(0, 10) : defaultDBData;
+	const voiceChannelIds = dbData ? dbData.slice(10) : [];
 
-		// Extract channel name from message
-		const storedPrefix = otherData[1];
-		const channelArg = message.content.slice(`${storedPrefix}${queue_cmd}`.length).trim();
+	// Extract channel name from message
+	const storedPrefix = otherData[1];
+	const channelArg = message.content.slice(`${storedPrefix}${queue_cmd}`.length).trim();
 
-		// No argument. Display current queues
-		if (channelArg === "") {
-			if (voiceChannelIds.length > 0) {
-				message.channel.send(`Current queues: ${voiceChannelIds.map(id => ` \`${guild.channels.cache.get(id).name}\``)}`);
-			} else {
-				message.channel.send(`No queue channels set:`
-					+ `\n${storedPrefix}${queue_cmd} \`channel name\``
-					+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
-			}
-
+	// No argument. Display current queues
+	if (channelArg === "") {
+		if (voiceChannelIds.length > 0) {
+			message.channel.send(`Current queues: ${voiceChannelIds.map(id => ` \`${guild.channels.cache.get(id).name}\``)}`);
+		} else {
+			message.channel.send(`No queue channels set:`
+				+ `\n${storedPrefix}${queue_cmd} \`channel name\``
+				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 		}
-		// Channel argument provided. Toggle it
+
+	}
+	// Channel argument provided. Toggle it
+	else {
+		const voiceChannel = availableVoiceChannels.find(channel =>
+			channel.name.localeCompare(channelArg, undefined, { sensitivity: 'accent' }) === 0);
+
+		if (!voiceChannel) {
+			message.channel.send(`Invalid channel name!`
+				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
+		}
 		else {
-			const voiceChannel = availableVoiceChannels.find(channel =>
-				channel.name.localeCompare(channelArg, undefined, { sensitivity: 'accent' }) === 0);
-
-			if (!voiceChannel) {
-				message.channel.send(`Invalid channel name!`
-					+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
+			// Check Perms
+			if (!voiceChannel.permissionsFor(message.client.user).has('CONNECT')) {
+				return message.channel.send('I need the permissions to join your voice channel!');
 			}
-			else {
-				// Check Perms
-				if (!voiceChannel.permissionsFor(message.client.user).has('CONNECT')) {
-					return message.channel.send('I need the permissions to join your voice channel!');
-				}
 
-				// Initialize member queue
-				if (!guildMemberDict[guild.id]) {
-					guildMemberDict[guild.id] = [];
-				}
+			// Initialize member queue
+			if (!guildMemberDict[guild.id]) {
+				guildMemberDict[guild.id] = [];
+			}
 
-				// Toggle Queue
-				if (voiceChannelIds.includes(voiceChannel.id)) { // If it's in the list, remove it
-					voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
-					delete guildMemberDict[guild.id][voiceChannel.id];
-					// Remove old display list
-					if (displayEmbedDict[guild.id][voiceChannel.id][message.channel.id]) {
-						for (const storedEmbed of Object.values(displayEmbedDict[guild.id][voiceChannel.id][message.channel.id])) {
-							storedEmbed.delete();
-						}
+			// Toggle Queue
+			if (voiceChannelIds.includes(voiceChannel.id)) { // If it's in the list, remove it
+				voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
+				delete guildMemberDict[guild.id][voiceChannel.id];
+				// Remove old display list
+				if (displayEmbedDict[guild.id][voiceChannel.id][message.channel.id]) {
+					for (const storedEmbed of Object.values(displayEmbedDict[guild.id][voiceChannel.id][message.channel.id])) {
+						storedEmbed.delete();
 					}
-					message.channel.send(`Deleted queue for \`${voiceChannel.name}\`.`);
 				}
-				else { // If it's not in the list, add it
-					voiceChannelIds.push(voiceChannel.id);
-					guildMemberDict[guild.id][voiceChannel.id] = voiceChannel.members.filter(m => !m.user.bot).map(m => m.id);
-					message.channel.send(`Created queue for \`${voiceChannel.name}\`.`);
-				}
-
-				// Store channel to database
-				await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+				message.channel.send(`Deleted queue for \`${voiceChannel.name}\`.`);
 			}
+			else { // If it's not in the list, add it
+				voiceChannelIds.push(voiceChannel.id);
+				guildMemberDict[guild.id][voiceChannel.id] = voiceChannel.members.filter(m => !m.user.bot).map(m => m.id);
+				message.channel.send(`Created queue for \`${voiceChannel.name}\`.`);
+			}
+
+			// Store channel to database
+			await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
 		}
-	});
+	}
 }
 
-async function help(storedPrefix, message) {
+async function help(dbData, message) {
+	const storedPrefix = dbData[1];
+	const storedColor = dbData[2];
 	const embed = {
 		"embed": {
 			"title": "How to use",
-			"color": color,
+			"color": storedColor,
 			"author": {
 				"name": "Queue Bot",
 				"url": "https://top.gg/bot/679018301543677959",
@@ -488,6 +498,10 @@ async function help(storedPrefix, message) {
 				{
 					"name": storedPrefix + command_prefix_cmd,
 					"value": `Change the command prefix using \`${storedPrefix}${command_prefix_cmd} {new prefix}\`.`
+				},
+				{
+					"name": storedPrefix + color_cmd,
+					"value": `Change the color using \`${storedPrefix}${color_cmd} {new color}\`.`
 				}
 			]
 		}
@@ -495,79 +509,83 @@ async function help(storedPrefix, message) {
 	message.channel.send(embed);
 }
 
-async function setGracePeriod(storedPrefix, message) {
+async function setCustomField(dbData, message, field, updateDisplayMsgs, valueRestrictions, extraErrorLine) {
+	const storedPrefix = dbData[1];
 	const guild = message.guild;
-	const newGracePeriod = message.content.slice(`${storedPrefix}${grace_period_cmd}`.length).trim();
-	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
-	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
-		const guildDBData = await voiceChannelDict.get(guild.id);
-		const otherData = guildDBData ? guildDBData.slice(0, 10) : [grace_period, prefix, "", "", "", "", "", "", "", ""];
-		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
+	const newValue = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
+	const otherData = dbData ? dbData.slice(0, 10) : defaultDBData;
+	const voiceChannelIds = dbData ? dbData.slice(10) : [];
 
-		if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
-			otherData[0] = newGracePeriod;
-			// Store channel to database
-			await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
-			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
-			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
-		}
-		else {
-			message.channel.send(`Invalid grace period!`
-				+ `\n${storedPrefix}${grace_period_cmd} \`grace period\``
-				+ `\nGrace period must be between \`0\` and \`600\` seconds.`);
-		}
-	});
-}
-
-async function setCommandPrefix(storedPrefix, message) {
-	const guild = message.guild;
-	const newCommandPrefix = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
-	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
-	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
-		const guildDBData = await voiceChannelDict.get(guild.id);
-		const otherData = guildDBData ? guildDBData.slice(0, 10) : [grace_period, prefix, "", "", "", "", "", "", "", ""];
-		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
-
-		if (newCommandPrefix) {
-			otherData[1] = newCommandPrefix;
-			// Store channel to database
-			await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
-			message.channel.send(`Command prefix set to \`${newCommandPrefix}\`.`);
-		}
-		else {
-			message.channel.send(`Invalid command prefix!`
-				+ `\n${storedPrefix}${command_prefix_cmd} \`command prefix\``);
-		}
-	});
+	if (newValue && valueRestrictions(newValue)) {
+		otherData[field.index] = newValue;
+		// Store channel to database
+		await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+		if (updateDisplayMsgs) updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
+		message.channel.send(`Set ${field.str} to \`${newValue}\`.`);
+	}
+	else {
+		message.channel.send(`${field.str} is currently set to \`${otherData[field.index]}\`.`
+			+ `\nSet a new ${field.str} using \`${storedPrefix}${command_prefix_cmd} ${field.str}\`.`
+			+ '\n' + extraErrorLine
+		);
+	}
 }
 
 // Monitor for chat commands
 client.on('message', async message => {
 	if (message.author.bot || !(await hasPermissions(message))) return;
 
-	const dbData = await voiceChannelDict.get(message.guild.id);
-	const storedPrefix = dbData ? dbData[1] : prefix;
-	if (!message.content.startsWith(storedPrefix)) return;
+	if (!voiceChannelLocks.get(message.guild.id)) await setupLocks(message.guild.id);
+	await voiceChannelLocks.get(message.guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 
-	content = message.content;
-	// console.log(content.trim());
+		const dbData = await voiceChannelDict.get(message.guild.id);
+		const storedPrefix = dbData ? dbData[1] : prefix;
+		content = message.content;
+		// console.log(content.trim());
 
-	if (content.startsWith(storedPrefix + start_cmd)) {
-		start(storedPrefix, message);
+		// Allow help to be called using both the default and custom prefixes
+		if (content === storedPrefix + help_cmd || content === prefix + help_cmd) {
+			help(dbData, message);
+		}
 
-	} else if (content.startsWith(storedPrefix + display_cmd)) {
-		displayQueue(storedPrefix, message);
+		if (!content.startsWith(storedPrefix)) return;
 
-	} else if (content.startsWith(storedPrefix + queue_cmd)) {
-		setQueueChannel(message);
+		// All the other commands. Use 'await' if they modify the voiceChannel dictionary.
+		if (content.startsWith(storedPrefix + start_cmd)) {
+			start(storedPrefix, message);
 
-	} else if (content.startsWith(storedPrefix + help_cmd)) {
-		help(storedPrefix, message);
+		} else if (content.startsWith(storedPrefix + display_cmd)) {
+			displayQueue(dbData, message);
 
-	} else if (content.startsWith(storedPrefix + grace_period_cmd)) {
-		setGracePeriod(storedPrefix, message);
+		} else if (content.startsWith(storedPrefix + queue_cmd)) {
+			await setQueueChannel(dbData, message);
 
-	} else if (content.startsWith(storedPrefix + command_prefix_cmd)) {
-		setCommandPrefix(storedPrefix, message);
-	}
+			// Grace period
+		} else if (content.startsWith(storedPrefix + grace_period_cmd)) {
+			await setCustomField(dbData, message,
+				CustomFields.GRACE,
+				true,
+				function (time) { return time >= 0 && time <= 600 },
+				'Grace period must be between `0` and `600` seconds.'
+			);
+
+			// Command prefix
+		} else if (content.startsWith(storedPrefix + command_prefix_cmd)) {
+			setCustomField(dbData, message,
+				CustomFields.PREFIX,
+				false,
+				function () { return true },
+				''
+			);
+
+			// Color
+		} else if (content.startsWith(storedPrefix + color_cmd)) {
+			await setCustomField(dbData, message,
+				CustomFields.COLOR,
+				true,
+				function (color) { return /^#[0-9A-F]{6}$/i.test(color) },
+				'Use HEX color: https://htmlcolorcodes.com/color-picker/'
+			);
+		}
+	})
 });
