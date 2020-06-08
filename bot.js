@@ -502,7 +502,6 @@ async function setGracePeriod(storedPrefix, message) {
 			otherData[0] = newGracePeriod;
 			// Store channel to database
 			await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
-			console.log(voiceChannelIds.map(id => guild.channels.cache.get(id)));
 			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
 			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
 		}
