@@ -76,13 +76,13 @@ client.once('ready', async () => {
 			const displayEmbedRelease = await displayEmbedLocks.get(guild.id).acquire();
 			const voiceChannelRelease = await voiceChannelLocks.get(guild.id).acquire();
 			try {
-				const guildDBData = guildIdVoiceChannelPair[1];
-				const otherData = guildDBData ? guildDBData.slice(0, 10) : defaultDBData;
+				const dbData = guildIdVoiceChannelPair[1];
+				const otherData = dbData.slice(0, 10);
+				const voiceChannelIds = dbData.slice(10);
 				// Set unset values to default
 				for (let i = 0; i < otherData.length; i++) {
 					if (!otherData[i]) otherData[i] = defaultDBData[i];
 				}
-				const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
 
 				for (const voiceChannelId of voiceChannelIds) {
 					const voiceChannel = client.channels.cache.get(voiceChannelId);
@@ -398,8 +398,8 @@ async function setQueueChannel(dbData, message) {
 	const guild = message.guild;
 	const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
 	// Get stored voice channel list from database
-	const otherData = dbData ? dbData.slice(0, 10) : defaultDBData;
-	const voiceChannelIds = dbData ? dbData.slice(10) : [];
+	const otherData = dbData.slice(0, 10);
+	const voiceChannelIds = dbData.slice(10);
 
 	// Extract channel name from message
 	const storedPrefix = otherData[1];
@@ -513,8 +513,8 @@ async function setCustomField(dbData, message, field, updateDisplayMsgs, valueRe
 	const storedPrefix = dbData[1];
 	const guild = message.guild;
 	const newValue = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
-	const otherData = dbData ? dbData.slice(0, 10) : defaultDBData;
-	const voiceChannelIds = dbData ? dbData.slice(10) : [];
+	const otherData = dbData.slice(0, 10);
+	const voiceChannelIds = dbData.slice(10);
 
 	if (newValue && valueRestrictions(newValue)) {
 		otherData[field.index] = newValue;
@@ -538,8 +538,13 @@ client.on('message', async message => {
 	if (!voiceChannelLocks.get(message.guild.id)) await setupLocks(message.guild.id);
 	await voiceChannelLocks.get(message.guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 
-		const dbData = await voiceChannelDict.get(message.guild.id);
-		const storedPrefix = dbData ? dbData[1] : prefix;
+		let dbData = await voiceChannelDict.get(message.guild.id);
+		if (!dbData) {
+			dbData = defaultDBData;
+			await voiceChannelDict.set(message.guild.id, dbData);
+		}
+
+		const storedPrefix = dbData[1];
 		content = message.content;
 		// console.log(content.trim());
 
