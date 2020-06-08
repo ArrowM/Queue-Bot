@@ -1,18 +1,20 @@
 {
-  "prefix": "!",
   "token": "YOUR_TOKEN_HERE",
+
+  "color": "#478E81",
   "database_type": "postgresql",
   "database_uri": "localhost:5432/mydatabase",
   "database_username": "postgres",
   "database_password": " ",
-  "grace_period": "300",
+  "grace_period": "3",
   "permissions_regexp": "\\bmod\\b|\\bmods\\b",
-  "color": "478E81",
+  "prefix": "!",
 
+  "color_cmd":  "c",
   "command_prefix_cmd": "p",
-  "queue_cmd": "q",
-  "start_cmd": "s",
   "display_cmd": "d",
   "grace_period_cmd": "g",
-  "help_cmd": "help"
+  "help_cmd": "h",
+  "queue_cmd": "q",
+  "start_cmd": "s"
 }
