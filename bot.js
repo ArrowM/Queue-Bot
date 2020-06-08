@@ -16,28 +16,35 @@ const {
 	grace_period_cmd,
 	help_cmd
 } = require('./config.json');
+
 // Setup client
 const { Client } = require('discord.js');
-const client = new Client({
-	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
-// Sleep function
-const sleep = m => new Promise(r => setTimeout(r, m));
+const client = new Client({ ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
+
+// Default DB Settings
+const defaultDBData = [grace_period, prefix, "", "", "", "", "", "", "", ""]; 
+
 // Keyv long term DB storage
 const Keyv = require('keyv');
 const voiceChannelDict = (function () {
 	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`);	// guild.id | grace_period, [voice Channel.id, ...]
 })();
 voiceChannelDict.on('error', err => console.error('Keyv connection error:', err));
+
 // Short term storage
 const guildMemberDict = [];		// guild.id | voice GuildChannel.id | [guildMember.id, ...]
 const displayEmbedDict = [];	// guild.id | voice GuildChannel.id | text GuildChannel.id | [message.id, ...]
+
 // Storage Mutexes
 const Mutex = require('async-mutex');
 const voiceChannelLocks = new Map();	// Map<guild.id, MutexInterface>;
 const guildMemberLocks = new Map();		// Map<guild.id, MutexInterface>;
 const displayEmbedLocks = new Map();	// Map<guild.id, MutexInterface>;
 
-//Functions
+
+// Functions
+const sleep = m => new Promise(r => setTimeout(r, m));
+
 async function setupLocks(guildId) {
 	voiceChannelLocks.set(guildId, new Mutex.Mutex());
 	guildMemberLocks.set(guildId, new Mutex.Mutex());
@@ -63,7 +70,6 @@ client.once('ready', async () => {
 			const voiceChannelRelease = await voiceChannelLocks.get(guild.id).acquire();
 			try {
 				const guildDBData = guildIdVoiceChannelPair[1];
-				const defaultDBData = [grace_period, prefix, "", "", "", "", "", "", "", ""]; 
 				const otherData = guildDBData ? guildDBData.slice(0, 10) : defaultDBData;
 				// Set unset values to default
 				for (let i = 0; i < otherData.length; i++) {
@@ -145,9 +151,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 
 	if (oldVoiceChannel !== newVoiceChannel && guildMemberLocks.get(guild.id)) {
 		await guildMemberLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
-
+			// Initialize empty queue if necessary
 			if (!guildMemberDict[guild.id]) {
-				guildMemberDict[guild.id] = []; // Initialize empty queue if necessary
+				guildMemberDict[guild.id] = []; 
 			}
 			const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
 
@@ -155,21 +161,24 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				if (member.user.bot) {
 					if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
 						if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
-							// Person to swap
-							guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel); // If the use queue is not empty, pull in the next in user queue
+							// If the use queue is not empty, pull in the next in user queue
+							guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel); 
 							guildMemberDict[guild.id][oldVoiceChannel.id].shift();
 						}
-						newVoiceState.setChannel(oldVoiceChannel); // Return bot to queue channel
+						// Return bot to queue channel
+						newVoiceState.setChannel(oldVoiceChannel); 
 					}
 				}
 				else {
 					// console.log(`[${guild.name}] | [${member.displayName}] moved from [${oldVoiceChannel ? oldVoiceChannel.name : null}] to [${newVoiceChannel ? newVoiceChannel.name : null}]`);
 
-					if (availableVoiceChannels.includes(newVoiceChannel) && !guildMemberDict[guild.id][newVoiceChannel.id].includes(member.id)) { // Joining Queue
-						guildMemberDict[guild.id][newVoiceChannel.id].push(member.id); // User joined channel, add to queue
+					if (availableVoiceChannels.includes(newVoiceChannel) && !guildMemberDict[guild.id][newVoiceChannel.id].includes(member.id)) {
+						// User joined channel, add to queue
+						guildMemberDict[guild.id][newVoiceChannel.id].push(member.id); 
 						updateDisplayQueue(guild, [oldVoiceChannel, newVoiceChannel]);
 					}
 					if (availableVoiceChannels.includes(oldVoiceChannel)) {
+						// User left channel, start removal process
 						checkAfterLeaving(member, guild, oldVoiceChannel, newVoiceChannel);
 					}
 				}
@@ -199,10 +208,8 @@ async function hasPermissions(message) {
 	return message.member.roles.cache.some(role => regex.test(role.name.toLowerCase()) || message.member.id === message.guild.ownerID);
 }
 
-async function fetchVoiceChannel(cmd, message) {
+async function fetchVoiceChannel(storedPrefix, cmd, message) {
 	const guild = message.guild;
-	const dbData = await voiceChannelDict.get(message.guild.id);
-	const storedPrefix = dbData ? dbData[1] : prefix;
 	let voiceChannel;
 
 	if (guildMemberDict[guild.id]) {
@@ -228,8 +235,8 @@ async function fetchVoiceChannel(cmd, message) {
 	}
 }
 
-async function start(message) {
-	const voiceChannel = await fetchVoiceChannel(start_cmd, message);
+async function start(storedPrefix, message) {
+	const voiceChannel = await fetchVoiceChannel(storedPrefix, start_cmd, message);
 
 	if (voiceChannel) {
 		await voiceChannel.join().then(connection => {
@@ -288,10 +295,10 @@ async function generateEmbed(voiceChannel) {
 	return embedList;
 }
 
-async function displayQueue(message) {
+async function displayQueue(storedPrefix, message) {
 	const guild = message.guild;
 	const textChannel = message.channel;
-	const voiceChannel = await fetchVoiceChannel(display_cmd, message);
+	const voiceChannel = await fetchVoiceChannel(storedPrefix, display_cmd, message);
 
 	if (voiceChannel) {
 		let embedList = await generateEmbed(voiceChannel);
@@ -382,7 +389,7 @@ async function setQueueChannel(message) {
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		// Get stored voice channel list from database
 		const guildDBData = await voiceChannelDict.get(guild.id);
-		const otherData = guildDBData ? guildDBData.slice(0, 10) : [grace_period, prefix, "", "", "", "", "", "", "", ""];
+		const otherData = guildDBData ? guildDBData.slice(0, 10) : defaultDBData;
 		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
 
 		// Extract channel name from message
@@ -445,9 +452,7 @@ async function setQueueChannel(message) {
 	});
 }
 
-async function help(message) {
-	const dbData = await voiceChannelDict.get(message.guild.id);
-	const storedPrefix = dbData ? dbData[1] : prefix;
+async function help(storedPrefix, message) {
 	const embed = {
 		"embed": {
 			"title": "How to use",
@@ -548,16 +553,16 @@ client.on('message', async message => {
 	// console.log(content.trim());
 
 	if (content.startsWith(storedPrefix + start_cmd)) {
-		start(message);
+		start(storedPrefix, message);
 
 	} else if (content.startsWith(storedPrefix + display_cmd)) {
-		displayQueue(message);
+		displayQueue(storedPrefix, message);
 
 	} else if (content.startsWith(storedPrefix + queue_cmd)) {
 		setQueueChannel(message);
 
 	} else if (content.startsWith(storedPrefix + help_cmd)) {
-		help(message);
+		help(storedPrefix, message);
 
 	} else if (content.startsWith(storedPrefix + grace_period_cmd)) {
 		setGracePeriod(storedPrefix, message);
