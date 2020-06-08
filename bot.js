@@ -370,7 +370,7 @@ async function setQueueChannel(message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const availableVoiceChannels = guild.channels.cache.filter(c => c.type === 'voice');
-	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guildId);
+	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		// Get stored voice channel list from database
 		const guildDBData = await voiceChannelDict.get(guild.id);
@@ -482,7 +482,7 @@ async function setGracePeriod(storedPrefix, message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newGracePeriod = message.content.slice(`${storedPrefix}${grace_period_cmd}`.length).trim();
-	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guildId);
+	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		const guildDBData = await voiceChannelDict.get(guild.id);
 
@@ -512,7 +512,7 @@ async function setCommandPrefix(storedPrefix, message) {
 	if (!await hasPermissions(message)) return;
 	const guild = message.guild;
 	const newCommandPrefix = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
-	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guildId);
+	if (!voiceChannelLocks.get(guild.id)) await setupLocks(guild.id);
 	await voiceChannelLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 		const guildDBData = await voiceChannelDict.get(guild.id);
 		if (guildDBData) {
