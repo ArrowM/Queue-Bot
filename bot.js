@@ -473,7 +473,7 @@ async function help(message) {
 				{
 					"name": storedPrefix + start_cmd,
 					"value": `Add the bot to a voice channel using  \`${storedPrefix}${start_cmd} {channel name}\`.`
-						+ ` The bot can be pulled into a non- queue channel to automatically swap with person at the front of the queue.`
+						+ ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
 						+ ` Right-click the bot to disconnect it from the voice channel when done.`
 				},
 				{
