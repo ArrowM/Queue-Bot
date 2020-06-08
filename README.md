@@ -65,8 +65,8 @@ Display a queue in chat using `!d {channel name}`. Display messages stay updated
 `!s`  
 Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. 
 
-`!g`
+`!g`  
 Change how long a person can leave a voice channel before being removed using `!g {time in seconds}`.
 
-`!p`
+`!p`  
 Change the command prefix using `!p {new prefix}`.
