@@ -331,12 +331,21 @@ async function displayQueue(message) {
 }
 
 async function updateDisplayQueue(guild, voiceChannels) {
+	const currentChannelIds = guild.channels.cache.map(c => c.id);
 	if (displayEmbedDict[guild.id] && displayEmbedLocks.get(guild.id)) {
 		await displayEmbedLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 			for (const voiceChannel of voiceChannels) {
 				if (voiceChannel && displayEmbedDict[guild.id][voiceChannel.id]) {
-					const embedList = await generateEmbed(voiceChannel); // This is slow
+					if (!currentChannelIds.includes(voiceChannel)) { // Handled delete channels
+						delete displayEmbedDict[guild.id][voiceChannel.id];
+						continue;
+					}
+					const embedList = await generateEmbed(voiceChannel); 
 					for (const textChannelId of Object.keys(displayEmbedDict[guild.id][voiceChannel.id])) {
+						if (!currentChannelIds.includes(textChannelId)) { // Handled delete channels
+							delete displayEmbedDict[guild.id][voiceChannel.id][textChannelId];
+							continue;
+                        }
 						const storedEmbeds = Object.values(displayEmbedDict[guild.id][voiceChannel.id][textChannelId]);
 						// Same number of embed messages, edit them
 						if (storedEmbeds.length === embedList.length) {
