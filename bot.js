@@ -84,7 +84,7 @@ client.once('ready', async () => {
 						voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannelId), 1);
 					}
 				}
-				voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+				await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
 			}
 			finally {
 				// UNLOCK
@@ -185,7 +185,6 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel, newVoiceChannel
 	while (timer < gracePeriod) {
 		await sleep(2000);
 		if (member.voice.channel === oldVoiceChannel) return;
-		console.log(timer);
 		timer+=2;
 	}
 	await guildMemberLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
@@ -336,16 +335,20 @@ async function updateDisplayQueue(guild, voiceChannels) {
 		await displayEmbedLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 			for (const voiceChannel of voiceChannels) {
 				if (voiceChannel && displayEmbedDict[guild.id][voiceChannel.id]) {
-					if (!currentChannelIds.includes(voiceChannel)) { // Handled delete channels
+
+					if (!currentChannelIds.includes(voiceChannel.id)) { // Handled delete channels
 						delete displayEmbedDict[guild.id][voiceChannel.id];
 						continue;
 					}
+
 					const embedList = await generateEmbed(voiceChannel); 
 					for (const textChannelId of Object.keys(displayEmbedDict[guild.id][voiceChannel.id])) {
+
 						if (!currentChannelIds.includes(textChannelId)) { // Handled delete channels
 							delete displayEmbedDict[guild.id][voiceChannel.id][textChannelId];
 							continue;
-                        }
+						}
+
 						const storedEmbeds = Object.values(displayEmbedDict[guild.id][voiceChannel.id][textChannelId]);
 						// Same number of embed messages, edit them
 						if (storedEmbeds.length === embedList.length) {
@@ -434,7 +437,7 @@ async function setQueueChannel(message) {
 				}
 
 				// Store channel to database
-				voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+				await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
 			}
 		}
 	});
@@ -498,7 +501,8 @@ async function setGracePeriod(storedPrefix, message) {
 		if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
 			otherData[0] = newGracePeriod;
 			// Store channel to database
-			voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+			await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+			console.log(voiceChannelIds.map(id => guild.channels.cache.get(id)));
 			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
 			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
 		}
@@ -523,7 +527,7 @@ async function setCommandPrefix(storedPrefix, message) {
 		if (newCommandPrefix) {
 			otherData[1] = newCommandPrefix;
 			// Store channel to database
-			voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
+			await voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
 			message.channel.send(`Command prefix set to \`${newCommandPrefix}\`.`);
 		}
 		else {
