@@ -9,6 +9,7 @@
   "permissions_regexp": "\\bmod\\b|\\bmods\\b",
   "color": "478E81",
 
+  "command_prefix_cmd": "p",
   "queue_cmd": "q",
   "start_cmd": "s",
   "display_cmd": "d",
