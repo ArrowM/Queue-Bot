@@ -17,8 +17,9 @@ const {
 	help_cmd
 } = require('./config.json');
 
-const Discord = require('discord.js');
-const client = new Client({ ws: { intents: ['GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
+const { Client } = require('discord.js');
+const client = new Client({
+	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
 const Keyv = require('keyv');
 
 const Mutex = require('async-mutex');
@@ -79,9 +80,8 @@ client.once('ready', async () => {
 						guildMemberDict[guild.id][voiceChannel.id] = voiceChannel.members.filter(member => !member.user.bot).map(member => member.id);
 					}
 					else {
-						console.log(otherData.concat(voiceChannelIds));
 						// Cleanup deleted Channels
-						voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
+						voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannelId), 1);
 					}
 				}
 				voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
@@ -464,7 +464,7 @@ async function help(message) {
 				},
 				{
 					"name": storedPrefix + grace_period_cmd,
-					"value": `Change how long a person can leave a voice channel before being removed using  \`${storedPrefix}${grace_period_cmd} {time in seconds}\`.`
+					"value": `Change how long a person can leave a voice channel before being removed using \`${storedPrefix}${grace_period_cmd} {time in seconds}\`.`
 				},
 				{
 					"name": storedPrefix + command_prefix_cmd,
@@ -487,16 +487,16 @@ async function setGracePeriod(storedPrefix, message) {
 		const voiceChannelIds = guildDBData ? guildDBData.slice(10) : [];
 
 		if (newGracePeriod && newGracePeriod >= 0 && newGracePeriod <= 600) {
-			guildDBData[0] = newGracePeriod;
+			otherData[0] = newGracePeriod;
 			// Store channel to database
 			voiceChannelDict.set(guild.id, otherData.concat(voiceChannelIds));
 			updateDisplayQueue(guild, voiceChannelIds.map(id => guild.channels.cache.get(id)));
 			message.channel.send(`Grace period set to \`${newGracePeriod}\` seconds.`);
 		}
 		else {
-			message.channel.send(`Invalid grace period!\n`
+			message.channel.send(`Invalid grace period!`
 				+ `\n${storedPrefix}${grace_period_cmd} \`grace period\``
-				+ `Grace period must be between \`0\` and \`600\` seconds.`);
+				+ `\nGrace period must be between \`0\` and \`600\` seconds.`);
 		}
 	});
 }
