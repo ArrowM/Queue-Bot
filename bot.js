@@ -243,8 +243,8 @@ async function fetchVoiceChannel(dbData, cmd, message) {
 	}
 }
 
-async function start(storedPrefix, message) {
-	const voiceChannel = await fetchVoiceChannel(storedPrefix, start_cmd, message);
+async function start(dbData, message) {
+	const voiceChannel = await fetchVoiceChannel(dbData, start_cmd, message);
 
 	if (voiceChannel) {
 		await voiceChannel.join().then(connection => {
@@ -410,8 +410,8 @@ async function setQueueChannel(dbData, message) {
 		if (voiceChannelIds.length > 0) {
 			message.channel.send(`Current queues: ${voiceChannelIds.map(id => ` \`${guild.channels.cache.get(id).name}\``)}`);
 		} else {
-			message.channel.send(`No queue channels set:`
-				+ `\n${storedPrefix}${queue_cmd} \`channel name\``
+			message.channel.send(`No queue channels set.`
+				+ `\nSet a new queue channel using \`${storedPrefix}${queue_cmd} {channel name}\``
 				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 		}
 
@@ -524,8 +524,8 @@ async function setCustomField(dbData, message, field, updateDisplayMsgs, valueRe
 		message.channel.send(`Set ${field.str} to \`${newValue}\`.`);
 	}
 	else {
-		message.channel.send(`${field.str} is currently set to \`${otherData[field.index]}\`.`
-			+ `\nSet a new ${field.str} using \`${storedPrefix}${command_prefix_cmd} ${field.str}\`.`
+		message.channel.send(`The ${field.str} is currently set to \`${otherData[field.index]}\`.`
+			+ `\nSet a new ${field.str} using \`${storedPrefix}${command_prefix_cmd} {${field.str}}\`.`
 			+ '\n' + extraErrorLine
 		);
 	}
@@ -557,7 +557,7 @@ client.on('message', async message => {
 
 		// All the other commands. Use 'await' if they modify the voiceChannel dictionary.
 		if (content.startsWith(storedPrefix + start_cmd)) {
-			start(storedPrefix, message);
+			start(dbData, message);
 
 		} else if (content.startsWith(storedPrefix + display_cmd)) {
 			displayQueue(dbData, message);
