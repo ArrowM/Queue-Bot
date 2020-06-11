@@ -1,21 +1,24 @@
 // Read Config file
 const {
-	prefix,
 	token,
+
+	color,
 	database_type,
 	database_uri,
 	database_username,
 	database_password,
 	grace_period,
 	permissions_regexp,
-	color,
-	queue_cmd,
+	prefix,
+
+	color_cmd,
 	command_prefix_cmd,
-	start_cmd,
 	display_cmd,
 	grace_period_cmd,
-	color_cmd,
-	help_cmd
+	help_cmd,
+	// kick_cmd,
+	queue_cmd,
+	start_cmd
 } = require('./config.json');
 
 // Setup client
@@ -25,9 +28,10 @@ const client = new Client({ ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUI
 // Default DB Settings
 const defaultDBData = [grace_period, prefix, color, "", "", "", "", "", "", ""];
 const CustomFields = {
-	GRACE: { index: 0, str: "grace period" },
-	PREFIX: { index: 1, str: "command prefix" },
-	COLOR: { index: 2, str: "color" }
+	GRACE: { index: 0, str: "grace period", cmd: grace_period_cmd },
+	PREFIX: { index: 1, str: "command prefix", cmd: command_prefix_cmd },
+	COLOR: { index: 2, str: "color", cmd: color_cmd },
+	// KICK: { index: 3, str: "kick", cmd: kick_cmd }
 };
 Object.freeze(CustomFields);
 
@@ -88,9 +92,8 @@ client.once('ready', async () => {
 					const voiceChannel = client.channels.cache.get(voiceChannelId);
 					if (voiceChannel) {
 						// Initialize member queue
-						if (!guildMemberDict[guild.id]) {
-							guildMemberDict[guild.id] = [];
-						}
+						guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
+
 						guildMemberDict[guild.id][voiceChannel.id] = voiceChannel.members.filter(member => !member.user.bot).map(member => member.id);
 					}
 					else {
@@ -159,9 +162,8 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 	if (oldVoiceChannel !== newVoiceChannel && guildMemberLocks.get(guild.id)) {
 		await guildMemberLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 			// Initialize empty queue if necessary
-			if (!guildMemberDict[guild.id]) {
-				guildMemberDict[guild.id] = []; 
-			}
+			guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
+			
 			const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
 
 			if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
@@ -250,7 +252,7 @@ async function start(dbData, message) {
 		await voiceChannel.join().then(connection => {
 			connection.voice.setSelfMute(true);
 		});
-		console.log("Successfully connected.");
+		// console.log("Successfully connected.");
 	}
 }
 
@@ -316,12 +318,9 @@ async function displayQueue(dbData, message) {
 			await displayEmbedLocks.get(guild.id).runExclusive(async () => { // Lock ensures that update is atomic
 
 				// Initialize display message queue
-				if (!displayEmbedDict[guild.id]) {
-					displayEmbedDict[guild.id] = [];
-				}
-				if (!displayEmbedDict[guild.id][voiceChannel.id]) {
-					displayEmbedDict[guild.id][voiceChannel.id] = [];
-				}
+				displayEmbedDict[guild.id] = displayEmbedDict[guild.id] || [];
+				
+				displayEmbedDict[guild.id][voiceChannel.id] = displayEmbedDict[guild.id][voiceChannel.id] || [];
 
 				// Remove old display list
 				if (displayEmbedDict[guild.id][voiceChannel.id][textChannel.id]) {
@@ -426,26 +425,25 @@ async function setQueueChannel(dbData, message) {
 				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 		}
 		else {
+
 			// Check Perms
 			if (!voiceChannel.permissionsFor(message.client.user).has('CONNECT')) {
 				return message.channel.send('I need the permissions to join your voice channel!');
 			}
 
 			// Initialize member queue
-			if (!guildMemberDict[guild.id]) {
-				guildMemberDict[guild.id] = [];
-			}
+			guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
 
 			// Toggle Queue
 			if (voiceChannelIds.includes(voiceChannel.id)) { // If it's in the list, remove it
 				voiceChannelIds.splice(voiceChannelIds.indexOf(voiceChannel.id), 1);
 				delete guildMemberDict[guild.id][voiceChannel.id];
 				// Remove old display list
-				if (displayEmbedDict[guild.id][voiceChannel.id][message.channel.id]) {
+				try {
 					for (const storedEmbed of Object.values(displayEmbedDict[guild.id][voiceChannel.id][message.channel.id])) {
 						storedEmbed.delete();
 					}
-				}
+				} catch {/**/}
 				message.channel.send(`Deleted queue for \`${voiceChannel.name}\`.`);
 			}
 			else { // If it's not in the list, add it
@@ -478,38 +476,41 @@ async function help(dbData, message) {
 					"value": "All commands are restricted to owners or users with `mod` or `mods` in their server roles."
 				},
 				{
-					"name": storedPrefix + queue_cmd,
-					"value": `Create or delete queues using  \`${storedPrefix}${queue_cmd} {channel name}\`. Show current queues using \`${storedPrefix}${queue_cmd}\`.`
+					"name": "Modify & View Queues",
+					"value": `\`${storedPrefix}${queue_cmd} {channel name}\` creates a new queue or deletes an existing queue.`
+						+ `\n\`${storedPrefix}${queue_cmd}\` shows the existing queues.`
 				},
 				{
-					"name": storedPrefix + display_cmd,
-					"value": `Display queues in chat using  \`${storedPrefix}${display_cmd} {channel name}\`. Display messages stay updated.`
+					"name": "Display Queue Members",
+					"value": `\`${storedPrefix}${display_cmd} {channel name}\` displays the members in a queue. These messages stay updated.`
 				},
 				{
-					"name": storedPrefix + start_cmd,
-					"value": `Add the bot to a voice channel using  \`${storedPrefix}${start_cmd} {channel name}\`.`
+					"name": "Pulling Users from Queue",
+					"value": `\`${storedPrefix}${start_cmd} {channel name}\` adds the bot to a queue voice channel.`
 						+ ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
 						+ ` Right-click the bot to disconnect it from the voice channel when done.`
+						+ `\nExample: https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif`
 				},
 				{
-					"name": storedPrefix + grace_period_cmd,
-					"value": `Change how long a person can leave a voice channel before being removed using \`${storedPrefix}${grace_period_cmd} {time in seconds}\`.`
+					"name": "Change the Grace Period",
+					"value": `\`${storedPrefix}${grace_period_cmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`
 				},
 				{
-					"name": storedPrefix + command_prefix_cmd,
-					"value": `Change the command prefix using \`${storedPrefix}${command_prefix_cmd} {new prefix}\`.`
+					"name": "Change the Command Prefix",
+					"value": `\`${storedPrefix}${command_prefix_cmd} {new prefix}\` changes the prefix for Queue Bot commands.`
 				},
 				{
-					"name": storedPrefix + color_cmd,
-					"value": `Change the color using \`${storedPrefix}${color_cmd} {new color}\`.`
+					"name": "Change the Color",
+					"value": `\`${storedPrefix}${color_cmd} {new color}\` changes the color of bot messages.`
 				}
 			]
 		}
 	};
-	message.channel.send(embed);
+	message.author.send(embed);
+	message.channel.send("I have sent help to your PMs.");
 }
 
-async function setCustomField(dbData, message, field, updateDisplayMsgs, valueRestrictions, extraErrorLine) {
+async function setCustomField(dbData, message, field, updateDisplayMsgs, valueRestrictions, extraErrorLine, embed) {
 	const storedPrefix = dbData[1];
 	const guild = message.guild;
 	const newValue = message.content.slice(`${storedPrefix}${command_prefix_cmd}`.length).trim();
@@ -524,10 +525,14 @@ async function setCustomField(dbData, message, field, updateDisplayMsgs, valueRe
 		message.channel.send(`Set ${field.str} to \`${newValue}\`.`);
 	}
 	else {
-		message.channel.send(`The ${field.str} is currently set to \`${otherData[field.index]}\`.`
-			+ `\nSet a new ${field.str} using \`${storedPrefix}${command_prefix_cmd} {${field.str}}\`.`
-			+ '\n' + extraErrorLine
-		);
+		const msg = {
+			"content":
+				`The ${field.str} is currently set to \`${otherData[field.index]}\`.`
+				+ `\nSet a new ${field.str} using \`${storedPrefix}${field.cmd} {${field.str}}\`.`
+				+ '\n' + extraErrorLine
+		}
+		if (embed) msg["embed"] = embed;
+		message.channel.send(msg);
 	}
 }
 
@@ -565,31 +570,34 @@ client.on('message', async message => {
 		} else if (content.startsWith(storedPrefix + queue_cmd)) {
 			await setQueueChannel(dbData, message);
 
-			// Grace period
+		// Grace period
 		} else if (content.startsWith(storedPrefix + grace_period_cmd)) {
 			await setCustomField(dbData, message,
 				CustomFields.GRACE,
 				true,
 				function (time) { return time >= 0 && time <= 600 },
-				'Grace period must be between `0` and `600` seconds.'
+				'Grace period must be between `0` and `600` seconds.',
+				null
 			);
 
-			// Command prefix
+		// Command prefix
 		} else if (content.startsWith(storedPrefix + command_prefix_cmd)) {
 			setCustomField(dbData, message,
 				CustomFields.PREFIX,
 				false,
 				function () { return true },
-				''
+				'',
+				null
 			);
 
-			// Color
+		// Color
 		} else if (content.startsWith(storedPrefix + color_cmd)) {
 			await setCustomField(dbData, message,
 				CustomFields.COLOR,
 				true,
 				function (color) { return /^#[0-9A-F]{6}$/i.test(color) },
-				'Use HEX color: https://htmlcolorcodes.com/color-picker/'
+				'Use HEX color:',
+				{ "title": "Hex color picker", "url": "https://htmlcolorcodes.com/color-picker/", "color": dbData[2] }
 			);
 		}
 	})
