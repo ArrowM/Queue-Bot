@@ -57,20 +57,18 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 ### Access  
 All commands are restricted to owners or users with `mod` or `mods` in their server roles.  
 ### Commands  
-`!q`  
-Create or delete queues using `!q {channel name}`. Show current queues using `!q`.  
-  
-`!d`  
-Display a queue in chat using `!d {channel name}`. Display messages stay updated.  
-  
-`!s`  
-Add the bot to a voice channel using `!s {channel name}`. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. 
+#### Modify & View Queues  
+`!q {channel name}` creates a new queue or deletes an existing queue.  
+`!q` shows the existing queues.  
+#### Display Queue Members  
+`!d {channel name}` displays the members in a queue. These messages stay updated.  
+#### Pull Users from Queue  
+`!s {channel name}` adds the bot to a queue voice channel. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. See the example gif below.  
+#### Change the Grace Period  
+`!g {time in seconds}` changes how long a person can leave a queue before being removed.  
+#### Change the Command Prefix  
+`!p {new prefix}` changes the prefix for Queue Bot commands.  
+#### Change the Color  
+`!c {new color}` changes the color of bot messages.  
 
-`!g`  
-Change how long a person can leave a voice channel before being removed using `!g {time in seconds}`.
-
-`!p`  
-Change the command prefix using `!p {new prefix}`.  
-
-`!c`  
-Change the color using `!c {new color}`.  
+![Example of `!s`](docs/example.gif)  
