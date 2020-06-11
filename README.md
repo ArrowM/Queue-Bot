@@ -70,5 +70,7 @@ All commands are restricted to owners or users with `mod` or `mods` in their ser
 `!p {new prefix}` changes the prefix for Queue Bot commands.  
 #### Change the Color  
 `!c {new color}` changes the color of bot messages.  
+#### Help
+`!h` displays a list of all commands.  
 
 ![Example of `!s`](docs/example.gif)  
