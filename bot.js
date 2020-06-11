@@ -222,7 +222,7 @@ async function fetchVoiceChannel(dbData, cmd, message) {
 	const guild = message.guild;
 	let voiceChannel;
 
-	if (guildMemberDict[guild.id]) {
+	if (guildMemberDict[guild.id] && guildMemberDict[guild.id].length > 0) {
 		// Extract channel name from message
 		const channelArg = message.content.slice(`${storedPrefix}${cmd}`.length).trim();
 		const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
@@ -237,11 +237,12 @@ async function fetchVoiceChannel(dbData, cmd, message) {
 		if (voiceChannel) return voiceChannel;
 
 		message.channel.send(`Invalid channel name!`
-			+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ' `' + voiceChannel.name + '`')}`);
+			+ `\nChannels: ${availableVoiceChannels.map(voiceChannel => ' `' + voiceChannel.name + '`')}`);
 	}
 	else {
-		message.channel.send(`No queue channels set. Set a queue first using \`${storedPrefix}${queue_cmd} channel name\``
-			+ `\nValid channels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
+		message.channel.send(`No queue channels set.`
+			+ `\nSet a queue first using \`${storedPrefix}${queue_cmd} {channel name}\``
+			+ `\nChannels: ${guild.channels.cache.filter(c => c.type === 'voice').map(channel => ` \`${channel.name}\``)}`);
 	}
 }
 
@@ -411,7 +412,7 @@ async function setQueueChannel(dbData, message) {
 		} else {
 			message.channel.send(`No queue channels set.`
 				+ `\nSet a new queue channel using \`${storedPrefix}${queue_cmd} {channel name}\``
-				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
+				+ `\nChannels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 		}
 
 	}
@@ -422,7 +423,7 @@ async function setQueueChannel(dbData, message) {
 
 		if (!voiceChannel) {
 			message.channel.send(`Invalid channel name!`
-				+ `\nValid channels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
+				+ `\nChannels: ${availableVoiceChannels.map(voiceChannel => ` \`${voiceChannel.name}\``)}`);
 		}
 		else {
 
