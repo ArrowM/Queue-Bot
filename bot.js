@@ -485,11 +485,10 @@ async function help(dbData, message) {
 					"value": `\`${storedPrefix}${display_cmd} {channel name}\` displays the members in a queue. These messages stay updated.`
 				},
 				{
-					"name": "Pulling Users from Queue",
+					"name": "Pull Users from Queue",
 					"value": `\`${storedPrefix}${start_cmd} {channel name}\` adds the bot to a queue voice channel.`
 						+ ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
-						+ ` Right-click the bot to disconnect it from the voice channel when done.`
-						+ `\nExample: https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif`
+						+ ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`
 				},
 				{
 					"name": "Change the Grace Period",
@@ -503,7 +502,10 @@ async function help(dbData, message) {
 					"name": "Change the Color",
 					"value": `\`${storedPrefix}${color_cmd} {new color}\` changes the color of bot messages.`
 				}
-			]
+			],
+			"image": {
+				"url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif"
+			},
 		}
 	};
 	message.author.send(embed);
