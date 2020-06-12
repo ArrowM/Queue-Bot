@@ -138,6 +138,7 @@ client.once('reconnecting', async () => {
 			}
 		});
 	}
+	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'online' }).then().catch(console.error);
 	console.log('Reconnecting!');
 });
 client.once('disconnect', () => {
