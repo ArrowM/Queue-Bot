@@ -57,7 +57,6 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
   
 ## How to use  
 ### Non-Restricted Commands  
-#### Access  
 Available to everyone.  
 #### Join a Text Channel Queue 
 `!j {channel name}` joins or leaves a text channel queue.   
@@ -65,7 +64,6 @@ Available to everyone.
 `!h` displays a list of all commands.  
 
 ### Restricted Commands  
-#### Access  
 All commands are restricted to owners or users with `mod` or `mods` in their server roles.  
 #### Modify & View Queues  
 `!q {channel name}` creates a new queue or deletes an existing queue.  
