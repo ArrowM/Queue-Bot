@@ -51,9 +51,9 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 6. Install Dependencies. Open commmand prompt in project directory (If you have the project open in file explorer, click on the directory bar and enter "cmd"). Enter `npm install` into command prompt. You can ignore the NPM warnings. Keep the command prompt open.
 7. Start the Bot. Enter `node bot.js` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
 8. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
-	8a. In command prompt (set to the project directory), enter `npm install forever`
-	8b. To start the bot, enter `forever start bot.js`
-	8c. To stop the bot, enter `forever stop bot.js`
+	8a. In command prompt (set to the project directory), enter `npm install forever`  
+	8b. To start the bot, enter `forever start bot.js`  
+	8c. To stop the bot, enter `forever stop bot.js`  
   
 ## How to use  
 ### Non-Restricted Commands  
