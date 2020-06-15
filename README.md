@@ -28,20 +28,22 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 |-----------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | **prefix**            | Command prefix (Default: `!`)                                                                                                     |
 | **token**             | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. |
-| database_type         | Type of database for queue storage. (Default: `postgresql`)                                                                       |
-| database_uri          | Database URI. (Example: `localhost:5432/myDatabase`)						       							                        |
-| database_username     |                                                                                                                                   |
+| **database_uri**      | Database URI. (Example: `localhost:5432/myDatabase`)						       							                        |
+| **database_username** |                                                                                                                                   |
 | **database_password** |                                                                                                                                   |
+| database_type         | Type of database for queue storage. (Default: `postgresql`)                                                                       |
 | grace_period          | Number of seconds a user can leave the queue without being removed                                                                |
 | permissions_regexp    | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
 | color                 | The color of bot messages.                                                                                                        |
+| COMMANDS              |                                                                                                                                   |
 | command_prefix_cmd    | Discord chat command to change the command prefix.                                                                                |
 | color_cmd             | Discord chat command to change the color.                                                                                         |
-| queue_cmd             | Discord chat command to change queues.                                                                                            |
-| start_cmd             | Discord chat command to make the bot join a voice channel.                                                                        |
 | display_cmd           | Discord chat command to display a queue in a text channel.                                                                        |
 | grace_period_cmd      | Discord chat command to change the grace period.                                                                                  |
 | help_cmd              | Discord chat command to display the help information.                                                                             |
+| join_cmd              | Discord chat command to join a text channel queue.                                                                                |
+| queue_cmd             | Discord chat command to change queues.                                                                                            |
+| start_cmd             | Discord chat command to make the bot join a voice channel.                                                                        |
 
 ![Token Location](docs/token_location.PNG)  
 
@@ -53,10 +55,18 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 	8b. To start the bot, enter `forever start bot.js`
 	8c. To stop the bot, enter `forever stop bot.js`
   
-## How to use
-### Access  
+## How to use  
+### Non-Restricted Commands  
+#### Access  
+Available to everyone.  
+#### Join a Text Channel Queue 
+`!j {channel name}` joins or leaves a text channel queue.   
+#### Help  
+`!h` displays a list of all commands.  
+
+### Restricted Commands  
+#### Access  
 All commands are restricted to owners or users with `mod` or `mods` in their server roles.  
-### Commands  
 #### Modify & View Queues  
 `!q {channel name}` creates a new queue or deletes an existing queue.  
 `!q` shows the existing queues.  
@@ -70,7 +80,6 @@ All commands are restricted to owners or users with `mod` or `mods` in their ser
 `!p {new prefix}` changes the prefix for Queue Bot commands.  
 #### Change the Color  
 `!c {new color}` changes the color of bot messages.  
-#### Help
-`!h` displays a list of all commands.  
+
 
 ![Example of `!s`](docs/example.gif)  
