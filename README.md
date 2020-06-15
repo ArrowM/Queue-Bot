@@ -64,7 +64,7 @@ Available to everyone.
 `!h` displays a list of all commands.  
 
 ### Restricted Commands  
-All commands are restricted to owners or users with `mod` or `mods` in their server roles.  
+Available to owners or users with mod or mods in their server roles.  
 #### Modify & View Queues  
 `!q {channel name}` creates a new queue or deletes an existing queue.  
 `!q` shows the existing queues.  
