@@ -150,34 +150,36 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 	const guild = newVoiceState.guild;
 
 	if (oldVoiceChannel !== newVoiceChannel) {
-		await guildMemberLocks.get(guild.id).runExclusive(async () => {
+		if (guildMemberLocks.get(guild.id)) {
+			await guildMemberLocks.get(guild.id).runExclusive(async () => {
 
-			// Initialize empty queue if necessary
-			guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
-			
-			const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
+				// Initialize empty queue if necessary
+				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
 
-			if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
-				if (member.user.bot) {
-					if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
-						if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
-							// If the use queue is not empty, pull in the next in user queue
-							guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel); 
-							guildMemberDict[guild.id][oldVoiceChannel.id].shift();
+				const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
+
+				if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
+					if (member.user.bot) {
+						if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
+							if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
+								// If the use queue is not empty, pull in the next in user queue
+								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel);
+								guildMemberDict[guild.id][oldVoiceChannel.id].shift();
+							}
+							// Return bot to queue channel
+							newVoiceState.setChannel(oldVoiceChannel);
 						}
-						// Return bot to queue channel
-						newVoiceState.setChannel(oldVoiceChannel); 
 					}
-				}
-				else {
-					if (availableVoiceChannels.includes(newVoiceChannel) && !guildMemberDict[guild.id][newVoiceChannel.id].includes(member.id)) {
-						// User joined channel, add to queue
-						guildMemberDict[guild.id][newVoiceChannel.id].push(member.id); 
-						updateDisplayQueue(guild, [oldVoiceChannel, newVoiceChannel]);
-					}
-					if (availableVoiceChannels.includes(oldVoiceChannel)) {
-						// User left channel, start removal process
-						checkAfterLeaving(member, guild, oldVoiceChannel);
+					else {
+						if (availableVoiceChannels.includes(newVoiceChannel) && !guildMemberDict[guild.id][newVoiceChannel.id].includes(member.id)) {
+							// User joined channel, add to queue
+							guildMemberDict[guild.id][newVoiceChannel.id].push(member.id);
+							updateDisplayQueue(guild, [oldVoiceChannel, newVoiceChannel]);
+						}
+						if (availableVoiceChannels.includes(oldVoiceChannel)) {
+							// User left channel, start removal process
+							checkAfterLeaving(member, guild, oldVoiceChannel);
+						}
 					}
 				}
 			}
@@ -313,7 +315,7 @@ async function generateEmbed(dbData, channel) {
 					// Text
 					`Type \`${prefix}${join_cmd} ${channel.name}\` to join or leave this queue.`,
 			"fields": [{
-				"name": `Current queue length: **${memberIdQueue.length || 0}**`,
+				"name": `Current queue length: **${memberIdQueue ? memberIdQueue.length : 0}**`,
 				"value": "\u200b"
 			}]
 		}
