@@ -155,7 +155,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 
 				// Initialize empty queue if necessary
 				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
-
+			
 				const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
 
 				if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
@@ -163,17 +163,17 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 						if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
 							if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
 								// If the use queue is not empty, pull in the next in user queue
-								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel);
+								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel); 
 								guildMemberDict[guild.id][oldVoiceChannel.id].shift();
 							}
 							// Return bot to queue channel
-							newVoiceState.setChannel(oldVoiceChannel);
+							newVoiceState.setChannel(oldVoiceChannel); 
 						}
 					}
 					else {
 						if (availableVoiceChannels.includes(newVoiceChannel) && !guildMemberDict[guild.id][newVoiceChannel.id].includes(member.id)) {
 							// User joined channel, add to queue
-							guildMemberDict[guild.id][newVoiceChannel.id].push(member.id);
+							guildMemberDict[guild.id][newVoiceChannel.id].push(member.id); 
 							updateDisplayQueue(guild, [oldVoiceChannel, newVoiceChannel]);
 						}
 						if (availableVoiceChannels.includes(oldVoiceChannel)) {
@@ -182,8 +182,8 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 						}
 					}
 				}
-			}
-		});
+			});
+		}
 	}
 });
 
