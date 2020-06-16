@@ -669,13 +669,13 @@ async function help(dbData, parsed, message) {
 					"value": `\`${storedPrefix}${display_cmd} {channel name}\` displays the members in a queue. These messages stay updated.`
 				},
 				{
-					"name": "Pull User from Voice Queue",
+					"name": "Pull Users from Voice Queue",
 					"value": `\`${storedPrefix}${start_cmd} {channel name}\` adds the bot to a queue voice channel.`
 						+ ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
 						+ ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`
 				},
 				{
-					"name": "Pull User from Text Queue",
+					"name": "Pull Users from Text Queue",
 					"value": `\`${storedPrefix}${next_cmd} {channel name}\` removes the next person in the text queue and displays their name.`
 				},
 				{
