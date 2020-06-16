@@ -42,6 +42,8 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 | grace_period_cmd      | Discord chat command to change the grace period.                                                                                  |
 | help_cmd              | Discord chat command to display the help information.                                                                             |
 | join_cmd              | Discord chat command to join a text channel queue.                                                                                |
+| kick_cmd              | Discord chat command to kick users from a queue.                                                                                  |
+| next_cmd              | Discord chat command to pull the next user from a text channel                                                                    |
 | queue_cmd             | Discord chat command to change queues.                                                                                            |
 | start_cmd             | Discord chat command to make the bot join a voice channel.                                                                        |
 
@@ -72,6 +74,11 @@ Available to owners or users with mod or mods in their server roles.
 `!d {channel name}` displays the members in a queue. These messages stay updated.  
 #### Pull Users from Queue  
 `!s {channel name}` adds the bot to a queue voice channel. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. See the example gif below.  
+#### Pull User from Text Queue  
+`!n {channel name}` removes the next person in the text queue and displays their name.  
+#### Kick Users from Queue  
+`!k {channel name} @{user 1} @{user 2}` ... kicks one or more people from a queue.  
+  
 #### Change the Grace Period  
 `!g {time in seconds}` changes how long a person can leave a queue before being removed.  
 #### Change the Command Prefix  

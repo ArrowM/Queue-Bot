@@ -17,8 +17,8 @@ const {
 	grace_period_cmd,
 	help_cmd,
 	join_cmd,
-	remove_cmd,
-	// kick_cmd,
+	next_cmd,
+	kick_cmd,
 	queue_cmd,
 	start_cmd
 } = require('./config.json');
@@ -64,8 +64,7 @@ async function setupLocks(guildId) {
 client.login(token);
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once('ready', async () => {
-	const storedchannelDict = await channelDict.entries();
-	for (const guildIdChannelPair of storedchannelDict) {
+	for (const guildIdChannelPair of await channelDict.entries()) {
 		const guild = client.guilds.cache.get(guildIdChannelPair[0]);
 		// Cleanup deleted Guilds
 		if (!guild) {
@@ -166,8 +165,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 						if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
 							if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
 								// If the use queue is not empty, pull in the next in user queue
-								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel); 
-								guildMemberDict[guild.id][oldVoiceChannel.id].shift();
+								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id].shift()).voice.setChannel(newVoiceChannel);
 							}
 							// Return bot to queue channel
 							newVoiceState.setChannel(oldVoiceChannel); 
@@ -216,12 +214,11 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel) {
 }
 
 async function findChannel(availableChannels, parsed, message) {
-	const parameter = parsed.parameter;
-	let channel = availableChannels.find(channel => channel.name === parameter) ||
-		availableChannels.find(channel => channel.name.localeCompare(parameter, undefined, { sensitivity: 'accent' }) === 0);
+	let channel = availableChannels.find(channel => channel.name === parsed.parameter) ||
+		availableChannels.find(channel => channel.name.localeCompare(parsed.parameter, undefined, { sensitivity: 'accent' }) === 0);
 	if (channel) return channel;
 	message.channel.send(`Invalid channel name! Try \`${parsed.prefix}${parsed.command} {queue name}\`.`
-		+ `\nQueues: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
+		+ `\nQueues names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
 	);
 }
 
@@ -250,7 +247,8 @@ async function fetchChannel(dbData, parsed, message) {
 			channel = await findChannel(availableChannels, parsed, message);
 		}
 		return channel;
-	} else {
+	}
+	else {
 		message.channel.send(`No queue channels set.`
 			+ `\nSet a queue first using \`${prefix}${queue_cmd} {channel name}\``
 		//	+ `\nChannels: ${guild.channels.cache.filter(c => c.type !== 'category').map(channel => ` \`${channel.name}\``)}`
@@ -275,7 +273,8 @@ async function start(dbData, parsed, message) {
 				connection.voice.setSelfMute(true);
 			});
 			// console.log("Successfully connected.");
-		} else {
+		}
+		else {
 			message.channel.send("I can only join voice channels.")
 		}
     }
@@ -474,7 +473,8 @@ async function setQueueChannel(dbData, parsed, message) {
 	if (parameter === "") {
 		if (channelIds.length > 0) {
 			message.channel.send(`Current queues: ${channelIds.map(id => ` \`${guild.channels.cache.get(id).name}\``)}`);
-		} else {
+		}
+		else {
 			message.channel.send(`No queue channels set.`
 				+ `\nSet a new queue channel using \`${prefix}${queue_cmd} {channel name}\``
 			//	+ `\nChannels: ${channels.map(channel => ` \`${channel.name}\``)}`
@@ -523,9 +523,8 @@ async function joinTextChannel(dbData, parsed, message) {
 	const guild = message.guild;
 	const channel = await fetchChannel(dbData, parsed, message);
 	if (channel) {
-		await guildMemberLocks.get(guild.id).runExclusive(async () => {
-
-			if (channel.type === 'text') {
+		if (channel.type === 'text') {
+			await guildMemberLocks.get(guild.id).runExclusive(async () => {
 				// Initialize member queue
 				guildMemberDict[guild.id][channel.id] = guildMemberDict[guild.id][channel.id] || [];
 
@@ -533,17 +532,90 @@ async function joinTextChannel(dbData, parsed, message) {
 					// Remove from queue
 					guildMemberDict[guild.id][channel.id].splice(guildMemberDict[guild.id][channel.id].indexOf(message.member.id), 1);
 					message.channel.send(`Removed \`${message.member.displayName}\` from the \`${channel.name}\` queue.`)
-				} else {
+				}
+				else {
 					// Add to queue
 					guildMemberDict[guild.id][channel.id].push(message.member.id);
 					message.channel.send(`Added \`${message.member.displayName}\` to the \`${channel.name}\` queue.`)
 				}
-				updateDisplayQueue(guild, [channel]);
-			} else {
-				message.channel.send(`\`${parsed.prefix}${join_cmd}\` can only be used to join text channel Queues.`
-					+ ` Join the \`${channel.name}\` voice channel to be added to its queue.`)
-            }
-		});
+			});
+			updateDisplayQueue(guild, [channel]);
+		}
+		else {
+			message.channel.send(`\`${parsed.prefix}${join_cmd}\` can only be used to join text channel queues.`
+				+ ` Join the \`${channel.name}\` voice channel to be added to its queue.`)
+		}
+	}
+}
+
+/**
+ * Pop a member from a text channel queue
+ *
+ * @param {Object[]} dbData Array of server settings stored in DB.
+ * @param {Object} parsed Parsed message - prefix, command, argument.
+ * @param {Message} message Discord message object.
+ */
+async function popTextQueue(dbData, parsed, message) {
+	const guild = message.guild;
+	const channel = await fetchChannel(dbData, parsed, message);
+	if (channel) {
+		if (channel.type === 'text' && guildMemberDict[guild.id][channel.id].length > 0) {
+			let nextMemberId;
+			await guildMemberLocks.get(guild.id).runExclusive(async () => {
+				nextMemberId = guildMemberDict[guild.id][channel.id].shift();
+			});
+			message.channel.send(`Pulling next user (<@!${nextMemberId}>) from \`${channel.name}\`.`);
+			updateDisplayQueue(guild, [channel]);
+		}
+		else if (channel.type !== 'text') {
+			message.channel.send(`\`${parsed.prefix}${next_cmd}\` can only be used on text channel queues.`);
+		}
+		else if (guildMemberDict[guild.id][channel.id].length === 0) {
+			message.channel.send(`\`${channel.name}\` is empty.`);
+		}
+	}
+}
+
+/**
+ * Kick a member from a queue
+ *
+ * @param {Object[]} dbData Array of server settings stored in DB.
+ * @param {Object} parsed Parsed message - prefix, command, argument.
+ * @param {Message} message Discord message object.
+ */
+async function kickMember(dbData, parsed, message) {
+	const guild = message.guild;
+	parsed.parameter = parsed.parameter.replace(/<@!?\d+>/gi, '').trim(); // remove user mentions
+
+	const channel = await fetchChannel(dbData, parsed, message);
+	const members = message.mentions.members;
+	if (channel) {
+		if (members.size > 0 && guildMemberDict[guild.id][channel.id].length > 0) {
+			const kickedMemberIds = [];
+			const unfoundMemberIds = [];
+			await guildMemberLocks.get(guild.id).runExclusive(async () => {
+				for (memberId of members.map(m => m.id)) {
+					if (guildMemberDict[guild.id][channel.id].includes(memberId)) {
+						guildMemberDict[guild.id][channel.id].splice(guildMemberDict[guild.id][channel.id].indexOf(memberId), 1);
+						kickedMemberIds.push(memberId);
+					} else {
+						unfoundMemberIds.push(memberId);
+					}
+				}
+			});
+			// Output result of kick
+			message.channel.send(
+				((kickedMemberIds.length > 0) ? 'Kicked' + kickedMemberIds.map(m => ` <@!${m}>`) + ` from \`${channel.name}\` queue.` : '')
+				+ ((unfoundMemberIds.length > 0) ? '\nDid not find' + unfoundMemberIds.map(m => ` <@!${m}>`) + ` in \`${channel.name}\` queue.` : ''));
+			updateDisplayQueue(guild, [channel]);
+
+		} else if (guildMemberDict[guild.id][channel.id].length === 0) {
+			message.channel.send(`\`${channel.name}\` is empty.`);
+		}
+		else if (members.size === 0) {
+			message.channel.send(`Specify at least one user to kick. For example:`
+				+ `\n\`${parsed.prefix}${kick_cmd} General @Arrow\``);
+		}
 	}
 }
 
@@ -597,10 +669,18 @@ async function help(dbData, parsed, message) {
 					"value": `\`${storedPrefix}${display_cmd} {channel name}\` displays the members in a queue. These messages stay updated.`
 				},
 				{
-					"name": "Pull Users from Queue",
+					"name": "Pull User from Voice Queue",
 					"value": `\`${storedPrefix}${start_cmd} {channel name}\` adds the bot to a queue voice channel.`
 						+ ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
 						+ ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`
+				},
+				{
+					"name": "Pull User from Text Queue",
+					"value": `\`${storedPrefix}${next_cmd} {channel name}\` removes the next person in the text queue and displays their name.`
+				},
+				{
+					"name": "Kick Users from Queue",
+					"value": `\`${storedPrefix}${kick_cmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
 				},
 				{
 					"name": "Change the Grace Period",
@@ -704,6 +784,15 @@ client.on('message', async message => {
 					case queue_cmd:
 						await setQueueChannel(dbData, parsed, message);
 						break;
+					// Pop next user
+					case next_cmd:
+						popTextQueue(dbData, parsed, message);
+						break;
+					// Pop next user
+					case kick_cmd:
+						kickMember(dbData, parsed, message);
+						break;
+
 					// Grace period
 					case grace_period_cmd:
 						await setServerSettings(dbData, parsed, message,
@@ -715,7 +804,7 @@ client.on('message', async message => {
 						break;
 					// Command Prefix
 					case command_prefix_cmd:
-						setServerSettings(dbData, parsed, message,
+						await setServerSettings(dbData, parsed, message,
 							false,
 							function () { return true },
 							'',
