@@ -17,6 +17,7 @@ const {
 	grace_period_cmd,
 	help_cmd,
 	join_cmd,
+	remove_cmd,
 	// kick_cmd,
 	queue_cmd,
 	start_cmd
@@ -32,7 +33,6 @@ const ServerSettings = {
 	grace_period_cmd: { index: 0, str: "grace period" },
 	command_prefix_cmd: { index: 1, str: "command prefix" },
 	color_cmd: { index: 2, str: "color"},
-	// kick_cmd: { index: 3, str: "kick" }
 };
 Object.freeze(ServerSettings);
 
@@ -138,7 +138,10 @@ client.on('shardReconnecting', async () => {
 	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'online' }).then().catch(console.error);
 	console.log('Reconnecting!');
 });
-process.on('unhandledRejection', error => {
+client.on('shardError', error => {
+	console.error('A websocket connection encountered an error:', error);
+});
+client.on('unhandledRejection', error => {
 	console.error('Unhandled promise rejection:', error);
 });
 
@@ -305,7 +308,7 @@ async function generateEmbed(dbData, channel) {
 	const memberIdQueue = guildMemberDict[channel.guild.id][channel.id];
 	let embedList = [{
 		"embed": {
-			"title": `${channel.name} Queue`,
+			"title": `${channel.name} queue`,
 			"color": storedColor,
 			"description":
 				channel.type === 'voice' ? 
