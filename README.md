@@ -77,7 +77,7 @@ Available to owners or users with mod or mods in their server roles.
 #### Pull Users from Text Queue  
 `!n {channel name}` removes the next person in the text queue and displays their name.  
 #### Kick Users from Queue  
-`!k {channel name} @{user 1} @{user 2}` ... kicks one or more people from a queue.  
+`!k {channel name} @{user 1} @{user 2} ...`  kicks one or more people from a queue.  
   
 #### Change the Grace Period  
 `!g {time in seconds}` changes how long a person can leave a queue before being removed.  
