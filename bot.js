@@ -629,7 +629,9 @@ async function kickMember(dbData, parsed, message) {
 async function help(dbData, parsed, message) {
 	const storedPrefix = parsed.prefix;
 	const storedColor = dbData[2];
-	message.author.send({
+	const channel = await findChannel(message.guild.channels.cache, parsed, message);
+	const embeds = [
+	{
 		"embed": {
 			"title": "Non-Restricted Commands",
 			"color": storedColor,
@@ -649,8 +651,8 @@ async function help(dbData, parsed, message) {
 				}
 			]
 		}
-	});
-	message.author.send({
+	},
+	{
 		"embed": {
 			"title": "Restricted Commands",
 			"color": storedColor,
@@ -699,8 +701,13 @@ async function help(dbData, parsed, message) {
 				"url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif"
 			},
 		}
-	});
-	message.channel.send("I have sent help to your PMs.");
+	}];
+	if (channel) {
+		embeds.map(em => channel.send(em));
+	} else {
+		embeds.map(em => message.member.send(em));
+		message.channel.send("I have sent help to your PMs.");
+    }
 }
 
 /**
