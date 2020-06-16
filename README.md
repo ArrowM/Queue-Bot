@@ -73,9 +73,9 @@ Available to owners or users with mod or mods in their server roles.
 #### Display Queue Members  
 `!d {channel name}` displays the members in a queue. These messages stay updated.  
 #### Pull Users from Voice Queue  
-`!s {channel name}` adds the bot to a queue voice channel. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. See the example gif below.  
+`!s {channel name}` adds the bot to a voice queue. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. See the example gif below.  
 #### Pull Users from Text Queue  
-`!n {channel name}` removes the next person in the text queue and displays their name.  
+`!n {channel name}` removes the next person in a text queue and displays their name.  
 #### Kick Users from Queue  
 `!k {channel name} @{user 1} @{user 2} ...`  kicks one or more people from a queue.  
   
