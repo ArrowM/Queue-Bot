@@ -30,11 +30,11 @@ const client = new Client({ ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUI
 // Default DB Settings
 const defaultDBData = [grace_period, prefix, color, "", "", "", "", "", "", ""];
 const ServerSettings = {
-	grace_period_cmd: { index: 0, str: "grace period" },
-	command_prefix_cmd: { index: 1, str: "command prefix" },
-	color_cmd: { index: 2, str: "color"},
+	[grace_period_cmd]: { index: 0, str: "grace period" },
+	[command_prefix_cmd]: { index: 1, str: "command prefix" },
+	[color_cmd]: { index: 2, str: "color"},
 };
-Object.freeze(ServerSettings);
+ Object.freeze(ServerSettings);
 
 // Keyv long term DB storage
 const Keyv = require('keyv');
@@ -114,7 +114,7 @@ client.once('ready', async () => {
 });
 client.on('shardReconnecting', async () => {
 	for (const guildId of Object.keys(guildMemberDict)) {
-		await guildMemberLocks.get(guild.id).runExclusive(async () => {
+		await guildMemberLocks.get(guildId).runExclusive(async () => {
 			const availableVoiceChannels = Object.keys(guildMemberDict[guildId]).map(id => client.channels.cache.get(id));
 			for (const channel of availableVoiceChannels) {
 				// Remove users who left during disconnect
