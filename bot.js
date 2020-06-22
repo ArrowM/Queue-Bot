@@ -112,7 +112,7 @@ client.once('ready', async () => {
 	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'online' });
 	console.log('Ready!');
 });
-client.on('shardReconnecting', async () => {
+client.on('shardResume', async () => {
 	for (const guildId of Object.keys(guildMemberDict)) {
 		await guildMemberLocks.get(guildId).runExclusive(async () => {
 			const availableVoiceChannels = Object.keys(guildMemberDict[guildId]).map(id => client.channels.cache.get(id));
