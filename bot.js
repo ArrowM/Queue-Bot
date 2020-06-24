@@ -24,6 +24,7 @@ const {
 } = require('./config.json');
 
 // Setup client
+require('events').EventEmitter.defaultMaxListeners = 40; // Maximum number of events that can be handled at once.
 const { Client } = require('discord.js');
 const client = new Client({ ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
 
@@ -137,13 +138,7 @@ client.on('shardResume', async () => {
 		});
 	}
 	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'online' });
-	console.log('Reconnecting!');
-});
-client.on('shardError', error => {
-	console.error('A websocket connection encountered an error:', error);
-});
-client.on('unhandledRejection', error => {
-	console.error('Unhandled promise rejection:', error);
+	console.log('Reconnected!');
 });
 
 // Monitor for users joining voice channels
@@ -223,7 +218,9 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel) {
 	}
 
 	await guildMemberLocks.get(guild.id).runExclusive(async () => {
-		guildMemberDict[guild.id][oldVoiceChannel.id].splice(guildMemberDict[guild.id][oldVoiceChannel.id].indexOf(member.id), 1); // User left channel, remove from queue
+		if (guildMemberDict[guild.id][oldVoiceChannel.id]) {
+			guildMemberDict[guild.id][oldVoiceChannel.id].splice(guildMemberDict[guild.id][oldVoiceChannel.id].indexOf(member.id), 1); // User left channel, remove from queue
+		}
 	});
 	// console.log(`[${guild.name}] | [${member.displayName}] left [${oldVoiceChannel.name}] queue`);
 	updateDisplayQueue(guild, [oldVoiceChannel]);
@@ -293,7 +290,7 @@ async function start(dbData, parsed, message) {
 				.then(connection => connection.voice.setSelfMute(true));
 		}
 		else {
-			send(message, "I can only join voice channels.")
+			send(message, "I can only join voice channels.");
 		}
     }
 }
@@ -768,7 +765,7 @@ async function setServerSettings(dbData, parsed, message, updateDisplayMsgs, val
 		send(message, {
 			"embed": embed,
 			"content":
-				`The ${setting.str} is currently set to \`${otherData[setting.index]}\`.\n`
+				`The ${setting.str} is currently set to \`${dbData[setting.index]}\`.\n`
 				+ `Set a new ${setting.str} using \`${parsed.prefix}${parsed.command} {${setting.str}}\`.\n`
 				+ extraErrorLine
 		});
@@ -834,8 +831,8 @@ client.on('message', async message => {
 					case grace_period_cmd:
 						await setServerSettings(dbData, parsed, message,
 							true,
-							function (time) { return time >= 0 && time <= 600 },
-							'Grace period must be between `0` and `600` seconds.',
+							function (time) { return time >= 0 && time <= 300 },
+							'Grace period must be between `0` and `300` seconds.',
 							null
 						);
 						break;
