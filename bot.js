@@ -350,7 +350,7 @@ async function generateEmbed(dbData, channel) {
 				channel.type === 'voice' ? 
 					// Voice
 					`Join the **${channel.name}** voice channel to join this queue.`
-					+ (dbData[0] ? '' : ` If you leave, you have ${await getGracePeriodString(dbData)} to rejoin before being removed from the queue.`) :
+					+ (dbData[0] ? ` If you leave, you have ${await getGracePeriodString(dbData)} to rejoin before being removed from the queue.` : '') :
 					// Text
 					`Type \`${prefix}${join_cmd} ${channel.name}\` to join or leave this queue.`,
 			"fields": [{
