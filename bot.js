@@ -725,7 +725,7 @@ async function help(dbData, parsed, message) {
 					"value": `\`${storedPrefix}${next_cmd} {channel name}\` removes the next person in the text queue and displays their name.`
 				},
 				{
-					"name": "Add others to a Text Channel Queue",
+					"name": "Add Others to a Text Channel Queue",
 					"value": `\`${storedPrefix}${join_cmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
 				},
 				{
