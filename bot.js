@@ -323,8 +323,8 @@ async function start(dbData, parsed, message) {
  * @param {number} guildId Guild id.
  * @return {string} Grace period string.
  */
-async function getGracePeriodString(guildId) {
-	const gracePeriod = (await channelDict.get(guildId))[0];
+async function getGracePeriodString(dbData) {
+	const gracePeriod = dbData[0];
 	const grace_minutes = Math.round(gracePeriod / 60);
 	const grace_seconds = gracePeriod % 60;
 	return (grace_minutes > 0 ? grace_minutes + ' minute' : '') + (grace_minutes > 1 ? 's' : '')
@@ -350,7 +350,7 @@ async function generateEmbed(dbData, channel) {
 				channel.type === 'voice' ? 
 					// Voice
 					`Join the **${channel.name}** voice channel to join this queue.`
-					+ ` If you leave, you have ${await getGracePeriodString(channel.guild.id)} to rejoin before being removed from the queue.` :
+					+ (dbData[0] ? '' : ` If you leave, you have ${await getGracePeriodString(dbData)} to rejoin before being removed from the queue.`) :
 					// Text
 					`Type \`${prefix}${join_cmd} ${channel.name}\` to join or leave this queue.`,
 			"fields": [{
