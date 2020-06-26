@@ -33,15 +33,13 @@ const defaultDBData = [grace_period, prefix, color, "", "", "", "", "", "", ""];
 const ServerSettings = {
 	[grace_period_cmd]: { index: 0, str: "grace period" },
 	[command_prefix_cmd]: { index: 1, str: "command prefix" },
-	[color_cmd]: { index: 2, str: "color"},
+	[color_cmd]: { index: 2, str: "color" },
 };
  Object.freeze(ServerSettings);
 
 // Keyv long term DB storage
 const Keyv = require('keyv');
-const channelDict = (function () {
-	return new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`);	// guild.id | grace_period, [voice Channel.id, ...]
-})();
+const channelDict = (() => new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`)) ();	// guild.id | grace_period, [voice Channel.id, ...]
 channelDict.on('error', err => console.error('Keyv connection error:', err));
 
 // Short term storage
@@ -140,6 +138,7 @@ client.on('shardResume', async () => {
 	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'online' });
 	console.log('Reconnected!');
 });
+process.on('uncaughtException', err => console.log(err)); 
 
 // Monitor for users joining voice channels
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
@@ -226,14 +225,33 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel) {
 	updateDisplayQueue(guild, [oldVoiceChannel]);
 }
 
-async function findChannel(availableChannels, parsed, message) {
-	if (!parsed.parameter) return;
+/**
+ * Get a channel from available channels
+ * 
+ * @param {any} availableChannels
+ * @param {Object} parsed
+ * @param {boolean} includeMention Include mention in error message
+ * @param {string} type Type of channels to fetch ('voice' or 'text')
+ * @param {Message} message
+ */
+async function findChannel(availableChannels, parsed, message, includeMention, type) {
 	let channel = availableChannels.find(channel => channel.name === parsed.parameter) ||
 		availableChannels.find(channel => channel.name.localeCompare(parsed.parameter, undefined, { sensitivity: 'accent' }) === 0);
+
 	if (channel) return channel;
-	send(message, `Invalid channel name! Try \`${parsed.prefix}${parsed.command} {channel name}\`.`
-		+ `\nQueue names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
-	);
+
+	let response = 'Invalid ' + (type ? `${type} ` : '') + `channel name! Try \`${parsed.prefix}${parsed.command} `;
+	if (availableChannels.length === 1) {
+		// Single channel, recommend the single channel
+		response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
+	}
+	else {
+		// Multiple channels, list them
+		response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
+			+ '\nAvailable ' + (type ? `${type} ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
+    }
+
+	send(message, response);
 }
 
 /**
@@ -241,9 +259,11 @@ async function findChannel(availableChannels, parsed, message) {
  *
  * @param {Object} parsed Parsed message - prefix, command, argument.
  * @param {Message} message Discord message object.
+ * @param {boolean} includeMention Include mention in error message
+ * @param {string} type Type of channels to fetch ('voice' or 'text')
  * @return {GuildChannel} Matched channel.
  */
-async function fetchChannel(dbData, parsed, message) {
+async function fetchChannel(dbData, parsed, message, includeMention, type) {
 	const channelIds = dbData.slice(10);
 	const prefix = parsed.prefix;
 	const parameter = parsed.parameter;
@@ -252,13 +272,15 @@ async function fetchChannel(dbData, parsed, message) {
 
 	if (guildMemberDict[guild.id] && channelIds.length > 0) {
 		// Extract channel name from message
-		const availableChannels = channelIds.map(id => client.channels.cache.get(id));
+		let availableChannels = type ?
+			channelIds.map(id => client.channels.cache.get(id)).filter(channel => channel.type === type) :
+			channelIds.map(id => client.channels.cache.get(id));
 		
 		if (availableChannels.length === 1 && parameter === "") {
 			channel = availableChannels[0];
 		}
 		else {
-			channel = await findChannel(availableChannels, parsed, message)
+			channel = await findChannel(availableChannels, parsed, message, includeMention, type)
 				.catch(e => console.log('Error in fetchChannel: ' + e));
 		}
 		return channel;
@@ -278,7 +300,7 @@ async function fetchChannel(dbData, parsed, message) {
  * @param {Message} message Discord message object.
  */
 async function start(dbData, parsed, message) {
-	const channel = await fetchChannel(dbData, parsed, message)
+	const channel = await fetchChannel(dbData, parsed, message, false, 'voice')
 		.catch(e => console.log('Error in start: ' + e));
 	if (channel) {
 		if (!channel.permissionsFor(message.guild.me).has('CONNECT')) {
@@ -382,8 +404,9 @@ async function generateEmbed(dbData, channel) {
 async function displayQueue(dbData, parsed, message) {
 	const guild = message.guild;
 	const textChannel = message.channel;
-	const channel = await fetchChannel(dbData, parsed, message)
+	const channel = await fetchChannel(dbData, parsed, message, false)
 		.catch(e => console.log('Error in displayQueue: ' + e));
+
 	if (channel) {
 		let embedList = await generateEmbed(dbData, channel);
 		await displayEmbedLocks.get(guild.id).runExclusive(async () => {
@@ -536,33 +559,35 @@ async function setQueueChannel(dbData, parsed, message) {
  * @param {Object} parsed Parsed message - prefix, command, argument.
  * @param {Message} message Discord message object.
  */
-async function joinTextChannel(dbData, parsed, message) {
+async function joinTextChannel(dbData, parsed, message, hasPermission) {
 	const guild = message.guild;
-	const channel = await fetchChannel(dbData, parsed, message)
-		.catch(e => console.log('Error in joinTextChannel: ' + e));
-	if (channel) {
-		if (channel.type === 'text') {
-			await guildMemberLocks.get(guild.id).runExclusive(async () => {
-				// Initialize member queue
-				guildMemberDict[guild.id][channel.id] = guildMemberDict[guild.id][channel.id] || [];
+	let membersToAdd;
+	if (hasPermission) {
+		parsed.parameter = parsed.parameter.replace(/<@!?\d+>/gi, '').trim(); // remove user mentions
+	}
+	membersToAdd = message.mentions.members.size > 0 ? message.mentions.members.values() : [message.member];
 
-				if (guildMemberDict[guild.id][channel.id].includes(message.member.id)) {
+	const channel = await fetchChannel(dbData, parsed, message, message.mentions.members.size > 0, 'text')
+		.catch(e => console.log('Error in joinTextChannel: ' + e));
+
+	if (channel) {
+		await guildMemberLocks.get(guild.id).runExclusive(async () => {
+			// Initialize member queue
+			guildMemberDict[guild.id][channel.id] = guildMemberDict[guild.id][channel.id] || [];
+			for (const member of membersToAdd) {
+				if (guildMemberDict[guild.id][channel.id].includes(member.id)) {
 					// Remove from queue
-					guildMemberDict[guild.id][channel.id].splice(guildMemberDict[guild.id][channel.id].indexOf(message.member.id), 1);
-					send(message, `Removed \`${message.member.displayName}\` from the \`${channel.name}\` queue.`)
+					guildMemberDict[guild.id][channel.id].splice(guildMemberDict[guild.id][channel.id].indexOf(member.id), 1);
+					send(message, `Removed \`${member.displayName}\` from the \`${channel.name}\` queue.`)
 				}
 				else {
 					// Add to queue
-					guildMemberDict[guild.id][channel.id].push(message.member.id);
-					send(message, `Added \`${message.member.displayName}\` to the \`${channel.name}\` queue.`)
+					guildMemberDict[guild.id][channel.id].push(member.id);
+					send(message, `Added \`${member.displayName}\` to the \`${channel.name}\` queue.`)
 				}
-			});
-			updateDisplayQueue(guild, [channel]);
-		}
-		else {
-			send(message, `\`${parsed.prefix}${join_cmd}\` can only be used to join text channel queues.`
-				+ ` Join the \`${channel.name}\` voice channel to be added to its queue.`)
-		}
+            }
+		});
+		updateDisplayQueue(guild, [channel]);
 	}
 }
 
@@ -575,7 +600,7 @@ async function joinTextChannel(dbData, parsed, message) {
  */
 async function popTextQueue(dbData, parsed, message) {
 	const guild = message.guild;
-	const channel = await fetchChannel(dbData, parsed, message)
+	const channel = await fetchChannel(dbData, parsed, message, false, 'text')
 		.catch(e => console.log('Error in popTextQueue: ' + e));
 	if (channel) {
 		if (channel.type === 'text' && guildMemberDict[guild.id][channel.id].length > 0) {
@@ -605,21 +630,21 @@ async function popTextQueue(dbData, parsed, message) {
 async function kickMember(dbData, parsed, message) {
 	const guild = message.guild;
 	parsed.parameter = parsed.parameter.replace(/<@!?\d+>/gi, '').trim(); // remove user mentions
-
-	const channel = await fetchChannel(dbData, parsed, message)
+	const channel = await fetchChannel(dbData, parsed, message, true, null)
 		.catch(e => console.log('Error in kickMember: ' + e));
-	const members = message.mentions.members;
+	const mentionedMembers = message.mentions.members.values();
+
 	if (channel) {
-		if (members.size > 0 && guildMemberDict[guild.id][channel.id].length > 0) {
+		if (mentionedMembers && guildMemberDict[guild.id][channel.id].length > 0) {
 			const kickedMemberIds = [];
 			const unfoundMemberIds = [];
 			await guildMemberLocks.get(guild.id).runExclusive(async () => {
-				for (memberId of members.map(m => m.id)) {
-					if (guildMemberDict[guild.id][channel.id].includes(memberId)) {
-						guildMemberDict[guild.id][channel.id].splice(guildMemberDict[guild.id][channel.id].indexOf(memberId), 1);
-						kickedMemberIds.push(memberId);
+				for (member of mentionedMembers) {
+					if (guildMemberDict[guild.id][channel.id].includes(member.id)) {
+						guildMemberDict[guild.id][channel.id].splice(guildMemberDict[guild.id][channel.id].indexOf(member.id), 1);
+						kickedMemberIds.push(member.id);
 					} else {
-						unfoundMemberIds.push(memberId);
+						unfoundMemberIds.push(member.id);
 					}
 				}
 			});
@@ -632,7 +657,7 @@ async function kickMember(dbData, parsed, message) {
 		} else if (guildMemberDict[guild.id][channel.id].length === 0) {
 			send(message, `\`${channel.name}\` is empty.`);
 		}
-		else if (members.size === 0) {
+		else if (!mentionedMembers) {
 			send(message, `Specify at least one user to kick. For example:`
 				+ `\n\`${parsed.prefix}${kick_cmd} General @Arrow\``);
 		}
@@ -649,8 +674,6 @@ async function kickMember(dbData, parsed, message) {
 async function help(dbData, parsed, message) {
 	const storedPrefix = parsed.prefix;
 	const storedColor = dbData[2];
-	const channel = await findChannel(message.guild.channels.cache.filter(channel => channel.type === 'text'), parsed, message)
-		.catch(e => console.log('Error in help: ' + e));
 	const embeds = [
 	{
 		"embed": {
@@ -702,6 +725,10 @@ async function help(dbData, parsed, message) {
 					"value": `\`${storedPrefix}${next_cmd} {channel name}\` removes the next person in the text queue and displays their name.`
 				},
 				{
+					"name": "Add others to a Text Channel Queue",
+					"value": `\`${storedPrefix}${join_cmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
+				},
+				{
 					"name": "Kick Users from Queue",
 					"value": `\`${storedPrefix}${kick_cmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
 				},
@@ -722,19 +749,26 @@ async function help(dbData, parsed, message) {
 				"url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif"
 			},
 		}
-		}];
-	// Send help message
-	if (channel) {
-		if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES')) {
-			embeds.map(em => channel.send(em));
-		} else {
-			message.member.send(`I don't have permission to write messages in \`${channel.name}\``);
-			embeds.map(em => message.member.send(em));
+	}];
+	if (parsed.parameter) {
+		// Channel (where to print the help message) provided
+		const channel = await message.guild.channels.cache.find(channel => channel.type === 'text' && channel.name === parsed.parameter);
+		console.log(channel.permissionsFor(message.guild.me).has('SEND_MESSAGES'));
+		if (channel) {
+			if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES')) {
+				// Channel found and bot has permission, print.
+				embeds.map(em => channel.send(em));
+			} else {
+				// Channel found, but no permission. Send permission and help messages to user.
+				message.member.send(`I don't have permission to write messages in \`${channel.name}\``);
+				embeds.map(em => message.member.send(em));
+			}
 		}
 	} else {
+		// No channel provided. Send help to user.
 		embeds.map(em => message.member.send(em));
 		send(message, "I have sent help to your PMs.");
-    }
+	}
 }
 
 /**
@@ -777,7 +811,7 @@ async function setServerSettings(dbData, parsed, message, updateDisplayMsgs, val
  *
  * @param {Message} message Discord message object.
  */
-async function hasPermissions(message) {
+async function checkPermission(message) {
 	const regex = RegExp(permissions_regexp, 'i');
 	return message.member.roles.cache.some(role => regex.test(role.name)) || message.member.id === message.guild.ownerID;
 }
@@ -803,8 +837,9 @@ client.on('message', async message => {
 			// Note: Prefix can contain spaces. Command can not contains spaces. Parameter can contain spaces.
 			parsed.command = message.content.substring(parsed.prefix.length).split(" ")[0];
 			parsed.parameter = message.content.substring(parsed.prefix.length + parsed.command.length + 1);
+			const hasPermission = await checkPermission(message);
 			// Restricted commands
-			if (await hasPermissions(message)) {
+			if (hasPermission) {
 				switch (parsed.command) {
 					// Start
 					case start_cmd:
@@ -864,7 +899,7 @@ client.on('message', async message => {
 					break;
 				// Join Text Queue
 				case join_cmd:
-					await joinTextChannel(dbData, parsed, message);
+					await joinTextChannel(dbData, parsed, message, hasPermission);
 					break;
 			}
 		}
