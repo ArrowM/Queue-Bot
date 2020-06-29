@@ -454,7 +454,7 @@ async function updateDisplayQueue(guild, channels) {
 						continue;
 					}
 
-					const embedList = await generateEmbed(dbData, channel); 
+					const embedList = await generateEmbed(dbData, channel);
 					for (const textChannelId of Object.keys(displayEmbedDict[guild.id][channel.id])) {
 
 						if (!currentChannelIds.includes(textChannelId)) { // Handled delete channels
@@ -466,7 +466,9 @@ async function updateDisplayQueue(guild, channels) {
 						// Same number of embed messages, edit them
 						if (storedEmbeds.length === embedList.length) {
 							for (var i = 0; i < embedList.length; i++) {
-								storedEmbeds[i].edit(embedList[i]);
+								await storedEmbeds[i].edit(embedList[i]).catch(() => {
+									storedEmbeds.splice(i, 1);
+								});
 							}
 						}
 						// Different number of embed messages, create all new messages
@@ -474,7 +476,9 @@ async function updateDisplayQueue(guild, channels) {
 							let textChannel = storedEmbeds[0].channel;
 							// Remove old display list
 							for (const storedEmbed of Object.values(storedEmbeds)) {
-								await storedEmbed.delete().catch(() => { });
+								await storedEmbed.delete().catch(() => {
+									storedEmbeds.splice(i, 1);
+								});
 							}
 							displayEmbedDict[guild.id][channel.id][textChannelId] = [];
 							// Create new display list
