@@ -191,7 +191,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
  * @param {any} messageToSend String to send.
  */
 async function send(message, messageToSend) {
-	if (message.channel.permissionsFor(message.guild.me).has('SEND_MESSAGES')) {
+	if (message.channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS ')) {
 		message.channel.send(messageToSend);
 	} else {
 		message.member.send(`I don't have permission to write messages in \`${message.channel.name}\``);
@@ -753,9 +753,8 @@ async function help(dbData, parsed, message) {
 	if (parsed.parameter) {
 		// Channel (where to print the help message) provided
 		const channel = await message.guild.channels.cache.find(channel => channel.type === 'text' && channel.name === parsed.parameter);
-		console.log(channel.permissionsFor(message.guild.me).has('SEND_MESSAGES'));
 		if (channel) {
-			if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES')) {
+			if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS ')) {
 				// Channel found and bot has permission, print.
 				embeds.map(em => channel.send(em));
 			} else {
