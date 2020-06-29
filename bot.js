@@ -471,13 +471,13 @@ async function updateDisplayQueue(guild, channels) {
 						}
 						// Different number of embed messages, create all new messages
 						else {
+							let textChannel = storedEmbeds[0].channel;
 							// Remove old display list
 							for (const storedEmbed of Object.values(storedEmbeds)) {
 								await storedEmbed.delete().catch(() => { });
 							}
 							displayEmbedDict[guild.id][channel.id][textChannelId] = [];
 							// Create new display list
-							let textChannel = storedEmbeds[0].channel;
 							embedList.forEach(queueEmbed =>
 								textChannel.send(queueEmbed).then(
 									msg => displayEmbedDict[guild.id][channel.id][textChannelId].push(msg)
