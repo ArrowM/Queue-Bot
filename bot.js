@@ -191,10 +191,10 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
  * @param {any} messageToSend String to send.
  */
 async function send(message, messageToSend) {
-	if (message.channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS ')) {
+	if (message.channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && message.channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 		message.channel.send(messageToSend);
 	} else {
-		message.member.send(`I don't have permission to write messages in \`${message.channel.name}\``);
+		message.member.send(`I don't have permission to write messages and embeds in \`${message.channel.name}\``);
     }
 }
 
@@ -235,7 +235,8 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel) {
  * @param {Message} message
  */
 async function findChannel(availableChannels, parsed, message, includeMention, type) {
-	let channel = availableChannels.find(channel => channel.name === parsed.parameter) ||
+	let channel = message.mentions.channels.values().next().value ||
+		availableChannels.find(channel => channel.name === parsed.parameter) ||
 		availableChannels.find(channel => channel.name.localeCompare(parsed.parameter, undefined, { sensitivity: 'accent' }) === 0);
 
 	if (channel) return channel;
@@ -288,7 +289,6 @@ async function fetchChannel(dbData, parsed, message, includeMention, type) {
 	else {
 		send(message, `No queue channels set.`
 			+ `\nSet a queue first using \`${prefix}${queue_cmd} {channel name}\``
-		//	+ `\nChannels: ${guild.channels.cache.filter(c => c.type !== 'category').map(channel => ` \`${channel.name}\``)}`
 		);
 	}
 }
@@ -759,7 +759,7 @@ async function help(dbData, parsed, message) {
 				embeds.map(em => channel.send(em));
 			} else {
 				// Channel found, but no permission. Send permission and help messages to user.
-				message.member.send(`I don't have permission to write messages in \`${channel.name}\``);
+				message.member.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
 				embeds.map(em => message.member.send(em));
 			}
 		}
