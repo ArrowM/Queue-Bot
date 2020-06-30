@@ -79,15 +79,14 @@ client.once('ready', async () => {
 			try {
 				const dbData = guildIdChannelPair[1];
 				const otherData = dbData.slice(0, 10);
-				const channelIds = dbData.slice(10);
+				const channels = await fetchStoredChannels(dbData, guild);
 				// Set unset values to default
 				for (let i = 0; i < otherData.length; i++) {
 					otherData[i] = otherData[i] || defaultDBData[i];
 				}
 				// Initialize member queue
 				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
-				for (const channelId of channelIds) {
-					const channel = client.channels.cache.get(channelId);
+				for (const channel of channels) {
 					if (channel) {
 						// Add people already in a voice channel queue
 						guildMemberDict[guild.id][channel.id] = (channel.type === 'voice') ?
@@ -95,10 +94,10 @@ client.once('ready', async () => {
 					}
 					else {
 						// Cleanup deleted Channels
-						channelIds.splice(channelIds.indexOf(channelId), 1);
+						channels.splice(channels.indexOf(channel), 1);
 					}
 				}
-				await channelDict.set(guild.id, otherData.concat(channelIds));
+				await channelDict.set(guild.id, otherData.concat(channels.map(ch => ch.id)));
 			}
 			finally {
 				// UNLOCK
@@ -139,6 +138,21 @@ client.on('shardResume', async () => {
 	console.log('Reconnected!');
 });
 process.on('uncaughtException', err => console.log(err)); 
+
+async function fetchStoredChannels(dbData, guild) {
+	let channels = [];
+	for (let i = 10; i < dbData.length; i++) {
+		const channel = guild.channels.cache.get(dbData[i]);
+		if (channel) {
+			channels.push(channel);
+		}
+		else {
+			dbData.splice(i, 1);
+        }
+	}
+	await channelDict.set(guild.id, dbData);
+	return (channels === []) ? null : channels;
+}
 
 // Monitor for users joining voice channels
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
@@ -251,7 +265,6 @@ async function findChannel(availableChannels, parsed, message, includeMention, t
 		response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
 			+ '\nAvailable ' + (type ? `${type} ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
     }
-
 	send(message, response);
 }
 
@@ -265,17 +278,17 @@ async function findChannel(availableChannels, parsed, message, includeMention, t
  * @return {GuildChannel} Matched channel.
  */
 async function fetchChannel(dbData, parsed, message, includeMention, type) {
-	const channelIds = dbData.slice(10);
+	const channels = await fetchStoredChannels(dbData, message.guild);
 	const prefix = parsed.prefix;
 	const parameter = parsed.parameter;
 	const guild = message.guild;
 	let channel;
 
-	if (guildMemberDict[guild.id] && channelIds.length > 0) {
+	if (guildMemberDict[guild.id] && channels.length > 0) {
 		// Extract channel name from message
 		let availableChannels = type ?
-			channelIds.map(id => client.channels.cache.get(id)).filter(channel => channel.type === type) :
-			channelIds.map(id => client.channels.cache.get(id));
+			channels.filter(channel => channel.type === type) :
+			channels;
 		
 		if (availableChannels.length === 1 && parameter === "") {
 			channel = availableChannels[0];
@@ -510,12 +523,12 @@ async function setQueueChannel(dbData, parsed, message) {
 	const channels = guild.channels.cache.filter(c => c.type !== 'category');
 	// Get stored voice channel list from database
 	const otherData = dbData.slice(0, 10);
-	const channelIds = dbData.slice(10);
+	const storedChannels = await fetchStoredChannels(dbData, message.guild);
 
 	// No argument. Display current queues
 	if (parameter === "") {
-		if (channelIds.length > 0) {
-			send(message, `Current queues: ${channelIds.map(id => ` \`${guild.channels.cache.get(id).name}\``)}`);
+		if (storedChannels.length > 0) {
+			send(message, `Current queues: ${storedChannels.map(ch => ` \`${ch.name}\``)}`);
 		}
 		else {
 			send(message, `No queue channels set.`
@@ -532,8 +545,8 @@ async function setQueueChannel(dbData, parsed, message) {
 			// Initialize member queue
 			guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
 			// Toggle Queue
-			if (channelIds.includes(channel.id)) { // If it's in the list, remove it
-				channelIds.splice(channelIds.indexOf(channel.id), 1);
+			if (storedChannels.includes(channel)) { // If it's in the list, remove it
+				storedChannels.splice(storedChannels.indexOf(channel), 1);
 				delete guildMemberDict[guild.id][channel.id];
 				// Remove old display list
 				try {
@@ -544,14 +557,14 @@ async function setQueueChannel(dbData, parsed, message) {
 				send(message, `Deleted queue for \`${channel.name}\`.`);
 			}
 			else { // If it's not in the list, add it
-				channelIds.push(channel.id);
+				storedChannels.push(channel);
 				if (channel.type === 'voice') {
 					guildMemberDict[guild.id][channel.id] = channel.members.filter(m => !m.user.bot).map(m => m.id);
 				}
 				send(message, `Created queue for \`${channel.name}\`.`);
 			}
 			// Store channel to database
-			await channelDict.set(guild.id, otherData.concat(channelIds));
+			await channelDict.set(guild.id, otherData.concat(storedChannels.map(ch => ch.id)));
 		}
 	}
 }
@@ -789,13 +802,14 @@ async function setServerSettings(dbData, parsed, message, updateDisplayMsgs, val
 	// Setup common variables
 	const setting = ServerSettings[parsed.command];
 	const guild = message.guild;
-	const channelIds = dbData.slice(10);
+	const otherData = dbData.slice(0, 10);
+	const channels = await fetchStoredChannels(dbData, guild);
 	
 	if (parsed.parameter && valueRestrictions(parsed.parameter)) {
-		dbData[setting.index] = parsed.parameter;
+		otherData[setting.index] = parsed.parameter;
 		// Store channel to database
-		await channelDict.set(guild.id, dbData);
-		if (updateDisplayMsgs) updateDisplayQueue(guild, channelIds.map(id => guild.channels.cache.get(id)));
+		await channelDict.set(guild.id, otherData.concat(channel.map(ch => ch.id)));
+		if (updateDisplayMsgs) updateDisplayQueue(guild, channels);
 		send(message, `Set ${setting.str} to \`${parsed.parameter}\`.`);
 	}
 	else {
