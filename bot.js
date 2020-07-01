@@ -396,13 +396,18 @@ async function generateEmbed(dbData, channel) {
 			const fields = [];
 			await guildMemberLocks.get(channel.guild.id).runExclusive(async () => {
 				memberIdQueue.slice(position, sliceStop).map(memberId => {
-					fields.push({
-						"name": ++position,
-						"value": channel.guild.members.cache.get(memberId).displayName.catch(() => {
-							// Clean up people who have left the server
-							guildMemberDict[channel.guild.id][channel.id].splice(
-								guildMemberDict[channel.guild.id][channel.id].indexOf(memberId), 1)})
-					});
+					const member = channel.guild.members.cache.get(memberId);
+					if (member) {
+						fields.push({
+							"name": ++position,
+							"value": member.displayName
+						});
+					}
+					// Clean up people who have left the server
+					else {
+						guildMemberDict[channel.guild.id][channel.id]
+							.splice(guildMemberDict[channel.guild.id][channel.id].indexOf(memberId), 1);
+					}
 				});
 			});
 			embedList[i]['embed']['fields'].push(fields);
