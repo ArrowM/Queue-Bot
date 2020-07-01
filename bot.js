@@ -394,7 +394,7 @@ async function generateEmbed(dbData, channel) {
 
 			// Populate with names and numbers
 			const fields = [];
-			await guildMemberLocks.runExclusive(async () => {
+			await guildMemberLocks.get(channel.guild.id).runExclusive(async () => {
 				memberIdQueue.slice(position, sliceStop).map(memberId => {
 					fields.push({
 						"name": ++position,
