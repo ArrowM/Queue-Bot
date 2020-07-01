@@ -842,7 +842,7 @@ async function setServerSettings(dbData, parsed, message, updateDisplayMsgs, val
 	if (parsed.parameter && valueRestrictions(parsed.parameter)) {
 		otherData[setting.index] = parsed.parameter;
 		// Store channel to database
-		await channelDict.set(guild.id, otherData.concat(channel.map(ch => ch.id)));
+		await channelDict.set(guild.id, otherData.concat(channels.map(ch => ch.id)));
 		if (updateDisplayMsgs) updateDisplayQueue(guild, channels);
 		send(message, `Set ${setting.str} to \`${parsed.parameter}\`.`);
 	}
