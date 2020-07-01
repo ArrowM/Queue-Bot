@@ -11,6 +11,7 @@ const {
 	permissions_regexp,
 	prefix,
 
+	clear_cmd,
 	color_cmd,
 	command_prefix_cmd,
 	display_cmd,
@@ -393,10 +394,15 @@ async function generateEmbed(dbData, channel) {
 
 			// Populate with names and numbers
 			const fields = [];
-			memberIdQueue.slice(position, sliceStop).map(function (memberId) {
-				fields.push({
-					"name": ++position,
-					"value": channel.guild.members.cache.get(memberId).displayName
+			await guildMemberLocks.runExclusive(async () => {
+				memberIdQueue.slice(position, sliceStop).map(memberId => {
+					fields.push({
+						"name": ++position,
+						"value": channel.guild.members.cache.get(memberId).displayName.catch(() => {
+							// Clean up people who have left the server
+							guildMemberDict[channel.guild.id][channel.id].splice(
+								guildMemberDict[channel.guild.id][channel.id].indexOf(memberId), 1)})
+					});
 				});
 			});
 			embedList[i]['embed']['fields'].push(fields);
@@ -431,7 +437,7 @@ async function displayQueue(dbData, parsed, message) {
 			// Remove old display list
 			if (displayEmbedDict[guild.id][channel.id][textChannel.id]) {
 				for (const storedEmbed of Object.values(displayEmbedDict[guild.id][channel.id][textChannel.id])) {
-					await storedEmbed.delete().catch(() => { });
+					await storedEmbed.delete().catch();
 				}
 			}
 
@@ -551,7 +557,7 @@ async function setQueueChannel(dbData, parsed, message) {
 				// Remove old display list
 				try {
 					for (const storedEmbed of Object.values(displayEmbedDict[guild.id][channel.id][message.channel.id])) {
-						await storedEmbed.delete().catch(() => { });
+						await storedEmbed.delete().catch();
 					}
 				} catch { /* try/catch used in place of optional chaining */ }
 				send(message, `Deleted queue for \`${channel.name}\`.`);
@@ -647,7 +653,7 @@ async function popTextQueue(dbData, parsed, message) {
 async function kickMember(dbData, parsed, message) {
 	const guild = message.guild;
 	parsed.parameter = parsed.parameter.replace(/<@!?\d+>/gi, '').trim(); // remove user mentions
-	const channel = await fetchChannel(dbData, parsed, message, true, null)
+	const channel = await fetchChannel(dbData, parsed, message, true)
 		.catch(e => console.log('Error in kickMember: ' + e));
 	const mentionedMembers = message.mentions.members.values();
 
@@ -678,6 +684,25 @@ async function kickMember(dbData, parsed, message) {
 			send(message, `Specify at least one user to kick. For example:`
 				+ `\n\`${parsed.prefix}${kick_cmd} General @Arrow\``);
 		}
+	}
+}
+
+/**
+ * Pop a member from a text channel queue
+ *
+ * @param {Object[]} dbData Array of server settings stored in DB.
+ * @param {Object} parsed Parsed message - prefix, command, argument.
+ * @param {Message} message Discord message object.
+ */
+async function clearQueue(dbData, parsed, message) {
+	const guild = message.guild;
+	const channel = await fetchChannel(dbData, parsed, message, false)
+		.catch(e => console.log('Error in clearQueue: ' + e));
+	if (channel) {
+		await guildMemberLocks.get(guild.id).runExclusive(async () => {
+			guildMemberDict[guild.id][channel.id] = [];
+		});
+		send(message, `\`${channel.name}> queue cleared.`);
 	}
 }
 
@@ -748,6 +773,10 @@ async function help(dbData, parsed, message) {
 				{
 					"name": "Kick Users from Queue",
 					"value": `\`${storedPrefix}${kick_cmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
+				},
+				{
+					"name": "Clear Queue",
+					"value": `\`${storedPrefix}${clear_cmd} {channel name}\` clears a queue.`
 				},
 				{
 					"name": "Change the Grace Period",
@@ -877,6 +906,10 @@ client.on('message', async message => {
 					// Pop next user
 					case kick_cmd:
 						kickMember(dbData, parsed, message);
+						break;
+					// Clear queue
+					case clear_cmd:
+						clearQueue(dbData, parsed, message);
 						break;
 
 					// Grace period

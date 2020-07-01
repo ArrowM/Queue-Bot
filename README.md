@@ -36,16 +36,17 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 | permissions_regexp    | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
 | color                 | The color of bot messages.                                                                                                        |
 | COMMANDS              |                                                                                                                                   |
-| command_prefix_cmd    | Discord chat command to change the command prefix.                                                                                |
-| color_cmd             | Discord chat command to change the color.                                                                                         |
-| display_cmd           | Discord chat command to display a queue in a text channel.                                                                        |
-| grace_period_cmd      | Discord chat command to change the grace period.                                                                                  |
-| help_cmd              | Discord chat command to display the help information.                                                                             |
-| join_cmd              | Discord chat command to join a text channel queue.                                                                                |
-| kick_cmd              | Discord chat command to kick users from a queue.                                                                                  |
-| next_cmd              | Discord chat command to pull the next user from a text channel                                                                    |
-| queue_cmd             | Discord chat command to change queues.                                                                                            |
-| start_cmd             | Discord chat command to make the bot join a voice channel.                                                                        |
+| clear_cmd             | Command to clear the queue.                                                                                                       |
+| color_cmd             | Command to change the color.                                                                                                      |
+| command_prefix_cmd    | Command to change the command prefix.                                                                                             |
+| display_cmd           | Command to display a queue in a text channel.                                                                                     |
+| grace_period_cmd      | Command to change the grace period.                                                                                               |
+| help_cmd              | Command to display the help information.                                                                                          |
+| join_cmd              | Command to join a text channel queue.                                                                                             |
+| kick_cmd              | Command to kick users from a queue.                                                                                               |
+| next_cmd              | Command to pull the next user from a text channel                                                                                 |
+| queue_cmd             | Command to change queues.                                                                                                         |
+| start_cmd             | Command to make the bot join a voice channel.                                                                                     |
 
 ![Token Location](docs/token_location.PNG)  
 
@@ -78,6 +79,8 @@ Available to owners or users with mod or mods in their server roles.
 `!n {channel name}` removes the next person in a text queue and displays their name.  
 #### Kick Users from Queue  
 `!k {channel name} @{user 1} @{user 2} ...`  kicks one or more people from a queue.  
+#### Clear Queue  
+`~clear {channel name}` clears a queue.  
   
 #### Change the Grace Period  
 `!g {time in seconds}` changes how long a person can leave a queue before being removed.  
