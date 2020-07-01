@@ -44,8 +44,8 @@ const channelDict = (() => new Keyv(`${database_type}://${database_username}:${d
 channelDict.on('error', err => console.error('Keyv connection error:', err));
 
 // Short term storage
-const guildMemberDict = [];		// guild.id | voice GuildChannel.id | [guildMember.id, ...]
-const displayEmbedDict = [];	// guild.id | voice GuildChannel.id | text GuildChannel.id | [message.id, ...]
+const guildMemberDict = [];		// guild.id | GuildChannel.id | [guildMember.id, ...]
+const displayEmbedDict = [];	// guild.id | GuildChannel.id | display GuildChannel.id | [message.id, ...]
 
 // Storage Mutexes
 const Mutex = require('async-mutex');
@@ -207,9 +207,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
  */
 async function send(message, messageToSend) {
 	if (message.channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && message.channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-		message.channel.send(messageToSend);
+		return message.channel.send(messageToSend);
 	} else {
-		message.member.send(`I don't have permission to write messages and embeds in \`${message.channel.name}\``);
+		return message.author.send(`I don't have permission to write messages and embeds in \`${message.channel.name}\``);
     }
 }
 
@@ -249,24 +249,26 @@ async function checkAfterLeaving(member, guild, oldVoiceChannel) {
  * @param {string} type Type of channels to fetch ('voice' or 'text')
  * @param {Message} message
  */
-async function findChannel(availableChannels, parsed, message, includeMention, type) {
+async function findChannel(availableChannels, parsed, message, includeMention, type, errorOnNoneFound) {
 	let channel = message.mentions.channels.values().next().value ||
 		availableChannels.find(channel => channel.name === parsed.parameter) ||
 		availableChannels.find(channel => channel.name.localeCompare(parsed.parameter, undefined, { sensitivity: 'accent' }) === 0);
 
 	if (channel) return channel;
 
-	let response = 'Invalid ' + (type ? `${type} ` : '') + `channel name! Try \`${parsed.prefix}${parsed.command} `;
-	if (availableChannels.length === 1) {
-		// Single channel, recommend the single channel
-		response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
-	}
-	else {
-		// Multiple channels, list them
-		response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
-			+ '\nAvailable ' + (type ? `${type} ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
+	if (errorOnNoneFound) {
+		let response = 'Invalid ' + (type ? `${type} ` : '') + `channel name! Try \`${parsed.prefix}${parsed.command} `;
+		if (availableChannels.length === 1) {
+			// Single channel, recommend the single channel
+			response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
+		}
+		else {
+			// Multiple channels, list them
+			response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
+				+ '\nAvailable ' + (type ? `${type} ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
+		}
+		send(message, response);
     }
-	send(message, response);
 }
 
 /**
@@ -295,7 +297,7 @@ async function fetchChannel(dbData, parsed, message, includeMention, type) {
 			channel = availableChannels[0];
 		}
 		else {
-			channel = await findChannel(availableChannels, parsed, message, includeMention, type)
+			channel = await findChannel(availableChannels, parsed, message, includeMention, type, true)
 				.catch(e => console.log('Error in fetchChannel: ' + e));
 		}
 		return channel;
@@ -439,18 +441,22 @@ async function displayQueue(dbData, parsed, message) {
 			displayEmbedDict[guild.id] = displayEmbedDict[guild.id] || [];
 			displayEmbedDict[guild.id][channel.id] = displayEmbedDict[guild.id][channel.id] || [];
 
-			// Remove old display list
-			if (displayEmbedDict[guild.id][channel.id][textChannel.id]) {
-				for (const storedEmbed of Object.values(displayEmbedDict[guild.id][channel.id][textChannel.id])) {
-					await storedEmbed.delete().catch();
+			// Remove old embed lists
+			if (displayEmbedDict[guild.id] && displayEmbedDict[guild.id][channel.id]) {
+				for (const [embedChannelId, embedIds] of Object.entries(displayEmbedDict[guild.id][channel.id])) {
+					for (const embedId of embedIds) {
+						const embed = guild.channels.cache.get(embedChannelId).messages.cache.get(embedId);
+						await embed.delete().catch();
+					}
 				}
 			}
 
 			// Create new display list
 			displayEmbedDict[guild.id][channel.id][textChannel.id] = [];
+			// Send message and store it
 			embedList.forEach(queueEmbed =>
-				textChannel.send(queueEmbed).then(msg =>
-					displayEmbedDict[guild.id][channel.id][textChannel.id].push(msg)
+				send(message, queueEmbed).then(msg =>
+					displayEmbedDict[guild.id][channel.id][textChannel.id].push(msg.id)
 				)
 			);
 		});
@@ -461,56 +467,51 @@ async function displayQueue(dbData, parsed, message) {
  * Update a server's display messages
  *
  * @param {Guild} guild Guild containing display messages
- * @param {VoiceChannel[]} channels Channels to update
+ * @param {VoiceChannel[]} queues Channels to update
  */
-async function updateDisplayQueue(guild, channels) {
-	const currentChannelIds = guild.channels.cache.map(c => c.id);
+async function updateDisplayQueue(guild, queues) {
+	const currentChannelIds = guild.channels.cache.map(channel => channel.id);
 	const dbData = await channelDict.get(guild.id);
 
 	if (displayEmbedDict[guild.id]) {
 		await displayEmbedLocks.get(guild.id).runExclusive(async () => {
-
-			for (const channel of channels) {
-				if (channel && displayEmbedDict[guild.id][channel.id]) {
-
-					if (!currentChannelIds.includes(channel.id)) { // Handled delete channels
-						delete displayEmbedDict[guild.id][channel.id];
-						continue;
-					}
-
-					const embedList = await generateEmbed(dbData, channel);
-					for (const textChannelId of Object.keys(displayEmbedDict[guild.id][channel.id])) {
-
-						if (!currentChannelIds.includes(textChannelId)) { // Handled delete channels
-							delete displayEmbedDict[guild.id][channel.id][textChannelId];
-							continue;
-						}
-
-						const storedEmbeds = Object.values(displayEmbedDict[guild.id][channel.id][textChannelId]);
-						// Same number of embed messages, edit them
-						if (storedEmbeds.length === embedList.length) {
-							for (var i = 0; i < embedList.length; i++) {
-								await storedEmbeds[i].edit(embedList[i]).catch(() => {
-									storedEmbeds.splice(i, 1);
-								});
+			// For each updated queue
+			for (const queue of queues) {
+				if (queue && displayEmbedDict[guild.id][queue.id]) {
+					// Create an embed list
+					const embedList = await generateEmbed(dbData, queue);
+					// For each embed list of the queue
+					for (const textChannelId of Object.keys(displayEmbedDict[guild.id][queue.id])) {
+						// Handled deleted queue channels
+						if (currentChannelIds.includes(textChannelId)) {
+							// Retrieved the stored embed list
+							const storedEmbeds = Object.values(displayEmbedDict[guild.id][queue.id][textChannelId])
+								.map(msgId => guild.channels.cache.get(textChannelId).messages.cache.get(msgId));
+							// If the new embed list and stored embed list are the same length, replace the old embeds via edit
+							if (storedEmbeds.length === embedList.length) {
+								for (var i = 0; i < embedList.length; i++) {
+									await storedEmbeds[i].edit(embedList[i]).catch();
+								}
+							}
+							// If the new embed list and stored embed list are diffent lengths, delete the old embeds and create all new messages
+							else {
+								let textChannel = guild.channels.cache.get(textChannelId);
+								// Remove the old embed list
+								for (const storedEmbed of Object.values(storedEmbeds)) {
+									await storedEmbed.delete().catch();
+								}
+								displayEmbedDict[guild.id][queue.id][textChannelId] = [];
+								// Create a new embed list
+								embedList.forEach(queueEmbed =>
+									textChannel.send(queueEmbed).then(
+										msg => displayEmbedDict[guild.id][queue.id][textChannelId].push(msg.id)
+									)
+								);
 							}
 						}
-						// Different number of embed messages, create all new messages
 						else {
-							let textChannel = storedEmbeds[0].channel;
-							// Remove old display list
-							for (const storedEmbed of Object.values(storedEmbeds)) {
-								await storedEmbed.delete().catch(() => {
-									storedEmbeds.splice(i, 1);
-								});
-							}
-							displayEmbedDict[guild.id][channel.id][textChannelId] = [];
-							// Create new display list
-							embedList.forEach(queueEmbed =>
-								textChannel.send(queueEmbed).then(
-									msg => displayEmbedDict[guild.id][channel.id][textChannelId].push(msg)
-								)
-							);
+							// Remove stored displays of deleted queue channels
+							delete displayEmbedDict[guild.id][channel.id];
 						}
 					}
 				}
@@ -550,7 +551,7 @@ async function setQueueChannel(dbData, parsed, message) {
 	}
 	// Channel argument provided. Toggle it
 	else {
-		const channel = await findChannel(channels, parsed, message)
+		const channel = await findChannel(channels, parsed, message, false, null, true)
 			.catch(e => console.log('Error in setQueueChannel: ' + e));
 		if (channel) {
 			// Initialize member queue
@@ -559,12 +560,18 @@ async function setQueueChannel(dbData, parsed, message) {
 			if (storedChannels.includes(channel)) { // If it's in the list, remove it
 				storedChannels.splice(storedChannels.indexOf(channel), 1);
 				delete guildMemberDict[guild.id][channel.id];
-				// Remove old display list
-				try {
-					for (const storedEmbed of Object.values(displayEmbedDict[guild.id][channel.id][message.channel.id])) {
-						await storedEmbed.delete().catch();
-					}
-				} catch { /* try/catch used in place of optional chaining */ }
+
+				// Remove old embed lists
+				await displayEmbedLocks.get(guild.id).runExclusive(async () => {
+					if (displayEmbedDict[guild.id] && displayEmbedDict[guild.id][channel.id]) {
+						for (const [embedChannelId, embedIds] of Object.entries(displayEmbedDict[guild.id][channel.id])) {
+							for (const embedId of embedIds) {
+								const embed = guild.channels.cache.get(embedChannelId).messages.cache.get(embedId);
+								await embed.delete().catch();
+                            }
+                        }
+                    }
+				});
 				send(message, `Deleted queue for \`${channel.name}\`.`);
 			}
 			else { // If it's not in the list, add it
@@ -722,101 +729,109 @@ async function help(dbData, parsed, message) {
 	const storedPrefix = parsed.prefix;
 	const storedColor = dbData[2];
 	const embeds = [
-	{
-		"embed": {
-			"title": "Non-Restricted Commands",
-			"color": storedColor,
-			"author": {
-				"name": "Queue Bot",
-				"url": "https://top.gg/bot/679018301543677959",
-				"icon_url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/icon.png"
-			},
-			"fields": [
-				{
-					"name": "Access",
-					"value": "Available to everyone."
+        {
+            "embed": {
+                "title": "Non-Restricted Commands",
+                "color": storedColor,
+                "author": {
+                    "name": "Queue Bot",
+                    "url": "https://top.gg/bot/679018301543677959",
+                    "icon_url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/icon.png"
+                },
+                "fields": [
+                    {
+                        "name": "Access",
+                        "value": "Available to everyone."
+                    },
+                    {
+                        "name": "Join a Text Channel Queue",
+                        "value": `\`${storedPrefix}${join_cmd} {channel name}\` joins or leaves a text channel queue.`
+					}
+                ]
+            }
+		},
+        {
+            "embed": {
+                "title": "Restricted Commands",
+				"color": storedColor,
+				"image": {
+					"url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif"
 				},
-				{
-					"name": "Join a Text Channel Queue",
-					"value": `\`${storedPrefix}${join_cmd} {channel name}\` joins or leaves a text channel queue.`
-				}
-			]
-		}
-	},
-	{
-		"embed": {
-			"title": "Restricted Commands",
-			"color": storedColor,
-			"fields": [
-				{
-					"name": "Access",
-					"value": "Available to owners or users with `mod` or `mods` in their server roles."
-				},
-				{
-					"name": "Modify & View Queues",
-					"value": `\`${storedPrefix}${queue_cmd} {channel name}\` creates a new queue or deletes an existing queue.`
-						+ `\n\`${storedPrefix}${queue_cmd}\` shows the existing queues.`
-				},
-				{
-					"name": "Display Queue Members",
-					"value": `\`${storedPrefix}${display_cmd} {channel name}\` displays the members in a queue. These messages stay updated.`
-				},
-				{
-					"name": "Pull Users from Voice Queue",
-					"value": `\`${storedPrefix}${start_cmd} {channel name}\` adds the bot to a queue voice channel.`
-						+ ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
-						+ ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`
-				},
-				{
-					"name": "Pull Users from Text Queue",
-					"value": `\`${storedPrefix}${next_cmd} {channel name}\` removes the next person in the text queue and displays their name.`
-				},
-				{
-					"name": "Add Others to a Text Channel Queue",
-					"value": `\`${storedPrefix}${join_cmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
-				},
-				{
-					"name": "Kick Users from Queue",
-					"value": `\`${storedPrefix}${kick_cmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
-				},
-				{
-					"name": "Clear Queue",
-					"value": `\`${storedPrefix}${clear_cmd} {channel name}\` clears a queue.`
-				},
-				{
-					"name": "Change the Grace Period",
-					"value": `\`${storedPrefix}${grace_period_cmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`
-				},
-				{
-					"name": "Change the Command Prefix",
-					"value": `\`${storedPrefix}${command_prefix_cmd} {new prefix}\` changes the prefix for commands.`
-				},
-				{
-					"name": "Change the Color",
-					"value": `\`${storedPrefix}${color_cmd} {new color}\` changes the color of bot messages.`
-				}
-			],
-			"image": {
-				"url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif"
-			},
-		}
-	}];
-	if (parsed.parameter) {
-		// Channel (where to print the help message) provided
-		const channel = await message.guild.channels.cache.find(channel => channel.type === 'text' && channel.name === parsed.parameter);
-		if (channel) {
-			if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS ')) {
-				// Channel found and bot has permission, print.
-				embeds.map(em => channel.send(em));
-			} else {
-				// Channel found, but no permission. Send permission and help messages to user.
-				message.member.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
-				embeds.map(em => message.member.send(em));
-			}
+				"fields": [
+                    {
+						"name": "Access",
+						"value": "Available to owners or users with `mod` or `mods` in their server roles."
+                    },
+                    {
+						"name": "Modify & View Queues",
+						"value": `\`${storedPrefix}${queue_cmd} {channel name}\` creates a new queue or deletes an existing queue.`
+							+ `\n\`${storedPrefix}${queue_cmd}\` shows the existing queues.`
+                    },
+                    {
+                        "name": "Display Queue Members",
+                        "value": `\`${storedPrefix}${display_cmd} {channel name}\` displays the members in a queue. These messages stay updated.`
+                    },
+                    {
+                        "name": "Pull Users from Voice Queue",
+                        "value": `\`${storedPrefix}${start_cmd} {channel name}\` adds the bot to a queue voice channel.`
+                            + ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
+                            + ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`
+                    },
+                    {
+                        "name": "Pull Users from Text Queue",
+                        "value": `\`${storedPrefix}${next_cmd} {channel name}\` removes the next person in the text queue and displays their name.`
+                    },
+                    {
+                        "name": "Add Others to a Text Channel Queue",
+                        "value": `\`${storedPrefix}${join_cmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
+                    },
+                    {
+                        "name": "Kick Users from Queue",
+                        "value": `\`${storedPrefix}${kick_cmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
+                    },
+                    {
+                        "name": "Clear Queue",
+                        "value": `\`${storedPrefix}${clear_cmd} {channel name}\` clears a queue.`
+                    },
+                    {
+                        "name": "Change the Grace Period",
+                        "value": `\`${storedPrefix}${grace_period_cmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`
+                    },
+                    {
+                        "name": "Change the Command Prefix",
+                        "value": `\`${storedPrefix}${command_prefix_cmd} {new prefix}\` changes the prefix for commands.`
+                    },
+                    {
+                        "name": "Change the Color",
+                        "value": `\`${storedPrefix}${color_cmd} {new color}\` changes the color of bot messages.`
+                    }
+                ]
+            }
+        }
+	];
+
+	const channel = await findChannel(message.guild.channels.cache, parsed, message, false, 'text', false);
+	if (parsed.parameter && channel) {
+		if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
+			// Channel found and bot has permission, print.
+			embeds.forEach(em => channel.send(em)
+				.then(message => console.log(`Sent message: ${message.content}`))
+				.catch(e => console.log(e)));
+		} else {
+			// Channel found, but no permission. Send permission and help messages to user.
+			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
+			embeds.forEach(em => message.author.send(em)
+				.then(message => console.log(`Sent message: ${message.content}`))
+				.catch(e => console.log(e)));
 		}
 	} else {
-		// No channel provided. Send help to user.
-		embeds.map(em => message.member.send(em));
+		// No channel provided. send help to user.
+		embeds.map(em => {
+			message.author.send(em)
+				.then(message => console.log(`Sent message: ${message.content}`))
+				.catch(e => console.log(e))
+		});
+
 		send(message, "I have sent help to your PMs.");
 	}
 }
