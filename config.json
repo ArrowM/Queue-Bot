@@ -10,6 +10,7 @@
   "permissions_regexp": "\\bmod\\b|\\bmods\\b",
   "prefix": "!",
 
+  "clear_cmd": "clear",
   "color_cmd":  "c",
   "command_prefix_cmd": "p",
   "display_cmd": "d",
