@@ -446,7 +446,7 @@ async function displayQueue(dbData, parsed, message) {
 				for (const [embedChannelId, embedIds] of Object.entries(displayEmbedDict[guild.id][channel.id])) {
 					for (const embedId of embedIds) {
 						const embed = guild.channels.cache.get(embedChannelId).messages.cache.get(embedId);
-						await embed.delete().catch();
+						if (embed) await embed.delete().catch();
 					}
 				}
 			}
@@ -487,14 +487,17 @@ async function updateDisplayQueue(guild, queues) {
 							// Retrieved the stored embed list
 							const storedEmbeds = Object.values(displayEmbedDict[guild.id][queue.id][textChannelId])
 								.map(msgId => guild.channels.cache.get(textChannelId).messages.cache.get(msgId));
+
+							let createNewEmbed = false;
 							// If the new embed list and stored embed list are the same length, replace the old embeds via edit
 							if (storedEmbeds.length === embedList.length) {
 								for (var i = 0; i < embedList.length; i++) {
-									await storedEmbeds[i].edit(embedList[i]).catch();
+									await storedEmbeds[i].edit(embedList[i]).catch(
+										() => createNewEmbed = true);
 								}
 							}
 							// If the new embed list and stored embed list are diffent lengths, delete the old embeds and create all new messages
-							else {
+							if (storedEmbeds.length !== embedList.length || createNewEmbed) {
 								let textChannel = guild.channels.cache.get(textChannelId);
 								// Remove the old embed list
 								for (const storedEmbed of Object.values(storedEmbeds)) {
@@ -511,7 +514,7 @@ async function updateDisplayQueue(guild, queues) {
 						}
 						else {
 							// Remove stored displays of deleted queue channels
-							delete displayEmbedDict[guild.id][channel.id];
+							delete displayEmbedDict[guild.id][queue.id];
 						}
 					}
 				}
@@ -728,6 +731,7 @@ async function clearQueue(dbData, parsed, message) {
 async function help(dbData, parsed, message) {
 	const storedPrefix = parsed.prefix;
 	const storedColor = dbData[2];
+
 	const embeds = [
         {
             "embed": {
