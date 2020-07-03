@@ -346,12 +346,24 @@ async function start(dbData, parsed, message) {
  * @param {number} guildId Guild id.
  * @return {string} Grace period string.
  */
-async function getGracePeriodString(dbData) {
-	const gracePeriod = dbData[0];
-	const grace_minutes = Math.round(gracePeriod / 60);
-	const grace_seconds = gracePeriod % 60;
-	return (grace_minutes > 0 ? grace_minutes + ' minute' : '') + (grace_minutes > 1 ? 's' : '')
-		+ (grace_minutes > 0 && grace_seconds > 0 ? ' and ' : '') + (grace_seconds > 0 ? grace_seconds + ' second' : '') + (grace_seconds > 1 ? 's' : '');
+const gracePeriodCache = new Map();
+async function getGracePeriodString(gracePeriod) {
+	if (!gracePeriodCache.has(gracePeriod)) {
+		let result;
+		if (gracePeriod === '0') {
+			result = '';
+		}
+		else {
+			const grace_minutes = Math.round(gracePeriod / 60);
+			const grace_seconds = gracePeriod % 60;
+			const time_string = (grace_minutes > 0 ? grace_minutes + ' minute' : '') + (grace_minutes > 1 ? 's' : '')
+				+ (grace_minutes > 0 && grace_seconds > 0 ? ' and ' : '')
+				+ (grace_seconds > 0 ? grace_seconds + ' second' : '') + (grace_seconds > 1 ? 's' : '');
+			result = ` If you leave, you have ${time_string} to rejoin before being removed from the queue.`
+		}
+		gracePeriodCache.set(gracePeriod, result);
+	}
+	return gracePeriodCache.get(gracePeriod);
 }
 
 /**
@@ -370,10 +382,9 @@ async function generateEmbed(dbData, channel) {
 			"title": `${channel.name} queue`,
 			"color": storedColor,
 			"description":
-				channel.type === 'voice' ? 
+				channel.type === 'voice' ?
 					// Voice
-					`Join the **${channel.name}** voice channel to join this queue.`
-					+ (dbData[0] ? ` If you leave, you have ${await getGracePeriodString(dbData)} to rejoin before being removed from the queue.` : '') :
+					`Join the **${channel.name}** voice channel to join this queue.` + await getGracePeriodString(dbData[0]) :
 					// Text
 					`Type \`${prefix}${join_cmd} ${channel.name}\` to join or leave this queue.`,
 			"fields": [{
