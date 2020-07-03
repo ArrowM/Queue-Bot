@@ -170,8 +170,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
 			
 				const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
-
+				
 				if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
+					// Bot
 					if (member.user.bot) {
 						if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
 							if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
@@ -182,6 +183,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 							newVoiceState.setChannel(oldVoiceChannel); 
 						}
 					}
+					// Person
 					else {
 						if (availableVoiceChannels.includes(newVoiceChannel) && !guildMemberDict[guild.id][newVoiceChannel.id].includes(member.id)) {
 							// User joined channel, add to queue
@@ -257,16 +259,23 @@ async function findChannel(availableChannels, parsed, message, includeMention, t
 	if (channel) return channel;
 
 	if (errorOnNoneFound) {
-		let response = 'Invalid ' + (type ? `${type} ` : '') + `channel name! Try \`${parsed.prefix}${parsed.command} `;
-		if (availableChannels.length === 1) {
-			// Single channel, recommend the single channel
-			response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
+		let response;
+		if (availableChannels.length === 0) {
+			response = 'No ' + (type ? `**${type}** ` : '') + 'queue channels set.'
+				+ '\nSet a ' + (type ? `${type} ` : '') + `queue first using \`${prefix}${queue_cmd} {channel name}\``;
 		}
 		else {
-			// Multiple channels, list them
-			response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
-				+ '\nAvailable ' + (type ? `${type} ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
-		}
+			response = 'Invalid ' + (type ? `**${type}** ` : '') + `channel name! Try \`${parsed.prefix}${parsed.command} `;
+			if (availableChannels.length === 1) {
+				// Single channel, recommend the single channel
+				response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
+			}
+			else {
+				// Multiple channels, list them
+				response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
+					+ '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
+			}
+        }
 		send(message, response);
     }
 }
@@ -285,22 +294,20 @@ async function fetchChannel(dbData, parsed, message, includeMention, type) {
 	const prefix = parsed.prefix;
 	const parameter = parsed.parameter;
 	const guild = message.guild;
-	let channel;
 
 	if (guildMemberDict[guild.id] && channels.length > 0) {
 		// Extract channel name from message
 		let availableChannels = type ?
 			channels.filter(channel => channel.type === type) :
 			channels;
-		
+
 		if (availableChannels.length === 1 && parameter === "") {
-			channel = availableChannels[0];
+			return availableChannels[0];
 		}
 		else {
-			channel = await findChannel(availableChannels, parsed, message, includeMention, type, true)
+			return await findChannel(availableChannels, parsed, message, includeMention, type, true)
 				.catch(e => console.log('Error in fetchChannel: ' + e));
 		}
-		return channel;
 	}
 	else {
 		send(message, `No queue channels set.`
