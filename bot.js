@@ -819,20 +819,17 @@ async function help(dbData, parsed, message) {
 		if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 			// Channel found and bot has permission, print.
 			embeds.forEach(em => channel.send(em)
-				.then(message => console.log(`Sent message: ${message.content}`))
 				.catch(e => console.log(e)));
 		} else {
 			// Channel found, but no permission. Send permission and help messages to user.
 			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
 			embeds.forEach(em => message.author.send(em)
-				.then(message => console.log(`Sent message: ${message.content}`))
 				.catch(e => console.log(e)));
 		}
 	} else {
 		// No channel provided. send help to user.
 		embeds.map(em => {
 			message.author.send(em)
-				.then(message => console.log(`Sent message: ${message.content}`))
 				.catch(e => console.log(e))
 		});
 
