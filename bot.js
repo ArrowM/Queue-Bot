@@ -592,7 +592,7 @@ async function setQueueChannel(dbData, parsed, message) {
 					if (displayEmbedDict[guild.id] && displayEmbedDict[guild.id][channel.id]) {
 						for (const [embedChannelId, embedIds] of Object.entries(displayEmbedDict[guild.id][channel.id])) {
 							const embedChannel = guild.channels.cache.get(embedChannelId);
-							if (channel) {
+							if (embedChannel) {
 								for (const embedId of embedIds) {
 									const embed = embedChannel.messages.cache.get(embedId);
 									if (embed) await embed.delete().catch();
