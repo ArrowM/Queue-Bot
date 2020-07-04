@@ -510,8 +510,13 @@ async function updateDisplayQueue(guild, queues) {
 							// If the new embed list and stored embed list are the same length, replace the old embeds via edit
 							if (storedEmbeds.length === embedList.length) {
 								for (var i = 0; i < embedList.length; i++) {
-									await storedEmbeds[i].edit(embedList[i]).catch(
-										() => createNewEmbed = true);
+									if (storedEmbeds[i]) {
+										await storedEmbeds[i].edit(embedList[i]).catch(
+											() => createNewEmbed = true);
+									}
+									else {
+										createNewEmbed = true;
+                                    }
 								}
 							}
 							// If the new embed list and stored embed list are diffent lengths, delete the old embeds and create all new messages
@@ -586,10 +591,13 @@ async function setQueueChannel(dbData, parsed, message) {
 				await displayEmbedLocks.get(guild.id).runExclusive(async () => {
 					if (displayEmbedDict[guild.id] && displayEmbedDict[guild.id][channel.id]) {
 						for (const [embedChannelId, embedIds] of Object.entries(displayEmbedDict[guild.id][channel.id])) {
-							for (const embedId of embedIds) {
-								const embed = guild.channels.cache.get(embedChannelId).messages.cache.get(embedId);
-								await embed.delete().catch();
-                            }
+							const embedChannel = guild.channels.cache.get(embedChannelId);
+							if (channel) {
+								for (const embedId of embedIds) {
+									const embed = embedChannel.messages.cache.get(embedId);
+									if (embed) await embed.delete().catch();
+								}
+							}
                         }
                     }
 				});
