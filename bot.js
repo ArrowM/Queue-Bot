@@ -524,7 +524,7 @@ async function updateDisplayQueue(guild, queues) {
 								let textChannel = guild.channels.cache.get(textChannelId);
 								// Remove the old embed list
 								for (const storedEmbed of Object.values(storedEmbeds)) {
-									await storedEmbed.delete().catch();
+									if (storedEmbed) await storedEmbed.delete().catch();
 								}
 								displayEmbedDict[guild.id][queue.id][textChannelId] = [];
 								// Create a new embed list
