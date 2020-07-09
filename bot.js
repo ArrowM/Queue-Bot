@@ -36,11 +36,11 @@ const ServerSettings = {
 	[command_prefix_cmd]: { index: 1, str: "command prefix" },
 	[color_cmd]: { index: 2, str: "color" },
 };
- Object.freeze(ServerSettings);
+Object.freeze(ServerSettings);
 
 // Keyv long term DB storage
 const Keyv = require('keyv');
-const channelDict = (() => new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`)) ();	// guild.id | grace_period, [voice Channel.id, ...]
+const channelDict = new Keyv(`${database_type}://${database_username}:${database_password}@${database_uri}`);	// guild.id | grace_period, [voice Channel.id, ...]
 channelDict.on('error', err => console.error('Keyv connection error:', err));
 
 // Short term storage
