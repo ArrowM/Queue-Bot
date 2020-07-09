@@ -85,7 +85,7 @@ Available to owners or users with mod or mods in their server roles.
 #### Change the Grace Period  
 `!g {time in seconds}` changes how long a person can leave a queue before being removed.  
 #### Change the Command Prefix  
-`!p {new prefix}` changes the prefix for Queue Bot commands.  
+`!prefix {new prefix}` changes the prefix for Queue Bot commands.  
 #### Change the Color  
 `!c {new color}` changes the color of bot messages.  
 
