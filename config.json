@@ -12,7 +12,7 @@
 
   "clear_cmd": "clear",
   "color_cmd":  "c",
-  "command_prefix_cmd": "p",
+  "command_prefix_cmd": "prefix",
   "display_cmd": "d",
   "grace_period_cmd": "g",
   "help_cmd": "h",
