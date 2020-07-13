@@ -62,6 +62,9 @@ async function setupLocks(guildId) {
 }
 
 client.login(token);
+client.on('error', error => {
+	console.error('The WebSocket encountered an error:', error);
+});
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once('ready', async () => {
 	for (const guildIdChannelPair of await channelDict.entries()) {
@@ -667,7 +670,8 @@ async function popTextQueue(dbData, parsed, message) {
 	const channel = await fetchChannel(dbData, parsed, message, false, 'text')
 		.catch(e => console.log('Error in popTextQueue: ' + e));
 	if (channel) {
-		if (channel.type === 'text' && guildMemberDict[guild.id][channel.id].length > 0) {
+		if (channel.type === 'text' && guildMemberDict[guild.id][channel.id] &&
+				guildMemberDict[guild.id][channel.id].length > 0) {
 			let nextMemberId;
 			await guildMemberLocks.get(guild.id).runExclusive(async () => {
 				nextMemberId = guildMemberDict[guild.id][channel.id].shift();
