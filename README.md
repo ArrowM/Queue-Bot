@@ -80,7 +80,7 @@ Available to owners or users with mod or mods in their server roles.
 #### Kick Users from Queue  
 `!k {channel name} @{user 1} @{user 2} ...`  kicks one or more people from a queue.  
 #### Clear Queue  
-`~clear {channel name}` clears a queue.  
+`!clear {channel name}` clears a queue.  
   
 #### Change the Grace Period  
 `!g {time in seconds}` changes how long a person can leave a queue before being removed.  
