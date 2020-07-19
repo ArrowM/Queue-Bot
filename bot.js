@@ -682,7 +682,8 @@ async function popTextQueue(dbData, parsed, message) {
 		else if (channel.type !== 'text') {
 			send(message, `\`${parsed.prefix}${next_cmd}\` can only be used on text channel queues.`);
 		}
-		else if (guildMemberDict[guild.id][channel.id].length === 0) {
+		else if (guildMemberDict[guild.id][channel.id] &&
+			guildMemberDict[guild.id][channel.id].length === 0) {
 			send(message, `\`${channel.name}\` is empty.`);
 		}
 	}
