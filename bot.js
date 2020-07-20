@@ -141,7 +141,6 @@ client.on('shardResume', async () => {
 	client.user.setPresence({ activity: { name: `${prefix}${help_cmd} for help` }, status: 'online' });
 	console.log('Reconnected!');
 });
-process.on('uncaughtException', err => console.log(err)); 
 
 async function fetchStoredChannels(dbData, guild) {
 	let channels = [];
