@@ -78,7 +78,6 @@ client.once('ready', async () => {
 			await setupLocks(guild.id);
 			// LOCK
 			const guildMemberRelease = await guildMemberLocks.get(guild.id).acquire();
-			const displayEmbedRelease = await displayEmbedLocks.get(guild.id).acquire();
 			const channelRelease = await channelLocks.get(guild.id).acquire();
 			try {
 				const dbData = guildIdChannelPair[1];
@@ -106,7 +105,6 @@ client.once('ready', async () => {
 			finally {
 				// UNLOCK
 				guildMemberRelease();
-				displayEmbedRelease();
 				channelRelease();
 			}
 		}
@@ -161,10 +159,11 @@ async function fetchStoredChannels(dbData, guild) {
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 	const oldVoiceChannel = oldVoiceState.channel;
 	const newVoiceChannel = newVoiceState.channel;
-	const member = newVoiceState.member;
-	const guild = newVoiceState.guild;
 
 	if (oldVoiceChannel !== newVoiceChannel) {
+		const member = newVoiceState.member;
+		const guild = newVoiceState.guild;
+
 		if (guildMemberLocks.get(guild.id)) {
 			await guildMemberLocks.get(guild.id).runExclusive(async () => {
 
@@ -176,13 +175,13 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
 					// Bot
 					if (member.user.bot) {
-						if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) {
+						if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) { // Prevent pulling people into another queue
 							if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
 								// If the use queue is not empty, pull in the next in user queue
-								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id].shift()).voice.setChannel(newVoiceChannel);
+								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0]).voice.setChannel(newVoiceChannel);
 							}
 							// Return bot to queue channel
-							newVoiceState.setChannel(oldVoiceChannel); 
+							newVoiceState.setChannel(oldVoiceChannel);
 						}
 					}
 					// Person
@@ -378,45 +377,46 @@ async function getGracePeriodString(gracePeriod) {
 async function generateEmbed(dbData, channel) {
 	const prefix = dbData[1];
 	const storedColor = dbData[2];
-	const memberIdQueue = guildMemberDict[channel.guild.id][channel.id];
-	let embedList = [{
-		"embed": {
-			"title": `${channel.name} queue`,
-			"color": storedColor,
-			"description":
-				channel.type === 'voice' ?
-					// Voice
-					`Join the **${channel.name}** voice channel to join this queue.` + await getGracePeriodString(dbData[0]) :
-					// Text
-					`Type \`${prefix}${join_cmd} ${channel.name}\` to join or leave this queue.`,
-			"fields": [{
-				"name": `Current queue length: **${memberIdQueue ? memberIdQueue.length : 0}**`,
-				"value": "\u200b"
-			}]
-		}
-	}];
-	// Handle empty queue
-	if (!memberIdQueue || memberIdQueue.length === 0) {
-		embedList[0]['embed']['fields'][0]['value'] = 'No members in queue.';
-	}
-	// Handle non-empty
-	else {
-		const maxEmbedSize = 25;
-		let position = 0;					// 0 , 24, 49, 74
-		let sliceStop = maxEmbedSize - 1;	// 24, 49, 74, 99 
-		for (var i = 0; i <= memberIdQueue.length / maxEmbedSize; i++) {
-			if (i > 0) { // Creating additional embed after the first embed
-				embedList.push({
-					"embed": {
-						"color": storedColor,
-						"fields": []
-					}
-				});
+	let embedList;
+	await guildMemberLocks.get(channel.guild.id).runExclusive(async () => {
+		const memberIdQueue = guildMemberDict[channel.guild.id][channel.id];
+		embedList = [{
+			"embed": {
+				"title": `${channel.name} queue`,
+				"color": storedColor,
+				"description":
+					channel.type === 'voice' ?
+						// Voice
+						`Join the **${channel.name}** voice channel to join this queue.` + await getGracePeriodString(dbData[0]) :
+						// Text
+						`Type \`${prefix}${join_cmd} ${channel.name}\` to join or leave this queue.`,
+				"fields": [{
+					"name": `Current queue length: **${memberIdQueue ? memberIdQueue.length : 0}**`,
+					"value": "\u200b"
+				}]
 			}
+		}];
+		// Handle empty queue
+		if (!memberIdQueue || memberIdQueue.length === 0) {
+			embedList[0]['embed']['fields'][0]['value'] = 'No members in queue.';
+		}
+		// Handle non-empty
+		else {
+			const maxEmbedSize = 25;
+			let position = 0;					// 0 , 24, 49, 74
+			let sliceStop = maxEmbedSize - 1;	// 24, 49, 74, 99 
+			for (var i = 0; i <= memberIdQueue.length / maxEmbedSize; i++) {
+				if (i > 0) { // Creating additional embed after the first embed
+					embedList.push({
+						"embed": {
+							"color": storedColor,
+							"fields": []
+						}
+					});
+				}
 
-			// Populate with names and numbers
-			const fields = [];
-			await guildMemberLocks.get(channel.guild.id).runExclusive(async () => {
+				// Populate with names and numbers
+				const fields = [];
 				memberIdQueue.slice(position, sliceStop).map(memberId => {
 					const member = channel.guild.members.cache.get(memberId);
 					if (member) {
@@ -427,16 +427,15 @@ async function generateEmbed(dbData, channel) {
 					}
 					// Clean up people who have left the server
 					else {
-						guildMemberDict[channel.guild.id][channel.id]
-							.splice(guildMemberDict[channel.guild.id][channel.id].indexOf(memberId), 1);
+						memberIdQueue.splice(memberIdQueue.indexOf(memberId), 1);
 					}
 				});
-			});
-			embedList[i]['embed']['fields'].push(fields);
+				embedList[i]['embed']['fields'].push(fields);
 
-			sliceStop += maxEmbedSize;
+				sliceStop += maxEmbedSize;
+			}
 		}
-	}
+	});
 	return embedList;
 }
 
@@ -493,8 +492,8 @@ async function updateDisplayQueue(guild, queues) {
 	const currentChannelIds = guild.channels.cache.map(channel => channel.id);
 	const dbData = await channelDict.get(guild.id);
 
-	if (displayEmbedDict[guild.id]) {
-		await displayEmbedLocks.get(guild.id).runExclusive(async () => {
+	await displayEmbedLocks.get(guild.id).runExclusive(async () => {
+		if (displayEmbedDict[guild.id]) {
 			// For each updated queue
 			for (const queue of queues) {
 				if (queue && displayEmbedDict[guild.id][queue.id]) {
@@ -544,8 +543,8 @@ async function updateDisplayQueue(guild, queues) {
 					}
 				}
 			}
-		});
-	}
+		}
+	});
 }
 
 /**
@@ -582,38 +581,40 @@ async function setQueueChannel(dbData, parsed, message) {
 		const channel = await findChannel(channels, parsed, message, false, null, true)
 			.catch(e => console.log('Error in setQueueChannel: ' + e));
 		if (channel) {
-			// Initialize member queue
-			guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
-			// Toggle Queue
-			if (storedChannels.includes(channel)) { // If it's in the list, remove it
-				storedChannels.splice(storedChannels.indexOf(channel), 1);
-				delete guildMemberDict[guild.id][channel.id];
+			guildMemberLocks.get(guild.id).runExclusive(async () => {
+				// Initialize member queue
+				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
+				// Toggle Queue
+				if (storedChannels.includes(channel)) { // If it's in the list, remove it
+					storedChannels.splice(storedChannels.indexOf(channel), 1);
+					delete guildMemberDict[guild.id][channel.id];
 
-				// Remove old embed lists
-				await displayEmbedLocks.get(guild.id).runExclusive(async () => {
-					if (displayEmbedDict[guild.id] && displayEmbedDict[guild.id][channel.id]) {
-						for (const [embedChannelId, embedIds] of Object.entries(displayEmbedDict[guild.id][channel.id])) {
-							const embedChannel = guild.channels.cache.get(embedChannelId);
-							if (embedChannel) {
-								for (const embedId of embedIds) {
-									const embed = embedChannel.messages.cache.get(embedId);
-									if (embed) await embed.delete().catch();
+					// Remove old embed lists
+					await displayEmbedLocks.get(guild.id).runExclusive(async () => {
+						if (displayEmbedDict[guild.id] && displayEmbedDict[guild.id][channel.id]) {
+							for (const [embedChannelId, embedIds] of Object.entries(displayEmbedDict[guild.id][channel.id])) {
+								const embedChannel = guild.channels.cache.get(embedChannelId);
+								if (embedChannel) {
+									for (const embedId of embedIds) {
+										const embed = embedChannel.messages.cache.get(embedId);
+										if (embed) await embed.delete().catch();
+									}
 								}
 							}
-                        }
-                    }
-				});
-				send(message, `Deleted queue for \`${channel.name}\`.`);
-			}
-			else { // If it's not in the list, add it
-				storedChannels.push(channel);
-				if (channel.type === 'voice') {
-					guildMemberDict[guild.id][channel.id] = channel.members.filter(m => !m.user.bot).map(m => m.id);
+						}
+					});
+					send(message, `Deleted queue for \`${channel.name}\`.`);
 				}
-				send(message, `Created queue for \`${channel.name}\`.`);
-			}
-			// Store channel to database
-			await channelDict.set(guild.id, otherData.concat(storedChannels.map(ch => ch.id)));
+				else { // If it's not in the list, add it
+					storedChannels.push(channel);
+					if (channel.type === 'voice') {
+						guildMemberDict[guild.id][channel.id] = channel.members.filter(m => !m.user.bot).map(m => m.id);
+					}
+					send(message, `Created queue for \`${channel.name}\`.`);
+				}
+				// Store channel to database
+				await channelDict.set(guild.id, otherData.concat(storedChannels.map(ch => ch.id)));
+			});
 		}
 	}
 }
