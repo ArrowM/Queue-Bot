@@ -16,7 +16,6 @@
     "discord.js": "12.2.0",
     "ffmpeg": "0.0.4",
     "keyv": "^4.0.1",
-    "libsodium-wrappers": "^0.7.6",
     "utf-8-validate": "^5.0.2"
   }
 }

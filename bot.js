@@ -993,6 +993,9 @@ client.on('message', async message => {
 						break;
 				}
 			}
+			else if ([start_cmd, display_cmd, queue_cmd, next_cmd, kick_cmd, clear_cmd, grace_period_cmd, command_prefix_cmd, color_cmd].includes(parsed.command)) {
+				message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`. You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`);
+            }
 			// Commands open to everyone
 			switch (parsed.command) {
 				// Help
