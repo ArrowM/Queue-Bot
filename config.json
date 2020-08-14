@@ -6,8 +6,8 @@
   "database_uri": "localhost:5432/mydatabase",
   "database_username": "postgres",
   "database_password": " ",
-  "grace_period": "3",
-  "permissions_regexp": "\\bmod\\b|\\bmods\\b",
+  "grace_period": "4",
+  "permissions_regexp": "\\bmod\\b|\\bmods\\b|\\badmin\\b|\\badmins\\b",
   "prefix": "!",
 
   "clear_cmd": "clear",
