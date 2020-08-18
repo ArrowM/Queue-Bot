@@ -1,8 +1,15 @@
 # General
 /*
 !/.gitignore
-!/README.md
+!/package.json
+!/tsconfig.json
+
+# Bot code
 !/bot.js
+!/bot.ts
+
+# Documentation
+!/README.md
 !/docs
 
 # keyv
@@ -14,5 +21,7 @@
 !/node_modules/@keyv
 /node_modules/@key
 
-# Package
-!/package.json
+# @types
+!/node_modules/@types
+/node_modules/@types/*
+!/node_modules/@types/keyv

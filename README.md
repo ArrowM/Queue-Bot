@@ -50,19 +50,20 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 
 ![Token Location](docs/token_location.PNG)  
 
-5. [Install NodeJS](https://discordjs.guide/preparations/#installing-node-js)  
+5. [Install NodeJS 12](https://discordjs.guide/preparations/#installing-node-js)  
 6. Install Dependencies. Open commmand prompt in project directory (If you have the project open in file explorer, click on the directory bar and enter "cmd"). Enter `npm install` into command prompt. You can ignore the NPM warnings. Keep the command prompt open.
-7. Start the Bot. Enter `node bot.js` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
-8. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
-	8a. In command prompt (set to the project directory), enter `npm install forever`  
-	8b. To start the bot, enter `forever start bot.js`  
-	8c. To stop the bot, enter `forever stop bot.js`  
+7. Compile the TypeScript file, enter `tsc -p .`
+8. Start the Bot. Enter `node bot.js` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
+9. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
+	9a. In command prompt (set to the project directory), enter `npm install pm2`  
+	9b. To start the bot, enter `pm2 start bot.ts`  
+	9c. To stop the bot, enter `pm2 stop bot.ts`  
   
 ## How to use  
 ### Non-Restricted Commands  
 Available to everyone.  
 #### Join a Text Channel Queue 
-`!j {channel name}` joins or leaves a text channel queue.   
+`!j {channel name} {OPTIONAL: message to display next to your name}` joins or leaves a text channel queue.   
 #### Help  
 `!h` displays a list of all commands.  
 
@@ -81,6 +82,8 @@ Available to owners or users with mod or mods in their server roles.
 `!k {channel name} @{user 1} @{user 2} ...`  kicks one or more people from a queue.  
 #### Clear Queue  
 `!clear {channel name}` clears a queue.  
+#### Shuffle Queue  
+`!shuffle {channel name}` shuffles a queue.  
   
 #### Change the Grace Period  
 `!g {time in seconds}` changes how long a person can leave a queue before being removed.  
