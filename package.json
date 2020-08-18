@@ -15,7 +15,8 @@
     "async-mutex": "^0.2.4",
     "discord.js": "12.2.0",
     "ffmpeg": "0.0.4",
-    "keyv": "^4.0.1"
+    "keyv": "^4.0.1",
+    "typescript": "^3.9.7"
   },
   "devDependencies": {
     "@types/keyv": "^3.1.1",
