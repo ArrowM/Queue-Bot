@@ -141,7 +141,7 @@ async function generateEmbed(dbData: string[], channel: TextChannel | VoiceChann
 		}
 		// Handle non-empty
 		else {
-			const maxEmbedSize = 1;
+			const maxEmbedSize = 25;
 			let position = 0;					// 0 , 24, 49, 74
 			let sliceStop = maxEmbedSize - 1;	// 24, 49, 74, 99 
 			for (let i = 0; i <= queueMembers.length / maxEmbedSize; i++) {
