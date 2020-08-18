@@ -100,7 +100,7 @@ function generateEmbed(dbData, channel) {
                 embedList[0]['fields'][0]['value'] = 'No members in queue.';
             }
             else {
-                const maxEmbedSize = 1;
+                const maxEmbedSize = 25;
                 let position = 0;
                 let sliceStop = maxEmbedSize - 1;
                 for (let i = 0; i <= queueMembers.length / maxEmbedSize; i++) {
