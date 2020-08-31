@@ -12,8 +12,12 @@ process.on('unhandledRejection', error => {
 require('events').EventEmitter.defaultMaxListeners = 40; // Maximum number of events that can be handled at once.
 const client = new Client({
 	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
-	messageCacheMaxSize: 100,
-	presence: { activity: {name: `${config.prefix}${config.helpCmd} for help` }, status: 'online' }
+	presence: {
+		activity: {
+			name: `${config.prefix}${config.helpCmd} for help`
+		},
+		status: 'online'
+	}
 });
 client.login(config.token);
 client.on('error', error => console.error('The WebSocket encountered an error:', error));
@@ -861,8 +865,8 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
                         "value": `\`${storedPrefix}${config.prefixCmd} {new prefix}\` changes the prefix for commands.`
                     },
                     {
-                        "name": "Change the config.color",
-                        "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the config.color of bot messages.`
+                        "name": "Change the Color",
+                        "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the config of bot messages.`
                     }
                 ]
             }
@@ -1013,14 +1017,14 @@ client.on('message', async message => {
 						true,
 					);
 					break;
-				// config.color
+				// Color
 				case config.colorCmd:
 					setServerSettings(queueGuild, parsed, message,
 						/^#?[0-9A-F]{6}$/i.test(parsed.arguments),
-						'Use HEX config.color:', 
+						'Use HEX color:', 
 						{
-							"title": "Hex config.color picker",
-							"url": "https://htmlconfig.colorcodes.com/config.color-picker/",
+							"title": "Hex color picker",
+							"url": "https://htmlcolorcodes.com/color-picker/",
 							"color": queueGuild.color
 						}
 					);

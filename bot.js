@@ -22,8 +22,12 @@ process.on('unhandledRejection', error => {
 require('events').EventEmitter.defaultMaxListeners = 40;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
-    messageCacheMaxSize: 100,
-    presence: { activity: { name: `${config_json_1.default.prefix}${config_json_1.default.helpCmd} for help` }, status: 'online' }
+    presence: {
+        activity: {
+            name: `${config_json_1.default.prefix}${config_json_1.default.helpCmd} for help`
+        },
+        status: 'online'
+    }
 });
 client.login(config_json_1.default.token);
 client.on('error', error => console.error('The WebSocket encountered an error:', error));
@@ -644,8 +648,8 @@ function help(queueGuild, parsed, message) {
                             "value": `\`${storedPrefix}${config_json_1.default.prefixCmd} {new prefix}\` changes the prefix for commands.`
                         },
                         {
-                            "name": "Change the config.color",
-                            "value": `\`${storedPrefix}${config_json_1.default.colorCmd} {new color}\` changes the config.color of bot messages.`
+                            "name": "Change the Color",
+                            "value": `\`${storedPrefix}${config_json_1.default.colorCmd} {new color}\` changes the config of bot messages.`
                         }
                     ]
                 }
@@ -747,9 +751,9 @@ client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* ()
                     setServerSettings(queueGuild, parsed, message, true);
                     break;
                 case config_json_1.default.colorCmd:
-                    setServerSettings(queueGuild, parsed, message, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), 'Use HEX config.color:', {
-                        "title": "Hex config.color picker",
-                        "url": "https://htmlconfig.colorcodes.com/config.color-picker/",
+                    setServerSettings(queueGuild, parsed, message, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), 'Use HEX color:', {
+                        "title": "Hex color picker",
+                        "url": "https://htmlcolorcodes.com/color-picker/",
                         "color": queueGuild.color
                     });
                     break;
