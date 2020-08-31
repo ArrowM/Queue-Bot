@@ -82,23 +82,34 @@ knex.schema.hasTable('display_channels').then(exists => {
 keyv<KeyvTable>('keyv').then(async keyvEntries => {
 	for (const keyvEntry of keyvEntries) {
 
-
 		const guildId = keyvEntry.key.replace('keyv:', '');
 		const pair: KeyvPair = JSON.parse(keyvEntry.value);
 
-		await knex<QueueGuild>('queue_guilds').insert({
-			guild_id: guildId,
-			grace_period: pair.value[0],
-			prefix: pair.value[1],
-			color: pair.value[2]
-		});
+		const storedQueueGuild = await knex<QueueGuild>('queue_guilds')
+			.where('guild_id', guildId);
 
-		for (const queueChannelId of pair.value.slice(10)) {
-			await knex<QueueChannel>('queue_channels').insert({
-				queue_channel_id: queueChannelId,
-				guild_id: guildId
+		if (!storedQueueGuild) {
+			await knex<QueueGuild>('queue_guilds').insert({
+				guild_id: guildId,
+				grace_period: pair.value[0],
+				prefix: pair.value[1],
+				color: pair.value[2]
 			});
+        }
+		
+		for (const queueChannelId of pair.value.slice(10)) {
+			
+			const storedQueueChannel = await knex<QueueChannel>('queue_channels')
+				.where('guild_id', guildId).where('queue_channel_id', queueChannelId);
+
+			if (!storedQueueChannel) {
+				await knex<QueueChannel>('queue_channels').insert({
+					queue_channel_id: queueChannelId,
+					guild_id: guildId
+				});
+            }
 		}
 	}
 	console.log('Complete')
+	process.exit();
 })

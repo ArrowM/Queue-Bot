@@ -20,7 +20,7 @@ const keyv = knex_1.default({
         host: config_json_1.default.databaseHost,
         user: config_json_1.default.databaseUsername,
         password: config_json_1.default.databasePassword,
-        database: 'mydatabase'
+        database: config_json_1.default.databaseName
     }
 });
 const knex = knex_1.default({
@@ -71,18 +71,27 @@ keyv('keyv').then((keyvEntries) => __awaiter(void 0, void 0, void 0, function* (
     for (const keyvEntry of keyvEntries) {
         const guildId = keyvEntry.key.replace('keyv:', '');
         const pair = JSON.parse(keyvEntry.value);
-        yield knex('queue_guilds').insert({
-            guild_id: guildId,
-            grace_period: pair.value[0],
-            prefix: pair.value[1],
-            color: pair.value[2]
-        });
-        for (const queueChannelId of pair.value.slice(10)) {
-            yield knex('queue_channels').insert({
-                queue_channel_id: queueChannelId,
-                guild_id: guildId
+        const storedQueueGuild = yield knex('queue_guilds')
+            .where('guild_id', guildId);
+        if (!storedQueueGuild) {
+            yield knex('queue_guilds').insert({
+                guild_id: guildId,
+                grace_period: pair.value[0],
+                prefix: pair.value[1],
+                color: pair.value[2]
             });
+        }
+        for (const queueChannelId of pair.value.slice(10)) {
+            const storedQueueChannel = yield knex('queue_channels')
+                .where('guild_id', guildId).where('queue_channel_id', queueChannelId);
+            if (!storedQueueChannel) {
+                yield knex('queue_channels').insert({
+                    queue_channel_id: queueChannelId,
+                    guild_id: guildId
+                });
+            }
         }
     }
     console.log('Complete');
+    process.exit();
 }));
