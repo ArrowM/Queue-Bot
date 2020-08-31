@@ -4,6 +4,10 @@ import { Mutex, MutexInterface } from 'async-mutex';
 import Knex from 'knex';
 import config from "./config.json";
 
+process.on('unhandledRejection', error => {
+	console.error('Unhandled promise rejection:', error);
+});
+
 // Setup client
 require('events').EventEmitter.defaultMaxListeners = 40; // Maximum number of events that can be handled at once.
 const client = new Client({

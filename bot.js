@@ -16,6 +16,9 @@ const discord_js_1 = require("discord.js");
 const async_mutex_1 = require("async-mutex");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
+process.on('unhandledRejection', error => {
+    console.error('Unhandled promise rejection:', error);
+});
 require('events').EventEmitter.defaultMaxListeners = 40;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
