@@ -1097,7 +1097,7 @@ async function resumeQueueAfterOffline() {
 			}
 		} else {
 			// Cleanup deleted guilds
-			await storedQueueGuildsQuery.where('guild_id', guild.id).del();
+			await storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
 			await removeStoredQueueChannel(guild);
 		}
 	}

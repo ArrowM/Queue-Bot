@@ -821,7 +821,7 @@ function resumeQueueAfterOffline() {
                 }
             }
             else {
-                yield storedQueueGuildsQuery.where('guild_id', guild.id).del();
+                yield storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
                 yield removeStoredQueueChannel(guild);
             }
         }
