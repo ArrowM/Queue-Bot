@@ -20,7 +20,7 @@ const keyv = knex_1.default({
         host: config_json_1.default.databaseHost,
         user: config_json_1.default.databaseUsername,
         password: config_json_1.default.databasePassword,
-        database: config_json_1.default.databaseName
+        database: 'mydatabase'
     }
 });
 const knex = knex_1.default({
@@ -33,49 +33,52 @@ const knex = knex_1.default({
     }
 });
 function setupTables() {
-    knex.schema.hasTable('queue_guilds').then(exists => {
-        if (!exists)
-            knex.schema.createTable('queue_guilds', table => {
-                table.text('guild_id').primary();
-                table.text('grace_period');
-                table.text('prefix');
-                table.text('color');
-            }).catch(e => console.error(e));
-    });
-    knex.schema.hasTable('queue_channels').then(exists => {
-        if (!exists)
-            knex.schema.createTable('queue_channels', table => {
-                table.text('queue_channel_id').primary();
-                table.text('guild_id');
-            }).catch(e => console.error(e));
-    });
-    knex.schema.hasTable('queue_members').then(exists => {
-        if (!exists)
-            knex.schema.createTable('queue_members', table => {
-                table.increments('id').primary();
-                table.text('queue_channel_id');
-                table.text('queue_member_id');
-                table.text('personal_message');
-                table.timestamp('created_at').defaultTo(knex.fn.now());
-            }).catch(e => console.error(e));
-    });
-    knex.schema.hasTable('display_channels').then(exists => {
-        if (!exists)
-            knex.schema.createTable('display_channels', table => {
-                table.increments('id').primary();
-                table.text('queue_channel_id');
-                table.text('display_channel_id');
-                table.specificType('embed_ids', 'TEXT []');
-            }).catch(e => console.error(e));
+    return __awaiter(this, void 0, void 0, function* () {
+        yield knex.schema.hasTable('queue_guilds').then(exists => {
+            if (!exists)
+                knex.schema.createTable('queue_guilds', table => {
+                    table.text('guild_id').primary();
+                    table.text('grace_period');
+                    table.text('prefix');
+                    table.text('color');
+                }).catch(e => console.error(e));
+        });
+        yield knex.schema.hasTable('queue_channels').then(exists => {
+            if (!exists)
+                knex.schema.createTable('queue_channels', table => {
+                    table.text('queue_channel_id').primary();
+                    table.text('guild_id');
+                }).catch(e => console.error(e));
+        });
+        yield knex.schema.hasTable('queue_members').then(exists => {
+            if (!exists)
+                knex.schema.createTable('queue_members', table => {
+                    table.increments('id').primary();
+                    table.text('queue_channel_id');
+                    table.text('queue_member_id');
+                    table.text('personal_message');
+                    table.timestamp('created_at').defaultTo(knex.fn.now());
+                }).catch(e => console.error(e));
+        });
+        yield knex.schema.hasTable('display_channels').then(exists => {
+            if (!exists)
+                knex.schema.createTable('display_channels', table => {
+                    table.increments('id').primary();
+                    table.text('queue_channel_id');
+                    table.text('display_channel_id');
+                    table.specificType('embed_ids', 'TEXT []');
+                }).catch(e => console.error(e));
+        });
     });
 }
 keyv('keyv').then((keyvEntries) => __awaiter(void 0, void 0, void 0, function* () {
-    setupTables();
+    yield setupTables();
     for (const keyvEntry of keyvEntries) {
         const guildId = keyvEntry.key.replace('keyv:', '');
         const pair = JSON.parse(keyvEntry.value);
         const storedQueueGuild = yield knex('queue_guilds')
-            .where('guild_id', guildId);
+            .where('guild_id', guildId)
+            .first();
         if (!storedQueueGuild) {
             yield knex('queue_guilds').insert({
                 guild_id: guildId,
@@ -86,7 +89,9 @@ keyv('keyv').then((keyvEntries) => __awaiter(void 0, void 0, void 0, function* (
         }
         for (const queueChannelId of pair.value.slice(10)) {
             const storedQueueChannel = yield knex('queue_channels')
-                .where('guild_id', guildId).where('queue_channel_id', queueChannelId);
+                .where('guild_id', guildId)
+                .where('queue_channel_id', queueChannelId)
+                .first();
             if (!storedQueueChannel) {
                 yield knex('queue_channels').insert({
                     queue_channel_id: queueChannelId,

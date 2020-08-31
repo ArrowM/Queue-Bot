@@ -9,7 +9,8 @@ const keyv = Knex({
 		host: config.databaseHost,
 		user: config.databaseUsername,
 		password: config.databasePassword,
-		database: config.databaseName
+		//database: config.databaseName
+		database: 'mydatabase'
 	}
 });
 
@@ -46,8 +47,8 @@ interface QueueChannel {
 }
 
 // Setup new DB
-function setupTables() {
-	knex.schema.hasTable('queue_guilds').then(exists => {
+async function setupTables() {
+	await knex.schema.hasTable('queue_guilds').then(exists => {
 		if (!exists) knex.schema.createTable('queue_guilds', table => {
 			table.text('guild_id').primary();
 			table.text('grace_period');
@@ -55,13 +56,13 @@ function setupTables() {
 			table.text('color');
 		}).catch(e => console.error(e));
 	});
-	knex.schema.hasTable('queue_channels').then(exists => {
+	await knex.schema.hasTable('queue_channels').then(exists => {
 		if (!exists) knex.schema.createTable('queue_channels', table => {
 			table.text('queue_channel_id').primary();
 			table.text('guild_id');
 		}).catch(e => console.error(e));
 	});
-	knex.schema.hasTable('queue_members').then(exists => {
+	await knex.schema.hasTable('queue_members').then(exists => {
 		if (!exists) knex.schema.createTable('queue_members', table => {
 			table.increments('id').primary();
 			table.text('queue_channel_id');
@@ -70,7 +71,7 @@ function setupTables() {
 			table.timestamp('created_at').defaultTo(knex.fn.now());
 		}).catch(e => console.error(e));
 	});
-	knex.schema.hasTable('display_channels').then(exists => {
+	await knex.schema.hasTable('display_channels').then(exists => {
 		if (!exists) knex.schema.createTable('display_channels', table => {
 			table.increments('id').primary();
 			table.text('queue_channel_id');
@@ -82,14 +83,15 @@ function setupTables() {
 
 // Import Old DB
 keyv<KeyvTable>('keyv').then(async keyvEntries => {
-	setupTables();
+	await setupTables();
 	for (const keyvEntry of keyvEntries) {
 
 		const guildId = keyvEntry.key.replace('keyv:', '');
 		const pair: KeyvPair = JSON.parse(keyvEntry.value);
 
 		const storedQueueGuild = await knex<QueueGuild>('queue_guilds')
-			.where('guild_id', guildId);
+			.where('guild_id', guildId)
+			.first();
 
 		if (!storedQueueGuild) {
 			await knex<QueueGuild>('queue_guilds').insert({
@@ -103,7 +105,9 @@ keyv<KeyvTable>('keyv').then(async keyvEntries => {
 		for (const queueChannelId of pair.value.slice(10)) {
 			
 			const storedQueueChannel = await knex<QueueChannel>('queue_channels')
-				.where('guild_id', guildId).where('queue_channel_id', queueChannelId);
+				.where('guild_id', guildId)
+				.where('queue_channel_id', queueChannelId)
+				.first();
 
 			if (!storedQueueChannel) {
 				await knex<QueueChannel>('queue_channels').insert({
