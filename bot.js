@@ -57,14 +57,22 @@ function getLock(map, key) {
     }
     return lock;
 }
-function send(message, messageToSend) {
+function sendResponse(message, messageToSend) {
     return __awaiter(this, void 0, void 0, function* () {
         const channel = message.channel;
         if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-            return message.channel.send(messageToSend);
+            return message.channel.send(messageToSend)
+                .catch(e => {
+                console.error(e);
+                return null;
+            });
         }
         else {
-            return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
+            return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
+                .catch(e => {
+                console.error(e);
+                return null;
+            });
         }
     });
 }
@@ -74,7 +82,10 @@ function addStoredDisplays(queueChannel, displayChannel, embedList) {
             const embedIds = [];
             for (const displayEmbed of embedList) {
                 yield displayChannel.send({ embed: displayEmbed })
-                    .then(msg => embedIds.push(msg.id))
+                    .then(msg => {
+                    if (msg)
+                        embedIds.push(msg.id);
+                })
                     .catch(e => console.error('addStoredDisplays: ' + e));
             }
             yield knex('display_channels').insert({
@@ -302,11 +313,11 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                     }
                     else {
                         yield removeStoredDisplays(queueChannel.id, displayChannel.id);
-                        addStoredDisplays(queueChannel, displayChannel, embedList);
+                        yield addStoredDisplays(queueChannel, displayChannel, embedList);
                     }
                 }
                 else {
-                    removeStoredDisplays(queueChannel.id, displayChannel.id);
+                    yield removeStoredDisplays(queueChannel.id, displayChannel.id);
                 }
             }
         }
@@ -358,7 +369,7 @@ function findChannel(queueGuild, availableChannels, parsed, message, includeMent
                     + '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`;
             }
         }
-        send(message, response);
+        yield sendResponse(message, response);
     });
 }
 function fetchChannel(queueGuild, parsed, message, includeMention, type) {
@@ -377,7 +388,7 @@ function fetchChannel(queueGuild, parsed, message, includeMention, type) {
             }
         }
         else {
-            send(message, `No queue channels set.`
+            yield sendResponse(message, `No queue channels set.`
                 + `\nSet a queue first using \`${queueGuild.prefix}${config_json_1.default.queueCmd} {channel name}\``);
             return null;
         }
@@ -389,16 +400,16 @@ function start(queueGuild, parsed, message) {
         if (!channel)
             return;
         if (!channel.permissionsFor(message.guild.me).has('CONNECT')) {
-            send(message, 'I need the permissions to join your voice channel!');
+            yield sendResponse(message, 'I need the permissions to join your voice channel!');
         }
         else if (channel.type === 'voice') {
             yield channel.join()
                 .then((connection) => { if (connection)
-                connection.voice.setSelfMute(true); })
+                connection.voice.setSelfDeaf(true); })
                 .catch((e) => console.error('start: ' + e));
         }
         else {
-            send(message, "I can only join voice channels.");
+            yield sendResponse(message, "I can only join voice channels.");
         }
     });
 }
@@ -407,9 +418,17 @@ function displayQueue(queueGuild, parsed, message) {
         const queueChannel = yield fetchChannel(queueGuild, parsed, message);
         if (!queueChannel)
             return;
-        const embedList = yield generateEmbed(queueGuild, queueChannel);
-        yield removeStoredDisplays(queueChannel.id, message.channel.id);
-        yield addStoredDisplays(queueChannel, message.channel, embedList);
+        const displayChannel = message.channel;
+        if (displayChannel.permissionsFor(message.guild.me).has('SEND_MESSAGES')
+            && displayChannel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
+            const embedList = yield generateEmbed(queueGuild, queueChannel);
+            yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+            yield addStoredDisplays(queueChannel, displayChannel, embedList);
+        }
+        else {
+            message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\``)
+                .catch(e => console.error(e));
+        }
     });
 }
 function setQueueChannel(queueGuild, parsed, message) {
@@ -424,7 +443,7 @@ function setQueueChannel(queueGuild, parsed, message) {
                 return;
             if (storedChannels.some(storedChannel => storedChannel.id === channel.id)) {
                 yield removeStoredQueueChannel(guild.id, channel.id);
-                send(message, `Deleted queue for \`${channel.name}\`.`);
+                yield sendResponse(message, `Deleted queue for \`${channel.name}\`.`);
             }
             else {
                 yield addStoredQueueChannel(channel);
@@ -433,10 +452,10 @@ function setQueueChannel(queueGuild, parsed, message) {
         }
         else {
             if (storedChannels.length > 0) {
-                send(message, `Current queues: ${storedChannels.map(ch => ` \`${ch.name}\``)}`);
+                yield sendResponse(message, `Current queues: ${storedChannels.map(ch => ` \`${ch.name}\``)}`);
             }
             else {
-                send(message, `No queue channels set.`
+                yield sendResponse(message, `No queue channels set.`
                     + `\nSet a new queue channel using \`${queueGuild.prefix}${config_json_1.default.queueCmd} {channel name}\``);
             }
         }
@@ -477,7 +496,7 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
                 + ` to the \`${queueChannel.name}\` queue.`;
         }
         yield updateDisplayQueue(queueGuild, [queueChannel]);
-        send(message, messageString);
+        yield sendResponse(message, messageString);
     });
 }
 function popTextQueue(queueGuild, parsed, message) {
@@ -486,7 +505,7 @@ function popTextQueue(queueGuild, parsed, message) {
         if (!queueChannel)
             return;
         if (queueChannel.type !== 'text') {
-            send(message, `\`${queueGuild.prefix}${config_json_1.default.nextCmd}\` can only be used on text channel queues.`);
+            yield sendResponse(message, `\`${queueGuild.prefix}${config_json_1.default.nextCmd}\` can only be used on text channel queues.`);
         }
         else {
             yield getLock(membersLocks, queueChannel.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
@@ -496,10 +515,10 @@ function popTextQueue(queueGuild, parsed, message) {
                 if (nextQueueMember) {
                     yield nextQueueMemberQuery.del();
                     yield updateDisplayQueue(queueGuild, [queueChannel]);
-                    send(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
+                    yield sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
                 }
                 else {
-                    send(message, `\`${queueChannel.name}\` is empty.`);
+                    yield sendResponse(message, `\`${queueChannel.name}\` is empty.`);
                 }
             }));
         }
@@ -523,12 +542,12 @@ function kickMember(queueGuild, parsed, message) {
             if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
                 updateDisplays = true;
                 yield storedQueueMembersQuery.del();
-                send(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
+                yield sendResponse(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
                     + ` from the \`${queueChannel.name}\` queue.`);
             }
         }));
         if (updateDisplays)
-            updateDisplayQueue(queueGuild, [queueChannel]);
+            yield updateDisplayQueue(queueGuild, [queueChannel]);
     });
 }
 function shuffleArray(array) {
@@ -552,8 +571,8 @@ function shuffleQueue(queueGuild, parsed, message) {
                     .update('created_at', queueMemberTimeStamps[i]);
             }
         }));
-        updateDisplayQueue(queueGuild, [queueChannel]);
-        send(message, `\`${queueChannel.name}\` queue shuffled.`);
+        yield updateDisplayQueue(queueGuild, [queueChannel]);
+        yield sendResponse(message, `\`${queueChannel.name}\` queue shuffled.`);
     });
 }
 function clearQueue(queueGuild, parsed, message) {
@@ -562,8 +581,8 @@ function clearQueue(queueGuild, parsed, message) {
         if (!queueChannel)
             return;
         yield removeStoredQueueMembers(queueChannel.id);
-        updateDisplayQueue(queueGuild, [queueChannel]);
-        send(message, `\`${queueChannel.name}\` queue cleared.`);
+        yield updateDisplayQueue(queueGuild, [queueChannel]);
+        yield sendResponse(message, `\`${queueChannel.name}\` queue cleared.`);
     });
 }
 function help(queueGuild, parsed, message) {
@@ -659,15 +678,18 @@ function help(queueGuild, parsed, message) {
         const channel = yield findChannel(queueGuild, availableChannels, parsed, message, false, 'text');
         if (parsed.arguments && channel) {
             if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-                embeds.forEach(em => channel.send(em).catch(e => console.error(e)));
+                embeds.forEach(em => channel.send(em)
+                    .catch(e => console.error(e)));
             }
             else {
-                message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
+                message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
+                    .catch(e => console.error(e));
             }
         }
         else {
-            embeds.map(em => message.author.send(em).catch(e => console.error(e)));
-            send(message, "I have sent help to your PMs.");
+            embeds.map(em => message.author.send(em)
+                .catch(e => console.error(e)));
+            yield sendResponse(message, "I have sent help to your PMs.");
         }
     });
 }
@@ -681,10 +703,10 @@ function setServerSettings(queueGuild, parsed, message, passesValueRestrictions,
                 .update(setting.dbVariable, parsed.arguments);
             queueGuild[setting.dbVariable] = parsed.arguments;
             yield updateDisplayQueue(queueGuild, channels);
-            send(message, `Set ${setting.str} to \`${parsed.arguments}\`.`);
+            yield sendResponse(message, `Set ${setting.str} to \`${parsed.arguments}\`.`);
         }
         else {
-            send(message, {
+            yield sendResponse(message, {
                 "embed": embed,
                 "content": `The ${setting.str} is currently set to \`${queueGuild[setting.dbVariable]}\`.\n`
                     + `Set a new ${setting.str} using \`${queueGuild.prefix}${parsed.command} {${setting.str}}\`.\n`
@@ -762,7 +784,8 @@ client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* ()
         else if ([config_json_1.default.startCmd, config_json_1.default.displayCmd, config_json_1.default.queueCmd, config_json_1.default.nextCmd, config_json_1.default.kickCmd, config_json_1.default.clearCmd,
             config_json_1.default.gracePeriodCmd, config_json_1.default.prefixCmd, config_json_1.default.colorCmd].includes(parsed.command)) {
             message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`.`
-                + `You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`);
+                + `You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`)
+                .catch(e => console.error(e));
         }
         switch (parsed.command) {
             case config_json_1.default.helpCmd:

@@ -83,16 +83,24 @@ function getLock(map: Map<string, MutexInterface>, key: string): MutexInterface 
 
 /**
  * Send message
- * @param message Object that sends message.
- * @param messageToSend String to send.
+ * @param message
+ * @param messageToSend
  */
-async function send(message: Message, messageToSend: {} | string): Promise<Message> {
+async function sendResponse(message: Message, messageToSend: {} | string): Promise<Message> {
 
 	const channel = message.channel as TextChannel;
 	if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-		return message.channel.send(messageToSend);
+		return message.channel.send(messageToSend)
+			.catch(e => {
+				console.error(e);
+				return null;
+			});
 	} else {
-		return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
+		return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
+			.catch(e => {
+				console.error(e);
+				return null;
+			});
 	}
 }
 
@@ -110,7 +118,9 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
 		// For each embed, send and collect the id
 		for (const displayEmbed of embedList) {
 			await displayChannel.send({ embed: displayEmbed })
-				.then(msg => embedIds.push(msg.id))
+				.then(msg => {
+					if (msg) embedIds.push(msg.id)
+				})
 				.catch(e => console.error('addStoredDisplays: ' + e));
 		}
 		// Store the ids in the database
@@ -402,11 +412,11 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 					// Remove the old embed list
 					await removeStoredDisplays(queueChannel.id, displayChannel.id);
 					// Create a new embed list
-					addStoredDisplays(queueChannel, displayChannel, embedList);
+					await addStoredDisplays(queueChannel, displayChannel, embedList);
 				}
 			} else {
 				// Handled deleted display channels
-				removeStoredDisplays(queueChannel.id, displayChannel.id);
+				await removeStoredDisplays(queueChannel.id, displayChannel.id);
             }
 		}
 	}
@@ -484,7 +494,7 @@ async function findChannel(queueGuild: QueueGuild, availableChannels: (VoiceChan
 				+ '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
 		}
     }
-	send(message, response);
+	await sendResponse(message, response);
 }
 
 /**
@@ -513,7 +523,7 @@ async function fetchChannel(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 			return await findChannel(queueGuild, availableChannels, parsed, message, includeMention, type, true);
 		}
 	} else {
-		send(message, `No queue channels set.`
+		await sendResponse(message, `No queue channels set.`
 			+ `\nSet a queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``
 		);
 		return null;
@@ -532,13 +542,13 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 	if (!channel) return;
 
 	if (!channel.permissionsFor(message.guild.me).has('CONNECT')) {
-		send(message, 'I need the permissions to join your voice channel!');
+		await sendResponse(message, 'I need the permissions to join your voice channel!');
 	} else if (channel.type === 'voice') {
 		await channel.join()
-			.then((connection: void | VoiceConnection) => {	if (connection) connection.voice.setSelfMute(true) })
+			.then((connection: void | VoiceConnection) => {	if (connection) connection.voice.setSelfDeaf(true) })
 			.catch((e: DiscordAPIError) => console.error('start: ' + e));
 	} else {
-		send(message, "I can only join voice channels.");
+		await sendResponse(message, "I can only join voice channels.");
 	}
 }
 
@@ -551,14 +561,21 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
 	const queueChannel = await fetchChannel(queueGuild, parsed, message);
-
 	if (!queueChannel) return;
+	const displayChannel = message.channel as TextChannel;
 
-	const embedList = await generateEmbed(queueGuild, queueChannel);
-	// Remove old display
-	await removeStoredDisplays(queueChannel.id, message.channel.id);
-	// Create new display
-	await addStoredDisplays(queueChannel, message.channel as TextChannel, embedList);
+	if (displayChannel.permissionsFor(message.guild.me).has('SEND_MESSAGES')
+		&& displayChannel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
+
+		const embedList = await generateEmbed(queueGuild, queueChannel);
+		// Remove old display
+		await removeStoredDisplays(queueChannel.id, displayChannel.id);
+		// Create new display
+		await addStoredDisplays(queueChannel, displayChannel, embedList);
+	} else {
+		message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\``)
+			.catch(e => console.error(e));
+    }
 }
 
 /**
@@ -583,7 +600,7 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 		if (storedChannels.some(storedChannel => storedChannel.id === channel.id)) {
 			// Channel is already stored, remove it
 			await removeStoredQueueChannel(guild.id, channel.id);
-			send(message, `Deleted queue for \`${channel.name}\`.`);
+			await sendResponse(message, `Deleted queue for \`${channel.name}\`.`);
 		} else {
 			// It's not in the list, add it
 			await addStoredQueueChannel(channel);
@@ -592,9 +609,9 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 	} else {
 		// No argument. Display current queues
 		if (storedChannels.length > 0) {
-			send(message, `Current queues: ${storedChannels.map(ch => ` \`${ch.name}\``)}`);
+			await sendResponse(message, `Current queues: ${storedChannels.map(ch => ` \`${ch.name}\``)}`);
 		} else {
-			send(message, `No queue channels set.`
+			await sendResponse(message, `No queue channels set.`
 				+ `\nSet a new queue channel using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``
 				//	+ `\nChannels: ${channels.map(channel => ` \`${channel.name}\``)}`
 			);
@@ -655,7 +672,7 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 	}
 
 	await updateDisplayQueue(queueGuild, [queueChannel]);
-	send(message, messageString);
+	await sendResponse(message, messageString);
 }
 
 /**
@@ -670,7 +687,7 @@ async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 	if (!queueChannel) return;
 
 	if (queueChannel.type !== 'text') {
-		send(message, `\`${queueGuild.prefix}${config.nextCmd}\` can only be used on text channel queues.`);
+		await sendResponse(message, `\`${queueGuild.prefix}${config.nextCmd}\` can only be used on text channel queues.`);
 	} else {
 		await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
 			// Get the older member entry for the queue
@@ -682,9 +699,9 @@ async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 				// Display and remove member from the the queue
 				await nextQueueMemberQuery.del();
 				await updateDisplayQueue(queueGuild, [queueChannel]);
-				send(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
+				await sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
 			} else {
-				send(message, `\`${queueChannel.name}\` is empty.`);
+				await sendResponse(message, `\`${queueChannel.name}\` is empty.`);
 			}
 		});
     }
@@ -718,11 +735,11 @@ async function kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, messa
 			updateDisplays = true;
 			// Remove from queue
 			await storedQueueMembersQuery.del();
-			send(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
+			await sendResponse(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
 				+ ` from the \`${queueChannel.name}\` queue.`);
 		}
 	});
-	if (updateDisplays) updateDisplayQueue(queueGuild, [queueChannel]);
+	if (updateDisplays) await updateDisplayQueue(queueGuild, [queueChannel]);
 }
 
 /**
@@ -756,8 +773,8 @@ async function shuffleQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 				.update('created_at', queueMemberTimeStamps[i]);
         }
 	});
-	updateDisplayQueue(queueGuild, [queueChannel]);
-	send(message, `\`${queueChannel.name}\` queue shuffled.`);
+	await updateDisplayQueue(queueGuild, [queueChannel]);
+	await sendResponse(message, `\`${queueChannel.name}\` queue shuffled.`);
 }
 
 /**
@@ -772,8 +789,8 @@ async function clearQueue(queueGuild: QueueGuild, parsed: ParsedArguments, messa
 	if (!queueChannel) return;
 
 	await removeStoredQueueMembers(queueChannel.id);
-	updateDisplayQueue(queueGuild, [queueChannel]);
-	send(message, `\`${queueChannel.name}\` queue cleared.`);
+	await updateDisplayQueue(queueGuild, [queueChannel]);
+	await sendResponse(message, `\`${queueChannel.name}\` queue cleared.`);
 }
 
 /**
@@ -879,16 +896,19 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
 	if (parsed.arguments && channel) {
 		if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 			// Channel found and bot has permission, print.
-			embeds.forEach(em => channel.send(em).catch(e => console.error(e) ));
+			embeds.forEach(em => channel.send(em)
+				.catch(e => console.error(e)));
 		} else {
 			// Channel found, but no permission. Send permission and help messages to user.
-			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
+			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
+				.catch(e => console.error(e));
 		}
 	} else {
-		// No channel provided. send help to user.
-		embeds.map(em => message.author.send(em).catch(e => console.error(e) ));
+		// No channel provided. Send help to user.
+		embeds.map(em => message.author.send(em)
+			.catch(e => console.error(e)));
 
-		send(message, "I have sent help to your PMs.");
+		await sendResponse(message, "I have sent help to your PMs.");
 	}
 }
 
@@ -915,9 +935,9 @@ async function setServerSettings(queueGuild: QueueGuild, parsed: ParsedArguments
 			.update(setting.dbVariable, parsed.arguments);
 		queueGuild[setting.dbVariable] = parsed.arguments;
 		await updateDisplayQueue(queueGuild, channels);
-		send(message, `Set ${setting.str} to \`${parsed.arguments}\`.`);
+		await sendResponse(message, `Set ${setting.str} to \`${parsed.arguments}\`.`);
 	} else {
-		send(message, {
+		await sendResponse(message, {
 			"embed": embed,
 			"content":
 				`The ${setting.str} is currently set to \`${queueGuild[setting.dbVariable]}\`.\n`
@@ -1033,7 +1053,8 @@ client.on('message', async message => {
 		} else if ([config.startCmd, config.displayCmd, config.queueCmd, config.nextCmd, config.kickCmd, config.clearCmd,
 			config.gracePeriodCmd, config.prefixCmd, config.colorCmd].includes(parsed.command)) {
 			message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`.`
-				+ `You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`);
+				+ `You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`)
+				.catch(e => console.error(e));
         }
 		// Commands open to everyone
 		switch (parsed.command) {
