@@ -3,8 +3,10 @@
 !/.gitignore
 !/package.json
 !/tsconfig.json
+!/db-transfer-script
 
 # Bot code
+!/bot.js
 !/bot.ts
 
 # Documentation

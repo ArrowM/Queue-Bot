@@ -1,89 +1,269 @@
-// Read Config file
-import {
-	token,
-
-	color,
-	databaseType,
-	databaseUri,
-	databaseUsername,
-	databasePassword,
-	gracePeriod,
-	permissionsRegexp,
-	prefix,
-
-	clearCmd,
-	colorCmd,
-	commandPrefixCmd,
-	displayCmd,
-	gracePeriodCmd,
-	helpCmd,
-	joinCmd,
-	kickCmd,
-	nextCmd,
-	queueCmd,
-	shuffleCmd,
-	startCmd
-} from "./config.json";
+/* eslint-disable @typescript-eslint/camelcase */
+import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, VoiceConnection, DiscordAPIError, MessageEmbed } from 'discord.js';
+import { Mutex, MutexInterface } from 'async-mutex';
+import Knex from 'knex';
+import config from "./config.json";
 
 // Setup client
 require('events').EventEmitter.defaultMaxListeners = 40; // Maximum number of events that can be handled at once.
-import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, VoiceConnection, DiscordAPIError, MessageEmbed, EmbedField } from 'discord.js';
-const client = new Client({ ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] } });
+const client = new Client({
+	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
+	messageCacheMaxSize: 100,
+	presence: { activity: {name: `${config.prefix}${config.helpCmd} for help` }, status: 'online' }
+});
+client.login(config.token);
+client.on('error', error => console.error('The WebSocket encountered an error:', error));
 
-// Default DB Settings
-const defaultDBData = [gracePeriod, prefix, color, "", "", "", "", "", "", ""];
+// Map commands to database columns and display strings
 const ServerSettings = {
-	[gracePeriodCmd]: { index: 0, str: "grace period" },
-	[commandPrefixCmd]: { index: 1, str: "command prefix" },
-	[colorCmd]: { index: 2, str: "color" },
+	[config.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
+	[config.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },
+	[config.colorCmd]: { dbVariable: 'color', str: "color" },
 };
 Object.freeze(ServerSettings);
 
 // Keyv long term DB storage
-import Keyv from 'keyv';
-const channelDict: Keyv<string[]>  = new Keyv(`${databaseType}://${databaseUsername}:${databasePassword}@${databaseUri}`);	// guild.id | gracePeriod, [voice Channel.id, ...]
-channelDict.on('error', (err: Error) => console.error('Keyv connection error:', err));
+const knex = Knex({
+	client: config.databaseType,
+	connection: {
+		host: config.databaseHost,
+		user: config.databaseUsername,
+		password: config.databasePassword,
+		database: config.databaseName
+	}
+});
 
-// Short term storage
-const guildMemberDict: { id: string; msg: string }[][][] = [];		// guild.id | GuildChannel.id | [{id: guildMember.id, msg: string}, ...]
-const displayEmbedDict: string[][][][] = [];	// guild.id | GuildChannel.id | display GuildChannel.id | [message.id, ...]
-
-// Storage Mutexes
-import { Mutex } from 'async-mutex';
-const channelLocks = new Map();	// Map<guild.id, MutexInterface>;
-const guildMemberLocks = new Map();		// Map<guild.id, MutexInterface>;
-const displayEmbedLocks = new Map();	// Map<guild.id, MutexInterface>;
-
-const sleep = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
-
-async function setupLocks(guildId: string): Promise<void> {
-
-	channelLocks.set(guildId, new Mutex());
-	guildMemberLocks.set(guildId, new Mutex());
-	displayEmbedLocks.set(guildId, new Mutex());
+interface QueueGuild {
+	guild_id: string; // KEY
+	grace_period: string;
+	prefix: string;
+	color: string;
 }
 
-async function fetchStoredChannels(dbData: string[], guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
+interface QueueChannel {
+	queue_channel_id: string; // KEY
+	guild_id: string;
+}
 
-	const channels = [];
-	for (let i = 10; i < dbData.length; i++) {
-		const channel = guild.channels.cache.get(dbData[i]) as TextChannel | VoiceChannel;
-		if (channel) {
-			channels.push(channel);
-		}
-		else {
-			dbData.splice(i, 1);
-		}
+interface QueueMember {
+	id: number;
+	queue_channel_id: string;
+	queue_member_id: string;
+	personal_message: string;
+	created_at: string;
+}
+
+interface DisplayChannel {
+	queue_channel_id: string;
+	display_channel_id: string;
+	embed_ids: string[];
+}
+
+// Storage Mutexes
+const queueChannelsLocks = new Map<string, MutexInterface>();		// Map<QueueGuild id, MutexInterface>;
+const membersLocks = new Map<string, MutexInterface>();				// Map<QueueChannel id, MutexInterface>;
+const displayChannelsLocks = new Map<string, MutexInterface>();		// Map<QueueChannel id, MutexInterface>;
+
+function getLock(map: Map<string, MutexInterface>, key: string): MutexInterface {
+	let lock = map.get(key);
+	if (!lock) {
+		lock = new Mutex();
+		map.set(key, lock);
 	}
-	await channelDict.set(guild.id, dbData);
-	return channels;
+	return lock;
+}
+
+/**
+ * Send message
+ * @param message Object that sends message.
+ * @param messageToSend String to send.
+ */
+async function send(message: Message, messageToSend: {} | string): Promise<Message> {
+
+	const channel = message.channel as TextChannel;
+	if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
+		return message.channel.send(messageToSend);
+	} else {
+		return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
+	}
+}
+
+/**
+ * 
+ * @param queueChannel
+ * @param displayChannel
+ * @param embedList
+ */
+async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displayChannel: TextChannel,
+	embedList: Partial<MessageEmbed>[]): Promise<void> {
+	
+	await getLock(displayChannelsLocks, queueChannel.id).runExclusive(async () => {
+		const embedIds: string[] = [];
+		// For each embed, send and collect the id
+		for (const displayEmbed of embedList) {
+			await displayChannel.send({ embed: displayEmbed })
+				.then(msg => embedIds.push(msg.id))
+				.catch(e => console.error('addStoredDisplays: ' + e));
+		}
+		// Store the ids in the database
+		await knex<DisplayChannel>('display_channels').insert({
+			queue_channel_id: queueChannel.id,
+			display_channel_id: displayChannel.id,
+			embed_ids: embedIds
+		});
+	});
+}
+
+/**
+ * 
+ * @param queueChannelId
+ * @param displayChannelIdToRemove
+ */
+async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRemove?: string): Promise<void> {
+
+	await getLock(displayChannelsLocks, queueChannelId).runExclusive(async () => {
+		// Retreive list of stored embeds for display channel
+		let storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels').where('queue_channel_id', queueChannelId);
+		if (displayChannelIdToRemove) {
+			storedDisplayChannelsQuery = storedDisplayChannelsQuery.where('display_channel_id', displayChannelIdToRemove);
+		}
+		const storedDisplayChannels = await storedDisplayChannelsQuery;
+		// If found, delete them from discord
+		if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
+
+		for (const storedDisplayChannel of storedDisplayChannels) {
+			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
+			if (!displayChannel) continue;
+			// Attempt to delete each of display embeds from discord
+			for (const embedId of storedDisplayChannel.embed_ids) {
+				const embed = await displayChannel.messages.fetch(embedId).catch(() => null);
+				embed?.delete();
+			}
+		}
+		// Delete stored embeds
+		await storedDisplayChannelsQuery.del();
+	});
+}
+
+/**
+ * 
+ * @param queueChannelId
+ * @param memberIdsToAdd
+ * @param personalMessage
+ */
+async function addStoredQueueMembers(queueChannelId: string, memberIdsToAdd: string[], personalMessage?: string): Promise<void> {
+
+	await getLock(membersLocks, queueChannelId).runExclusive(async () => {
+		for (const memberId of memberIdsToAdd) {
+			await knex<QueueMember>('queue_members').insert({
+				queue_channel_id: queueChannelId,
+				queue_member_id: memberId,
+				personal_message: personalMessage
+			});
+		}
+	});
+}
+
+/**
+ * 
+ * @param queueChannelId
+ * @param memberIdsToRemove
+ */
+async function removeStoredQueueMembers(queueChannelId: string, memberIdsToRemove?: string[]): Promise<void> {
+
+	await getLock(membersLocks, queueChannelId).runExclusive(async () => {
+		// Retreive list of stored embeds for display channel
+		let storedMemberQuery;
+		if (memberIdsToRemove) {
+			storedMemberQuery = knex<QueueMember>('queue_members')
+				.where('queue_channel_id', queueChannelId)
+				.andWhere('queue_member_id', 'in', memberIdsToRemove)
+				.first();
+		} else {
+			storedMemberQuery = knex<QueueMember>('queue_members')
+				.where('queue_channel_id', queueChannelId)
+				.first();
+		}
+		await storedMemberQuery.del();
+	});
+}
+
+/**
+ * 
+ * @param channelToAdd
+ */
+async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel): Promise<void> {
+
+	await getLock(queueChannelsLocks, channelToAdd.guild.id).runExclusive(async () => {
+		// Fetch old channels
+		await knex<QueueChannel>('queue_channels').insert({
+			queue_channel_id: channelToAdd.id,
+			guild_id: channelToAdd.guild.id
+		});
+	});
+	if (channelToAdd.type === 'voice') {
+		await addStoredQueueMembers(channelToAdd.id, channelToAdd.members
+			.filter(member => !member.user.bot).map(member => member.id));
+    }
+}
+
+/**
+ * 
+ * @param guild
+ * @param channelIdToRemove
+ */
+async function removeStoredQueueChannel(guild: Guild, channelIdToRemove?: string): Promise<void> {
+
+	await getLock(queueChannelsLocks, guild.id).runExclusive(async () => {
+		if (channelIdToRemove) {
+				await knex<QueueChannel>('queue_channels').where('queue_channel_id', channelIdToRemove).first().del();
+				await removeStoredQueueMembers(channelIdToRemove);
+				await removeStoredDisplays(channelIdToRemove);
+		} else {
+			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
+			const storedQueueChannels = await storedQueueChannelsQuery;
+			for (const storedQueueChannel of storedQueueChannels) {
+				await removeStoredQueueMembers(storedQueueChannel.queue_channel_id);
+				await removeStoredDisplays(storedQueueChannel.queue_channel_id);
+			}
+			await storedQueueChannelsQuery.del();
+		}
+	});
+}
+
+/**
+ * 
+ * @param guild
+ */
+async function fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
+
+	return await getLock(queueChannelsLocks, guild.id).runExclusive(async () => {
+		// Fetch stored channels
+		const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
+		const storedQueueChannels = await storedQueueChannelsQuery;
+		if (!storedQueueChannels) return null;
+
+		const queueChannels: (VoiceChannel | TextChannel)[] = [];
+		// Check for deleted channels
+		// Going backwards allows the removal of entries while visiting each one
+		for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
+			const queueChannelId = storedQueueChannels[i].queue_channel_id;
+			const queueChannel = guild.channels.cache.get(queueChannelId) as VoiceChannel | TextChannel;
+			if (queueChannel) {
+				// Still exists, add to return list
+				queueChannels.push(queueChannel);
+			} else {
+				// Channel has been deleted, update database
+				await removeStoredQueueChannel(guild, queueChannelId);
+			}
+		}
+		return queueChannels;
+	});
 }
 
 /**
  * Return a grace period in string form
- *
- * @param {number} guildId Guild id.
- * @return {Promise<string>} Grace period string.
+ * @param gracePeriod Guild id.
  */
 const gracePeriodCache = new Map();
 async function getGracePeriodString(gracePeriod: string): Promise<string> {
@@ -92,10 +272,9 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
 		let result;
 		if (gracePeriod === '0') {
 			result = '';
-		}
-		else {
-			const graceMinutes = Math.round(gracePeriod as unknown as number / 60);
-			const graceSeconds = gracePeriod as unknown as number % 60;
+		} else {
+			const graceMinutes = Math.round(+gracePeriod / 60);
+			const graceSeconds = +gracePeriod % 60;
 			const timeString = (graceMinutes > 0 ? graceMinutes + ' minute' : '') + (graceMinutes > 1 ? 's' : '')
 				+ (graceMinutes > 0 && graceSeconds > 0 ? ' and ' : '')
 				+ (graceSeconds > 0 ? graceSeconds + ' second' : '') + (graceSeconds > 1 ? 's' : '');
@@ -107,199 +286,152 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
 }
 
 /**
- * Create an Embed to represent everyone in a singl queue. Will create multiple embeds for large queues
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {VoiceChannel} channel Discord message object.
- * @return {Promise<MessageEmbed[]>[]} Array of display embeds
+ * Create an Embed to represent everyone in a single queue. Will create multiple embeds for large queues
+ * @param queueGuild
+ * @param queueChannel Discord message object.
  */
-async function generateEmbed(dbData: string[], channel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>[]> {
+async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>[]> {
 
-	const prefix = dbData[1];
-	const storedColor = dbData[2];
-	let embedList: Partial<MessageEmbed>[];
-	await guildMemberLocks.get(channel.guild.id).runExclusive(async () => {
-		const queueMembers: { id: string; msg: string }[] = guildMemberDict[channel.guild.id][channel.id];
-		embedList = [{
-			"title": `${channel.name} queue`,
-			"color": storedColor as unknown as number,
-			"description":
-				channel.type === 'voice' ?
-					// Voice
-					`Join the **${channel.name}** voice channel to join this queue.` + await getGracePeriodString(dbData[0]) :
-					// Text
-					`Type \`${prefix}${joinCmd} ${channel.name}\` to join or leave this queue.`,
-			"fields": [{
-				"inline": false,
-				"name": `Current queue length: **${queueMembers ? queueMembers.length : 0}**`,
-				"value": "\u200b"
-			}]
-		}];
-		// Handle empty queue
-		if (!queueMembers || queueMembers.length === 0) {
-			embedList[0]['fields'][0]['value'] = 'No members in queue.';
-		}
+	const storedPrefix = queueGuild.prefix;
+	const storedColor = queueGuild.color as unknown as number;
+
+	const queueMembers = await knex<QueueMember>('queue_members')
+		.where('queue_channel_id', queueChannel.id).orderBy('created_at');
+
+	const embedList: Partial<MessageEmbed>[] = [{
+		"title": `${queueChannel.name} queue`,
+		"color": storedColor,
+		"description":
+			queueChannel.type === 'voice' ?
+				// Voice
+				`Join the **${queueChannel.name}** voice channel to join this queue.` + await getGracePeriodString(queueGuild.grace_period) :
+				// Text
+				`Type \`${storedPrefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
+		"fields": [{
+			"inline": false,
+			"name": `Current queue length: **${queueMembers ? queueMembers.length : 0}**`,
+			"value": "\u200b"
+		}]
+	}];
+	// Handle empty queue
+	if (!queueMembers || queueMembers.length === 0) {
+		embedList[0]['fields'][0]['value'] = 'No members in queue.';
+	} else {
 		// Handle non-empty
-		else {
-			const maxEmbedSize = 25;
-			let position = 0;					// 0 , 24, 49, 74
-			let sliceStop = maxEmbedSize - 1;	// 24, 49, 74, 99 
-			for (let i = 0; i <= queueMembers.length / maxEmbedSize; i++) {
-				if (i > 0) { // Creating additional embed after the first embed
-					embedList.push({
-						"title": null,
-						"color": storedColor as unknown as number,
-						"description": null,
-						"fields": []
-					});
-				}
-
-				// Populate with names and numbers
-				const fields: EmbedField[] = [];
-				queueMembers.slice(position, sliceStop).map(queueMember => {
-					const member = channel.guild.members.cache.get(queueMember.id);
-					if (member) {
-						fields.push({
-							"inline": false,
-							"name": ++position as unknown as string,
-							"value": member.displayName + (queueMember.msg ? ' -- ' + queueMember.msg : '')
-						});
-					}
-					// Clean up people who have left the server
-					else {
-						queueMembers.splice(queueMembers.findIndex(member => member.id === queueMember.id), 1);
-					}
+		const maxEmbedSize = 25;
+		let position = 0;					//  0, 24, 49, 74
+		let sliceStop = maxEmbedSize - 1;	// 24, 49, 74, 99 
+		for (let i = 0; i <= queueMembers.length / maxEmbedSize; i++) {
+			if (i > 0) { // Creating additional embed after the first embed
+				embedList.push({
+					"title": null,
+					"color": storedColor,
+					"description": null,
+					"fields": []
 				});
-				embedList[i]['fields'] = fields;
-
-				sliceStop += maxEmbedSize;
 			}
+
+			// Populate with names and numbers
+			queueMembers.slice(position, sliceStop).map(queueMember => {
+				embedList[i]['fields'].push({
+					"inline": false,
+					"name": (++position).toString(),
+					"value": `<@!${queueMember.queue_member_id}>`
+						+ (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '')
+				});
+			});
+
+			sliceStop += maxEmbedSize;
 		}
-	});
+	}
+
 	return embedList;
 }
 
 /**
  * Update a server's display messages
- *
- * @param {Guild} guild Guild containing display messages
- * @param {VoiceChannel[]} queues Channels to update
+ * @param queueGuild
+ * @param queueChannels Channels to update
  */
-async function updateDisplayQueue(guild: Guild, queues: (VoiceChannel | TextChannel)[]): Promise<void> {
-	const currentChannelIds = guild.channels.cache.map(channel => channel.id);
-	const dbData = await channelDict.get(guild.id);
+async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceChannel | TextChannel)[]): Promise<void> {
 
-	await displayEmbedLocks.get(guild.id).runExclusive(async () => {
-		if (displayEmbedDict[guild.id]) {
-			// For each updated queue
-			for (const queue of queues) {
-				if (queue && displayEmbedDict[guild.id][queue.id]) {
-					// Create an embed list
-					const embedList = await generateEmbed(dbData, queue);
-					// For each embed list of the queue
-					for (const textChannelId of Object.keys(displayEmbedDict[guild.id][queue.id])) {
-						// Handled deleted queue channels
-						if (currentChannelIds.includes(textChannelId)) {
-							// Retrieved the stored embed list
-							const storedEmbeds = Object.values(displayEmbedDict[guild.id][queue.id][textChannelId])
-								.map((msgId: unknown) => (guild.channels.cache.get(textChannelId) as TextChannel)
-									.messages.cache.get(msgId as string)
-								);
+	// For each updated queue
+	for (const queueChannel of queueChannels) {
+		if (!queueChannel) continue;
+		const storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels').where('queue_channel_id', queueChannel.id);
+		const storedDisplayChannels = await storedDisplayChannelsQuery;
+		if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
-							let createNewEmbed = false;
-							// If the new embed list and stored embed list are the same length, replace the old embeds via edit
-							if (storedEmbeds.length === embedList.length) {
-								for (let i = 0; i < embedList.length; i++) {
-									if (storedEmbeds[i]) {
-										await storedEmbeds[i].edit({ embed: embedList[i] }).catch(() => createNewEmbed = true);
-									}
-									else {
-										createNewEmbed = true;
-									}
-								}
-							}
-							// If the new embed list and stored embed list are diffent lengths, delete the old embeds and create all new messages
-							if (storedEmbeds.length !== embedList.length || createNewEmbed) {
-								const textChannel = guild.channels.cache.get(textChannelId) as TextChannel;
-								// Remove the old embed list
-								for (const storedEmbed of Object.values(storedEmbeds)) {
-									if (storedEmbed) await storedEmbed.delete().catch(() => null);;
-								}
-								displayEmbedDict[guild.id][queue.id][textChannelId] = [];
-								// Create a new embed list
-								embedList.forEach(queueEmbed => {
-									textChannel.send({ embed: queueEmbed })
-										.then((msg: Message) => displayEmbedDict[guild.id][queue.id][textChannelId].push(msg.id))
-										.catch((e: DiscordAPIError) => console.log('Error in updateDisplayQueue: ' + e))
-								});
-							}
-						}
-						else {
-							// Remove stored displays of deleted queue channels
-							delete displayEmbedDict[guild.id][queue.id];
-						}
-					}
+		// Create an embed list
+		const embedList = await generateEmbed(queueGuild, queueChannel);
+		for (const storedDisplayChannel of storedDisplayChannels) {
+			// For each embed list of the queue
+			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
+
+			if (displayChannel) {
+				// Retrieved display embeds
+				const storedEmbeds: Message[] = [];
+				let removeEmbeds = false;
+				for (const id of storedDisplayChannel.embed_ids) {
+					const storedEmbed = await displayChannel.messages.fetch(id).catch(() => null);
+					if (storedEmbed) {
+						storedEmbeds.push(storedEmbed);
+					} else {
+						removeEmbeds = true;
+                    }
 				}
-			}
+				if (removeEmbeds) {
+					await removeStoredDisplays(queueChannel.id, displayChannel.id);
+					continue;
+                } else if (storedEmbeds.length === embedList.length) {
+					// Replace the old embeds via edit
+					for (let i = 0; i < embedList.length; i++) {
+						await storedEmbeds[i]
+							.edit({ embed: embedList[i] })
+							.catch(() => null);
+					}
+				} else { 
+					// Remove the old embed list
+					await removeStoredDisplays(queueChannel.id, displayChannel.id);
+					// Create a new embed list
+					addStoredDisplays(queueChannel, displayChannel, embedList);
+				}
+			} else {
+				// Handled deleted display channels
+				removeStoredDisplays(queueChannel.id, displayChannel.id);
+            }
 		}
-	});
-}
-
-/**
- * Send message
- *
- * @param {Message} message Object that sends message.
- * @param {any} messageToSend String to send.
- */
-async function send(message: Message, messageToSend: {}): Promise<Message> {
-
-	const channel = message.channel as TextChannel;
-	if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-		return message.channel.send(messageToSend);
-	} else {
-		return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
-    }
-}
-
-/**
- * Watch a user after they leave queue. Remove them once the grace period is reached
- *
- * @param {GuildMember} member Member to watch
- * @param {Guild} guild Guild containing queue
- * @param {VoiceChannel} oldVoiceChannel Queue channel being left 
- */
-async function checkAfterLeaving(member: GuildMember, guild: Guild, oldVoiceChannel: VoiceChannel, immediateUpdate: boolean): Promise<void>{
-
-	// console.log(`[${guild.name}] | [${member.displayName}] set to leave [${oldVoiceChannel.name}] queue in ${gracePeriod} seconds`);
-	const gracePeriod = (await channelDict.get(guild.id))[0] as unknown as number;
-	let timer = 0;
-	// Check every 2 seconds
-	if (!immediateUpdate) while (timer < gracePeriod) {
-		await sleep(2000);
-		if (member.voice.channel === oldVoiceChannel) return;
-		timer += 2;
 	}
+}
 
-	const guildMembers = guildMemberDict[guild.id][oldVoiceChannel.id];
-	await guildMemberLocks.get(guild.id).runExclusive(async () => {
-		if (guildMembers) {
-			// User left channel, remove from queue
-			guildMembers.splice(guildMembers.findIndex((queueMember: { id: string; msg: string }) =>
-					queueMember.id === member.id), 1); 
-		}
+/**
+ * Store members who leave queues, time stamp them
+ * @param queueGuild
+ * @param guild Guild containing queue
+ * @param oldVoiceChannel Queue channel being left 
+ */
+const recentMembersCache = new Map<string, { member: QueueMember; time: number }>();
+async function markLeavingMember(queueGuild: QueueGuild, member: GuildMember, oldVoiceChannel: VoiceChannel): Promise<void> {
+
+	// Fetch Member
+	const storedQueueMember = await knex<QueueMember>('queue_members')
+		.where('queue_channel_id', oldVoiceChannel.id).where('queue_member_id', member.id).first();
+	await removeStoredQueueMembers(oldVoiceChannel.id, [member.id]);
+	recentMembersCache.set(member.id, {
+		member: storedQueueMember,
+		time: Date.now()
 	});
-	// console.log(`[${guild.name}] | [${member.displayName}] left [${oldVoiceChannel.name}] queue`);
-	updateDisplayQueue(guild, [oldVoiceChannel]);
 }
 
 /**
  * Extracts a channel from command arguments. Starting with the largest matching substring
- * @param {(VoiceChannel | TextChannel)[]} availableChannels
- * @param {ParsedArguments} parsed
- * @param {Message} message
- * @return {VoiceChannel | TextChannel}
+ * @param availableChannels
+ * @param parsed
+ * @param message
  */
-function extractChannel(availableChannels: (VoiceChannel | TextChannel)[], parsed: ParsedArguments, message: Message): VoiceChannel | TextChannel  {
+function extractChannel(availableChannels: (VoiceChannel | TextChannel)[], parsed: ParsedArguments,
+	message: Message): VoiceChannel | TextChannel  {
+
 	let channel = availableChannels.find(channel => channel.id === message.mentions.channels.array()[0]?.id);
 	const splitArgs = parsed.arguments.split(' ');
 	for (let i = splitArgs.length; i > 0; i--) {
@@ -313,73 +445,68 @@ function extractChannel(availableChannels: (VoiceChannel | TextChannel)[], parse
 
 /**
  * Get a channel from available channels
- * 
- * @param {(VoiceChannel | TextChannel)[]} availableChannels
- * @param {ParsedArguments} parsed
- * @param {boolean} includeMention Include mention in error message
- * @param {string} type Type of channels to fetch ('voice' or 'text')
- * @param {Message} message
+ * @param queueGuild
+ * @param availableChannels
+ * @param parsed
+ * @param message
+ * @param includeMention Include mention in error message
+ * @param type Type of channels to fetch ('voice' or 'text')
+ * @param errorOnNoneFound? Show error if no channel is found
  */
-async function findChannel(availableChannels: (VoiceChannel | TextChannel)[], parsed: ParsedArguments,
-	message: Message, includeMention: boolean, type: string, errorOnNoneFound: boolean): Promise<VoiceChannel | TextChannel> {
+async function findChannel(queueGuild: QueueGuild, availableChannels: (VoiceChannel | TextChannel)[], parsed: ParsedArguments,
+	message: Message, includeMention: boolean, type: string, errorOnNoneFound?: boolean): Promise<VoiceChannel | TextChannel> {
 
 	const channel = extractChannel(availableChannels, parsed, message);
 	if (channel) return channel;
 
-	if (errorOnNoneFound) {
-		let response;
-		if (availableChannels.length === 0) {
-			response = 'No ' + (type ? `**${type}** ` : '') + 'queue channels set.'
-				+ '\nSet a ' + (type ? `${type} ` : '') + `queue first using \`${prefix}${queueCmd} {channel name}\``;
+	if (!errorOnNoneFound) return;
+
+	let response;
+	if (availableChannels.length === 0) {
+		response = 'No ' + (type ? `**${type}** ` : '') + 'queue channels set.'
+			+ '\nSet a ' + (type ? `${type} ` : '') + `queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``;
+	} else {
+		response = 'Invalid ' + (type ? `**${type}** ` : '') + `channel name! Try \`${queueGuild.prefix}${parsed.command} `;
+		if (availableChannels.length === 1) {
+			// Single channel, recommend the single channel
+			response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
+		} else {
+			// Multiple channels, list them
+			response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
+				+ '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
 		}
-		else {
-			response = 'Invalid ' + (type ? `**${type}** ` : '') + `channel name! Try \`${parsed.prefix}${parsed.command} `;
-			if (availableChannels.length === 1) {
-				// Single channel, recommend the single channel
-				response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
-			}
-			else {
-				// Multiple channels, list them
-				response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
-					+ '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
-			}
-        }
-		send(message, response);
     }
+	send(message, response);
 }
 
 /**
  * Get a channel using user argument
- *
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
- * @param {boolean} includeMention Include mention in error message
- * @param {string} type Type of channels to fetch ('voice' or 'text')
- * @return {GuildChannel} Matched channel.
+ * @param queueGuild
+ * @param parsed
+ * @param message
+ * @param includeMention? Include mention in error message
+ * @param type Type of channels to fetch ('voice' or 'text')
  */
-async function fetchChannel(dbData: string[], parsed: ParsedArguments,
-	message: Message, includeMention: boolean, type?: string): Promise<VoiceChannel | TextChannel> {
+async function fetchChannel(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
+	includeMention?: boolean, type?: string): Promise<VoiceChannel | TextChannel> {
 
-	const channels = await fetchStoredChannels(dbData, message.guild);
 	const guild = message.guild;
+	const channels = await fetchStoredQueueChannels(guild);
 
-	if (guildMemberDict[guild.id] && channels.length > 0) {
+	if (channels.length > 0) {
 		// Extract channel name from message
-
 		const availableChannels = type ?
 			channels.filter(channel => channel.type === type) :
 			channels;
 
 		if (availableChannels.length === 1) {
 			return availableChannels[0];
+		} else {
+			return await findChannel(queueGuild, availableChannels, parsed, message, includeMention, type, true);
 		}
-		else {
-			return await findChannel(availableChannels, parsed, message, includeMention, type, true);
-		}
-	}
-	else {
+	} else {
 		send(message, `No queue channels set.`
-			+ `\nSet a queue first using \`${parsed.prefix}${queueCmd} {channel name}\``
+			+ `\nSet a queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``
 		);
 		return null;
 	}
@@ -387,319 +514,270 @@ async function fetchChannel(dbData: string[], parsed: ParsedArguments,
 
 /**
  * Add bot to a voice channel for swapping
- *
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed
+ * @param message Discord message object.
  */
-async function start(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void> {
-	const channel = await fetchChannel(dbData, parsed, message, false, 'voice');
-	if (channel) {
-		if (!channel.permissionsFor(message.guild.me).has('CONNECT')) {
-			send(message, 'I need the permissions to join your voice channel!');
-		}
-		else if (channel.type === 'voice') {
-			await channel.join()
-				.then((connection: void | VoiceConnection) => {	if (connection) connection.voice.setSelfMute(true) })
-				.catch((e: DiscordAPIError) => console.log('Error in start: ' + e));
-		}
-		else {
-			send(message, "I can only join voice channels.");
-		}
-    }
+async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+
+	const channel = await fetchChannel(queueGuild, parsed, message, false, 'voice');
+	if (!channel) return;
+
+	if (!channel.permissionsFor(message.guild.me).has('CONNECT')) {
+		send(message, 'I need the permissions to join your voice channel!');
+	} else if (channel.type === 'voice') {
+		await channel.join()
+			.then((connection: void | VoiceConnection) => {	if (connection) connection.voice.setSelfMute(true) })
+			.catch((e: DiscordAPIError) => console.error('start: ' + e));
+	} else {
+		send(message, "I can only join voice channels.");
+	}
 }
 
 /**
  * Create an embed message to display a channel's queue
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed Parsed message - prefix, command, argument.
+ * @param message Discord message object.
  */
-async function displayQueue(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void> {
+async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
-	const guild = message.guild;
-	const textChannel = message.channel as TextChannel;
-	const channel = await fetchChannel(dbData, parsed, message, false);
+	const queueChannel = await fetchChannel(queueGuild, parsed, message);
 
-	if (channel) {
-		const embedList = await generateEmbed(dbData, channel);
-		await displayEmbedLocks.get(guild.id).runExclusive(async () => {
+	if (!queueChannel) return;
 
-			// Initialize display message queue
-			displayEmbedDict[guild.id] = displayEmbedDict[guild.id] || [];
-			displayEmbedDict[guild.id][channel.id] = displayEmbedDict[guild.id][channel.id] || [];
-
-			// Remove old embed lists
-			const embedIds = displayEmbedDict[guild.id][channel.id][textChannel.id];
-			if (embedIds) for (const embedId of embedIds) {
-				const embed = (guild.channels.cache.get(textChannel.id) as TextChannel)?.messages.cache.get(embedId);
-				if (embed) await embed.delete().catch(() => null);;
-			}
-
-			// Create new display list
-			displayEmbedDict[guild.id][channel.id][textChannel.id] = [];
-			// Send message and store it
-			embedList.forEach(queueEmbed =>
-				send(message, { embed: queueEmbed })
-				.then(msg => {displayEmbedDict[guild.id][channel.id][textChannel.id].push(msg.id)})
-				.catch((e: DiscordAPIError) => console.log('Error in displayQueue: ' + e))
-			);
-		});
-	}
+	const embedList = await generateEmbed(queueGuild, queueChannel);
+	// Remove old display
+	await removeStoredDisplays(queueChannel.id, message.channel.id);
+	// Create new display
+	await addStoredDisplays(queueChannel, message.channel as TextChannel, embedList);
 }
 
 /**
  * Toggle a channel's queue status. Display existing queues if no argument is provided.
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed Parsed message - prefix, command, argument.
+ * @param message Discord message object.
  */
-async function setQueueChannel(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void>{
+async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+
 	// Setup common variables
-	const prefix = parsed.prefix;
 	const parsedArgs = parsed.arguments;
 	const guild = message.guild;
-	const channels = guild.channels.cache.filter(channel => channel.type !== 'category').array() as VoiceChannel[] | TextChannel[];
-	// Get stored voice channel list from database
-	const otherData = dbData.slice(0, 10);
-	const storedChannels = await fetchStoredChannels(dbData, message.guild);
+	// Get stored queue channel list from database
+	const storedChannels = await fetchStoredQueueChannels(guild);
+	// Channel argument provided. Toggle it
+	if (parsedArgs) {
+		const channels = guild.channels.cache.filter(channel => channel.type !== 'category').array() as VoiceChannel[] | TextChannel[];
+		const channel = await findChannel(queueGuild, channels, parsed, message, false, null, true);
+		if (!channel) return;
 
-	// No argument. Display current queues
-	if (!parsedArgs) {
+		if (storedChannels.some(storedChannel => storedChannel.id === channel.id)) {
+			// Channel is already stored, remove it
+			await removeStoredQueueChannel(guild, channel.id);
+			send(message, `Deleted queue for \`${channel.name}\`.`);
+		} else {
+			// It's not in the list, add it
+			await addStoredQueueChannel(channel);
+			await displayQueue(queueGuild, parsed, message);
+		}
+	} else {
+		// No argument. Display current queues
 		if (storedChannels.length > 0) {
 			send(message, `Current queues: ${storedChannels.map(ch => ` \`${ch.name}\``)}`);
-		}
-		else {
+		} else {
 			send(message, `No queue channels set.`
-				+ `\nSet a new queue channel using \`${prefix}${queueCmd} {channel name}\``
-			//	+ `\nChannels: ${channels.map(channel => ` \`${channel.name}\``)}`
+				+ `\nSet a new queue channel using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``
+				//	+ `\nChannels: ${channels.map(channel => ` \`${channel.name}\``)}`
 			);
-		}
-	}
-	// Channel argument provided. Toggle it
-	else {
-		const channel = await findChannel(channels, parsed, message, false, null, true);
-		if (channel) {
-			guildMemberLocks.get(guild.id).runExclusive(async () => {
-				// Initialize member queue
-				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
-				// Toggle Queue
-				if (storedChannels.includes(channel)) { // If it's in the list, remove it
-					storedChannels.splice(storedChannels.indexOf(channel), 1);
-					delete guildMemberDict[guild.id][channel.id];
-
-					// Remove old embed lists
-					await displayEmbedLocks.get(guild.id).runExclusive(async () => {
-						if (displayEmbedDict[guild.id] && displayEmbedDict[guild.id][channel.id]) {
-							for (const [embedChannelId, embedIds] of displayEmbedDict[guild.id][channel.id].entries()) {
-								const embedChannel = guild.channels.cache.get(embedChannelId) as TextChannel;
-								if (embedChannel) {
-									for (const embedId of embedIds) {
-										const embed = embedChannel.messages.cache.get(embedId);
-										if (embed) await embed.delete().catch(() => null);;
-									}
-								}
-							}
-						}
-					});
-					send(message, `Deleted queue for \`${channel.name}\`.`);
-				}
-				else { // If it's not in the list, add it
-					storedChannels.push(channel);
-					if (channel.type === 'voice') {
-						guildMemberDict[guild.id][channel.id] = channel.members
-							.filter((member: GuildMember) => !member.user.bot)
-							.map((member: GuildMember) => {
-								return {id: member.id, msg: null}
-							});
-					}
-					send(message, `Created queue for \`${channel.name}\`.`);
-				}
-				// Store channel to database
-				await channelDict.set(guild.id, otherData.concat(storedChannels.map(ch => ch.id)));
-			});
 		}
 	}
 }
 
 /**
  * Add a member into a text queue
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed Parsed message - prefix, command, argument.
+ * @param message Discord message object.
+ * @param authorHasPermissionToQueueOthers whether the message author can queue others using mentions.
  */
-async function joinTextChannel(dbData: string[], parsed: ParsedArguments, message: Message, hasPermission: boolean): Promise<void> {
-	const guild = message.guild;
+async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
+	authorHasPermissionToQueueOthers: boolean): Promise<void> {
 
-	if (hasPermission) {
-		parsed.arguments = parsed.arguments.replace(/<@!?\d+>/gi, '').trim(); // remove user mentions
+	// remove user mentions
+	parsed.arguments = parsed.arguments.replace(/<@!?\d+>/gi, '').trim();
+	// Get queue channel
+	const queueChannel = await fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, 'text');
+	if (!queueChannel) return;
+	// Parse message and members
+	const personalMessage = parsed.arguments.replace(queueChannel.name, '').trim().substring(0, 128);
+	let memberIdsToToggle = [message.member.id];
+	if (authorHasPermissionToQueueOthers && message.mentions.members.size > 0) {
+		memberIdsToToggle = message.mentions.members.array().map(member => member.id);
 	}
-	const membersToAdd = message.mentions.members.size > 0 ? message.mentions.members.array() : [message.member];
 
-	const channel = await fetchChannel(dbData, parsed, message, message.mentions.members.size > 0, 'text');
+	const storedQueueMembers = await knex<QueueMember>('queue_members')
+		.where('queue_channel_id', queueChannel.id);
 
-	if (channel) {
-		const customMessage = parsed.arguments.replace(channel.name, '').trim().substring(0, 200);
-		await guildMemberLocks.get(guild.id).runExclusive(async () => {
-			// Initialize member queue
-			guildMemberDict[guild.id][channel.id] = guildMemberDict[guild.id][channel.id] || [];
-			const guildMembers = guildMemberDict[guild.id][channel.id];
-			for (const member of membersToAdd) {
-				if (guildMembers.some((queueMember: { id: string; msg: string }) => queueMember.id === member.id)) {
-					// Remove from queue
-					guildMembers.splice(guildMembers.findIndex((queueMember: { id: string; msg: string }) =>
-						queueMember.id === member.id), 1);
-					send(message, `Removed \`${member.displayName}\` from the \`${channel.name}\` queue.`)
-				}
-				else {
-					// Add to queue
-					guildMembers.push({id: member.id, msg: customMessage});
-					send(message, `Added \`${member.displayName}\` to the \`${channel.name}\` queue.`)
-				}
-			}
-		});
-		updateDisplayQueue(guild, [channel]);
+	const memberIdsToAdd: string[] = [];
+	const memberIdsToRemove: string[] = [];
+	for (const memberId of memberIdsToToggle) {
+		if (storedQueueMembers.some(storedMember => storedMember.queue_member_id === memberId)) {
+			// Already in queue, set to remove
+			memberIdsToRemove.push(memberId);
+		}
+		else {
+			// Not in queue, set to add
+			memberIdsToAdd.push(memberId);
+		}
 	}
+
+	let messageString = '';
+	if (memberIdsToRemove.length > 0) {
+		// Remove from queue
+		await removeStoredQueueMembers(queueChannel.id, memberIdsToRemove);
+		messageString += 'Removed ' + memberIdsToRemove.map(id => `<@!${id}>`).join(', ')
+			+ ` from the \`${queueChannel.name}\` queue.\n`;
+	}
+	if (memberIdsToAdd.length > 0) {
+		// Add to queue
+		await addStoredQueueMembers(queueChannel.id, memberIdsToAdd, personalMessage);
+		messageString += 'Added ' + memberIdsToAdd.map(id => `<@!${id}>`).join(', ')
+			+ ` to the \`${queueChannel.name}\` queue.`;
+	}
+
+	await updateDisplayQueue(queueGuild, [queueChannel]);
+	send(message, messageString);
 }
 
 /**
  * Pop a member from a text channel queue
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed
+ * @param message Discord message object.
  */
-async function popTextQueue(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void> {
-	const guild = message.guild;
-	const channel = await fetchChannel(dbData, parsed, message, false, 'text');
-	if (channel) {
-		const guildMembers = guildMemberDict[guild.id][channel.id];
-		if (channel.type === 'text' && guildMembers && guildMembers.length > 0) {
-			let nextMemberId;
-			await guildMemberLocks.get(guild.id).runExclusive(async () => {
-				nextMemberId = guildMembers.shift();
-			});
-			send(message, `Pulling next user (<@!${nextMemberId}>) from \`${channel.name}\`.`);
-			updateDisplayQueue(guild, [channel]);
-		}
-		else if (channel.type !== 'text') {
-			send(message, `\`${parsed.prefix}${nextCmd}\` can only be used on text channel queues.`);
-		}
-		else if (guildMembers && guildMembers.length === 0) {
-			send(message, `\`${channel.name}\` is empty.`);
-		}
-	}
+async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+
+	const queueChannel = await fetchChannel(queueGuild, parsed, message, false, 'text');
+	if (!queueChannel) return;
+
+	if (queueChannel.type !== 'text') {
+		send(message, `\`${queueGuild.prefix}${config.nextCmd}\` can only be used on text channel queues.`);
+	} else {
+		await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
+			// Get the older member entry for the queue
+			const nextQueueMemberQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id)
+				.orderBy('created_at').first();
+			const nextQueueMember = await nextQueueMemberQuery;
+
+			if (nextQueueMember) {
+				// Display and remove member from the the queue
+				await nextQueueMemberQuery.del();
+				await updateDisplayQueue(queueGuild, [queueChannel]);
+				send(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
+			} else {
+				send(message, `\`${queueChannel.name}\` is empty.`);
+			}
+		});
+    }
 }
 
 /**
  * Kick a member from a queue
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed
+ * @param message Discord message object.
  */
-async function kickMember(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void> {
+async function kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
-	const guild = message.guild;
-	parsed.arguments = parsed.arguments.replace(/<@!?\d+>/gi, '').trim(); // remove user mentions
-	const channel = await fetchChannel(dbData, parsed, message, true);
-	const mentionedMembers = message.mentions.members.array();
+	// remove user mentions
+	parsed.arguments = parsed.arguments.replace(/<@!?\d+>/gi, '').trim();
+	// Get queue channel
+	const queueChannel = await fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, 'text');
+	if (!queueChannel) return;
+	// Parse message and members
+	const memberIdsToKick = message.mentions.members.array().map(member => member.id);
+	if (!memberIdsToKick || memberIdsToKick.length === 0) return;
 
-	if (channel) {
-		const guildMembers = guildMemberDict[guild.id][channel.id];
-		if (mentionedMembers && guildMembers.length > 0) {
-			const kickedMemberIds: string[] = [];
-			const unfoundMemberIds: string[] = [];
-			await guildMemberLocks.get(guild.id).runExclusive(async () => {
-				for (const member of mentionedMembers) {
-					if (guildMembers.some((queueMember: { id: string; msg: string }) => queueMember.id === member.id)) {
-						guildMembers.splice(guildMembers.findIndex((queueMember: { id: string; msg: string }) =>
-							queueMember.id === member.id), 1);
-						kickedMemberIds.push(member.id);
-					} else {
-						unfoundMemberIds.push(member.id);
-					}
-				}
-			});
-			// Output result of kick
-			send(message, 
-				((kickedMemberIds.length > 0) ? 'Kicked' + kickedMemberIds.map(m => ` <@!${m}>`) + ` from \`${channel.name}\` queue.` : '')
-				+ ((unfoundMemberIds.length > 0) ? '\nDid not find' + unfoundMemberIds.map(m => ` <@!${m}>`) + ` in \`${channel.name}\` queue.` : ''));
-			updateDisplayQueue(guild, [channel]);
+	let updateDisplays = false;
+	await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
+		const storedQueueMembersQuery = knex<QueueMember>('queue_members')
+			.where('queue_channel_id', queueChannel.id)
+			.andWhere('queue_member_id', 'in', memberIdsToKick);
+		const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
 
-		} else if (guildMembers.length === 0) {
-			send(message, `\`${channel.name}\` is empty.`);
+		if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
+			updateDisplays = true;
+			// Remove from queue
+			await storedQueueMembersQuery.del();
+			send(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
+				+ ` from the \`${queueChannel.name}\` queue.`);
 		}
-		else if (!mentionedMembers) {
-			send(message, `Specify at least one user to kick. For example:`
-				+ `\n\`${parsed.prefix}${kickCmd} General @Arrow\``);
-		}
-	}
+	});
+	if (updateDisplays) updateDisplayQueue(queueGuild, [queueChannel]);
 }
 
 /**
  * Shuffle using the Fisher-Yates algorithm
- * @param {string[]} array items to shuffle
+ * @param array items to shuffle
  */
-function shuffleArray(array: string[]): string[] {
+function shuffleArray(array: string[]): void {
 	for (let i = array.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
 		[array[i], array[j]] = [array[j], array[i]];
 	}
-	return array;
 }
 
 /**
  * Shuffles a queue
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed
+ * @param message Discord message object.
  */
-async function shuffleQueue(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void> {
-	const guild = message.guild;
-	const channel = await fetchChannel(dbData, parsed, message, false);
-	if (channel) {
-		await guildMemberLocks.get(guild.id).runExclusive(async () => {
-			shuffleArray(guildMemberDict[guild.id][channel.id])
-		});
-		displayQueue(dbData, parsed, message);
-		send(message, `\`${channel.name}\` queue shuffled.`);
-	}
+async function shuffleQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+	const queueChannel = await fetchChannel(queueGuild, parsed, message);
+	if (!queueChannel) return;
+
+	await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
+		const queueMembersQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id);
+		const queueMembers = await queueMembersQuery;
+		const queueMemberTimeStamps = queueMembers.map(member => member.created_at);
+		shuffleArray(queueMemberTimeStamps);
+		for (let i = 0; i < queueMembers.length; i++) {
+			await knex<QueueMember>('queue_members').where('id', queueMembers[i].id)
+				.update('created_at', queueMemberTimeStamps[i]);
+        }
+	});
+	updateDisplayQueue(queueGuild, [queueChannel]);
+	send(message, `\`${queueChannel.name}\` queue shuffled.`);
 }
 
 /**
  * Pop a member from a text channel queue
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * @param queueGuild
+ * @param parsed
+ * @param message Discord message object.
  */
-async function clearQueue(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void> {
+async function clearQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
-	const guild = message.guild;
-	const channel = await fetchChannel(dbData, parsed, message, false);
-	if (channel) {
-		await guildMemberLocks.get(guild.id).runExclusive(async () => {
-			guildMemberDict[guild.id][channel.id] = [];
-		});
-		displayQueue(dbData, parsed, message);
-		send(message, `\`${channel.name}\` queue cleared.`);
-	}
+	const queueChannel = await fetchChannel(queueGuild, parsed, message);
+	if (!queueChannel) return;
+
+	await removeStoredQueueMembers(queueChannel.id);
+	updateDisplayQueue(queueGuild, [queueChannel]);
+	send(message, `\`${queueChannel.name}\` queue cleared.`);
 }
 
 /**
- * Send message sender a help embed
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
+ * Send a help embed
+ * @param queueGuild
+ * @param parsed
+ * @param message Discord message object.
  */
-async function help(dbData: string[], parsed: ParsedArguments, message: Message): Promise<void> {
+async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
-	const storedPrefix = parsed.prefix;
-	const storedColor = dbData[2];
+	const storedPrefix = queueGuild.prefix;
+	const storedColor = queueGuild.color;
 
 	const embeds: {}[] = [
         {
@@ -718,7 +796,7 @@ async function help(dbData: string[], parsed: ParsedArguments, message: Message)
                     },
                     {
                         "name": "Join a Text Channel Queue",
-                        "value": `\`${storedPrefix}${joinCmd} {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`
+						"value": `\`${storedPrefix}${config.joinCmd} {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`
 					}
                 ]
             }
@@ -737,75 +815,70 @@ async function help(dbData: string[], parsed: ParsedArguments, message: Message)
                     },
                     {
 						"name": "Modify & View Queues",
-						"value": `\`${storedPrefix}${queueCmd} {channel name}\` creates a new queue or deletes an existing queue.`
-							+ `\n\`${storedPrefix}${queueCmd}\` shows the existing queues.`
+						"value": `\`${storedPrefix}${config.queueCmd} {channel name}\` creates a new queue or deletes an existing queue.`
+							+ `\n\`${storedPrefix}${config.queueCmd}\` shows the existing queues.`
                     },
                     {
                         "name": "Display Queue Members",
-                        "value": `\`${storedPrefix}${displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`
+                        "value": `\`${storedPrefix}${config.displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`
                     },
                     {
                         "name": "Pull Users from Voice Queue",
-                        "value": `\`${storedPrefix}${startCmd} {channel name}\` adds the bot to a queue voice channel.`
+                        "value": `\`${storedPrefix}${config.startCmd} {channel name}\` adds the bot to a queue voice channel.`
                             + ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
                             + ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`
                     },
                     {
                         "name": "Pull Users from Text Queue",
-                        "value": `\`${storedPrefix}${nextCmd} {channel name}\` removes the next person in the text queue and displays their name.`
+                        "value": `\`${storedPrefix}${config.nextCmd} {channel name}\` removes the next person in the text queue and displays their name.`
                     },
                     {
                         "name": "Add Others to a Text Channel Queue",
-                        "value": `\`${storedPrefix}${joinCmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
+                        "value": `\`${storedPrefix}${config.joinCmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
                     },
                     {
                         "name": "Kick Users from Queue",
-                        "value": `\`${storedPrefix}${kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
+                        "value": `\`${storedPrefix}${config.kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
                     },
                     {
                         "name": "Clear Queue",
-                        "value": `\`${storedPrefix}${clearCmd} {channel name}\` clears a queue.`
+                        "value": `\`${storedPrefix}${config.clearCmd} {channel name}\` clears a queue.`
 					},
 					{
 						"name": "Shuffle Queue",
-						"value": `\`${storedPrefix}${shuffleCmd} {channel name}\` shuffles a queue.`
+						"value": `\`${storedPrefix}${config.shuffleCmd} {channel name}\` shuffles a queue.`
 					},
                     {
                         "name": "Change the Grace Period",
-                        "value": `\`${storedPrefix}${gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`
+                        "value": `\`${storedPrefix}${config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`
                     },
                     {
                         "name": "Change the Command Prefix",
-                        "value": `\`${storedPrefix}${commandPrefixCmd} {new prefix}\` changes the prefix for commands.`
+                        "value": `\`${storedPrefix}${config.prefixCmd} {new prefix}\` changes the prefix for commands.`
                     },
                     {
-                        "name": "Change the Color",
-                        "value": `\`${storedPrefix}${colorCmd} {new color}\` changes the color of bot messages.`
+                        "name": "Change the config.color",
+                        "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the config.color of bot messages.`
                     }
                 ]
             }
         }
 	];
 
-	const channel = await findChannel(message.guild.channels.cache.array() as (VoiceChannel | TextChannel)[],
-		parsed, message, false, 'text', false) as TextChannel;
+	const availableChannels = message.guild.channels.cache.array() as (VoiceChannel | TextChannel)[];
+	const channel = await findChannel(queueGuild, availableChannels, parsed, message, false, 'text') as TextChannel;
+
 	if (parsed.arguments && channel) {
 		if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 			// Channel found and bot has permission, print.
-			embeds.forEach(em => channel.send(em)
-				.catch(e => console.log(e)));
+			embeds.forEach(em => channel.send(em).catch(e => console.error(e) ));
 		} else {
 			// Channel found, but no permission. Send permission and help messages to user.
 			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
-			embeds.forEach(em => message.author.send(em)
-				.catch(e => console.log(e)));
 		}
 	} else {
 		// No channel provided. send help to user.
-		embeds.map(em => {
-			message.author.send(em)
-				.catch(e => console.log(e))
-		});
+		embeds.map(em => message.author.send(em).catch(e => console.error(e) ));
 
 		send(message, "I have sent help to your PMs.");
 	}
@@ -813,37 +886,34 @@ async function help(dbData: string[], parsed: ParsedArguments, message: Message)
 
 /**
  * Change a server setting
- *
- * @param {string[]} dbData Array of server settings stored in DB.
- * @param {ParsedArguments} parsed Parsed message - prefix, command, argument.
- * @param {Message} message Discord message object.
- * @param {boolean} updateDisplayMsgs Whether to update existing display messages.
- * @param {function} valueRestrictions Test to determine whether the user input is valid.
- * @param {string} extraErrorLine Extra hint to display if the user gives invalid input.
- * @param {MessageEmbed} embed Embed to display with extra error line.
+ * @param queueGuild
+ * @param parsed
+ * @param message Discord message object.
+ * @param passesValueRestrictions Test to determine whether the user input is valid.
+ * @param extraErrorLine Extra hint to display if the user gives invalid input.
+ * @param embed Embed to display with extra error line.
  */
-async function setServerSettings(dbData: string[], parsed: ParsedArguments, message: Message, updateDisplayMsgs: boolean,
-	valueRestrictions: boolean, extraErrorLine: string, embed?: {}): Promise<void> {
+async function setServerSettings(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
+	passesValueRestrictions: boolean, extraErrorLine?: string, embed?: {}): Promise<void> {
 
 	// Setup common variables
 	const setting = ServerSettings[parsed.command];
 	const guild = message.guild;
-	const otherData = dbData.slice(0, 10);
-	const channels = await fetchStoredChannels(dbData, guild);
+	const channels = await fetchStoredQueueChannels(guild);
 	
-	if (parsed.arguments && valueRestrictions) {
-		otherData[setting.index] = parsed.arguments;
+	if (parsed.arguments && passesValueRestrictions) {
 		// Store channel to database
-		await channelDict.set(guild.id, otherData.concat(channels.map(ch => ch.id)));
-		if (updateDisplayMsgs) updateDisplayQueue(guild, channels);
+		await knex<QueueGuild>('queue_guilds').where('guild_id', message.guild.id).first()
+			.update(setting.dbVariable, parsed.arguments);
+		queueGuild[setting.dbVariable] = parsed.arguments;
+		await updateDisplayQueue(queueGuild, channels);
 		send(message, `Set ${setting.str} to \`${parsed.arguments}\`.`);
-	}
-	else {
+	} else {
 		send(message, {
 			"embed": embed,
 			"content":
-				`The ${setting.str} is currently set to \`${dbData[setting.index]}\`.\n`
-				+ `Set a new ${setting.str} using \`${parsed.prefix}${parsed.command} {${setting.str}}\`.\n`
+				`The ${setting.str} is currently set to \`${queueGuild[setting.dbVariable]}\`.\n`
+				+ `Set a new ${setting.str} using \`${queueGuild.prefix}${parsed.command} {${setting.str}}\`.\n`
 				+ extraErrorLine
 		});
 	}
@@ -851,205 +921,231 @@ async function setServerSettings(dbData: string[], parsed: ParsedArguments, mess
 
 /**
  * Determine whether user has permission to interact with bot
- *
- * @param {Message} message Discord message object.
+ * @param message Discord message object.
  */
 async function checkPermission(message: Message): Promise<boolean> {
 
-	const regex = RegExp(permissionsRegexp, 'i');
+	const regex = RegExp(config.permissionsRegexp, 'i');
 	return message.member.roles.cache.some(role => regex.test(role.name)) || message.member.id === message.guild.ownerID;
 }
 
+/**
+ * 
+ * @param guildId
+ */
+async function createDefaultGuild(guildId: string): Promise<QueueGuild> {
+
+	await knex<QueueGuild>('queue_guilds').insert({
+		guild_id: guildId,
+		grace_period: '0',
+		prefix: config.prefix,
+		color: '#51ff7e'
+	});
+	return await knex<QueueGuild>('queue_guilds').where('guild_id', guildId).first();
+}
+
 interface ParsedArguments {
-	prefix: string;
 	command: string;
 	arguments: string;
 }
 
 client.on('message', async message => {
+
 	if (message.author.bot) return;
-	// Lock
-	if (!channelLocks.get(message.guild.id)) await setupLocks(message.guild.id);
-	await channelLocks.get(message.guild.id).runExclusive(async () => {
+	const guildId = message.guild.id;
+	// NOTE: DO NOT USE queue_channel_ids from the variable. Lock first, then call knex<GuildQueue>('queue_guilds').
+	const queueGuild = await knex<QueueGuild>('queue_guilds').where('guild_id', guildId).first()
+		|| await createDefaultGuild(guildId);
 
-		// Get server settings
-		let dbData = await channelDict.get(message.guild.id);
-		if (!dbData) {
-			// Set defaults for new servers
-			dbData = defaultDBData;
-			await channelDict.set(message.guild.id, dbData);
+	const parsed: ParsedArguments = { command: null, arguments: null };
+	if (message.content.startsWith(queueGuild.prefix)) {
+		// Parse the message
+		// Note: prefix can contain spaces. Command can not contains spaces. parsedArgs can contain spaces.
+		parsed.command = message.content.substring(queueGuild.prefix.length).split(" ")[0];
+		parsed.arguments = message.content.substring(queueGuild.prefix.length + parsed.command.length + 1).trim();
+		const hasPermission = await checkPermission(message);
+		// Restricted commands
+		if (hasPermission) {
+			switch (parsed.command) {
+				// Start
+				case config.startCmd:
+					start(queueGuild, parsed, message);
+					break;
+				// Display
+				case config.displayCmd:
+					displayQueue(queueGuild, parsed, message);
+					break;
+				// Set Queue
+				case config.queueCmd:
+					setQueueChannel(queueGuild, parsed, message);
+					break;
+				// Pop next user
+				case config.nextCmd:
+					popTextQueue(queueGuild, parsed, message);
+					break;
+				// Pop next user
+				case config.kickCmd:
+					kickMember(queueGuild, parsed, message);
+					break;
+				// Clear queue
+				case config.clearCmd:
+					clearQueue(queueGuild, parsed, message);
+					break;
+				// Shuffle queue
+				case config.shuffleCmd:
+					shuffleQueue(queueGuild, parsed, message);
+					break;
+
+				// Grace period
+				case config.gracePeriodCmd:
+					setServerSettings(queueGuild, parsed, message,
+						+parsed.arguments >= 0 && +parsed.arguments <= 300,
+						'Grace period must be between `0` and `300` seconds.'
+					);
+					break;
+				// Prefix
+				case config.prefixCmd:
+					setServerSettings(queueGuild, parsed, message,
+						true,
+					);
+					break;
+				// config.color
+				case config.colorCmd:
+					setServerSettings(queueGuild, parsed, message,
+						/^#?[0-9A-F]{6}$/i.test(parsed.arguments),
+						'Use HEX config.color:', 
+						{
+							"title": "Hex config.color picker",
+							"url": "https://htmlconfig.colorcodes.com/config.color-picker/",
+							"color": queueGuild.color
+						}
+					);
+					break;
+			}
+		} else if ([config.startCmd, config.displayCmd, config.queueCmd, config.nextCmd, config.kickCmd, config.clearCmd,
+			config.gracePeriodCmd, config.prefixCmd, config.colorCmd].includes(parsed.command)) {
+			message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`.`
+				+ `You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`);
+        }
+		// Commands open to everyone
+		switch (parsed.command) {
+			// Help
+			case config.helpCmd:
+				help(queueGuild, parsed, message);
+				break;
+			// Join Text Queue
+			case config.joinCmd:
+				joinTextChannel(queueGuild, parsed, message, hasPermission);
+				break;
 		}
-		const parsed: ParsedArguments = { prefix: dbData[1], command: null, arguments: null};
+	} else if (message.content === config.prefix + config.helpCmd) {
+		// Default help command
+		help(queueGuild, parsed, message);
+	}
+});
 
-		if (message.content.startsWith(parsed.prefix)) {
-			// Parse the message
-			// Note: Prefix can contain spaces. Command can not contains spaces. parsedArgs can contain spaces.
-			parsed.command = message.content.substring(parsed.prefix.length).split(" ")[0];
-			parsed.arguments = message.content.substring(parsed.prefix.length + parsed.command.length + 1).trim();
-			const hasPermission = await checkPermission(message);
-			// Restricted commands
-			if (hasPermission) {
-				switch (parsed.command) {
-					// Start
-					case startCmd:
-						start(dbData, parsed, message);
-						break;
-					// Display
-					case displayCmd:
-						displayQueue(dbData, parsed, message);
-						break;
-					// Set Queue
-					case queueCmd:
-						await setQueueChannel(dbData, parsed, message);
-						break;
-					// Pop next user
-					case nextCmd:
-						popTextQueue(dbData, parsed, message);
-						break;
-					// Pop next user
-					case kickCmd:
-						kickMember(dbData, parsed, message);
-						break;
-					// Clear queue
-					case clearCmd:
-						clearQueue(dbData, parsed, message);
-						break;
-					// Shuffle queue
-					case shuffleCmd:
-						shuffleQueue(dbData, parsed, message);
-						break;
-
-					// Grace period
-					case gracePeriodCmd:
-						await setServerSettings(dbData, parsed, message,
-							true,
-							(parsed.arguments as unknown as number) >= 0 && (parsed.arguments as unknown as number) <= 300,
-							'Grace period must be between `0` and `300` seconds.'
-						);
-						break;
-					// Command Prefix
-					case commandPrefixCmd:
-						await setServerSettings(dbData, parsed, message,
-							false,
-							true,
-							''
-						);
-						break;
-					// Color
-					case colorCmd:
-						await setServerSettings(dbData, parsed, message,
-							true,
-							/^#?[0-9A-F]{6}$/i.test(parsed.arguments),
-							'Use HEX color:',
-							{ "title": "Hex color picker", "url": "https://htmlcolorcodes.com/color-picker/", "color": dbData[2]}
-						);
-						break;
+async function resumeQueueAfterOffline() {
+	const storedQueueGuildsQuery = knex<QueueGuild>('queue_guilds');
+	const storedQueueGuilds = await storedQueueGuildsQuery;
+	for (const storedQueueGuild of storedQueueGuilds) {
+		const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
+		if (guild) {
+			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
+			const storedQueueChannels = await storedQueueChannelsQuery;
+			for (const storedQueueChannel of storedQueueChannels) {
+				const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
+				if (queueChannel) {
+					if (queueChannel.type !== 'voice') continue;
+					// Fetch stored and live members
+					const storedQueueMembersQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id);
+					const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
+					const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
+					// Update member lists
+					for (const storedQueueMemberId of storedQueueMemberIds) {
+						if (!queueMemberIds.includes(storedQueueMemberId)) {
+							await storedQueueMembersQuery.where('queue_member_id', storedQueueMemberId).del();
+						}
+					}
+					for (const queueMemberId of queueMemberIds) {
+						if (!storedQueueMemberIds.includes(queueMemberId)) {
+							await storedQueueMembersQuery.insert({
+								queue_channel_id: queueChannel.id,
+								queue_member_id: queueMemberId
+							});
+						}
+					}
+					// Update displays
+					const storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels').where('queue_channel_id', queueChannel.id)
+					const storedDisplayChannels = await storedDisplayChannelsQuery;
+					for (const storedDisplayChannel of storedDisplayChannels) {
+						const displayChannel = guild.channels.cache.get(storedDisplayChannel.display_channel_id);
+						if (displayChannel) {
+							await updateDisplayQueue(storedQueueGuild, [queueChannel]);
+						} else {
+							// Cleanup deleted display channels
+							await removeStoredDisplays(queueChannel.id, displayChannel.id);
+						}
+					}
+				} else {
+					// Cleanup deleted queue channels
+					await removeStoredQueueChannel(guild, queueChannel.id);
 				}
 			}
-			else if ([startCmd, displayCmd, queueCmd, nextCmd, kickCmd, clearCmd, gracePeriodCmd, commandPrefixCmd, colorCmd].includes(parsed.command)) {
-				message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`. You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`);
-            }
-			// Commands open to everyone
-			switch (parsed.command) {
-				// Help
-				case helpCmd:
-					help(dbData, parsed, message);
-					break;
-				// Join Text Queue
-				case joinCmd:
-					await joinTextChannel(dbData, parsed, message, hasPermission);
-					break;
-			}
+		} else {
+			// Cleanup deleted guilds
+			await storedQueueGuildsQuery.where('guild_id', guild.id).del();
+			await removeStoredQueueChannel(guild);
 		}
-		// Default help command
-		else if (message.content === prefix + helpCmd) {
-			help(dbData, parsed, message);
-		}
-	});
-});
+	}
+}
 
-client.login(token);
-client.on('error', error => {
-	console.error('The WebSocket encountered an error:', error);
-});
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once('ready', async () => {
-	for (const guildIdChannelPair of await channelDict.entries()) {
-		const guild = client.guilds.cache.get(guildIdChannelPair[0]);
-		// Cleanup deleted Guilds
-		if (!guild) {
-			await channelDict.delete(guildIdChannelPair[0]);
-		}
-		else {
-			// Create locks
-			await setupLocks(guild.id);
-			// LOCK
-			const guildMemberRelease = await guildMemberLocks.get(guild.id).acquire();
-			const channelRelease = await channelLocks.get(guild.id).acquire();
-			try {
-				const dbData = guildIdChannelPair[1];
-				const otherData = dbData.slice(0, 10);
-				const channels = await fetchStoredChannels(dbData, guild);
-				// Set unset values to default
-				for (let i = 0; i < otherData.length; i++) {
-					otherData[i] = otherData[i] || defaultDBData[i];
-				}
-				// Initialize member queue
-				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
-				if (channels) for (const channel of channels) {
-					if (channel) {
-						// Add people already in a voice channel queue
-						guildMemberDict[guild.id][channel.id] = (channel.type !== 'voice') ? [] :
-							channel.members.filter(member => !member.user.bot).map(member => {
-								return { id: member.id, msg: null }
-							});
-					}
-					else {
-						// Cleanup deleted Channels
-						channels.splice(channels.indexOf(channel), 1);
-					}
-				}
-				await channelDict.set(guild.id, otherData.concat(channels.map(ch => ch.id)));
-			}
-			finally {
-				// UNLOCK
-				guildMemberRelease();
-				channelRelease();
-			}
-		}
-	}
-	if (client && client.user) client.user.setPresence({ activity: { name: `${prefix}${helpCmd} for help` }, status: 'online' });
+	// Create a table
+	await knex.schema.hasTable('queue_guilds').then(exists => {
+		if (!exists) knex.schema.createTable('queue_guilds', table => {
+			table.text('guild_id').primary();
+			table.text('grace_period');
+			table.text('prefix');
+			table.text('color');
+		}).catch(e => console.error(e));
+	});
+	await knex.schema.hasTable('queue_channels').then(exists => {
+		if (!exists) knex.schema.createTable('queue_channels', table => {
+			table.text('queue_channel_id').primary();
+			table.text('guild_id');
+		}).catch(e => console.error(e));
+	});
+	await knex.schema.hasTable('queue_members').then(exists => {
+		if (!exists) knex.schema.createTable('queue_members', table => {
+			table.increments('id').primary();
+			table.text('queue_channel_id');
+			table.text('queue_member_id');
+			table.text('personal_message');
+			table.timestamp('created_at').defaultTo(knex.fn.now());
+		}).catch(e => console.error(e));
+	});
+	await knex.schema.hasTable('display_channels').then(exists => {
+		if (!exists) knex.schema.createTable('display_channels', table => {
+			table.increments('id').primary();
+			table.text('queue_channel_id');
+			table.text('display_channel_id');
+			table.specificType('embed_ids', 'TEXT []');
+		}).catch(e => console.error(e));
+	});
+
+	await resumeQueueAfterOffline();
 	console.log('Ready!');
 });
+
+
 client.on('shardResume', async () => {
-	for (const guildId of Object.keys(guildMemberDict)) {
-		await guildMemberLocks.get(guildId).runExclusive(async () => {
-			const availableVoiceChannels = Object.keys(guildMemberDict[guildId]).map(id => client.channels.cache.get(id) as VoiceChannel);
-			for (const channel of availableVoiceChannels) {
-				// Remove users who left during disconnect
-				if (guildMemberDict[guildId][channel]) {
-					for (let i = 0; i < guildMemberDict[guildId][channel].length; i++) {
-						const memberId = guildMemberDict[guildId][channel][i];
-						if (!channel.members.has(memberId)) {
-							guildMemberDict[guildId][channel].splice(i, 1); i--;
-						}
-					}
-					if (channel.members) for (const member of channel.members.array()) {
-						// Add users who joined during disconnect
-						if (!member.user.bot && !guildMemberDict[guildId][channel].includes(member.id)) {
-							guildMemberDict[guildId][channel].push({id: member.id, msg: null});
-						}
-					}
-				}
-			}
-		});
-	}
-	if (client && client.user) client.user.setPresence({ activity: { name: `${prefix}${helpCmd} for help` }, status: 'online' });
+	await resumeQueueAfterOffline();
 	console.log('Reconnected!');
 });
 
-
 // Monitor for users joining voice channels
+const blockNextCache = new Set();
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 	const oldVoiceChannel = oldVoiceState.channel;
 	const newVoiceChannel = newVoiceState.channel;
@@ -1058,45 +1154,55 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 		const member = newVoiceState.member;
 		const guild = newVoiceState.guild;
 
-		if (guildMemberLocks.get(guild.id)) {
-			await guildMemberLocks.get(guild.id).runExclusive(async () => {
+		const queueGuild = await knex<QueueGuild>('queue_guilds').where('guild_id', guild.id).first();
+		const storedOldQueueChannel = oldVoiceChannel ?
+			await knex<QueueChannel>('queue_channels').where('queue_channel_id', oldVoiceChannel.id).first()
+			: undefined;
+		const storedNewQueueChannel = newVoiceChannel ?
+			await knex<QueueChannel>('queue_channels').where('queue_channel_id', newVoiceChannel.id).first()
+			: undefined;
 
-				// Initialize empty queue if necessary
-				guildMemberDict[guild.id] = guildMemberDict[guild.id] || [];
+		if (storedOldQueueChannel && storedNewQueueChannel && !member.user.bot) {
+			return;
+        } else if (storedNewQueueChannel && !member.user.bot) {
+			// Joined queue channel
+			// Check for existing, don't duplicate member entries
+			const recentMember = recentMembersCache.get(member.id);
+			const withinGracePeriod = recentMember ? (Date.now() - recentMember.time) < (+queueGuild.grace_period * 1000)
+				: false;
 
-				const availableVoiceChannels = Object.keys(guildMemberDict[guild.id]).map(id => client.channels.cache.get(id));
+			if (withinGracePeriod) {
+				await knex<QueueMember>('queue_members').insert(recentMember.member);
+			} else {
+				await addStoredQueueMembers(newVoiceChannel.id, [member.id]);
+			}
 
-				if (availableVoiceChannels.includes(newVoiceChannel) || availableVoiceChannels.includes(oldVoiceChannel)) {
-					// Bot
-					if (member.user.bot) {
-						if (newVoiceChannel && !availableVoiceChannels.includes(newVoiceChannel)) { // Prevent pulling people into another queue
-							if (guildMemberDict[guild.id][oldVoiceChannel.id].length > 0) {
-								// If the use queue is not empty, pull in the next in user queue
-								guild.members.cache.get(guildMemberDict[guild.id][oldVoiceChannel.id][0].id).voice.setChannel(newVoiceChannel)
-									.catch(() => null);
-							}
-							// Return bot to queue channel
-							newVoiceState.setChannel(oldVoiceChannel)
-								.catch(() => null);
-						}
-					}
-					// Person
-					else {
-						let immediateUpdate = false;
-						if (availableVoiceChannels.includes(newVoiceChannel) && !guildMemberDict[guild.id][newVoiceChannel.id].some(
-							(queueMember: { id: string; msg: string }) => queueMember.id === member.id)) {
-							// User joined channel, add to queue
-							guildMemberDict[guild.id][newVoiceChannel.id].push({ id: member.id, msg: null });
-							updateDisplayQueue(guild, [newVoiceChannel]);
-							immediateUpdate = true;
-						}
-						if (availableVoiceChannels.includes(oldVoiceChannel)) {
-							// User left channel, start removal process
-							checkAfterLeaving(member, guild, oldVoiceChannel, immediateUpdate);
-						}
-					}
+			await updateDisplayQueue(queueGuild, [newVoiceChannel]);
+		} else if (storedOldQueueChannel) {
+			// Left queue channel
+			if (member.user.bot) {
+				// Pop the nextQueueMember off the stored queue
+				const nextStoredQueueMember = await knex<QueueMember>('queue_members')
+					.where('queue_channel_id', oldVoiceChannel.id).orderBy('created_at').first();
+				if (!nextStoredQueueMember) return;
+				
+				const nextQueueMember = await guild.members.fetch(nextStoredQueueMember.queue_member_id);
+				await updateDisplayQueue(queueGuild, [oldVoiceChannel, newVoiceChannel]);
+				// Block recentMember caching when the bot is used to pull someone
+				blockNextCache.add(nextQueueMember.id);
+				// Swap bot with nextQueueMember
+				await nextQueueMember?.voice.setChannel(newVoiceChannel).catch(() => null);
+				await member.voice.setChannel(oldVoiceChannel).catch(() => null);
+			} else {
+				if (blockNextCache.delete(member.id)) {
+					// Getting pulled using bot, do not cache
+					await removeStoredQueueMembers(oldVoiceChannel.id, [member.id]);
+				} else {
+					// Otherwise, cache it
+					await markLeavingMember(queueGuild, member, oldVoiceChannel);
 				}
-			});
+				await updateDisplayQueue(queueGuild, [oldVoiceChannel]);
+			}
 		}
 	}
 });
