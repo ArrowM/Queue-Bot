@@ -1052,7 +1052,7 @@ async function resumeQueueAfterOffline() {
 	const storedQueueGuildsQuery = knex<QueueGuild>('queue_guilds');
 	const storedQueueGuilds = await storedQueueGuildsQuery;
 	for (const storedQueueGuild of storedQueueGuilds) {
-		const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
+		const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null)
 		if (guild) {
 			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
 			const storedQueueChannels = await storedQueueChannelsQuery;
