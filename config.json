@@ -3,7 +3,8 @@
 
   "color": "#478E81",
   "databaseType": "postgresql",
-  "databaseUri": "localhost:5432/mydatabase",
+  "databaseHost": "localhost",
+  "databaseName": "queue",
   "databaseUsername": "postgres",
   "databasePassword": " ",
   "gracePeriod": "4",
@@ -23,4 +24,3 @@
   "shuffleCmd": "shuffle",
   "startCmd": "s"
 }
-
