@@ -4,6 +4,7 @@
 !/package.json
 !/tsconfig.json
 !/db-transfer-script
+!/update-node.sh
 
 # Bot code
 !/bot.js
