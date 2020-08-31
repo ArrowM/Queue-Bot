@@ -13,16 +13,5 @@
 !/README.md
 !/docs
 
-# keyv
-!/node_modules
-/node_modules/*
-!/node_modules/keyv
-
-# @keyv
-!/node_modules/@keyv
-/node_modules/@key
-
 # @types
 !/node_modules/@types
-/node_modules/@types/*
-!/node_modules/@types/keyv
