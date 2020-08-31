@@ -32,42 +32,45 @@ const knex = knex_1.default({
         database: 'queue'
     }
 });
-knex.schema.hasTable('queue_guilds').then(exists => {
-    if (!exists)
-        knex.schema.createTable('queue_guilds', table => {
-            table.text('guild_id').primary();
-            table.text('grace_period');
-            table.text('prefix');
-            table.text('color');
-        }).catch(e => console.error(e));
-});
-knex.schema.hasTable('queue_channels').then(exists => {
-    if (!exists)
-        knex.schema.createTable('queue_channels', table => {
-            table.text('queue_channel_id').primary();
-            table.text('guild_id');
-        }).catch(e => console.error(e));
-});
-knex.schema.hasTable('queue_members').then(exists => {
-    if (!exists)
-        knex.schema.createTable('queue_members', table => {
-            table.increments('id').primary();
-            table.text('queue_channel_id');
-            table.text('queue_member_id');
-            table.text('personal_message');
-            table.timestamp('created_at').defaultTo(knex.fn.now());
-        }).catch(e => console.error(e));
-});
-knex.schema.hasTable('display_channels').then(exists => {
-    if (!exists)
-        knex.schema.createTable('display_channels', table => {
-            table.increments('id').primary();
-            table.text('queue_channel_id');
-            table.text('display_channel_id');
-            table.specificType('embed_ids', 'TEXT []');
-        }).catch(e => console.error(e));
-});
+function setupTables() {
+    knex.schema.hasTable('queue_guilds').then(exists => {
+        if (!exists)
+            knex.schema.createTable('queue_guilds', table => {
+                table.text('guild_id').primary();
+                table.text('grace_period');
+                table.text('prefix');
+                table.text('color');
+            }).catch(e => console.error(e));
+    });
+    knex.schema.hasTable('queue_channels').then(exists => {
+        if (!exists)
+            knex.schema.createTable('queue_channels', table => {
+                table.text('queue_channel_id').primary();
+                table.text('guild_id');
+            }).catch(e => console.error(e));
+    });
+    knex.schema.hasTable('queue_members').then(exists => {
+        if (!exists)
+            knex.schema.createTable('queue_members', table => {
+                table.increments('id').primary();
+                table.text('queue_channel_id');
+                table.text('queue_member_id');
+                table.text('personal_message');
+                table.timestamp('created_at').defaultTo(knex.fn.now());
+            }).catch(e => console.error(e));
+    });
+    knex.schema.hasTable('display_channels').then(exists => {
+        if (!exists)
+            knex.schema.createTable('display_channels', table => {
+                table.increments('id').primary();
+                table.text('queue_channel_id');
+                table.text('display_channel_id');
+                table.specificType('embed_ids', 'TEXT []');
+            }).catch(e => console.error(e));
+    });
+}
 keyv('keyv').then((keyvEntries) => __awaiter(void 0, void 0, void 0, function* () {
+    setupTables();
     for (const keyvEntry of keyvEntries) {
         const guildId = keyvEntry.key.replace('keyv:', '');
         const pair = JSON.parse(keyvEntry.value);
