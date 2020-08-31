@@ -20,7 +20,7 @@ const keyv = knex_1.default({
         host: config_json_1.default.databaseHost,
         user: config_json_1.default.databaseUsername,
         password: config_json_1.default.databasePassword,
-        database: 'mydatabase'
+        database: config_json_1.default.databaseName
     }
 });
 const knex = knex_1.default({
