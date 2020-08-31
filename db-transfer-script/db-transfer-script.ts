@@ -9,8 +9,7 @@ const keyv = Knex({
 		host: config.databaseHost,
 		user: config.databaseUsername,
 		password: config.databasePassword,
-		database: 'mydatabase'
-		//database: config.databaseName
+		database: config.databaseName
 	}
 });
 
