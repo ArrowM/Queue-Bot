@@ -216,15 +216,15 @@ async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel): 
  * @param guild
  * @param channelIdToRemove
  */
-async function removeStoredQueueChannel(guild: Guild, channelIdToRemove?: string): Promise<void> {
+async function removeStoredQueueChannel(guildId: string, channelIdToRemove?: string): Promise<void> {
 
-	await getLock(queueChannelsLocks, guild.id).runExclusive(async () => {
+	await getLock(queueChannelsLocks, guildId).runExclusive(async () => {
 		if (channelIdToRemove) {
 				await knex<QueueChannel>('queue_channels').where('queue_channel_id', channelIdToRemove).first().del();
 				await removeStoredQueueMembers(channelIdToRemove);
 				await removeStoredDisplays(channelIdToRemove);
 		} else {
-			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
+			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guildId);
 			const storedQueueChannels = await storedQueueChannelsQuery;
 			for (const storedQueueChannel of storedQueueChannels) {
 				await removeStoredQueueMembers(storedQueueChannel.queue_channel_id);
@@ -258,7 +258,7 @@ async function fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | T
 				queueChannels.push(queueChannel);
 			} else {
 				// Channel has been deleted, update database
-				await removeStoredQueueChannel(guild, queueChannelId);
+				await removeStoredQueueChannel(guild.id, queueChannelId);
 			}
 		}
 		return queueChannels;
@@ -578,7 +578,7 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 
 		if (storedChannels.some(storedChannel => storedChannel.id === channel.id)) {
 			// Channel is already stored, remove it
-			await removeStoredQueueChannel(guild, channel.id);
+			await removeStoredQueueChannel(guild.id, channel.id);
 			send(message, `Deleted queue for \`${channel.name}\`.`);
 		} else {
 			// It's not in the list, add it
@@ -1052,7 +1052,7 @@ async function resumeQueueAfterOffline() {
 	const storedQueueGuildsQuery = knex<QueueGuild>('queue_guilds');
 	const storedQueueGuilds = await storedQueueGuildsQuery;
 	for (const storedQueueGuild of storedQueueGuilds) {
-		const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null)
+		const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null);
 		if (guild) {
 			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
 			const storedQueueChannels = await storedQueueChannelsQuery;
@@ -1092,13 +1092,13 @@ async function resumeQueueAfterOffline() {
 					}
 				} else {
 					// Cleanup deleted queue channels
-					await removeStoredQueueChannel(guild, queueChannel.id);
+					await removeStoredQueueChannel(guild.id, queueChannel.id);
 				}
 			}
 		} else {
 			// Cleanup deleted guilds
 			await storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
-			await removeStoredQueueChannel(guild);
+			await removeStoredQueueChannel(storedQueueGuild.guild_id);
 		}
 	}
 }

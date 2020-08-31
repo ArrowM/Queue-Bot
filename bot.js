@@ -150,16 +150,16 @@ function addStoredQueueChannel(channelToAdd) {
         }
     });
 }
-function removeStoredQueueChannel(guild, channelIdToRemove) {
+function removeStoredQueueChannel(guildId, channelIdToRemove) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield getLock(queueChannelsLocks, guild.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
+        yield getLock(queueChannelsLocks, guildId).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
             if (channelIdToRemove) {
                 yield knex('queue_channels').where('queue_channel_id', channelIdToRemove).first().del();
                 yield removeStoredQueueMembers(channelIdToRemove);
                 yield removeStoredDisplays(channelIdToRemove);
             }
             else {
-                const storedQueueChannelsQuery = knex('queue_channels').where('guild_id', guild.id);
+                const storedQueueChannelsQuery = knex('queue_channels').where('guild_id', guildId);
                 const storedQueueChannels = yield storedQueueChannelsQuery;
                 for (const storedQueueChannel of storedQueueChannels) {
                     yield removeStoredQueueMembers(storedQueueChannel.queue_channel_id);
@@ -185,7 +185,7 @@ function fetchStoredQueueChannels(guild) {
                     queueChannels.push(queueChannel);
                 }
                 else {
-                    yield removeStoredQueueChannel(guild, queueChannelId);
+                    yield removeStoredQueueChannel(guild.id, queueChannelId);
                 }
             }
             return queueChannels;
@@ -419,7 +419,7 @@ function setQueueChannel(queueGuild, parsed, message) {
             if (!channel)
                 return;
             if (storedChannels.some(storedChannel => storedChannel.id === channel.id)) {
-                yield removeStoredQueueChannel(guild, channel.id);
+                yield removeStoredQueueChannel(guild.id, channel.id);
                 send(message, `Deleted queue for \`${channel.name}\`.`);
             }
             else {
@@ -816,13 +816,13 @@ function resumeQueueAfterOffline() {
                         }
                     }
                     else {
-                        yield removeStoredQueueChannel(guild, queueChannel.id);
+                        yield removeStoredQueueChannel(guild.id, queueChannel.id);
                     }
                 }
             }
             else {
                 yield storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
-                yield removeStoredQueueChannel(guild);
+                yield removeStoredQueueChannel(storedQueueGuild.guild_id);
             }
         }
     });
