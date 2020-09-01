@@ -1117,7 +1117,7 @@ async function resumeQueueAfterOffline() {
 					}
 				} else {
 					// Cleanup deleted queue channels
-					await removeStoredQueueChannel(guild.id, queueChannel.id);
+					await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
 				}
 			}
 		} else {

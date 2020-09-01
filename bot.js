@@ -843,7 +843,7 @@ function resumeQueueAfterOffline() {
                         }
                     }
                     else {
-                        yield removeStoredQueueChannel(guild.id, queueChannel.id);
+                        yield removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
                     }
                 }
             }
