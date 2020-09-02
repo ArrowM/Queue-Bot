@@ -8,7 +8,7 @@
   "databaseUsername": "postgres",
   "databasePassword": " ",
   "gracePeriod": "4",
-  "permissionsRegexp": "\\bmod\\b|\\bmods\\b|\\badmin\\b|\\badmins\\b",
+  "permissionsRegexp": "\\queue mod\\b|\\queue mods\\b|\\bmod\\b|\\bmods\\b|\\badmin\\b|\\badmins\\b",
   "prefix": "!",
 
   "clearCmd": "clear",
