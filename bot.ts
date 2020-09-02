@@ -629,13 +629,15 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
 	authorHasPermissionToQueueOthers: boolean): Promise<void> {
 
-	// remove mentions
-	parsed.arguments = parsed.arguments.replace(/<(@!?|#)\w+>/, '').trim();
 	// Get queue channel
 	const queueChannel = await fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, 'text');
 	if (!queueChannel) return;
 	// Parse message and members
-	const personalMessage = parsed.arguments.replace(queueChannel.name, '').trim().substring(0, 128);
+	const personalMessage = parsed.arguments
+		.replace(/(<(@!?|#)\w+>)/gi, '')
+		.replace(queueChannel.name, '')
+		.substring(0, 128)
+		.trim();
 	let memberIdsToToggle = [message.member.id];
 	if (authorHasPermissionToQueueOthers && message.mentions.members.size > 0) {
 		memberIdsToToggle = message.mentions.members.array().map(member => member.id);
