@@ -624,7 +624,7 @@ function help(queueGuild, parsed, message) {
                     "fields": [
                         {
                             "name": "Access",
-                            "value": "Available to owners or users with `mod` or `mods` in their server roles."
+                            "value": "Available to owners or users with `queue mod`, `mod` or `admin` in their server roles."
                         },
                         {
                             "name": "Modify & View Queues",
@@ -787,7 +787,7 @@ client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* ()
         else if ([config_json_1.default.startCmd, config_json_1.default.displayCmd, config_json_1.default.queueCmd, config_json_1.default.nextCmd, config_json_1.default.kickCmd, config_json_1.default.clearCmd,
             config_json_1.default.gracePeriodCmd, config_json_1.default.prefixCmd, config_json_1.default.colorCmd].includes(parsed.command)) {
             message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`.`
-                + `You must be assigned a \`mod\` or \`admin\` role on the server to use bot commands.`)
+                + `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role on the server to use bot commands.`)
                 .catch(e => console.error(e));
         }
         switch (parsed.command) {

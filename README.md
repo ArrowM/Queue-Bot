@@ -62,7 +62,7 @@ Available to everyone.
 `!h` displays a list of all commands.  
 
 ### Restricted Commands  
-Available to owners or users with mod or mods in their server roles.  
+Available to owners or users with `queue mod`, `mod` or `admin` in their server roles.  
 #### Modify & List Queues  
 `!q {channel name}` creates a new queue or deletes an existing queue.  
 `!q` shows the existing queues.  
