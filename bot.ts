@@ -629,8 +629,8 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
 	authorHasPermissionToQueueOthers: boolean): Promise<void> {
 
-	// remove user mentions
-	parsed.arguments = parsed.arguments.replace(/<@!?\d+>/gi, '').trim();
+	// remove mentions
+	parsed.arguments = parsed.arguments.replace(/<(@!?|#)\d+>/gi, '').trim();
 	// Get queue channel
 	const queueChannel = await fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, 'text');
 	if (!queueChannel) return;
