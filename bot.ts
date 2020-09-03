@@ -150,11 +150,11 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 		if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
 		for (const storedDisplayChannel of storedDisplayChannels) {
-			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
+			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 			if (!displayChannel) continue;
 			// Attempt to delete each of display embeds from discord
 			for (const embedId of storedDisplayChannel.embed_ids) {
-				const embed = await displayChannel.messages.fetch(embedId).catch(() => null);
+				const embed: Message = await displayChannel.messages.fetch(embedId).catch(() => null);
 				embed?.delete();
 			}
 		}
@@ -384,14 +384,14 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 		const embedList = await generateEmbed(queueGuild, queueChannel);
 		for (const storedDisplayChannel of storedDisplayChannels) {
 			// For each embed list of the queue
-			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
+			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 
 			if (displayChannel) {
 				// Retrieved display embeds
 				const storedEmbeds: Message[] = [];
 				let removeEmbeds = false;
 				for (const id of storedDisplayChannel.embed_ids) {
-					const storedEmbed = await displayChannel.messages.fetch(id).catch(() => null);
+					const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
 					if (storedEmbed) {
 						storedEmbeds.push(storedEmbed);
 					} else {
@@ -1217,13 +1217,15 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 					.where('queue_channel_id', oldVoiceChannel.id).orderBy('created_at').first();
 				if (!nextStoredQueueMember) return;
 				
-				const nextQueueMember = await guild.members.fetch(nextStoredQueueMember.queue_member_id);
-				await updateDisplayQueue(queueGuild, [oldVoiceChannel, newVoiceChannel]);
+				const nextQueueMember: GuildMember = await guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
+				await updateDisplayQueue(queueGuild, [oldVoiceChannel]);
 				// Block recentMember caching when the bot is used to pull someone
-				blockNextCache.add(nextQueueMember.id);
-				// Swap bot with nextQueueMember
-				await nextQueueMember?.voice.setChannel(newVoiceChannel).catch(() => null);
-				await member.voice.setChannel(oldVoiceChannel).catch(() => null);
+				if (nextQueueMember) {
+					blockNextCache.add(nextQueueMember.id);
+					// Swap bot with nextQueueMember
+					await nextQueueMember?.voice.setChannel(newVoiceChannel).catch(() => null);
+					await member.voice.setChannel(oldVoiceChannel).catch(() => null);
+				}
 			} else {
 				if (blockNextCache.delete(member.id)) {
 					// Getting pulled using bot, do not cache

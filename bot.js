@@ -107,7 +107,7 @@ function removeStoredDisplays(queueChannelId, displayChannelIdToRemove) {
             if (!storedDisplayChannels || storedDisplayChannels.length === 0)
                 return;
             for (const storedDisplayChannel of storedDisplayChannels) {
-                const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id);
+                const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
                 if (!displayChannel)
                     continue;
                 for (const embedId of storedDisplayChannel.embed_ids) {
@@ -287,7 +287,7 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                 return;
             const embedList = yield generateEmbed(queueGuild, queueChannel);
             for (const storedDisplayChannel of storedDisplayChannels) {
-                const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id);
+                const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
                 if (displayChannel) {
                     const storedEmbeds = [];
                     let removeEmbeds = false;
@@ -935,11 +935,13 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
                     .where('queue_channel_id', oldVoiceChannel.id).orderBy('created_at').first();
                 if (!nextStoredQueueMember)
                     return;
-                const nextQueueMember = yield guild.members.fetch(nextStoredQueueMember.queue_member_id);
-                yield updateDisplayQueue(queueGuild, [oldVoiceChannel, newVoiceChannel]);
-                blockNextCache.add(nextQueueMember.id);
-                yield (nextQueueMember === null || nextQueueMember === void 0 ? void 0 : nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null));
-                yield member.voice.setChannel(oldVoiceChannel).catch(() => null);
+                const nextQueueMember = yield guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
+                yield updateDisplayQueue(queueGuild, [oldVoiceChannel]);
+                if (nextQueueMember) {
+                    blockNextCache.add(nextQueueMember.id);
+                    yield (nextQueueMember === null || nextQueueMember === void 0 ? void 0 : nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null));
+                    yield member.voice.setChannel(oldVoiceChannel).catch(() => null);
+                }
             }
             else {
                 if (blockNextCache.delete(member.id)) {
