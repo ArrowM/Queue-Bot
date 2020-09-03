@@ -414,7 +414,7 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 					// Create a new embed list
 					await addStoredDisplays(queueChannel, displayChannel, embedList);
 				}
-			} else {
+			} else if (displayChannel == undefined) { // Leave as ==
 				// Handled deleted display channels
 				await removeStoredDisplays(queueChannel.id, displayChannel.id);
             }
@@ -1122,7 +1122,7 @@ async function resumeQueueAfterOffline() {
 					await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
 				}
 			}
-		} else {
+		} else if (guild == undefined) { // Leave as ==
 			// Cleanup deleted guilds
 			await storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
 			await removeStoredQueueChannel(storedQueueGuild.guild_id);

@@ -316,7 +316,7 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                         yield addStoredDisplays(queueChannel, displayChannel, embedList);
                     }
                 }
-                else {
+                else if (displayChannel == undefined) {
                     yield removeStoredDisplays(queueChannel.id, displayChannel.id);
                 }
             }
@@ -850,7 +850,7 @@ function resumeQueueAfterOffline() {
                     }
                 }
             }
-            else {
+            else if (guild == undefined) {
                 yield storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
                 yield removeStoredQueueChannel(storedQueueGuild.guild_id);
             }
