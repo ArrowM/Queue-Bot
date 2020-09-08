@@ -85,6 +85,8 @@ Available to owners or users with `queue mod`, `mod` or `admin` in their server 
 `!prefix {new prefix}` changes the prefix for Queue Bot commands.  
 #### Change the Color  
 `!c {new color}` changes the color of bot messages.  
+#### Change the Display Method  
+`!awlays` toggles whether a change to the queue will update the old display message (default), or create a new one.  
 
 
 ![Example of `!s`](docs/example.gif)  

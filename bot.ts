@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, VoiceConnection, DiscordAPIError, MessageEmbed } from 'discord.js';
+import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, DiscordAPIError, MessageEmbed } from 'discord.js';
 import { Mutex, MutexInterface } from 'async-mutex';
 import Knex from 'knex';
 import config from "./config.json";
@@ -27,6 +27,7 @@ const ServerSettings = {
 	[config.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
 	[config.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },
 	[config.colorCmd]: { dbVariable: 'color', str: "color" },
+	[config.toggleAlwaysMessageOnUpdateCmd]: {dbVariable: 'msg_on_update', str: "always create a new display on update"}
 };
 Object.freeze(ServerSettings);
 
@@ -46,6 +47,7 @@ interface QueueGuild {
 	grace_period: string;
 	prefix: string;
 	color: string;
+	msg_on_update: boolean;
 }
 
 interface QueueChannel {
@@ -386,59 +388,48 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 			// For each embed list of the queue
 			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 
-			if (displayChannel) {
-				// Retrieved display embeds
-				const storedEmbeds: Message[] = [];
-				let removeEmbeds = false;
-				for (const id of storedDisplayChannel.embed_ids) {
-					const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
-					if (storedEmbed) {
-						storedEmbeds.push(storedEmbed);
-					} else {
-						removeEmbeds = true;
-                    }
-				}
-				if (removeEmbeds) {
-					await removeStoredDisplays(queueChannel.id, displayChannel.id);
-					continue;
-                } else if (storedEmbeds.length === embedList.length) {
-					// Replace the old embeds via edit
-					for (let i = 0; i < embedList.length; i++) {
-						await storedEmbeds[i]
-							.edit({ embed: embedList[i] })
-							.catch(() => null);
-					}
-				} else { 
-					// Remove the old embed list
-					await removeStoredDisplays(queueChannel.id, displayChannel.id);
-					// Create a new embed list
-					await addStoredDisplays(queueChannel, displayChannel, embedList);
-				}
-			} else if (displayChannel == undefined) { // Leave as ==
-				// Handled deleted display channels
+			if (queueGuild.msg_on_update) {
+				// Remove old display
 				await removeStoredDisplays(queueChannel.id, displayChannel.id);
+				// Create new display
+				await addStoredDisplays(queueChannel, displayChannel, embedList);
+
+			} else {
+				if (displayChannel) {
+					// Retrieved display embeds
+					const storedEmbeds: Message[] = [];
+					let removeEmbeds = false;
+					for (const id of storedDisplayChannel.embed_ids) {
+						const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
+						if (storedEmbed) {
+							storedEmbeds.push(storedEmbed);
+						} else {
+							removeEmbeds = true;
+						}
+					}
+					if (removeEmbeds) {
+						await removeStoredDisplays(queueChannel.id, displayChannel.id);
+						continue;
+					} else if (storedEmbeds.length === embedList.length) {
+						// Replace the old embeds via edit
+						for (let i = 0; i < embedList.length; i++) {
+							await storedEmbeds[i]
+								.edit({ embed: embedList[i] })
+								.catch(() => null);
+						}
+					} else {
+						// Remove the old embed list
+						await removeStoredDisplays(queueChannel.id, displayChannel.id);
+						// Create a new embed list
+						await addStoredDisplays(queueChannel, displayChannel, embedList);
+					}
+				} else if (displayChannel == undefined) { // Leave as ==
+					// Handled deleted display channels
+					await removeStoredDisplays(queueChannel.id, displayChannel.id);
+				}
             }
 		}
 	}
-}
-
-/**
- * Store members who leave queues, time stamp them
- * @param queueGuild
- * @param guild Guild containing queue
- * @param oldVoiceChannel Queue channel being left 
- */
-const recentMembersCache = new Map<string, { member: QueueMember; time: number }>();
-async function markLeavingMember(queueGuild: QueueGuild, member: GuildMember, oldVoiceChannel: VoiceChannel): Promise<void> {
-
-	// Fetch Member
-	const storedQueueMember = await knex<QueueMember>('queue_members')
-		.where('queue_channel_id', oldVoiceChannel.id).where('queue_member_id', member.id).first();
-	await removeStoredQueueMembers(oldVoiceChannel.id, [member.id]);
-	recentMembersCache.set(member.id, {
-		member: storedQueueMember,
-		time: Date.now()
-	});
 }
 
 /**
@@ -547,7 +538,10 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 		await sendResponse(message, 'I need the permissions to join your voice channel!');
 	} else if (channel.type === 'voice') {
 		await channel.join()
-			.then((connection: void | VoiceConnection) => {	if (connection) connection.voice.setSelfDeaf(true) })
+			.then(connection => {
+				connection?.voice.setSelfDeaf(true);
+				connection?.voice.setSelfMute(true);
+			})
 			.catch((e: DiscordAPIError) => console.error('start: ' + e));
 	} else {
 		await sendResponse(message, "I can only join voice channels.");
@@ -886,7 +880,11 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
                     {
                         "name": "Change the Color",
                         "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the config of bot messages.`
-                    }
+					},
+					{
+						"name": "Change the Display Method",
+						"value": `\`${storedPrefix}${config.toggleAlwaysMessageOnUpdateCmd}\` toggles whether a change to the queue will update the old display message (default), or create a new one.`
+					}
                 ]
             }
         }
@@ -937,7 +935,7 @@ async function setServerSettings(queueGuild: QueueGuild, parsed: ParsedArguments
 			.update(setting.dbVariable, parsed.arguments);
 		queueGuild[setting.dbVariable] = parsed.arguments;
 		await updateDisplayQueue(queueGuild, channels);
-		await sendResponse(message, `Set ${setting.str} to \`${parsed.arguments}\`.`);
+		await sendResponse(message, `Set \`${setting.str}\` to \`${parsed.arguments}\`.`);
 	} else {
 		await sendResponse(message, {
 			"embed": embed,
@@ -969,7 +967,8 @@ async function createDefaultGuild(guildId: string): Promise<QueueGuild> {
 		guild_id: guildId,
 		grace_period: '0',
 		prefix: config.prefix,
-		color: '#51ff7e'
+		color: '#51ff7e',
+		msg_on_update: false
 	});
 	return await knex<QueueGuild>('queue_guilds').where('guild_id', guildId).first();
 }
@@ -1043,12 +1042,19 @@ client.on('message', async message => {
 				case config.colorCmd:
 					setServerSettings(queueGuild, parsed, message,
 						/^#?[0-9A-F]{6}$/i.test(parsed.arguments),
-						'Use HEX color:', 
+						'Use HEX color:',
 						{
 							"title": "Hex color picker",
 							"url": "https://htmlcolorcodes.com/color-picker/",
 							"color": queueGuild.color
 						}
+					);
+					break;
+				// Toggle New message on update
+				case config.toggleAlwaysMessageOnUpdateCmd:
+					parsed.arguments = String(!queueGuild.msg_on_update); // toggle value
+					setServerSettings(queueGuild, parsed, message,
+						true
 					);
 					break;
 			}
@@ -1139,6 +1145,7 @@ client.once('ready', async () => {
 			table.text('grace_period');
 			table.text('prefix');
 			table.text('color');
+			table.boolean('msg_on_update');
 		}).catch(e => console.error(e));
 	});
 	await knex.schema.hasTable('queue_channels').then(exists => {
@@ -1175,8 +1182,27 @@ client.on('shardResume', async () => {
 	console.log('Reconnected!');
 });
 
+/**
+ * Store members who leave queues, time stamp them
+ * @param queueGuild
+ * @param guild Guild containing queue
+ * @param oldVoiceChannel Queue channel being left 
+ */
+const blockNextCache = new Set<string>();
+const returningMembersCache = new Map<string, { member: QueueMember; time: number }>();
+async function markLeavingMember(member: GuildMember, oldVoiceChannel: VoiceChannel): Promise<void> {
+
+	// Fetch Member
+	const storedQueueMember = await knex<QueueMember>('queue_members')
+		.where('queue_channel_id', oldVoiceChannel.id).where('queue_member_id', member.id).first();
+	await removeStoredQueueMembers(oldVoiceChannel.id, [member.id]);
+	returningMembersCache.set(member.id, {
+		member: storedQueueMember,
+		time: Date.now()
+	});
+}
+
 // Monitor for users joining voice channels
-const blockNextCache = new Set();
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 	const oldVoiceChannel = oldVoiceState.channel;
 	const newVoiceChannel = newVoiceState.channel;
@@ -1198,8 +1224,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
         } else if (storedNewQueueChannel && !member.user.bot) {
 			// Joined queue channel
 			// Check for existing, don't duplicate member entries
-			const recentMember = recentMembersCache.get(member.id);
-			const withinGracePeriod = recentMember ? (Date.now() - recentMember.time) < (+queueGuild.grace_period * 1000)
+			const recentMember = returningMembersCache.get(member.id);
+			const withinGracePeriod = recentMember ?
+				(Date.now() - recentMember.time) < (+queueGuild.grace_period * 1000)
 				: false;
 
 			if (withinGracePeriod) {
@@ -1223,7 +1250,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				if (nextQueueMember) {
 					blockNextCache.add(nextQueueMember.id);
 					// Swap bot with nextQueueMember
-					await nextQueueMember?.voice.setChannel(newVoiceChannel).catch(() => null);
+					await nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
 					await member.voice.setChannel(oldVoiceChannel).catch(() => null);
 				}
 			} else {
@@ -1232,7 +1259,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 					await removeStoredQueueMembers(oldVoiceChannel.id, [member.id]);
 				} else {
 					// Otherwise, cache it
-					await markLeavingMember(queueGuild, member, oldVoiceChannel);
+					await markLeavingMember(member, oldVoiceChannel);
 				}
 				await updateDisplayQueue(queueGuild, [oldVoiceChannel]);
 			}
