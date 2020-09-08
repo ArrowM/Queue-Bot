@@ -195,7 +195,7 @@ async function removeStoredQueueMembers(queueChannelId: string, memberIdsToRemov
 		if (memberIdsToRemove) {
 			storedMemberQuery = knex<QueueMember>('queue_members')
 				.where('queue_channel_id', queueChannelId)
-				.andWhere('queue_member_id', 'in', memberIdsToRemove)
+				.where('queue_member_id', 'in', memberIdsToRemove)
 				.first();
 		} else {
 			storedMemberQuery = knex<QueueMember>('queue_members')
@@ -451,13 +451,15 @@ function extractChannel(availableChannels: (VoiceChannel | TextChannel)[], parse
 	message: Message): VoiceChannel | TextChannel  {
 
 	let channel = availableChannels.find(channel => channel.id === message.mentions.channels.array()[0]?.id);
-	const splitArgs = parsed.arguments.split(' ');
-	for (let i = splitArgs.length; i > 0; i--) {
-		if (channel) break;
-		const channelNameToCheck = splitArgs.slice(0, i).join(' ');
-		channel = availableChannels.find(channel => channel.name === channelNameToCheck) ||
-			availableChannels.find(channel => channel.name.localeCompare(channelNameToCheck, undefined, { sensitivity: 'accent' }) === 0);
-	}
+	if (!channel && parsed.arguments) {
+		const splitArgs = parsed.arguments.split(' ');
+		for (let i = splitArgs.length; i > 0; i--) {
+			if (channel) break;
+			const channelNameToCheck = splitArgs.slice(0, i).join(' ');
+			channel = availableChannels.find(channel => channel.name === channelNameToCheck) ||
+				availableChannels.find(channel => channel.name.localeCompare(channelNameToCheck, undefined, { sensitivity: 'accent' }) === 0);
+		}
+    }
 	return channel;
 }
 
@@ -652,8 +654,7 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 		if (storedQueueMembers.some(storedMember => storedMember.queue_member_id === memberId)) {
 			// Already in queue, set to remove
 			memberIdsToRemove.push(memberId);
-		}
-		else {
+		} else {
 			// Not in queue, set to add
 			memberIdsToAdd.push(memberId);
 		}
@@ -673,8 +674,9 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 			+ ` to the \`${queueChannel.name}\` queue.`;
 	}
 
-	await updateDisplayQueue(queueGuild, [queueChannel]);
+
 	await sendResponse(message, messageString);
+	updateDisplayQueue(queueGuild, [queueChannel]);
 }
 
 /**
@@ -685,27 +687,26 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
  */
 async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
+	console.log(1);
 	const queueChannel = await fetchChannel(queueGuild, parsed, message, false, 'text');
 	if (!queueChannel) return;
 
 	if (queueChannel.type !== 'text') {
 		await sendResponse(message, `\`${queueGuild.prefix}${config.nextCmd}\` can only be used on text channel queues.`);
 	} else {
-		await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
-			// Get the older member entry for the queue
-			const nextQueueMemberQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id)
-				.orderBy('created_at').first();
-			const nextQueueMember = await nextQueueMemberQuery;
+		// Get the older member entry for the queue
+		const nextQueueMemberQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id)
+			.orderBy('created_at').first();
+		const nextQueueMember = await nextQueueMemberQuery;
 
-			if (nextQueueMember) {
-				// Display and remove member from the the queue
-				await nextQueueMemberQuery.del();
-				await updateDisplayQueue(queueGuild, [queueChannel]);
-				await sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
-			} else {
-				await sendResponse(message, `\`${queueChannel.name}\` is empty.`);
-			}
-		});
+		if (nextQueueMember) {
+			// Display and remove member from the the queue
+			sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
+			await removeStoredQueueMembers(queueChannel.id, [nextQueueMember.queue_member_id]);
+			await updateDisplayQueue(queueGuild, [queueChannel]);
+		} else {
+			sendResponse(message, `\`${queueChannel.name}\` is empty.`);
+		}
     }
 }
 
@@ -730,7 +731,7 @@ async function kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, messa
 	await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
 		const storedQueueMembersQuery = knex<QueueMember>('queue_members')
 			.where('queue_channel_id', queueChannel.id)
-			.andWhere('queue_member_id', 'in', memberIdsToKick);
+			.where('queue_member_id', 'in', memberIdsToKick);
 		const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
 
 		if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {

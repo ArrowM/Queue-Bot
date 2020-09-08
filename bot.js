@@ -139,7 +139,7 @@ function removeStoredQueueMembers(queueChannelId, memberIdsToRemove) {
             if (memberIdsToRemove) {
                 storedMemberQuery = knex('queue_members')
                     .where('queue_channel_id', queueChannelId)
-                    .andWhere('queue_member_id', 'in', memberIdsToRemove)
+                    .where('queue_member_id', 'in', memberIdsToRemove)
                     .first();
             }
             else {
@@ -337,13 +337,15 @@ function markLeavingMember(queueGuild, member, oldVoiceChannel) {
 }
 function extractChannel(availableChannels, parsed, message) {
     let channel = availableChannels.find(channel => { var _a; return channel.id === ((_a = message.mentions.channels.array()[0]) === null || _a === void 0 ? void 0 : _a.id); });
-    const splitArgs = parsed.arguments.split(' ');
-    for (let i = splitArgs.length; i > 0; i--) {
-        if (channel)
-            break;
-        const channelNameToCheck = splitArgs.slice(0, i).join(' ');
-        channel = availableChannels.find(channel => channel.name === channelNameToCheck) ||
-            availableChannels.find(channel => channel.name.localeCompare(channelNameToCheck, undefined, { sensitivity: 'accent' }) === 0);
+    if (!channel && parsed.arguments) {
+        const splitArgs = parsed.arguments.split(' ');
+        for (let i = splitArgs.length; i > 0; i--) {
+            if (channel)
+                break;
+            const channelNameToCheck = splitArgs.slice(0, i).join(' ');
+            channel = availableChannels.find(channel => channel.name === channelNameToCheck) ||
+                availableChannels.find(channel => channel.name.localeCompare(channelNameToCheck, undefined, { sensitivity: 'accent' }) === 0);
+        }
     }
     return channel;
 }
@@ -498,12 +500,13 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
             messageString += 'Added ' + memberIdsToAdd.map(id => `<@!${id}>`).join(', ')
                 + ` to the \`${queueChannel.name}\` queue.`;
         }
-        yield updateDisplayQueue(queueGuild, [queueChannel]);
         yield sendResponse(message, messageString);
+        updateDisplayQueue(queueGuild, [queueChannel]);
     });
 }
 function popTextQueue(queueGuild, parsed, message) {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log(1);
         const queueChannel = yield fetchChannel(queueGuild, parsed, message, false, 'text');
         if (!queueChannel)
             return;
@@ -511,19 +514,17 @@ function popTextQueue(queueGuild, parsed, message) {
             yield sendResponse(message, `\`${queueGuild.prefix}${config_json_1.default.nextCmd}\` can only be used on text channel queues.`);
         }
         else {
-            yield getLock(membersLocks, queueChannel.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
-                const nextQueueMemberQuery = knex('queue_members').where('queue_channel_id', queueChannel.id)
-                    .orderBy('created_at').first();
-                const nextQueueMember = yield nextQueueMemberQuery;
-                if (nextQueueMember) {
-                    yield nextQueueMemberQuery.del();
-                    yield updateDisplayQueue(queueGuild, [queueChannel]);
-                    yield sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
-                }
-                else {
-                    yield sendResponse(message, `\`${queueChannel.name}\` is empty.`);
-                }
-            }));
+            const nextQueueMemberQuery = knex('queue_members').where('queue_channel_id', queueChannel.id)
+                .orderBy('created_at').first();
+            const nextQueueMember = yield nextQueueMemberQuery;
+            if (nextQueueMember) {
+                sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
+                yield removeStoredQueueMembers(queueChannel.id, [nextQueueMember.queue_member_id]);
+                yield updateDisplayQueue(queueGuild, [queueChannel]);
+            }
+            else {
+                sendResponse(message, `\`${queueChannel.name}\` is empty.`);
+            }
         }
     });
 }
@@ -540,7 +541,7 @@ function kickMember(queueGuild, parsed, message) {
         yield getLock(membersLocks, queueChannel.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
             const storedQueueMembersQuery = knex('queue_members')
                 .where('queue_channel_id', queueChannel.id)
-                .andWhere('queue_member_id', 'in', memberIdsToKick);
+                .where('queue_member_id', 'in', memberIdsToKick);
             const storedQueueMemberIds = (yield storedQueueMembersQuery).map(member => member.queue_member_id);
             if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
                 updateDisplays = true;
