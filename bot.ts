@@ -687,7 +687,6 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
  */
 async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
-	console.log(1);
 	const queueChannel = await fetchChannel(queueGuild, parsed, message, false, 'text');
 	if (!queueChannel) return;
 

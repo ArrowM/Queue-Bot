@@ -506,7 +506,6 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
 }
 function popTextQueue(queueGuild, parsed, message) {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log(1);
         const queueChannel = yield fetchChannel(queueGuild, parsed, message, false, 'text');
         if (!queueChannel)
             return;
