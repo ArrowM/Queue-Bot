@@ -912,9 +912,11 @@ const returningMembersCache = new Map();
 function markLeavingMember(member, oldVoiceChannel) {
     return __awaiter(this, void 0, void 0, function* () {
         const storedQueueMember = yield knex('queue_members')
-            .where('queue_channel_id', oldVoiceChannel.id).where('queue_member_id', member.id).first();
+            .where('queue_channel_id', oldVoiceChannel.id)
+            .where('queue_member_id', member.id)
+            .first();
         yield removeStoredQueueMembers(oldVoiceChannel.id, [member.id]);
-        returningMembersCache.set(member.id, {
+        returningMembersCache.set(oldVoiceChannel.id + '.' + member.id, {
             member: storedQueueMember,
             time: Date.now()
         });
@@ -937,7 +939,7 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
             return;
         }
         else if (storedNewQueueChannel && !member.user.bot) {
-            const recentMember = returningMembersCache.get(member.id);
+            const recentMember = returningMembersCache.get(newVoiceChannel.id + '.' + member.id);
             const withinGracePeriod = recentMember ?
                 (Date.now() - recentMember.time) < (+queueGuild.grace_period * 1000)
                 : false;

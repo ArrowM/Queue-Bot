@@ -1194,9 +1194,11 @@ async function markLeavingMember(member: GuildMember, oldVoiceChannel: VoiceChan
 
 	// Fetch Member
 	const storedQueueMember = await knex<QueueMember>('queue_members')
-		.where('queue_channel_id', oldVoiceChannel.id).where('queue_member_id', member.id).first();
+		.where('queue_channel_id', oldVoiceChannel.id)
+		.where('queue_member_id', member.id)
+		.first();
 	await removeStoredQueueMembers(oldVoiceChannel.id, [member.id]);
-	returningMembersCache.set(member.id, {
+	returningMembersCache.set(oldVoiceChannel.id + '.' + member.id, {
 		member: storedQueueMember,
 		time: Date.now()
 	});
@@ -1224,7 +1226,8 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
         } else if (storedNewQueueChannel && !member.user.bot) {
 			// Joined queue channel
 			// Check for existing, don't duplicate member entries
-			const recentMember = returningMembersCache.get(member.id);
+			const recentMember = returningMembersCache.get(
+				newVoiceChannel.id + '.' + member.id);
 			const withinGracePeriod = recentMember ?
 				(Date.now() - recentMember.time) < (+queueGuild.grace_period * 1000)
 				: false;
