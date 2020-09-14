@@ -13,7 +13,7 @@
 
   "clearCmd": "clear",
   "colorCmd": "color",
-  "commandPrefixCmd": "prefix",
+  "prefixCmd": "prefix",
   "displayCmd": "d",
   "gracePeriodCmd": "grace",
   "helpCmd": "h",
@@ -22,6 +22,6 @@
   "nextCmd": "n",
   "queueCmd": "q",
   "shuffleCmd": "shuffle",
-  "startCmd": "s"
+  "startCmd": "s",
   "toggleAlwaysMessageOnUpdateCmd": "always"
 }
