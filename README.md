@@ -1,7 +1,37 @@
 # Debate-Queue-Bot
 Created to manage voice channel waiting rooms. This bot allows you to display the order of people waiting and easily pull them to another channel.  
 
-## Setup
+## How to use  
+Note: If you only have 1 queue, you can skip the channel name argument.
+### Commands available to everyone
+| Function | Command | Description |
+|-|-|-|
+| Join | `!j {channel name} {OPTIONAL: custom message}` | Join or leave  a text channel queue. |
+| | `!j #waiting-room This is my custom message!` | |
+| Help | `!h {OPTIONAL: channel name}` | Display all commands. |
+### Commands available to moderators
+Moderator commands are available to the server owner and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
+| Function | Command | Description |
+|-|-|-|
+| Create & Destroy Queues | `!q {channel name}` | Create or destory a queue for a specified channel. |
+| List Queues | `!q` | List the names of the existing queues. | 
+| Display a Queue | `!d {channel name}` | Display the members in a queue. These messages stay updated. | 
+| Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull in the person at the front of the queue. | 
+| Pull from Text | `!n {channel name}` | Remove the next person a the text queue and displays their name. |
+| Join | `!j {channel name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | Add one or more people to a queue. | 
+| Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kick one or more people from a queue. |
+| Clear | `!clear {channel name}` | Clear a queue. |
+| Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
+||||
+|**Server Settings**|||
+| Command Prefix | `!prefix {new prefix}` | Change the prefix for Queue Bot commands. |
+| Change Color | `!color {new color}` | Change the color of bot messages. |
+| Grace Period | `!grace {time in seconds}` | Change how long a person can leave a queue before losing their spot. |
+| Update Method | `!always` | Toggle the update method to send a new message everytime the queue changes instead of editting the last message.
+
+![Example of `!s`](docs/example.gif)  
+
+## How to Install
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
 2. Clone/download this repository  
 3. Create a database for storing queues. Here's a the steps for Windows:  
@@ -52,41 +82,3 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 	9a. In command prompt (set to the project directory), enter `npm install pm2`  
 	9b. To start the bot, enter `pm2 start bot.ts`  
 	9c. To stop the bot, enter `pm2 stop bot.ts`  
-  
-## How to use  
-### Non-Restricted Commands  
-Available to everyone.  
-#### Join a Text Channel Queue 
-`!j {channel name} {OPTIONAL: message to display next to your name}` joins or leaves a text channel queue.   
-#### Help  
-`!h` displays a list of all commands.  
-
-### Restricted Commands  
-Available to owners or users with `queue mod`, `mod` or `admin` in their server roles.  
-#### Modify & List Queues  
-`!q {channel name}` creates a new queue or deletes an existing queue.  
-`!q` shows the existing queues.  
-#### Display Queue  
-`!d {channel name}` displays the members in a queue. These messages stay updated.  
-#### Pull Users from Voice Queue  
-`!s {channel name}` adds the bot to a voice queue. The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue. Right-click the bot to disconnect it from the voice channel when done. See the example gif below.  
-#### Pull Users from Text Queue  
-`!n {channel name}` removes the next person in a text queue and displays their name.  
-#### Kick  
-`!k {channel name} @{user 1} @{user 2} ...`  kicks one or more people from a queue.  
-#### Clear Queue  
-`!clear {channel name}` clears a queue.  
-#### Shuffle Queue  
-`!shuffle {channel name}` shuffles a queue.  
-  
-#### Change the Grace Period  
-`!g {time in seconds}` changes how long a person can leave a queue before being removed.  
-#### Change the Command Prefix  
-`!prefix {new prefix}` changes the prefix for Queue Bot commands.  
-#### Change the Color  
-`!c {new color}` changes the color of bot messages.  
-#### Change the Display Method  
-`!awlays` toggles whether a change to the queue will update the old display message (default), or create a new one.  
-
-
-![Example of `!s`](docs/example.gif)  
