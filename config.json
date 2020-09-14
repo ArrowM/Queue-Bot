@@ -23,4 +23,5 @@
   "queueCmd": "q",
   "shuffleCmd": "shuffle",
   "startCmd": "s"
+  "toggleAlwaysMessageOnUpdateCmd": "always"
 }
