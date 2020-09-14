@@ -1228,6 +1228,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 
 		const channelsToUpdate: VoiceChannel[] =  [];
 
+		if (storedOldQueueChannel && storedNewQueueChannel && member.user.bot) {
+			return;
+		}
 		if (storedNewQueueChannel && !member.user.bot) {
 			// Joined queue channel
 			// Check for existing, don't duplicate member entries

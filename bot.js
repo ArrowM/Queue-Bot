@@ -942,6 +942,9 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
             yield knex('queue_channels').where('queue_channel_id', newVoiceChannel.id).first()
             : undefined;
         const channelsToUpdate = [];
+        if (storedOldQueueChannel && storedNewQueueChannel && member.user.bot) {
+            return;
+        }
         if (storedNewQueueChannel && !member.user.bot) {
             const recentMember = returningMembersCache.get(newVoiceChannel.id + '.' + member.id);
             returningMembersCache.delete(newVoiceChannel.id + '.' + member.id);
