@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, DiscordAPIError, MessageEmbed } from 'discord.js';
+import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
 import { Mutex, MutexInterface } from 'async-mutex';
 import Knex from 'knex';
 import config from "./config.json";
@@ -534,17 +534,22 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 	const channel = await fetchChannel(queueGuild, parsed, message, false, 'voice');
 	if (!channel) return;
 
-	if (!channel.permissionsFor(message.guild.me).has('CONNECT')) {
-		await sendResponse(message, 'I need the permissions to join your voice channel!');
-	} else if (channel.type === 'voice') {
-		await channel.join()
-			.then(connection => {
-				connection?.voice.setSelfDeaf(true);
-				connection?.voice.setSelfMute(true);
-			})
-			.catch((e: DiscordAPIError) => console.error('start: ' + e));
+	if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
+		if (channel.type === 'voice') {
+			try {
+				channel.join().then(connection => {
+					connection.voice.setSelfDeaf(true);
+					connection.voice.setSelfMute(true);
+				});
+			} catch (e) {
+				console.error('START error: ' + e);
+				sendResponse(message, `Error connecting to ${channel.name}`);
+            }
+		} else {
+			await sendResponse(message, "I can only join voice channels.");
+		}
 	} else {
-		await sendResponse(message, "I can only join voice channels.");
+		await sendResponse(message, 'I need the permissions to join your voice channel!');
 	}
 }
 

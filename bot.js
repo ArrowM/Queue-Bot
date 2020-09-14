@@ -396,19 +396,25 @@ function start(queueGuild, parsed, message) {
         const channel = yield fetchChannel(queueGuild, parsed, message, false, 'voice');
         if (!channel)
             return;
-        if (!channel.permissionsFor(message.guild.me).has('CONNECT')) {
-            yield sendResponse(message, 'I need the permissions to join your voice channel!');
-        }
-        else if (channel.type === 'voice') {
-            yield channel.join()
-                .then(connection => {
-                connection === null || connection === void 0 ? void 0 : connection.voice.setSelfDeaf(true);
-                connection === null || connection === void 0 ? void 0 : connection.voice.setSelfMute(true);
-            })
-                .catch((e) => console.error('start: ' + e));
+        if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
+            if (channel.type === 'voice') {
+                try {
+                    channel.join().then(connection => {
+                        connection.voice.setSelfDeaf(true);
+                        connection.voice.setSelfMute(true);
+                    });
+                }
+                catch (e) {
+                    console.error('START error: ' + e);
+                    sendResponse(message, `Error connecting to ${channel.name}`);
+                }
+            }
+            else {
+                yield sendResponse(message, "I can only join voice channels.");
+            }
         }
         else {
-            yield sendResponse(message, "I can only join voice channels.");
+            yield sendResponse(message, 'I need the permissions to join your voice channel!');
         }
     });
 }
