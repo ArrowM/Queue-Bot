@@ -879,7 +879,7 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
                     },
                     {
                         "name": "Change the Color",
-                        "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the config of bot messages.`
+                        "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the color of bot messages.`
 					},
 					{
 						"name": "Change the Display Method",

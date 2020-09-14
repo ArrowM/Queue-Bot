@@ -668,7 +668,7 @@ function help(queueGuild, parsed, message) {
                         },
                         {
                             "name": "Change the Color",
-                            "value": `\`${storedPrefix}${config_json_1.default.colorCmd} {new color}\` changes the config of bot messages.`
+                            "value": `\`${storedPrefix}${config_json_1.default.colorCmd} {new color}\` changes the color of bot messages.`
                         },
                         {
                             "name": "Change the Display Method",
