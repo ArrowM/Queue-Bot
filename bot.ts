@@ -1226,9 +1226,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 			await knex<QueueChannel>('queue_channels').where('queue_channel_id', newVoiceChannel.id).first()
 			: undefined;
 
-		if (storedOldQueueChannel && storedNewQueueChannel && !member.user.bot) {
-			return;
-        } else if (storedNewQueueChannel && !member.user.bot) {
+		const channelsToUpdate: VoiceChannel[] =  [];
+
+		if (storedNewQueueChannel && !member.user.bot) {
 			// Joined queue channel
 			// Check for existing, don't duplicate member entries
 			const recentMember = returningMembersCache.get(newVoiceChannel.id + '.' + member.id);
@@ -1243,9 +1243,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 			} else {
 				await addStoredQueueMembers(newVoiceChannel.id, [member.id]);
 			}
-
-			await updateDisplayQueue(queueGuild, [newVoiceChannel]);
-		} else if (storedOldQueueChannel) {
+			channelsToUpdate.push(newVoiceChannel);
+		}
+		if (storedOldQueueChannel && newVoiceChannel) {
 			// Left queue channel
 			if (member.user.bot) {
 				// Pop the nextQueueMember off the stored queue
@@ -1254,13 +1254,12 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				if (!nextStoredQueueMember) return;
 				
 				const nextQueueMember: GuildMember = await guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
-				await updateDisplayQueue(queueGuild, [oldVoiceChannel]);
 				// Block recentMember caching when the bot is used to pull someone
 				if (nextQueueMember) {
 					blockNextCache.add(nextQueueMember.id);
 					// Swap bot with nextQueueMember
-					await nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
-					await member.voice.setChannel(oldVoiceChannel).catch(() => null);
+					nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
+					member.voice.setChannel(oldVoiceChannel).catch(() => null);
 				}
 			} else {
 				if (blockNextCache.delete(member.id)) {
@@ -1270,8 +1269,11 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 					// Otherwise, cache it
 					await markLeavingMember(member, oldVoiceChannel);
 				}
-				await updateDisplayQueue(queueGuild, [oldVoiceChannel]);
 			}
+			channelsToUpdate.push(oldVoiceChannel);
+		}
+		if (channelsToUpdate.length > 0) {
+			updateDisplayQueue(queueGuild, channelsToUpdate);
 		}
 	}
 });

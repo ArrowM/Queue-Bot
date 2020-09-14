@@ -941,10 +941,8 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
         const storedNewQueueChannel = newVoiceChannel ?
             yield knex('queue_channels').where('queue_channel_id', newVoiceChannel.id).first()
             : undefined;
-        if (storedOldQueueChannel && storedNewQueueChannel && !member.user.bot) {
-            return;
-        }
-        else if (storedNewQueueChannel && !member.user.bot) {
+        const channelsToUpdate = [];
+        if (storedNewQueueChannel && !member.user.bot) {
             const recentMember = returningMembersCache.get(newVoiceChannel.id + '.' + member.id);
             returningMembersCache.delete(newVoiceChannel.id + '.' + member.id);
             const withinGracePeriod = recentMember ?
@@ -956,20 +954,19 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
             else {
                 yield addStoredQueueMembers(newVoiceChannel.id, [member.id]);
             }
-            yield updateDisplayQueue(queueGuild, [newVoiceChannel]);
+            channelsToUpdate.push(newVoiceChannel);
         }
-        else if (storedOldQueueChannel) {
+        if (storedOldQueueChannel && newVoiceChannel) {
             if (member.user.bot) {
                 const nextStoredQueueMember = yield knex('queue_members')
                     .where('queue_channel_id', oldVoiceChannel.id).orderBy('created_at').first();
                 if (!nextStoredQueueMember)
                     return;
                 const nextQueueMember = yield guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
-                yield updateDisplayQueue(queueGuild, [oldVoiceChannel]);
                 if (nextQueueMember) {
                     blockNextCache.add(nextQueueMember.id);
-                    yield nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
-                    yield member.voice.setChannel(oldVoiceChannel).catch(() => null);
+                    nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
+                    member.voice.setChannel(oldVoiceChannel).catch(() => null);
                 }
             }
             else {
@@ -979,8 +976,11 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
                 else {
                     yield markLeavingMember(member, oldVoiceChannel);
                 }
-                yield updateDisplayQueue(queueGuild, [oldVoiceChannel]);
             }
+            channelsToUpdate.push(oldVoiceChannel);
+        }
+        if (channelsToUpdate.length > 0) {
+            updateDisplayQueue(queueGuild, channelsToUpdate);
         }
     }
 }));
