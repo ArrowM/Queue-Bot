@@ -323,7 +323,7 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                         }
                     }
                     else if (displayChannel == undefined) {
-                        yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                        yield removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
                     }
                 }
             }
@@ -847,7 +847,7 @@ function resumeQueueAfterOffline() {
                                 yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
                             }
                             else {
-                                yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                                yield removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
                             }
                         }
                     }
@@ -940,6 +940,7 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
         }
         else if (storedNewQueueChannel && !member.user.bot) {
             const recentMember = returningMembersCache.get(newVoiceChannel.id + '.' + member.id);
+            returningMembersCache.delete(newVoiceChannel.id + '.' + member.id);
             const withinGracePeriod = recentMember ?
                 (Date.now() - recentMember.time) < (+queueGuild.grace_period * 1000)
                 : false;

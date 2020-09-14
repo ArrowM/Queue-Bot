@@ -425,7 +425,7 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 					}
 				} else if (displayChannel == undefined) { // Leave as ==
 					// Handled deleted display channels
-					await removeStoredDisplays(queueChannel.id, displayChannel.id);
+					await removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
 				}
             }
 		}
@@ -1120,7 +1120,7 @@ async function resumeQueueAfterOffline() {
 							await updateDisplayQueue(storedQueueGuild, [queueChannel]);
 						} else {
 							// Cleanup deleted display channels
-							await removeStoredDisplays(queueChannel.id, displayChannel.id);
+							await removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
 						}
 					}
 				} else {
@@ -1226,8 +1226,9 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
         } else if (storedNewQueueChannel && !member.user.bot) {
 			// Joined queue channel
 			// Check for existing, don't duplicate member entries
-			const recentMember = returningMembersCache.get(
-				newVoiceChannel.id + '.' + member.id);
+			const recentMember = returningMembersCache.get(newVoiceChannel.id + '.' + member.id);
+			returningMembersCache.delete(newVoiceChannel.id + '.' + member.id);
+
 			const withinGracePeriod = recentMember ?
 				(Date.now() - recentMember.time) < (+queueGuild.grace_period * 1000)
 				: false;
