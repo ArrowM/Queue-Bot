@@ -956,8 +956,8 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
             }
             channelsToUpdate.push(newVoiceChannel);
         }
-        if (storedOldQueueChannel && newVoiceChannel) {
-            if (member.user.bot) {
+        if (storedOldQueueChannel) {
+            if (member.user.bot && newVoiceChannel) {
                 const nextStoredQueueMember = yield knex('queue_members')
                     .where('queue_channel_id', oldVoiceChannel.id).orderBy('created_at').first();
                 if (!nextStoredQueueMember)
