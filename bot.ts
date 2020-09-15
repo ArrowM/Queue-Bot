@@ -4,10 +4,6 @@ import { Mutex, MutexInterface } from 'async-mutex';
 import Knex from 'knex';
 import config from "./config.json";
 
-process.on('unhandledRejection', error => {
-	console.error('Unhandled promise rejection:', error);
-});
-
 // Setup client
 require('events').EventEmitter.defaultMaxListeners = 40; // Maximum number of events that can be handled at once.
 const client = new Client({
@@ -20,7 +16,6 @@ const client = new Client({
 	}
 });
 client.login(config.token);
-client.on('error', error => console.error('The WebSocket encountered an error:', error));
 
 // Map commands to database columns and display strings
 const ServerSettings = {
@@ -537,7 +532,8 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 	if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
 		if (channel.type === 'voice') {
 			try {
-				channel.join().then(connection => {
+				const connection = await channel.join();
+				connection.once("ready", () => {
 					connection.voice.setSelfDeaf(true);
 					connection.voice.setSelfMute(true);
 				});

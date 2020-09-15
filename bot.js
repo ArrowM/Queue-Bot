@@ -16,9 +16,6 @@ const discord_js_1 = require("discord.js");
 const async_mutex_1 = require("async-mutex");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
-process.on('unhandledRejection', error => {
-    console.error('Unhandled promise rejection:', error);
-});
 require('events').EventEmitter.defaultMaxListeners = 40;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
@@ -30,7 +27,6 @@ const client = new discord_js_1.Client({
     }
 });
 client.login(config_json_1.default.token);
-client.on('error', error => console.error('The WebSocket encountered an error:', error));
 const ServerSettings = {
     [config_json_1.default.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
     [config_json_1.default.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },
@@ -399,7 +395,8 @@ function start(queueGuild, parsed, message) {
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
                 try {
-                    channel.join().then(connection => {
+                    const connection = yield channel.join();
+                    connection.once("ready", () => {
                         connection.voice.setSelfDeaf(true);
                         connection.voice.setSelfMute(true);
                     });
