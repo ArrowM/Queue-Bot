@@ -184,7 +184,8 @@ function removeStoredQueueChannel(guildId, channelIdToRemove) {
 }
 function fetchStoredQueueChannels(guild) {
     return __awaiter(this, void 0, void 0, function* () {
-        return yield getLock(queueChannelsLocks, guild.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
+        const queueChannelIdsToRemove = [];
+        const queueChannels = yield getLock(queueChannelsLocks, guild.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
             const storedQueueChannelsQuery = knex('queue_channels').where('guild_id', guild.id);
             const storedQueueChannels = yield storedQueueChannelsQuery;
             if (!storedQueueChannels)
@@ -197,11 +198,15 @@ function fetchStoredQueueChannels(guild) {
                     queueChannels.push(queueChannel);
                 }
                 else {
-                    yield removeStoredQueueChannel(guild.id, queueChannelId);
+                    queueChannelIdsToRemove.push(queueChannelId);
                 }
             }
             return queueChannels;
         }));
+        for (const queueChannelId of queueChannelIdsToRemove) {
+            yield removeStoredQueueChannel(guild.id, queueChannelId);
+        }
+        return queueChannels;
     });
 }
 const gracePeriodCache = new Map();
@@ -285,12 +290,12 @@ function updateDisplayQueue(queueGuild, queueChannels) {
             const embedList = yield generateEmbed(queueGuild, queueChannel);
             for (const storedDisplayChannel of storedDisplayChannels) {
                 const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
-                if (queueGuild.msg_on_update) {
-                    yield removeStoredDisplays(queueChannel.id, displayChannel.id);
-                    yield addStoredDisplays(queueChannel, displayChannel, embedList);
-                }
-                else {
-                    if (displayChannel) {
+                if (displayChannel) {
+                    if (queueGuild.msg_on_update) {
+                        yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                        yield addStoredDisplays(queueChannel, displayChannel, embedList);
+                    }
+                    else {
                         const storedEmbeds = [];
                         let removeEmbeds = false;
                         for (const id of storedDisplayChannel.embed_ids) {
@@ -318,9 +323,9 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                             yield addStoredDisplays(queueChannel, displayChannel, embedList);
                         }
                     }
-                    else if (displayChannel == undefined) {
-                        yield removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
-                    }
+                }
+                else if (displayChannel == undefined) {
+                    yield removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
                 }
             }
         }
@@ -415,9 +420,9 @@ function start(queueGuild, parsed, message) {
         }
     });
 }
-function displayQueue(queueGuild, parsed, message) {
+function displayQueue(queueGuild, parsed, message, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
-        const queueChannel = yield fetchChannel(queueGuild, parsed, message);
+        queueChannel = queueChannel || (yield fetchChannel(queueGuild, parsed, message));
         if (!queueChannel)
             return;
         const displayChannel = message.channel;
@@ -440,16 +445,16 @@ function setQueueChannel(queueGuild, parsed, message) {
         const storedChannels = yield fetchStoredQueueChannels(guild);
         if (parsedArgs) {
             const channels = guild.channels.cache.filter(channel => channel.type !== 'category').array();
-            const channel = yield findChannel(queueGuild, channels, parsed, message, false, null, true);
-            if (!channel)
+            const queueChannel = yield findChannel(queueGuild, channels, parsed, message, false, null, true);
+            if (!queueChannel)
                 return;
-            if (storedChannels.some(storedChannel => storedChannel.id === channel.id)) {
-                yield removeStoredQueueChannel(guild.id, channel.id);
-                yield sendResponse(message, `Deleted queue for \`${channel.name}\`.`);
+            if (storedChannels.some(storedChannel => storedChannel.id === queueChannel.id)) {
+                yield removeStoredQueueChannel(guild.id, queueChannel.id);
+                yield sendResponse(message, `Deleted queue for \`${queueChannel.name}\`.`);
             }
             else {
-                yield addStoredQueueChannel(channel);
-                yield displayQueue(queueGuild, parsed, message);
+                yield addStoredQueueChannel(queueChannel);
+                yield displayQueue(queueGuild, parsed, message, queueChannel);
             }
         }
         else {
@@ -842,17 +847,7 @@ function resumeQueueAfterOffline() {
                                 });
                             }
                         }
-                        const storedDisplayChannelsQuery = knex('display_channels').where('queue_channel_id', queueChannel.id);
-                        const storedDisplayChannels = yield storedDisplayChannelsQuery;
-                        for (const storedDisplayChannel of storedDisplayChannels) {
-                            const displayChannel = guild.channels.cache.get(storedDisplayChannel.display_channel_id);
-                            if (displayChannel) {
-                                yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
-                            }
-                            else {
-                                yield removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
-                            }
-                        }
+                        yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
                     }
                     else {
                         yield removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);

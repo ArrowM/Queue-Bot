@@ -231,9 +231,9 @@ async function removeStoredQueueChannel(guildId: string, channelIdToRemove?: str
 
 	await getLock(queueChannelsLocks, guildId).runExclusive(async () => {
 		if (channelIdToRemove) {
-				await knex<QueueChannel>('queue_channels').where('queue_channel_id', channelIdToRemove).first().del();
-				await removeStoredQueueMembers(channelIdToRemove);
-				await removeStoredDisplays(channelIdToRemove);
+			await knex<QueueChannel>('queue_channels').where('queue_channel_id', channelIdToRemove).first().del();
+			await removeStoredQueueMembers(channelIdToRemove);
+			await removeStoredDisplays(channelIdToRemove);
 		} else {
 			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guildId);
 			const storedQueueChannels = await storedQueueChannelsQuery;
@@ -252,13 +252,15 @@ async function removeStoredQueueChannel(guildId: string, channelIdToRemove?: str
  */
 async function fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
 
-	return await getLock(queueChannelsLocks, guild.id).runExclusive(async () => {
+	const queueChannelIdsToRemove: string[] = [];
+	const queueChannels = await getLock(queueChannelsLocks, guild.id).runExclusive(async () => {
 		// Fetch stored channels
 		const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
 		const storedQueueChannels = await storedQueueChannelsQuery;
 		if (!storedQueueChannels) return null;
 
 		const queueChannels: (VoiceChannel | TextChannel)[] = [];
+
 		// Check for deleted channels
 		// Going backwards allows the removal of entries while visiting each one
 		for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
@@ -269,11 +271,15 @@ async function fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | T
 				queueChannels.push(queueChannel);
 			} else {
 				// Channel has been deleted, update database
-				await removeStoredQueueChannel(guild.id, queueChannelId);
+				queueChannelIdsToRemove.push(queueChannelId);
 			}
 		}
 		return queueChannels;
 	});
+	for (const queueChannelId of queueChannelIdsToRemove) {
+		await removeStoredQueueChannel(guild.id, queueChannelId);
+    }
+	return queueChannels;
 }
 
 /**
@@ -383,14 +389,15 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 			// For each embed list of the queue
 			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 
-			if (queueGuild.msg_on_update) {
-				// Remove old display
-				await removeStoredDisplays(queueChannel.id, displayChannel.id);
-				// Create new display
-				await addStoredDisplays(queueChannel, displayChannel, embedList);
 
-			} else {
-				if (displayChannel) {
+			if (displayChannel) {
+				if (queueGuild.msg_on_update) {
+					// Remove old display
+					await removeStoredDisplays(queueChannel.id, displayChannel.id);
+					// Create new display
+					await addStoredDisplays(queueChannel, displayChannel, embedList);
+
+				} else {
 					// Retrieved display embeds
 					const storedEmbeds: Message[] = [];
 					let removeEmbeds = false;
@@ -418,11 +425,11 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 						// Create a new embed list
 						await addStoredDisplays(queueChannel, displayChannel, embedList);
 					}
-				} else if (displayChannel == undefined) { // Leave as ==
-					// Handled deleted display channels
-					await removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
 				}
-            }
+			} else if (displayChannel == undefined) { // Leave as ==
+				// Handled deleted display channels
+				await removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
+			}
 		}
 	}
 }
@@ -555,10 +562,11 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
  * @param parsed Parsed message - prefix, command, argument.
  * @param message Discord message object.
  */
-async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message, queueChannel?: VoiceChannel | TextChannel): Promise<void> {
 
-	const queueChannel = await fetchChannel(queueGuild, parsed, message);
+	queueChannel = queueChannel || await fetchChannel(queueGuild, parsed, message);
 	if (!queueChannel) return;
+
 	const displayChannel = message.channel as TextChannel;
 
 	if (displayChannel.permissionsFor(message.guild.me).has('SEND_MESSAGES')
@@ -591,17 +599,17 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
 	// Channel argument provided. Toggle it
 	if (parsedArgs) {
 		const channels = guild.channels.cache.filter(channel => channel.type !== 'category').array() as VoiceChannel[] | TextChannel[];
-		const channel = await findChannel(queueGuild, channels, parsed, message, false, null, true);
-		if (!channel) return;
+		const queueChannel = await findChannel(queueGuild, channels, parsed, message, false, null, true);
+		if (!queueChannel) return;
 
-		if (storedChannels.some(storedChannel => storedChannel.id === channel.id)) {
+		if (storedChannels.some(storedChannel => storedChannel.id === queueChannel.id)) {
 			// Channel is already stored, remove it
-			await removeStoredQueueChannel(guild.id, channel.id);
-			await sendResponse(message, `Deleted queue for \`${channel.name}\`.`);
+			await removeStoredQueueChannel(guild.id, queueChannel.id);
+			await sendResponse(message, `Deleted queue for \`${queueChannel.name}\`.`);
 		} else {
 			// It's not in the list, add it
-			await addStoredQueueChannel(channel);
-			await displayQueue(queueGuild, parsed, message);
+			await addStoredQueueChannel(queueChannel);
+			await displayQueue(queueGuild, parsed, message, queueChannel);
 		}
 	} else {
 		// No argument. Display current queues
@@ -1113,17 +1121,7 @@ async function resumeQueueAfterOffline() {
 						}
 					}
 					// Update displays
-					const storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels').where('queue_channel_id', queueChannel.id)
-					const storedDisplayChannels = await storedDisplayChannelsQuery;
-					for (const storedDisplayChannel of storedDisplayChannels) {
-						const displayChannel = guild.channels.cache.get(storedDisplayChannel.display_channel_id);
-						if (displayChannel) {
-							await updateDisplayQueue(storedQueueGuild, [queueChannel]);
-						} else {
-							// Cleanup deleted display channels
-							await removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
-						}
-					}
+					await updateDisplayQueue(storedQueueGuild, [queueChannel]);
 				} else {
 					// Cleanup deleted queue channels
 					await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
