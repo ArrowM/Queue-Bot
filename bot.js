@@ -226,7 +226,7 @@ function getGracePeriodString(gracePeriod) {
 function generateEmbed(queueGuild, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
         const storedPrefix = queueGuild.prefix;
-        const storedColor = Number(queueGuild.color);
+        const storedColor = queueGuild.color;
         const queueMembers = yield knex('queue_members')
             .where('queue_channel_id', queueChannel.id).orderBy('created_at');
         const embedList = [{

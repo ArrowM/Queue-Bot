@@ -308,7 +308,7 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
 async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>[]> {
 
 	const storedPrefix = queueGuild.prefix;
-	const storedColor = Number(queueGuild.color);
+	const storedColor = queueGuild.color as unknown as number;
 
 	const queueMembers = await knex<QueueMember>('queue_members')
 		.where('queue_channel_id', queueChannel.id).orderBy('created_at');
