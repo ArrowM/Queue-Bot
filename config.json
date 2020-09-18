@@ -1,5 +1,5 @@
 {
-  "token": "NzIxNDAxODc4NjU0NDg0NjMw.XuT_2g.bozidXJbqgEWnMtiWDYHrAluHF4",
+  "token": "YOUR_TOKEN_HERE",
 
   "color": "#478E81",
   "databaseType": "postgresql",
@@ -9,7 +9,7 @@
   "databasePassword": " ",
   "gracePeriod": "0",
   "permissionsRegexp": "\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b",
-  "prefix": "~",
+  "prefix": "!",
 
   "clearCmd": "clear",
   "colorCmd": "color",

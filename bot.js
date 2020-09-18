@@ -129,7 +129,7 @@ function removeStoredQueueMembers(queueChannelId, memberIdsToRemove) {
             if (memberIdsToRemove) {
                 storedMemberQuery = knex('queue_members')
                     .where('queue_channel_id', queueChannelId)
-                    .whereIn('queue_member_id', memberIdsToRemove)
+                    .where('queue_member_id', 'in', memberIdsToRemove)
                     .first();
             }
             else {
