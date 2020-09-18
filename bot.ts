@@ -132,11 +132,12 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 
 	await getLock(displayChannelsLocks, queueChannelId).runExclusive(async () => {
 		// Retreive list of stored embeds for display channel
-		const storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels')
-			.where('queue_channel_id', queueChannelId)
-			.where('display_channel_id', displayChannelIdToRemove);
-		const storedDisplayChannels = await storedDisplayChannelsQuery;
+		let storedDisplayChannelsQuery = knex('display_channels').where('queue_channel_id', queueChannelId);
+		if (displayChannelIdToRemove) {
+			storedDisplayChannelsQuery = storedDisplayChannelsQuery.where('display_channel_id', displayChannelIdToRemove);
+		}
 
+		const storedDisplayChannels = await storedDisplayChannelsQuery;
 		if (!storedDisplayChannels) return;
 
 		// If found, delete them from discord

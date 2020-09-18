@@ -90,9 +90,10 @@ function addStoredDisplays(queueChannel, displayChannel, embedList) {
 function removeStoredDisplays(queueChannelId, displayChannelIdToRemove) {
     return __awaiter(this, void 0, void 0, function* () {
         yield getLock(displayChannelsLocks, queueChannelId).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
-            const storedDisplayChannelsQuery = knex('display_channels')
-                .where('queue_channel_id', queueChannelId)
-                .where('display_channel_id', displayChannelIdToRemove);
+            let storedDisplayChannelsQuery = knex('display_channels').where('queue_channel_id', queueChannelId);
+            if (displayChannelIdToRemove) {
+                storedDisplayChannelsQuery = storedDisplayChannelsQuery.where('display_channel_id', displayChannelIdToRemove);
+            }
             const storedDisplayChannels = yield storedDisplayChannelsQuery;
             if (!storedDisplayChannels)
                 return;
