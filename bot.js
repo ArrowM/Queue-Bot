@@ -59,17 +59,11 @@ function sendResponse(message, messageToSend) {
         const channel = message.channel;
         if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
             return message.channel.send(messageToSend)
-                .catch(e => {
-                console.error(e);
-                return null;
-            });
+                .catch(() => null);
         }
         else {
             return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
-                .catch(e => {
-                console.error(e);
-                return null;
-            });
+                .catch(() => null);
         }
     });
 }
@@ -96,12 +90,11 @@ function addStoredDisplays(queueChannel, displayChannel, embedList) {
 function removeStoredDisplays(queueChannelId, displayChannelIdToRemove) {
     return __awaiter(this, void 0, void 0, function* () {
         yield getLock(displayChannelsLocks, queueChannelId).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
-            let storedDisplayChannelsQuery = knex('display_channels').where('queue_channel_id', queueChannelId);
-            if (displayChannelIdToRemove) {
-                storedDisplayChannelsQuery = storedDisplayChannelsQuery.where('display_channel_id', displayChannelIdToRemove);
-            }
+            const storedDisplayChannelsQuery = knex('display_channels')
+                .where('queue_channel_id', queueChannelId)
+                .where('display_channel_id', displayChannelIdToRemove);
             const storedDisplayChannels = yield storedDisplayChannelsQuery;
-            if (!storedDisplayChannels || storedDisplayChannels.length === 0)
+            if (!storedDisplayChannels)
                 return;
             for (const storedDisplayChannel of storedDisplayChannels) {
                 const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
@@ -223,7 +216,7 @@ function getGracePeriodString(gracePeriod) {
                 const timeString = (graceMinutes > 0 ? graceMinutes + ' minute' : '') + (graceMinutes > 1 ? 's' : '')
                     + (graceMinutes > 0 && graceSeconds > 0 ? ' and ' : '')
                     + (graceSeconds > 0 ? graceSeconds + ' second' : '') + (graceSeconds > 1 ? 's' : '');
-                result = ` If you leave, you have ${timeString} to rejoin before being removed from the queue.`;
+                result = ` If you leave, you have ${timeString} to rejoin to reclaim your spot.`;
             }
             gracePeriodCache.set(gracePeriod, result);
         }
@@ -233,7 +226,7 @@ function getGracePeriodString(gracePeriod) {
 function generateEmbed(queueGuild, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
         const storedPrefix = queueGuild.prefix;
-        const storedColor = queueGuild.color;
+        const storedColor = Number(queueGuild.color);
         const queueMembers = yield knex('queue_members')
             .where('queue_channel_id', queueChannel.id).orderBy('created_at');
         const embedList = [{
@@ -289,43 +282,47 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                 return;
             const embedList = yield generateEmbed(queueGuild, queueChannel);
             for (const storedDisplayChannel of storedDisplayChannels) {
-                const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
-                if (displayChannel) {
-                    if (queueGuild.msg_on_update) {
-                        yield removeStoredDisplays(queueChannel.id, displayChannel.id);
-                        yield addStoredDisplays(queueChannel, displayChannel, embedList);
-                    }
-                    else {
-                        const storedEmbeds = [];
-                        let removeEmbeds = false;
-                        for (const id of storedDisplayChannel.embed_ids) {
-                            const storedEmbed = yield displayChannel.messages.fetch(id).catch(() => null);
-                            if (storedEmbed) {
-                                storedEmbeds.push(storedEmbed);
-                            }
-                            else {
-                                removeEmbeds = true;
-                            }
-                        }
-                        if (removeEmbeds) {
-                            yield removeStoredDisplays(queueChannel.id, displayChannel.id);
-                            continue;
-                        }
-                        else if (storedEmbeds.length === embedList.length) {
-                            for (let i = 0; i < embedList.length; i++) {
-                                yield storedEmbeds[i]
-                                    .edit({ embed: embedList[i] })
-                                    .catch(() => null);
-                            }
-                        }
-                        else {
+                try {
+                    const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id);
+                    if (displayChannel) {
+                        if (queueGuild.msg_on_update) {
                             yield removeStoredDisplays(queueChannel.id, displayChannel.id);
                             yield addStoredDisplays(queueChannel, displayChannel, embedList);
                         }
+                        else {
+                            const storedEmbeds = [];
+                            let removeEmbeds = false;
+                            for (const id of storedDisplayChannel.embed_ids) {
+                                const storedEmbed = yield displayChannel.messages.fetch(id).catch(() => null);
+                                if (storedEmbed) {
+                                    storedEmbeds.push(storedEmbed);
+                                }
+                                else {
+                                    removeEmbeds = true;
+                                }
+                            }
+                            if (removeEmbeds) {
+                                yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                                continue;
+                            }
+                            else if (storedEmbeds.length === embedList.length) {
+                                for (let i = 0; i < embedList.length; i++) {
+                                    yield storedEmbeds[i]
+                                        .edit({ embed: embedList[i] })
+                                        .catch(() => null);
+                                }
+                            }
+                            else {
+                                yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                                yield addStoredDisplays(queueChannel, displayChannel, embedList);
+                            }
+                        }
+                    }
+                    else {
+                        yield removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
                     }
                 }
-                else if (displayChannel == undefined) {
-                    yield removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
+                catch (e) {
                 }
             }
         }
@@ -545,7 +542,7 @@ function kickMember(queueGuild, parsed, message) {
         yield getLock(membersLocks, queueChannel.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
             const storedQueueMembersQuery = knex('queue_members')
                 .where('queue_channel_id', queueChannel.id)
-                .where('queue_member_id', 'in', memberIdsToKick);
+                .whereIn('queue_member_id', memberIdsToKick);
             const storedQueueMemberIds = (yield storedQueueMembersQuery).map(member => member.queue_member_id);
             if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
                 updateDisplays = true;
@@ -690,17 +687,14 @@ function help(queueGuild, parsed, message) {
         const channel = yield findChannel(queueGuild, availableChannels, parsed, message, false, 'text');
         if (parsed.arguments && channel) {
             if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-                embeds.forEach(em => channel.send(em)
-                    .catch(e => console.error(e)));
+                embeds.forEach(em => channel.send(em).catch(() => null));
             }
             else {
-                message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
-                    .catch(e => console.error(e));
+                message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
             }
         }
         else {
-            embeds.map(em => message.author.send(em)
-                .catch(e => console.error(e)));
+            embeds.map(em => message.author.send(em).catch(() => null));
             yield sendResponse(message, "I have sent help to your PMs.");
         }
     });
@@ -822,41 +816,45 @@ function resumeQueueAfterOffline() {
         const storedQueueGuildsQuery = knex('queue_guilds');
         const storedQueueGuilds = yield storedQueueGuildsQuery;
         for (const storedQueueGuild of storedQueueGuilds) {
-            const guild = yield client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null);
-            if (guild) {
-                const storedQueueChannelsQuery = knex('queue_channels').where('guild_id', guild.id);
-                const storedQueueChannels = yield storedQueueChannelsQuery;
-                for (const storedQueueChannel of storedQueueChannels) {
-                    const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id);
-                    if (queueChannel) {
-                        if (queueChannel.type !== 'voice')
-                            continue;
-                        const storedQueueMembersQuery = knex('queue_members').where('queue_channel_id', queueChannel.id);
-                        const storedQueueMemberIds = (yield storedQueueMembersQuery).map(member => member.queue_member_id);
-                        const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
-                        for (const storedQueueMemberId of storedQueueMemberIds) {
-                            if (!queueMemberIds.includes(storedQueueMemberId)) {
-                                yield storedQueueMembersQuery.where('queue_member_id', storedQueueMemberId).del();
+            try {
+                const guild = yield client.guilds.fetch(storedQueueGuild.guild_id);
+                if (guild) {
+                    const storedQueueChannelsQuery = knex('queue_channels').where('guild_id', guild.id);
+                    const storedQueueChannels = yield storedQueueChannelsQuery;
+                    for (const storedQueueChannel of storedQueueChannels) {
+                        const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id);
+                        if (queueChannel) {
+                            if (queueChannel.type !== 'voice')
+                                continue;
+                            const storedQueueMembersQuery = knex('queue_members').where('queue_channel_id', queueChannel.id);
+                            const storedQueueMemberIds = (yield storedQueueMembersQuery).map(member => member.queue_member_id);
+                            const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
+                            for (const storedQueueMemberId of storedQueueMemberIds) {
+                                if (!queueMemberIds.includes(storedQueueMemberId)) {
+                                    yield storedQueueMembersQuery.where('queue_member_id', storedQueueMemberId).del();
+                                }
                             }
-                        }
-                        for (const queueMemberId of queueMemberIds) {
-                            if (!storedQueueMemberIds.includes(queueMemberId)) {
-                                yield storedQueueMembersQuery.insert({
-                                    queue_channel_id: queueChannel.id,
-                                    queue_member_id: queueMemberId
-                                });
+                            for (const queueMemberId of queueMemberIds) {
+                                if (!storedQueueMemberIds.includes(queueMemberId)) {
+                                    yield storedQueueMembersQuery.insert({
+                                        queue_channel_id: queueChannel.id,
+                                        queue_member_id: queueMemberId
+                                    });
+                                }
                             }
+                            yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
                         }
-                        yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
-                    }
-                    else {
-                        yield removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
+                        else {
+                            yield removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
+                        }
                     }
                 }
+                else {
+                    yield storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
+                    yield removeStoredQueueChannel(storedQueueGuild.guild_id);
+                }
             }
-            else if (guild == undefined) {
-                yield storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
-                yield removeStoredQueueChannel(storedQueueGuild.guild_id);
+            catch (e) {
             }
         }
     });

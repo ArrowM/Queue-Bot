@@ -1,4 +1,4 @@
-export NODE_VER=14.8.0
+export NODE_VER=14.11.0
 if ! node --version | grep -q ${NODE_VER}; then
   (cat /proc/cpuinfo | grep -q "Pi Zero") && if [ ! -d node-v${NODE_VER}-linux-armv6l ]; then
     echo "Installing nodejs ${NODE_VER} for armv6 from unofficial builds..."

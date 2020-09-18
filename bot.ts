@@ -88,16 +88,10 @@ async function sendResponse(message: Message, messageToSend: {} | string): Promi
 	const channel = message.channel as TextChannel;
 	if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 		return message.channel.send(messageToSend)
-			.catch(e => {
-				console.error(e);
-				return null;
-			});
+			.catch(() => null);
 	} else {
 		return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
-			.catch(e => {
-				console.error(e);
-				return null;
-			});
+			.catch(() => null);
 	}
 }
 
@@ -138,14 +132,14 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 
 	await getLock(displayChannelsLocks, queueChannelId).runExclusive(async () => {
 		// Retreive list of stored embeds for display channel
-		let storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels').where('queue_channel_id', queueChannelId);
-		if (displayChannelIdToRemove) {
-			storedDisplayChannelsQuery = storedDisplayChannelsQuery.where('display_channel_id', displayChannelIdToRemove);
-		}
+		const storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels')
+			.where('queue_channel_id', queueChannelId)
+			.where('display_channel_id', displayChannelIdToRemove);
 		const storedDisplayChannels = await storedDisplayChannelsQuery;
-		// If found, delete them from discord
-		if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
+		if (!storedDisplayChannels) return;
+
+		// If found, delete them from discord
 		for (const storedDisplayChannel of storedDisplayChannels) {
 			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 			if (!displayChannel) continue;
@@ -192,7 +186,7 @@ async function removeStoredQueueMembers(queueChannelId: string, memberIdsToRemov
 		if (memberIdsToRemove) {
 			storedMemberQuery = knex<QueueMember>('queue_members')
 				.where('queue_channel_id', queueChannelId)
-				.where('queue_member_id', 'in', memberIdsToRemove)
+				.whereIn('queue_member_id', memberIdsToRemove)
 				.first();
 		} else {
 			storedMemberQuery = knex<QueueMember>('queue_members')
@@ -299,7 +293,7 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
 			const timeString = (graceMinutes > 0 ? graceMinutes + ' minute' : '') + (graceMinutes > 1 ? 's' : '')
 				+ (graceMinutes > 0 && graceSeconds > 0 ? ' and ' : '')
 				+ (graceSeconds > 0 ? graceSeconds + ' second' : '') + (graceSeconds > 1 ? 's' : '');
-			result = ` If you leave, you have ${timeString} to rejoin before being removed from the queue.`
+			result = ` If you leave, you have ${timeString} to rejoin to reclaim your spot.`
 		}
 		gracePeriodCache.set(gracePeriod, result);
 	}
@@ -314,7 +308,7 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
 async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>[]> {
 
 	const storedPrefix = queueGuild.prefix;
-	const storedColor = queueGuild.color as unknown as number;
+	const storedColor = Number(queueGuild.color);
 
 	const queueMembers = await knex<QueueMember>('queue_members')
 		.where('queue_channel_id', queueChannel.id).orderBy('created_at');
@@ -387,49 +381,52 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 		const embedList = await generateEmbed(queueGuild, queueChannel);
 		for (const storedDisplayChannel of storedDisplayChannels) {
 			// For each embed list of the queue
-			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
+			try {
+				const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
 
-
-			if (displayChannel) {
-				if (queueGuild.msg_on_update) {
-					// Remove old display
-					await removeStoredDisplays(queueChannel.id, displayChannel.id);
-					// Create new display
-					await addStoredDisplays(queueChannel, displayChannel, embedList);
-
-				} else {
-					// Retrieved display embeds
-					const storedEmbeds: Message[] = [];
-					let removeEmbeds = false;
-					for (const id of storedDisplayChannel.embed_ids) {
-						const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
-						if (storedEmbed) {
-							storedEmbeds.push(storedEmbed);
-						} else {
-							removeEmbeds = true;
-						}
-					}
-					if (removeEmbeds) {
+				if (displayChannel) {
+					if (queueGuild.msg_on_update) {
+						// Remove old display
 						await removeStoredDisplays(queueChannel.id, displayChannel.id);
-						continue;
-					} else if (storedEmbeds.length === embedList.length) {
-						// Replace the old embeds via edit
-						for (let i = 0; i < embedList.length; i++) {
-							await storedEmbeds[i]
-								.edit({ embed: embedList[i] })
-								.catch(() => null);
-						}
-					} else {
-						// Remove the old embed list
-						await removeStoredDisplays(queueChannel.id, displayChannel.id);
-						// Create a new embed list
+						// Create new display
 						await addStoredDisplays(queueChannel, displayChannel, embedList);
+
+					} else {
+						// Retrieved display embeds
+						const storedEmbeds: Message[] = [];
+						let removeEmbeds = false;
+						for (const id of storedDisplayChannel.embed_ids) {
+							const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
+							if (storedEmbed) {
+								storedEmbeds.push(storedEmbed);
+							} else {
+								removeEmbeds = true;
+							}
+						}
+						if (removeEmbeds) {
+							await removeStoredDisplays(queueChannel.id, displayChannel.id);
+							continue;
+						} else if (storedEmbeds.length === embedList.length) {
+							// Replace the old embeds via edit
+							for (let i = 0; i < embedList.length; i++) {
+								await storedEmbeds[i]
+									.edit({ embed: embedList[i] })
+									.catch(() => null);
+							}
+						} else {
+							// Remove the old embed list
+							await removeStoredDisplays(queueChannel.id, displayChannel.id);
+							// Create a new embed list
+							await addStoredDisplays(queueChannel, displayChannel, embedList);
+						}
 					}
+				} else {
+					// Handled deleted display channels
+					await removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
 				}
-			} else if (displayChannel == undefined) { // Leave as ==
-				// Handled deleted display channels
-				await removeStoredDisplays(queueChannel.id, storedDisplayChannel.display_channel_id);
-			}
+			} catch (e) {
+				// Skip
+            }
 		}
 	}
 }
@@ -733,7 +730,7 @@ async function kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, messa
 	await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
 		const storedQueueMembersQuery = knex<QueueMember>('queue_members')
 			.where('queue_channel_id', queueChannel.id)
-			.where('queue_member_id', 'in', memberIdsToKick);
+			.whereIn('queue_member_id', memberIdsToKick);
 		const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
 
 		if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
@@ -905,17 +902,14 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
 	if (parsed.arguments && channel) {
 		if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 			// Channel found and bot has permission, print.
-			embeds.forEach(em => channel.send(em)
-				.catch(e => console.error(e)));
+			embeds.forEach(em => channel.send(em).catch(() => null));
 		} else {
 			// Channel found, but no permission. Send permission and help messages to user.
-			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
-				.catch(e => console.error(e));
+			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
 		}
 	} else {
 		// No channel provided. Send help to user.
-		embeds.map(em => message.author.send(em)
-			.catch(e => console.error(e)));
+		embeds.map(em => message.author.send(em).catch(() => null));
 
 		await sendResponse(message, "I have sent help to your PMs.");
 	}
@@ -1094,49 +1088,57 @@ async function resumeQueueAfterOffline() {
 	const storedQueueGuildsQuery = knex<QueueGuild>('queue_guilds');
 	const storedQueueGuilds = await storedQueueGuildsQuery;
 	for (const storedQueueGuild of storedQueueGuilds) {
-		const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null);
-		if (guild) {
-			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
-			const storedQueueChannels = await storedQueueChannelsQuery;
-			for (const storedQueueChannel of storedQueueChannels) {
-				const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
-				if (queueChannel) {
-					if (queueChannel.type !== 'voice') continue;
-					// Fetch stored and live members
-					const storedQueueMembersQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id);
-					const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
-					const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
-					// Update member lists
-					for (const storedQueueMemberId of storedQueueMemberIds) {
-						if (!queueMemberIds.includes(storedQueueMemberId)) {
-							await storedQueueMembersQuery.where('queue_member_id', storedQueueMemberId).del();
+		try {
+			const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id);
+
+			if (guild) {
+				const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
+				const storedQueueChannels = await storedQueueChannelsQuery;
+				for (const storedQueueChannel of storedQueueChannels) {
+					const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
+					if (queueChannel) {
+						if (queueChannel.type !== 'voice') continue;
+
+						// Fetch stored and live members
+						const storedQueueMembersQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id);
+						const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
+						const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
+
+						// Update member lists
+						for (const storedQueueMemberId of storedQueueMemberIds) {
+							if (!queueMemberIds.includes(storedQueueMemberId)) {
+								await storedQueueMembersQuery.where('queue_member_id', storedQueueMemberId).del();
+							}
 						}
-					}
-					for (const queueMemberId of queueMemberIds) {
-						if (!storedQueueMemberIds.includes(queueMemberId)) {
-							await storedQueueMembersQuery.insert({
-								queue_channel_id: queueChannel.id,
-								queue_member_id: queueMemberId
-							});
+						for (const queueMemberId of queueMemberIds) {
+							if (!storedQueueMemberIds.includes(queueMemberId)) {
+								await storedQueueMembersQuery.insert({
+									queue_channel_id: queueChannel.id,
+									queue_member_id: queueMemberId
+								});
+							}
 						}
+						// Update displays
+						await updateDisplayQueue(storedQueueGuild, [queueChannel]);
+					} else {
+						// Cleanup deleted queue channels
+						await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
 					}
-					// Update displays
-					await updateDisplayQueue(storedQueueGuild, [queueChannel]);
-				} else {
-					// Cleanup deleted queue channels
-					await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
 				}
+			} else {
+				// Cleanup deleted guilds
+				await storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
+				await removeStoredQueueChannel(storedQueueGuild.guild_id);
 			}
-		} else if (guild == undefined) { // Leave as ==
-			// Cleanup deleted guilds
-			await storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
-			await removeStoredQueueChannel(storedQueueGuild.guild_id);
-		}
+		} catch (e) {
+			// Skip
+        }
 	}
 }
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once('ready', async () => {
+
 	// Create a table
 	await knex.schema.hasTable('queue_guilds').then(exists => {
 		if (!exists) knex.schema.createTable('queue_guilds', table => {
