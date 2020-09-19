@@ -399,6 +399,16 @@ function start(queueGuild, parsed, message) {
             if (channel.type === 'voice') {
                 try {
                     const connection = yield channel.join();
+                    let retryCounter = 0;
+                    connection.on('error failed', () => {
+                        if (retryCounter <= 3) {
+                            setTimeout(function () {
+                                channel.join();
+                                connection.voice.setSelfDeaf(true);
+                                connection.voice.setSelfMute(true);
+                            }, (retryCounter++) * 1000);
+                        }
+                    });
                     connection.once("ready", () => {
                         connection.voice.setSelfDeaf(true);
                         connection.voice.setSelfMute(true);
