@@ -529,33 +529,28 @@ async function fetchChannel(queueGuild: QueueGuild, parsed: ParsedArguments, mes
  * @param parsed
  * @param message Discord message object.
  */
-async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
+	fetchedChannel?: VoiceChannel | TextChannel, retryCounter?: number): Promise<void> {
 
-	const channel = await fetchChannel(queueGuild, parsed, message, false, 'voice');
+	const channel = fetchedChannel || await fetchChannel(queueGuild, parsed, message, false, 'voice');
+	retryCounter = retryCounter || 0;
+
 	if (!channel) return;
 
 	if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
 		if (channel.type === 'voice') {
-			try {
-				const connection = await channel.join();
-				let retryCounter = 0;
-				connection.on('error failed', () => {
+			const connection = await channel.join();
+			connection.on('error failed', () => {
+				setTimeout(function () {
 					if (retryCounter <= 3) {
-						setTimeout(function () {
-							channel.join();
-							connection.voice.setSelfDeaf(true);
-							connection.voice.setSelfMute(true);
-						}, (retryCounter++) * 1000);
-                    }
-				});
-				connection.once("ready", () => {
-					connection.voice.setSelfDeaf(true);
-					connection.voice.setSelfMute(true);
-				});
-			} catch (e) {
-				console.error('START error: ' + e);
-				sendResponse(message, `Error connecting to ${channel.name}`);
-            }
+						start(queueGuild, parsed, message, channel, retryCounter);
+					}
+				}, (retryCounter++) * 2000);
+			});
+			connection.once("ready", () => {
+				connection.voice.setSelfDeaf(true);
+				connection.voice.setSelfMute(true);
+			});
 		} else {
 			await sendResponse(message, "I can only join voice channels.");
 		}

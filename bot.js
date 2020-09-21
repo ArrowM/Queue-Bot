@@ -390,34 +390,26 @@ function fetchChannel(queueGuild, parsed, message, includeMention, type) {
         }
     });
 }
-function start(queueGuild, parsed, message) {
+function start(queueGuild, parsed, message, fetchedChannel, retryCounter) {
     return __awaiter(this, void 0, void 0, function* () {
-        const channel = yield fetchChannel(queueGuild, parsed, message, false, 'voice');
+        const channel = fetchedChannel || (yield fetchChannel(queueGuild, parsed, message, false, 'voice'));
+        retryCounter = retryCounter || 0;
         if (!channel)
             return;
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
-                try {
-                    const connection = yield channel.join();
-                    let retryCounter = 0;
-                    connection.on('error failed', () => {
+                const connection = yield channel.join();
+                connection.on('error failed', () => {
+                    setTimeout(function () {
                         if (retryCounter <= 3) {
-                            setTimeout(function () {
-                                channel.join();
-                                connection.voice.setSelfDeaf(true);
-                                connection.voice.setSelfMute(true);
-                            }, (retryCounter++) * 1000);
+                            start(queueGuild, parsed, message, channel, retryCounter);
                         }
-                    });
-                    connection.once("ready", () => {
-                        connection.voice.setSelfDeaf(true);
-                        connection.voice.setSelfMute(true);
-                    });
-                }
-                catch (e) {
-                    console.error('START error: ' + e);
-                    sendResponse(message, `Error connecting to ${channel.name}`);
-                }
+                    }, (retryCounter++) * 2000);
+                });
+                connection.once("ready", () => {
+                    connection.voice.setSelfDeaf(true);
+                    connection.voice.setSelfMute(true);
+                });
             }
             else {
                 yield sendResponse(message, "I can only join voice channels.");
