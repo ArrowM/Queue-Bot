@@ -5,7 +5,7 @@ import Knex from 'knex';
 import config from "./config.json";
 
 // Setup client
-require('events').EventEmitter.defaultMaxListeners = 40; // Maximum number of events that can be handled at once.
+require('events').EventEmitter.defaultMaxListeners = 100; // Maximum number of events that can be handled at once.
 const client = new Client({
 	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
 	presence: {
@@ -146,8 +146,9 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 			if (!displayChannel) continue;
 			// Attempt to delete each of display embeds from discord
 			for (const embedId of storedDisplayChannel.embed_ids) {
-				const embed: Message = await displayChannel.messages.fetch(embedId).catch(() => null);
-				embed?.delete();
+				await displayChannel.messages.fetch(embedId)
+					.then(embed => embed?.delete())
+					.catch(() => null);
 			}
 		}
 		// Delete stored embeds
@@ -529,24 +530,15 @@ async function fetchChannel(queueGuild: QueueGuild, parsed: ParsedArguments, mes
  * @param parsed
  * @param message Discord message object.
  */
-async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
-	fetchedChannel?: VoiceChannel | TextChannel, retryCounter?: number): Promise<void> {
+async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
 
-	const channel = fetchedChannel || await fetchChannel(queueGuild, parsed, message, false, 'voice');
-	retryCounter = retryCounter || 0;
-
+	const channel = await fetchChannel(queueGuild, parsed, message, false, 'voice');
 	if (!channel) return;
 
 	if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
 		if (channel.type === 'voice') {
 			const connection = await channel.join();
-			connection.on('error failed', () => {
-				setTimeout(function () {
-					if (retryCounter <= 3) {
-						start(queueGuild, parsed, message, channel, retryCounter);
-					}
-				}, (retryCounter++) * 2000);
-			});
+			connection.on('error failed', () => { null });
 			connection.once("ready", () => {
 				connection.voice.setSelfDeaf(true);
 				connection.voice.setSelfMute(true);

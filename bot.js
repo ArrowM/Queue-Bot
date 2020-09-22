@@ -16,7 +16,7 @@ const discord_js_1 = require("discord.js");
 const async_mutex_1 = require("async-mutex");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
-require('events').EventEmitter.defaultMaxListeners = 40;
+require('events').EventEmitter.defaultMaxListeners = 100;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
     presence: {
@@ -102,8 +102,9 @@ function removeStoredDisplays(queueChannelId, displayChannelIdToRemove) {
                 if (!displayChannel)
                     continue;
                 for (const embedId of storedDisplayChannel.embed_ids) {
-                    const embed = yield displayChannel.messages.fetch(embedId).catch(() => null);
-                    embed === null || embed === void 0 ? void 0 : embed.delete();
+                    yield displayChannel.messages.fetch(embedId)
+                        .then(embed => embed === null || embed === void 0 ? void 0 : embed.delete())
+                        .catch(() => null);
                 }
             }
             yield storedDisplayChannelsQuery.del();
@@ -390,22 +391,15 @@ function fetchChannel(queueGuild, parsed, message, includeMention, type) {
         }
     });
 }
-function start(queueGuild, parsed, message, fetchedChannel, retryCounter) {
+function start(queueGuild, parsed, message) {
     return __awaiter(this, void 0, void 0, function* () {
-        const channel = fetchedChannel || (yield fetchChannel(queueGuild, parsed, message, false, 'voice'));
-        retryCounter = retryCounter || 0;
+        const channel = yield fetchChannel(queueGuild, parsed, message, false, 'voice');
         if (!channel)
             return;
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
                 const connection = yield channel.join();
-                connection.on('error failed', () => {
-                    setTimeout(function () {
-                        if (retryCounter <= 3) {
-                            start(queueGuild, parsed, message, channel, retryCounter);
-                        }
-                    }, (retryCounter++) * 2000);
-                });
+                connection.on('error failed', () => { null; });
                 connection.once("ready", () => {
                     connection.voice.setSelfDeaf(true);
                     connection.voice.setSelfMute(true);
