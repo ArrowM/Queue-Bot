@@ -19,9 +19,9 @@
   "helpCmd": "h",
   "joinCmd": "j",
   "kickCmd": "k",
+  "modeCmd": "mode",
   "nextCmd": "n",
   "queueCmd": "q",
   "shuffleCmd": "shuffle",
-  "startCmd": "s",
-  "toggleAlwaysMessageOnUpdateCmd": "always"
+  "startCmd": "s"
 }
