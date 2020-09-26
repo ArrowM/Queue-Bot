@@ -31,7 +31,7 @@ const ServerSettings = {
     [config_json_1.default.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
     [config_json_1.default.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },
     [config_json_1.default.colorCmd]: { dbVariable: 'color', str: "color" },
-    [config_json_1.default.toggleAlwaysMessageOnUpdateCmd]: { dbVariable: 'msg_on_update', str: "always create a new display on update" }
+    [config_json_1.default.modeCmd]: { dbVariable: 'msg_mode', str: "message mode" }
 };
 Object.freeze(ServerSettings);
 const knex = knex_1.default({
@@ -87,7 +87,7 @@ function addStoredDisplays(queueChannel, displayChannel, embedList) {
         }));
     });
 }
-function removeStoredDisplays(queueChannelId, displayChannelIdToRemove) {
+function removeStoredDisplays(queueChannelId, displayChannelIdToRemove, deleteOldDisplayMsg = true) {
     return __awaiter(this, void 0, void 0, function* () {
         yield getLock(displayChannelsLocks, queueChannelId).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
             let storedDisplayChannelsQuery = knex('display_channels').where('queue_channel_id', queueChannelId);
@@ -95,7 +95,8 @@ function removeStoredDisplays(queueChannelId, displayChannelIdToRemove) {
                 storedDisplayChannelsQuery = storedDisplayChannelsQuery.where('display_channel_id', displayChannelIdToRemove);
             }
             const storedDisplayChannels = yield storedDisplayChannelsQuery;
-            if (!storedDisplayChannels)
+            yield storedDisplayChannelsQuery.del();
+            if (!storedDisplayChannels || !deleteOldDisplayMsg)
                 return;
             for (const storedDisplayChannel of storedDisplayChannels) {
                 const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
@@ -107,7 +108,6 @@ function removeStoredDisplays(queueChannelId, displayChannelIdToRemove) {
                         .catch(() => null);
                 }
             }
-            yield storedDisplayChannelsQuery.del();
         }));
     });
 }
@@ -287,11 +287,7 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                 try {
                     const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id);
                     if (displayChannel) {
-                        if (queueGuild.msg_on_update) {
-                            yield removeStoredDisplays(queueChannel.id, displayChannel.id);
-                            yield addStoredDisplays(queueChannel, displayChannel, embedList);
-                        }
-                        else {
+                        if (queueGuild.msg_mode === 1) {
                             const storedEmbeds = [];
                             let removeEmbeds = false;
                             for (const id of storedDisplayChannel.embed_ids) {
@@ -318,6 +314,10 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                                 yield removeStoredDisplays(queueChannel.id, displayChannel.id);
                                 yield addStoredDisplays(queueChannel, displayChannel, embedList);
                             }
+                        }
+                        else {
+                            yield removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
+                            yield addStoredDisplays(queueChannel, displayChannel, embedList);
                         }
                     }
                     else {
@@ -399,11 +399,10 @@ function start(queueGuild, parsed, message) {
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
                 const connection = yield channel.join();
-                connection.on('error failed', () => { null; });
-                connection.once("ready", () => {
-                    connection.voice.setSelfDeaf(true);
-                    connection.voice.setSelfMute(true);
-                });
+                connection.on('error', () => null);
+                connection.on('failed', () => null);
+                connection === null || connection === void 0 ? void 0 : connection.voice.setSelfDeaf(true).catch(() => null);
+                connection === null || connection === void 0 ? void 0 : connection.voice.setSelfMute(true).catch(() => null);
             }
             else {
                 yield sendResponse(message, "I can only join voice channels.");
@@ -674,7 +673,7 @@ function help(queueGuild, parsed, message) {
                         },
                         {
                             "name": "Change the Display Method",
-                            "value": `\`${storedPrefix}${config_json_1.default.toggleAlwaysMessageOnUpdateCmd}\` toggles whether a change to the queue will update the old display message (default), or create a new one.`
+                            "value": `\`${storedPrefix}${config_json_1.default.modeCmd} {new mode}\` Changes how the display messages are updated. Use ${storedPrefix}${config_json_1.default.modeCmd} to see the different update modes.`
                         }
                     ]
                 }
@@ -731,7 +730,7 @@ function createDefaultGuild(guildId) {
             grace_period: '0',
             prefix: config_json_1.default.prefix,
             color: '#51ff7e',
-            msg_on_update: false
+            msg_mode: 1
         });
         return yield knex('queue_guilds').where('guild_id', guildId).first();
     });
@@ -783,9 +782,11 @@ client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* ()
                         "color": queueGuild.color
                     });
                     break;
-                case config_json_1.default.toggleAlwaysMessageOnUpdateCmd:
-                    parsed.arguments = String(!queueGuild.msg_on_update);
-                    setServerSettings(queueGuild, parsed, message, true);
+                case config_json_1.default.modeCmd:
+                    setServerSettings(queueGuild, parsed, message, +parsed.arguments >= 1 && +parsed.arguments <= 3, 'When the queue changes: \n' +
+                        '`1`: (default) Update old display message \n' +
+                        '`2`: Send a new display message and delete the old one. \n' +
+                        '`3`: Send a new display message.');
                     break;
             }
         }
@@ -864,7 +865,7 @@ client.once('ready', () => __awaiter(void 0, void 0, void 0, function* () {
                 table.text('grace_period');
                 table.text('prefix');
                 table.text('color');
-                table.boolean('msg_on_update');
+                table.boolean('msg_mode');
             }).catch(e => console.error(e));
     });
     yield knex.schema.hasTable('queue_channels').then(exists => {
@@ -894,6 +895,15 @@ client.once('ready', () => __awaiter(void 0, void 0, void 0, function* () {
             }).catch(e => console.error(e));
     });
     yield resumeQueueAfterOffline();
+    if (yield knex.schema.hasColumn('queue_guilds', 'msg_on_update')) {
+        console.log('Migrating message mode');
+        yield knex.schema.table('queue_guilds', table => table.integer('msg_mode'));
+        (yield knex('queue_guilds')).forEach((queueGuild) => __awaiter(void 0, void 0, void 0, function* () {
+            yield knex('queue_guilds').where('guild_id', queueGuild.guild_id)
+                .update('msg_mode', queueGuild['msg_on_update'] ? 2 : 1);
+        }));
+        yield knex.schema.table('queue_guilds', table => table.dropColumn('msg_on_update'));
+    }
     console.log('Ready!');
 }));
 client.on('shardResume', () => __awaiter(void 0, void 0, void 0, function* () {

@@ -22,7 +22,7 @@ const ServerSettings = {
 	[config.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
 	[config.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },
 	[config.colorCmd]: { dbVariable: 'color', str: "color" },
-	[config.toggleAlwaysMessageOnUpdateCmd]: {dbVariable: 'msg_on_update', str: "always create a new display on update"}
+	[config.modeCmd]: {dbVariable: 'msg_mode', str: "message mode"}
 };
 Object.freeze(ServerSettings);
 
@@ -42,7 +42,7 @@ interface QueueGuild {
 	grace_period: string;
 	prefix: string;
 	color: string;
-	msg_on_update: boolean;
+	msg_mode: number;
 }
 
 interface QueueChannel {
@@ -128,7 +128,7 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
  * @param queueChannelId
  * @param displayChannelIdToRemove
  */
-async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRemove?: string): Promise<void> {
+async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRemove?: string, deleteOldDisplayMsg = true): Promise<void> {
 
 	await getLock(displayChannelsLocks, queueChannelId).runExclusive(async () => {
 		// Retreive list of stored embeds for display channel
@@ -138,7 +138,10 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 		}
 
 		const storedDisplayChannels = await storedDisplayChannelsQuery;
-		if (!storedDisplayChannels) return;
+		// Delete stored embeds
+		await storedDisplayChannelsQuery.del();
+
+		if (!storedDisplayChannels || !deleteOldDisplayMsg) return;
 
 		// If found, delete them from discord
 		for (const storedDisplayChannel of storedDisplayChannels) {
@@ -151,8 +154,6 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 					.catch(() => null);
 			}
 		}
-		// Delete stored embeds
-		await storedDisplayChannelsQuery.del();
 	});
 }
 
@@ -387,13 +388,8 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 				const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
 
 				if (displayChannel) {
-					if (queueGuild.msg_on_update) {
-						// Remove old display
-						await removeStoredDisplays(queueChannel.id, displayChannel.id);
-						// Create new display
-						await addStoredDisplays(queueChannel, displayChannel, embedList);
-
-					} else {
+					if (queueGuild.msg_mode === 1) {
+						/* Edit */
 						// Retrieved display embeds
 						const storedEmbeds: Message[] = [];
 						let removeEmbeds = false;
@@ -421,6 +417,13 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 							// Create a new embed list
 							await addStoredDisplays(queueChannel, displayChannel, embedList);
 						}
+					}
+					else {
+						/* Replace */
+						// Remove old display
+						await removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
+						// Create new display
+						await addStoredDisplays(queueChannel, displayChannel, embedList);
 					}
 				} else {
 					// Handled deleted display channels
@@ -538,11 +541,10 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 	if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
 		if (channel.type === 'voice') {
 			const connection = await channel.join();
-			connection.on('error failed', () => { null });
-			connection.once("ready", () => {
-				connection.voice.setSelfDeaf(true);
-				connection.voice.setSelfMute(true);
-			});
+			connection.on('error', () => null);
+			connection.on('failed', () => null);
+			connection?.voice.setSelfDeaf(true).catch(() => null);
+			connection?.voice.setSelfMute(true).catch(() => null);
 		} else {
 			await sendResponse(message, "I can only join voice channels.");
 		}
@@ -887,7 +889,7 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
 					},
 					{
 						"name": "Change the Display Method",
-						"value": `\`${storedPrefix}${config.toggleAlwaysMessageOnUpdateCmd}\` toggles whether a change to the queue will update the old display message (default), or create a new one.`
+						"value": `\`${storedPrefix}${config.modeCmd} {new mode}\` Changes how the display messages are updated. Use ${storedPrefix}${config.modeCmd} to see the different update modes.`
 					}
                 ]
             }
@@ -969,7 +971,7 @@ async function createDefaultGuild(guildId: string): Promise<QueueGuild> {
 		grace_period: '0',
 		prefix: config.prefix,
 		color: '#51ff7e',
-		msg_on_update: false
+		msg_mode: 1
 	});
 	return await knex<QueueGuild>('queue_guilds').where('guild_id', guildId).first();
 }
@@ -1052,10 +1054,13 @@ client.on('message', async message => {
 					);
 					break;
 				// Toggle New message on update
-				case config.toggleAlwaysMessageOnUpdateCmd:
-					parsed.arguments = String(!queueGuild.msg_on_update); // toggle value
+				case config.modeCmd:
 					setServerSettings(queueGuild, parsed, message,
-						true
+						+parsed.arguments >= 1 && +parsed.arguments <= 3,
+						'When the queue changes: \n' +
+						'`1`: (default) Update old display message \n' +
+						'`2`: Send a new display message and delete the old one. \n' +
+						'`3`: Send a new display message.'
 					);
 					break;
 			}
@@ -1129,7 +1134,7 @@ async function resumeQueueAfterOffline() {
 				await removeStoredQueueChannel(storedQueueGuild.guild_id);
 			}
 		} catch (e) {
-			// Skip
+			// SKIP
         }
 	}
 }
@@ -1144,7 +1149,7 @@ client.once('ready', async () => {
 			table.text('grace_period');
 			table.text('prefix');
 			table.text('color');
-			table.boolean('msg_on_update');
+			table.boolean('msg_mode');
 		}).catch(e => console.error(e));
 	});
 	await knex.schema.hasTable('queue_channels').then(exists => {
@@ -1172,6 +1177,18 @@ client.once('ready', async () => {
 	});
 
 	await resumeQueueAfterOffline();
+
+	// Migration of msg_on_update to msg_mode
+	if (await knex.schema.hasColumn('queue_guilds', 'msg_on_update')) {
+		console.log('Migrating message mode');
+		await knex.schema.table('queue_guilds', table => table.integer('msg_mode'));
+		(await knex<QueueGuild>('queue_guilds')).forEach(async queueGuild => {
+			await knex<QueueGuild>('queue_guilds').where('guild_id', queueGuild.guild_id)
+				.update('msg_mode', queueGuild['msg_on_update'] ? 2 : 1);
+		})
+		await knex.schema.table('queue_guilds', table => table.dropColumn('msg_on_update'));
+    }
+
 	console.log('Ready!');
 });
 
