@@ -888,8 +888,8 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
                         "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the color of bot messages.`
 					},
 					{
-						"name": "Change the Display Method",
-						"value": `\`${storedPrefix}${config.modeCmd} {new mode}\` Changes how the display messages are updated. Use ${storedPrefix}${config.modeCmd} to see the different update modes.`
+						"name": "Change the Display Mode",
+						"value": `\`${storedPrefix}${config.modeCmd} {new mode}\` Changes how the display messages are updated. Use \`${storedPrefix}${config.modeCmd}\` to see the different update modes.`
 					}
                 ]
             }

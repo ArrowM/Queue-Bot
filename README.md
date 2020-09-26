@@ -27,7 +27,7 @@ Moderator commands are available to the server owner and users with any of the f
 | Command Prefix | `!prefix {new prefix}` | Change the prefix for Queue Bot commands. |
 | Change Color | `!color {new color}` | Change the color of bot messages. |
 | Grace Period | `!grace {time in seconds}` | Change how long a person can leave a queue before losing their spot. |
-| Update Method | `!always` | Toggle the update method to send a new message everytime the queue changes instead of editting the last message.
+| Update Mode | `!mode {new mode}` | Changes how the display messages are updated. Use `!mode` to see the different update modes.
 
 ![Example of `!s`](docs/example.gif)  
 
@@ -68,7 +68,8 @@ Moderator commands are available to the server owner and users with any of the f
 | helpCmd               | Command to display the help information.                                                                                          |
 | joinCmd               | Command to join a text channel queue.                                                                                             |
 | kickCmd               | Command to kick users from a queue.                                                                                               |
-| nextCmd               | Command to pull the next user from a text channel                                                                                 |
+| modeCmd               | Command to change the display messaging mode.                                                                                     |
+| nextCmd               | Command to pull the next user from a text channel.                                                                                |
 | queueCmd              | Command to change queues.                                                                                                         |
 | shuffleCmd            | Command to shuffle the queue.                                                                                                     |
 | startCmd              | Command to make the bot join a voice channel.                                                                                     |

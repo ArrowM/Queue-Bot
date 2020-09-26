@@ -672,8 +672,8 @@ function help(queueGuild, parsed, message) {
                             "value": `\`${storedPrefix}${config_json_1.default.colorCmd} {new color}\` changes the color of bot messages.`
                         },
                         {
-                            "name": "Change the Display Method",
-                            "value": `\`${storedPrefix}${config_json_1.default.modeCmd} {new mode}\` Changes how the display messages are updated. Use ${storedPrefix}${config_json_1.default.modeCmd} to see the different update modes.`
+                            "name": "Change the Display Mode",
+                            "value": `\`${storedPrefix}${config_json_1.default.modeCmd} {new mode}\` Changes how the display messages are updated. Use \`${storedPrefix}${config_json_1.default.modeCmd}\` to see the different update modes.`
                         }
                     ]
                 }
