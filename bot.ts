@@ -86,13 +86,13 @@ function getLock(map: Map<string, MutexInterface>, key: string): MutexInterface 
  * @param message
  * @param messageToSend
  */
-async function sendResponse(message: Message, messageToSend: {} | string, channel?: TextChannel): Promise<Message> {
+async function sendResponse(message: Message, messageToSend: {} | string): Promise<Message> {
 
-	channel = channel || message.channel as TextChannel;
+	const channel = message.channel as TextChannel;
 	if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 		return message.channel.send(messageToSend)
 			.catch(() => null);
-	} else if (message) {
+	} else {
 		return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
 			.catch(() => null);
 	}
@@ -111,8 +111,9 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
 		const embedIds: string[] = [];
 		// For each embed, send and collect the id
 		for (const displayEmbed of embedList) {
-			await sendResponse(null, { embed: displayEmbed }, displayChannel)
-				.then(msg => { if (msg) embedIds.push(msg.id) });
+			await displayChannel.send({ embed: displayEmbed })
+				.then(msg => { if (msg) embedIds.push(msg.id) })
+				.catch(() => null);
 		}
 		// Store the ids in the database
 		await knex<DisplayChannel>('display_channels').insert({
@@ -389,42 +390,46 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 				const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
 
 				if (displayChannel) {
-					if (queueGuild.msg_mode === 1) {
-						/* Edit */
-						// Retrieved display embeds
-						const storedEmbeds: Message[] = [];
-						let removeEmbeds = false;
-						for (const id of storedDisplayChannel.embed_ids) {
-							const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
-							if (storedEmbed) {
-								storedEmbeds.push(storedEmbed);
+					if (displayChannel.permissionsFor(displayChannel.guild.me).has('SEND_MESSAGES') &&
+						displayChannel.permissionsFor(displayChannel.guild.me).has('EMBED_LINKS')) {
+
+						if (queueGuild.msg_mode === 1) {
+							/* Edit */
+							// Retrieved display embeds
+							const storedEmbeds: Message[] = [];
+							let removeEmbeds = false;
+							for (const id of storedDisplayChannel.embed_ids) {
+								const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
+								if (storedEmbed) {
+									storedEmbeds.push(storedEmbed);
+								} else {
+									removeEmbeds = true;
+								}
+							}
+							if (removeEmbeds) {
+								await removeStoredDisplays(queueChannel.id, displayChannel.id);
+								continue;
+							} else if (storedEmbeds.length === embedList.length) {
+								// Replace the old embeds via edit
+								for (let i = 0; i < embedList.length; i++) {
+									await storedEmbeds[i]
+										.edit({ embed: embedList[i] })
+										.catch(() => null);
+								}
 							} else {
-								removeEmbeds = true;
+								// Remove the old embed list
+								await removeStoredDisplays(queueChannel.id, displayChannel.id);
+								// Create a new embed list
+								await addStoredDisplays(queueChannel, displayChannel, embedList);
 							}
 						}
-						if (removeEmbeds) {
-							await removeStoredDisplays(queueChannel.id, displayChannel.id);
-							continue;
-						} else if (storedEmbeds.length === embedList.length) {
-							// Replace the old embeds via edit
-							for (let i = 0; i < embedList.length; i++) {
-								await storedEmbeds[i]
-									.edit({ embed: embedList[i] })
-									.catch(() => null);
-							}
-						} else {
-							// Remove the old embed list
-							await removeStoredDisplays(queueChannel.id, displayChannel.id);
-							// Create a new embed list
+						else {
+							/* Replace */
+							// Remove old display
+							await removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
+							// Create new display
 							await addStoredDisplays(queueChannel, displayChannel, embedList);
 						}
-					}
-					else {
-						/* Replace */
-						// Remove old display
-						await removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
-						// Create new display
-						await addStoredDisplays(queueChannel, displayChannel, embedList);
 					}
 				} else {
 					// Handled deleted display channels

@@ -54,14 +54,14 @@ function getLock(map, key) {
     }
     return lock;
 }
-function sendResponse(message, messageToSend, channel) {
+function sendResponse(message, messageToSend) {
     return __awaiter(this, void 0, void 0, function* () {
-        channel = channel || message.channel;
+        const channel = message.channel;
         if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
             return message.channel.send(messageToSend)
                 .catch(() => null);
         }
-        else if (message) {
+        else {
             return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
                 .catch(() => null);
         }
@@ -72,9 +72,10 @@ function addStoredDisplays(queueChannel, displayChannel, embedList) {
         yield getLock(displayChannelsLocks, queueChannel.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
             const embedIds = [];
             for (const displayEmbed of embedList) {
-                yield sendResponse(null, { embed: displayEmbed }, displayChannel)
+                yield displayChannel.send({ embed: displayEmbed })
                     .then(msg => { if (msg)
-                    embedIds.push(msg.id); });
+                    embedIds.push(msg.id); })
+                    .catch(() => null);
             }
             yield knex('display_channels').insert({
                 queue_channel_id: queueChannel.id,
@@ -284,37 +285,40 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                 try {
                     const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id);
                     if (displayChannel) {
-                        if (queueGuild.msg_mode === 1) {
-                            const storedEmbeds = [];
-                            let removeEmbeds = false;
-                            for (const id of storedDisplayChannel.embed_ids) {
-                                const storedEmbed = yield displayChannel.messages.fetch(id).catch(() => null);
-                                if (storedEmbed) {
-                                    storedEmbeds.push(storedEmbed);
+                        if (displayChannel.permissionsFor(displayChannel.guild.me).has('SEND_MESSAGES') &&
+                            displayChannel.permissionsFor(displayChannel.guild.me).has('EMBED_LINKS')) {
+                            if (queueGuild.msg_mode === 1) {
+                                const storedEmbeds = [];
+                                let removeEmbeds = false;
+                                for (const id of storedDisplayChannel.embed_ids) {
+                                    const storedEmbed = yield displayChannel.messages.fetch(id).catch(() => null);
+                                    if (storedEmbed) {
+                                        storedEmbeds.push(storedEmbed);
+                                    }
+                                    else {
+                                        removeEmbeds = true;
+                                    }
+                                }
+                                if (removeEmbeds) {
+                                    yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                                    continue;
+                                }
+                                else if (storedEmbeds.length === embedList.length) {
+                                    for (let i = 0; i < embedList.length; i++) {
+                                        yield storedEmbeds[i]
+                                            .edit({ embed: embedList[i] })
+                                            .catch(() => null);
+                                    }
                                 }
                                 else {
-                                    removeEmbeds = true;
-                                }
-                            }
-                            if (removeEmbeds) {
-                                yield removeStoredDisplays(queueChannel.id, displayChannel.id);
-                                continue;
-                            }
-                            else if (storedEmbeds.length === embedList.length) {
-                                for (let i = 0; i < embedList.length; i++) {
-                                    yield storedEmbeds[i]
-                                        .edit({ embed: embedList[i] })
-                                        .catch(() => null);
+                                    yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                                    yield addStoredDisplays(queueChannel, displayChannel, embedList);
                                 }
                             }
                             else {
-                                yield removeStoredDisplays(queueChannel.id, displayChannel.id);
+                                yield removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
                                 yield addStoredDisplays(queueChannel, displayChannel, embedList);
                             }
-                        }
-                        else {
-                            yield removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
-                            yield addStoredDisplays(queueChannel, displayChannel, embedList);
                         }
                     }
                     else {
