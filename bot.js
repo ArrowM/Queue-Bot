@@ -54,14 +54,14 @@ function getLock(map, key) {
     }
     return lock;
 }
-function sendResponse(message, messageToSend) {
+function sendResponse(message, messageToSend, channel) {
     return __awaiter(this, void 0, void 0, function* () {
-        const channel = message.channel;
+        channel = channel || message.channel;
         if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
             return message.channel.send(messageToSend)
                 .catch(() => null);
         }
-        else {
+        else if (message) {
             return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
                 .catch(() => null);
         }
@@ -72,12 +72,9 @@ function addStoredDisplays(queueChannel, displayChannel, embedList) {
         yield getLock(displayChannelsLocks, queueChannel.id).runExclusive(() => __awaiter(this, void 0, void 0, function* () {
             const embedIds = [];
             for (const displayEmbed of embedList) {
-                yield displayChannel.send({ embed: displayEmbed })
-                    .then(msg => {
-                    if (msg)
-                        embedIds.push(msg.id);
-                })
-                    .catch(e => console.error('addStoredDisplays: ' + e));
+                yield sendResponse(null, { embed: displayEmbed }, displayChannel)
+                    .then(msg => { if (msg)
+                    embedIds.push(msg.id); });
             }
             yield knex('display_channels').insert({
                 queue_channel_id: queueChannel.id,
@@ -392,6 +389,7 @@ function fetchChannel(queueGuild, parsed, message, includeMention, type) {
     });
 }
 function start(queueGuild, parsed, message) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         const channel = yield fetchChannel(queueGuild, parsed, message, false, 'voice');
         if (!channel)
@@ -401,11 +399,11 @@ function start(queueGuild, parsed, message) {
                 const connection = yield channel.join();
                 connection.on('error', () => null);
                 connection.on('failed', () => null);
-                connection === null || connection === void 0 ? void 0 : connection.voice.setSelfDeaf(true).catch(() => null);
-                connection === null || connection === void 0 ? void 0 : connection.voice.setSelfMute(true).catch(() => null);
+                (_a = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true).catch(() => null);
+                (_b = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true).catch(() => null);
             }
             else {
-                yield sendResponse(message, "I can only join voice channels.");
+                yield sendResponse(message, 'I can only join voice channels.');
             }
         }
         else {
@@ -427,7 +425,7 @@ function displayQueue(queueGuild, parsed, message, queueChannel) {
         }
         else {
             message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\``)
-                .catch(e => console.error(e));
+                .catch(() => null);
         }
     });
 }
@@ -686,11 +684,14 @@ function help(queueGuild, parsed, message) {
                 embeds.forEach(em => channel.send(em).catch(() => null));
             }
             else {
-                message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
+                message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
+                    .catch(() => null);
             }
         }
         else {
-            embeds.map(em => message.author.send(em).catch(() => null));
+            embeds.map(em => {
+                message.author.send(em).catch(() => null);
+            });
             yield sendResponse(message, "I have sent help to your PMs.");
         }
     });
@@ -794,7 +795,7 @@ client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* ()
             config_json_1.default.gracePeriodCmd, config_json_1.default.prefixCmd, config_json_1.default.colorCmd].includes(parsed.command)) {
             message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`.`
                 + `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role on the server to use bot commands.`)
-                .catch(e => console.error(e));
+                .catch(() => null);
         }
         switch (parsed.command) {
             case config_json_1.default.helpCmd:

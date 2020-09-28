@@ -6,6 +6,9 @@ import config from "./config.json";
 
 // Setup client
 require('events').EventEmitter.defaultMaxListeners = 100; // Maximum number of events that can be handled at once.
+
+
+
 const client = new Client({
 	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
 	presence: {
@@ -83,13 +86,13 @@ function getLock(map: Map<string, MutexInterface>, key: string): MutexInterface 
  * @param message
  * @param messageToSend
  */
-async function sendResponse(message: Message, messageToSend: {} | string): Promise<Message> {
+async function sendResponse(message: Message, messageToSend: {} | string, channel?: TextChannel): Promise<Message> {
 
-	const channel = message.channel as TextChannel;
+	channel = channel || message.channel as TextChannel;
 	if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
 		return message.channel.send(messageToSend)
 			.catch(() => null);
-	} else {
+	} else if (message) {
 		return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
 			.catch(() => null);
 	}
@@ -108,11 +111,8 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
 		const embedIds: string[] = [];
 		// For each embed, send and collect the id
 		for (const displayEmbed of embedList) {
-			await displayChannel.send({ embed: displayEmbed })
-				.then(msg => {
-					if (msg) embedIds.push(msg.id)
-				})
-				.catch(e => console.error('addStoredDisplays: ' + e));
+			await sendResponse(null, { embed: displayEmbed }, displayChannel)
+				.then(msg => { if (msg) embedIds.push(msg.id) });
 		}
 		// Store the ids in the database
 		await knex<DisplayChannel>('display_channels').insert({
@@ -127,6 +127,7 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
  * 
  * @param queueChannelId
  * @param displayChannelIdToRemove
+ * @param deleteOldDisplayMsg
  */
 async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRemove?: string, deleteOldDisplayMsg = true): Promise<void> {
 
@@ -543,10 +544,10 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 			const connection = await channel.join();
 			connection.on('error', () => null);
 			connection.on('failed', () => null);
-			connection?.voice.setSelfDeaf(true).catch(() => null);
-			connection?.voice.setSelfMute(true).catch(() => null);
+			connection?.voice?.setSelfDeaf(true).catch(() => null);
+			connection?.voice?.setSelfMute(true).catch(() => null);
 		} else {
-			await sendResponse(message, "I can only join voice channels.");
+			await sendResponse(message, 'I can only join voice channels.');
 		}
 	} else {
 		await sendResponse(message, 'I need the permissions to join your voice channel!');
@@ -576,7 +577,7 @@ async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 		await addStoredDisplays(queueChannel, displayChannel, embedList);
 	} else {
 		message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\``)
-			.catch(e => console.error(e));
+			.catch(() => null);
     }
 }
 
@@ -905,11 +906,14 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
 			embeds.forEach(em => channel.send(em).catch(() => null));
 		} else {
 			// Channel found, but no permission. Send permission and help messages to user.
-			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
+			message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
+				.catch(() => null);
 		}
 	} else {
 		// No channel provided. Send help to user.
-		embeds.map(em => message.author.send(em).catch(() => null));
+		embeds.map(em => {
+			message.author.send(em).catch(() => null)
+		});
 
 		await sendResponse(message, "I have sent help to your PMs.");
 	}
@@ -1068,7 +1072,7 @@ client.on('message', async message => {
 			config.gracePeriodCmd, config.prefixCmd, config.colorCmd].includes(parsed.command)) {
 			message.author.send(`You don't have permission to use bot commands in \`${message.guild.name}\`.`
 				+ `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role on the server to use bot commands.`)
-				.catch(e => console.error(e));
+				.catch(() => null);
         }
 		// Commands open to everyone
 		switch (parsed.command) {
