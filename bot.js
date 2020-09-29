@@ -16,7 +16,6 @@ const discord_js_1 = require("discord.js");
 const async_mutex_1 = require("async-mutex");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
-require('events').EventEmitter.defaultMaxListeners = 100;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
     presence: {
@@ -147,7 +146,7 @@ function addStoredQueueChannel(channelToAdd) {
             yield knex('queue_channels').insert({
                 queue_channel_id: channelToAdd.id,
                 guild_id: channelToAdd.guild.id
-            });
+            }).catch(() => null);
         }));
         if (channelToAdd.type === 'voice') {
             yield addStoredQueueMembers(channelToAdd.id, channelToAdd.members
@@ -928,6 +927,7 @@ function markLeavingMember(member, oldVoiceChannel) {
             member: storedQueueMember,
             time: Date.now()
         });
+        console.log('returningMembersCache size: ' + returningMembersCache.size);
     });
 }
 client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0, void 0, void 0, function* () {
@@ -970,6 +970,7 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
                 const nextQueueMember = yield guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
                 if (nextQueueMember) {
                     blockNextCache.add(nextQueueMember.id);
+                    console.log('blockNextCache size: ' + blockNextCache.size);
                     nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
                     member.voice.setChannel(oldVoiceChannel).catch(() => null);
                 }

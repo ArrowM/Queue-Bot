@@ -5,7 +5,7 @@ import Knex from 'knex';
 import config from "./config.json";
 
 // Setup client
-require('events').EventEmitter.defaultMaxListeners = 100; // Maximum number of events that can be handled at once.
+// require('events').EventEmitter.defaultMaxListeners = 100; // Maximum number of events that can be handled at once.
 
 
 
@@ -213,7 +213,7 @@ async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel): 
 		await knex<QueueChannel>('queue_channels').insert({
 			queue_channel_id: channelToAdd.id,
 			guild_id: channelToAdd.guild.id
-		});
+		}).catch(() => null);
 	});
 	if (channelToAdd.type === 'voice') {
 		await addStoredQueueMembers(channelToAdd.id, channelToAdd.members
@@ -1227,6 +1227,7 @@ async function markLeavingMember(member: GuildMember, oldVoiceChannel: VoiceChan
 		member: storedQueueMember,
 		time: Date.now()
 	});
+	console.log('returningMembersCache size: ' + returningMembersCache.size);
 }
 
 // Monitor for users joining voice channels
@@ -1280,6 +1281,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
 				// Block recentMember caching when the bot is used to pull someone
 				if (nextQueueMember) {
 					blockNextCache.add(nextQueueMember.id);
+					console.log('blockNextCache size: ' + blockNextCache.size);
 					// Swap bot with nextQueueMember
 					nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
 					member.voice.setChannel(oldVoiceChannel).catch(() => null);
