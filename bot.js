@@ -927,7 +927,6 @@ function markLeavingMember(member, oldVoiceChannel) {
             member: storedQueueMember,
             time: Date.now()
         });
-        console.log('returningMembersCache size: ' + returningMembersCache.size);
     });
 }
 client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0, void 0, void 0, function* () {
@@ -970,7 +969,6 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
                 const nextQueueMember = yield guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
                 if (nextQueueMember) {
                     blockNextCache.add(nextQueueMember.id);
-                    console.log('blockNextCache size: ' + blockNextCache.size);
                     nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
                     member.voice.setChannel(oldVoiceChannel).catch(() => null);
                 }
