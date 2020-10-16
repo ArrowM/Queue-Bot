@@ -16,6 +16,7 @@ const discord_js_1 = require("discord.js");
 const async_mutex_1 = require("async-mutex");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
+require('events').EventEmitter.defaultMaxListeners = 0;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
     presence: {
@@ -400,8 +401,7 @@ function start(queueGuild, parsed, message) {
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
                 const connection = yield channel.join();
-                connection.on('error', () => null);
-                connection.on('failed', () => null);
+                connection.removeAllListeners('error failed');
                 (_a = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true).catch(() => null);
                 (_b = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true).catch(() => null);
             }
@@ -674,7 +674,8 @@ function help(queueGuild, parsed, message) {
                         },
                         {
                             "name": "Change the Display Mode",
-                            "value": `\`${storedPrefix}${config_json_1.default.modeCmd} {new mode}\` Changes how the display messages are updated. Use \`${storedPrefix}${config_json_1.default.modeCmd}\` to see the different update modes.`
+                            "value": `\`${storedPrefix}${config_json_1.default.modeCmd} {new mode}\` changes how the display messages are updated.`
+                                + `\n\`${storedPrefix}${config_json_1.default.modeCmd}\` displays the different update modes.`
                         }
                     ]
                 }
@@ -774,7 +775,7 @@ client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* ()
                     shuffleQueue(queueGuild, parsed, message);
                     break;
                 case config_json_1.default.gracePeriodCmd:
-                    setServerSettings(queueGuild, parsed, message, +parsed.arguments >= 0 && +parsed.arguments <= 300, 'Grace period must be between `0` and `300` seconds.');
+                    setServerSettings(queueGuild, parsed, message, +parsed.arguments >= 0 && +parsed.arguments <= 6000, 'Grace period must be between `0` and `6000` seconds.');
                     break;
                 case config_json_1.default.prefixCmd:
                     setServerSettings(queueGuild, parsed, message, true);

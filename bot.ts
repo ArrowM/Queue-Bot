@@ -5,9 +5,7 @@ import Knex from 'knex';
 import config from "./config.json";
 
 // Setup client
-// require('events').EventEmitter.defaultMaxListeners = 100; // Maximum number of events that can be handled at once.
-
-
+ require('events').EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
 
 const client = new Client({
 	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
@@ -547,8 +545,7 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 	if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
 		if (channel.type === 'voice') {
 			const connection = await channel.join();
-			connection.on('error', () => null);
-			connection.on('failed', () => null);
+			connection.removeAllListeners('error failed');
 			connection?.voice?.setSelfDeaf(true).catch(() => null);
 			connection?.voice?.setSelfMute(true).catch(() => null);
 		} else {
@@ -895,7 +892,8 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
 					},
 					{
 						"name": "Change the Display Mode",
-						"value": `\`${storedPrefix}${config.modeCmd} {new mode}\` Changes how the display messages are updated. Use \`${storedPrefix}${config.modeCmd}\` to see the different update modes.`
+						"value": `\`${storedPrefix}${config.modeCmd} {new mode}\` changes how the display messages are updated.`
+							+ `\n\`${storedPrefix}${config.modeCmd}\` displays the different update modes.`
 					}
                 ]
             }
@@ -1040,8 +1038,8 @@ client.on('message', async message => {
 				// Grace period
 				case config.gracePeriodCmd:
 					setServerSettings(queueGuild, parsed, message,
-						+parsed.arguments >= 0 && +parsed.arguments <= 300,
-						'Grace period must be between `0` and `300` seconds.'
+						+parsed.arguments >= 0 && +parsed.arguments <= 6000,
+						'Grace period must be between `0` and `6000` seconds.'
 					);
 					break;
 				// Prefix
