@@ -1,5 +1,6 @@
 {
   "token": "YOUR_TOKEN_HERE",
+  "topGgToken": "YOUR_TOP_GG_TOKEN_HERE",
 
   "color": "#478E81",
   "databaseType": "postgresql",
