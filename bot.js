@@ -16,6 +16,7 @@ const discord_js_1 = require("discord.js");
 const async_mutex_1 = require("async-mutex");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
+const dblapi_js_1 = __importDefault(require("dblapi.js"));
 require('events').EventEmitter.defaultMaxListeners = 0;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
@@ -27,6 +28,7 @@ const client = new discord_js_1.Client({
     }
 });
 client.login(config_json_1.default.token);
+new dblapi_js_1.default(config_json_1.default.topGgToken, client);
 const ServerSettings = {
     [config_json_1.default.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
     [config_json_1.default.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },

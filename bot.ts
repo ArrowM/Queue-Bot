@@ -3,10 +3,10 @@ import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, Message
 import { Mutex, MutexInterface } from 'async-mutex';
 import Knex from 'knex';
 import config from "./config.json";
+import DBL from "dblapi.js";
 
 // Setup client
  require('events').EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
-
 const client = new Client({
 	ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
 	presence: {
@@ -17,6 +17,9 @@ const client = new Client({
 	}
 });
 client.login(config.token);
+
+// Top GG integration
+new DBL(config.topGgToken, client);
 
 // Map commands to database columns and display strings
 const ServerSettings = {
