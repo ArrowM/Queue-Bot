@@ -395,19 +395,22 @@ function fetchChannel(queueGuild, parsed, message, includeMention, type) {
     });
 }
 function start(queueGuild, parsed, message) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         const channel = yield fetchChannel(queueGuild, parsed, message, false, 'voice');
         if (!channel)
             return;
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
-                const connection = yield channel.join();
-                connection.once('error', () => null);
-                connection.once('failed', () => null);
-                connection.once('disconnect', () => null);
-                (_a = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true).catch(() => null);
-                (_b = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true).catch(() => null);
+                channel.join().then(connection => {
+                    var _a, _b;
+                    if (connection) {
+                        connection.once('error', () => null);
+                        connection.once('failed', () => null);
+                        connection.once('disconnect', () => null);
+                        (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
+                        (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
+                    }
+                }).catch(() => null);
             }
             else {
                 yield sendResponse(message, 'I can only join voice channels.');

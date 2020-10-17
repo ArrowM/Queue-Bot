@@ -547,12 +547,15 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 
 	if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
 		if (channel.type === 'voice') {
-			const connection = await channel.join();
-			connection.once('error', () => null);
-			connection.once('failed', () => null);
-			connection.once('disconnect', () => null);
-			connection?.voice?.setSelfDeaf(true).catch(() => null);
-			connection?.voice?.setSelfMute(true).catch(() => null);
+			channel.join().then(connection => {
+				if (connection) {
+					connection.once('error', () => null);
+					connection.once('failed', () => null);
+					connection.once('disconnect', () => null);
+					connection.voice?.setSelfDeaf(true);
+					connection.voice?.setSelfMute(true);
+                }
+			}).catch(() => null);
 		} else {
 			await sendResponse(message, 'I can only join voice channels.');
 		}
