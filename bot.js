@@ -403,7 +403,9 @@ function start(queueGuild, parsed, message) {
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
                 const connection = yield channel.join();
-                connection.removeAllListeners('error failed');
+                connection.once('error', () => null);
+                connection.once('failed', () => null);
+                connection.once('disconnect', () => null);
                 (_a = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true).catch(() => null);
                 (_b = connection === null || connection === void 0 ? void 0 : connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true).catch(() => null);
             }
