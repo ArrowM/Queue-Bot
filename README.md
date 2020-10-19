@@ -81,5 +81,5 @@ Moderator commands are available to the server owner and users with any of the f
 7. Start the Bot. Enter `node bot.js` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
 8. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
 	9a. In command prompt (set to the project directory), enter `npm install pm2`  
-	9b. To start the bot, enter `pm2 start bot.ts`  
-	9c. To stop the bot, enter `pm2 stop bot.ts`  
+	9b. To start the bot, enter `pm2 start bot.js`  
+	9c. To stop the bot, enter `pm2 stop bot.js`  

@@ -28,7 +28,8 @@ const client = new discord_js_1.Client({
     }
 });
 client.login(config_json_1.default.token);
-new dblapi_js_1.default(config_json_1.default.topGgToken, client);
+if (config_json_1.default.topGgToken)
+    new dblapi_js_1.default(config_json_1.default.topGgToken, client);
 const ServerSettings = {
     [config_json_1.default.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
     [config_json_1.default.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },

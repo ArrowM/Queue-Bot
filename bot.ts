@@ -19,7 +19,7 @@ const client = new Client({
 client.login(config.token);
 
 // Top GG integration
-new DBL(config.topGgToken, client);
+if (config.topGgToken) new DBL(config.topGgToken, client);
 
 // Map commands to database columns and display strings
 const ServerSettings = {
