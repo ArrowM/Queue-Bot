@@ -549,13 +549,12 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 		if (channel.type === 'voice') {
 			channel.join().then(connection => {
 				if (connection) {
-					connection.once('error', () => null);
-					connection.once('failed', () => null);
-					connection.once('disconnect', () => null);
+					connection.on('error', null); connection.on('failed', null); connection.on('disconnect', null);
+
 					connection.voice?.setSelfDeaf(true);
 					connection.voice?.setSelfMute(true);
                 }
-			}).catch(() => null);
+			}).catch(null);
 		} else {
 			await sendResponse(message, 'I can only join voice channels.');
 		}
