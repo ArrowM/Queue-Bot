@@ -47,12 +47,14 @@ Moderator commands are available to the server owner and users with any of the f
 5. Modify `config.json`:  
 	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.  
   
-| REQUIRED Config Params | Description                                                                                                                       |
+| Required Config Fields | Description                                                                                                                       |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | prefix                 | Command prefix (Default: `!`)                                                                                                     |
 | token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. |
 | databasePassword       | Database login password                                                                                                           |
-| Optional Config Params |                                                                                                                                   |
+  
+| Optional Config Fields | Description                                                                                                                       |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | databaseUsername		 | Database login username (Default: `postgres`)	                                                                                 |
 | databaseName           | Database name (Default: `queue`)																									 |
 | databaseHost           | Database host url (Default: `localhost`)																							 |
@@ -60,7 +62,9 @@ Moderator commands are available to the server owner and users with any of the f
 | gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                |
 | permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
 | color                  | The color of bot messages.                                                                                                        |
-| COMMANDS               |                                                                                                                                   |
+   
+| Config Command Fields  | Description                                                                                                                       |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | clearCmd               | Command to clear the queue.                                                                                                       |
 | colorCmd               | Command to change the color.                                                                                                      |
 | commandPrefixCmd       | Command to change the command prefix.                                                                                             |

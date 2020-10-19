@@ -1,6 +1,6 @@
 {
-  "token": "NzIxNDAxODc4NjU0NDg0NjMw.XuT_2g.gmTqvWcG5tBZnMV36dSdoIzaHts",
-  "topGgToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OTAxODMwMTU0MzY3Nzk1OSIsImJvdCI6dHJ1ZSwiaWF0IjoxNjAyODgxMDkyfQ.DZczwoFOXZoshFld585AAwcITLEjKvLl0PBRrU92uAg",
+  "token": "YOUR_TOKEN_HERE",
+  "topGgToken": "YOUR_TOP_GG_TOKEN_HERE",
 
   "color": "#478E81",
   "databaseType": "postgresql",
@@ -10,7 +10,7 @@
   "databasePassword": " ",
   "gracePeriod": "0",
   "permissionsRegexp": "\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b",
-  "prefix": "~",
+  "prefix": "!",
 
   "clearCmd": "clear",
   "colorCmd": "color",
