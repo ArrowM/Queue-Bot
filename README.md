@@ -45,34 +45,35 @@ Moderator commands are available to the server owner and users with any of the f
 	3g. Close command prompt.  
 4. Open the Queue Bot folder.  
 5. Modify `config.json`:  
-	If you followed all of Step 3, you only need to update the bolded fields in the table below.  
+	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.  
   
-| Parameter             | Description                                                                                                                       |
-|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| **prefix**            | Command prefix (Default: `!`)                                                                                                     |
-| **token**             | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. |
-| **databasePassword**  | Database login password                                                                                                           |
-| databaseUsername		| Database login username (Default: `postgres`)	                                                                                    |
-| databaseName          | Database name (Default: `queue`)																									|
-| databaseHost          | Database host url (Default: `localhost`)																							|
-| databaseType          | Type of database for queue storage. (Default: `postgresql`)                                                                       |
-| gracePeriod           | Number of seconds a user can leave the queue without being removed                                                                |
-| permissionsRegexp     | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
-| color                 | The color of bot messages.                                                                                                        |
-| COMMANDS              |                                                                                                                                   |
-| clearCmd              | Command to clear the queue.                                                                                                       |
-| colorCmd              | Command to change the color.                                                                                                      |
-| commandPrefixCmd      | Command to change the command prefix.                                                                                             |
-| displayCmd            | Command to display a queue in a text channel.                                                                                     |
-| gracePeriodCmd        | Command to change the grace period.                                                                                               |
-| helpCmd               | Command to display the help information.                                                                                          |
-| joinCmd               | Command to join a text channel queue.                                                                                             |
-| kickCmd               | Command to kick users from a queue.                                                                                               |
-| modeCmd               | Command to change the display messaging mode.                                                                                     |
-| nextCmd               | Command to pull the next user from a text channel.                                                                                |
-| queueCmd              | Command to change queues.                                                                                                         |
-| shuffleCmd            | Command to shuffle the queue.                                                                                                     |
-| startCmd              | Command to make the bot join a voice channel.                                                                                     |
+| REQUIRED Config Params | Description                                                                                                                       |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| prefix                 | Command prefix (Default: `!`)                                                                                                     |
+| token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. |
+| databasePassword       | Database login password                                                                                                           |
+| Optional Config Params |                                                                                                                                   |
+| databaseUsername		 | Database login username (Default: `postgres`)	                                                                                 |
+| databaseName           | Database name (Default: `queue`)																									 |
+| databaseHost           | Database host url (Default: `localhost`)																							 |
+| databaseType           | Type of database for queue storage. (Default: `postgresql`)                                                                       |
+| gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                |
+| permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
+| color                  | The color of bot messages.                                                                                                        |
+| COMMANDS               |                                                                                                                                   |
+| clearCmd               | Command to clear the queue.                                                                                                       |
+| colorCmd               | Command to change the color.                                                                                                      |
+| commandPrefixCmd       | Command to change the command prefix.                                                                                             |
+| displayCmd             | Command to display a queue in a text channel.                                                                                     |
+| gracePeriodCmd         | Command to change the grace period.                                                                                               |
+| helpCmd                | Command to display the help information.                                                                                          |
+| joinCmd                | Command to join a text channel queue.                                                                                             |
+| kickCmd                | Command to kick users from a queue.                                                                                               |
+| modeCmd                | Command to change the display messaging mode.                                                                                     |
+| nextCmd                | Command to pull the next user from a text channel.                                                                                |
+| queueCmd               | Command to change queues.                                                                                                         |
+| shuffleCmd             | Command to shuffle the queue.                                                                                                     |
+| startCmd               | Command to make the bot join a voice channel.                                                                                     |
 
 ![Token Location](docs/token_location.PNG)  
 
