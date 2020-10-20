@@ -42,7 +42,7 @@ const knex = Knex({
 });
 
 interface QueueGuild {
-	guild_id: string; // KEY
+	guild_id: string;
 	grace_period: string;
 	prefix: string;
 	color: string;
@@ -50,7 +50,7 @@ interface QueueGuild {
 }
 
 interface QueueChannel {
-	queue_channel_id: string; // KEY
+	queue_channel_id: string;
 	guild_id: string;
 }
 
@@ -320,7 +320,7 @@ async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel |
 		.where('queue_channel_id', queueChannel.id).orderBy('created_at');
 
 	const embedList: Partial<MessageEmbed>[] = [{
-		"title": `${queueChannel.name} queue`,
+		"title": `${queueChannel.name}`,
 		"color": storedColor,
 		"description":
 			queueChannel.type === 'voice' ?
@@ -330,7 +330,7 @@ async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel |
 				`Type \`${storedPrefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
 		"fields": [{
 			"inline": false,
-			"name": `Current queue length: **${queueMembers ? queueMembers.length : 0}**`,
+			"name": `Queue length: **${queueMembers ? queueMembers.length : 0}**`,
 			"value": "\u200b"
 		}]
 	}];
@@ -486,16 +486,16 @@ async function findChannel(queueGuild: QueueGuild, availableChannels: (VoiceChan
 	let response;
 	if (availableChannels.length === 0) {
 		response = 'No ' + (type ? `**${type}** ` : '') + 'queue channels set.'
-			+ '\nSet a ' + (type ? `${type} ` : '') + `queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``;
+			+ '\nSet a ' + (type ? `${type} ` : '') + `queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\`.`;
 	} else {
-		response = 'Invalid ' + (type ? `**${type}** ` : '') + `channel name! Try \`${queueGuild.prefix}${parsed.command} `;
+		response = 'Invalid ' + (type ? `**${type}** ` : '') + `channel name. Try \`${queueGuild.prefix}${parsed.command} `;
 		if (availableChannels.length === 1) {
 			// Single channel, recommend the single channel
 			response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.'
 		} else {
 			// Multiple channels, list them
 			response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
-				+ '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`
+				+ '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}.`
 		}
     }
 	await sendResponse(message, response);
@@ -528,7 +528,7 @@ async function fetchChannel(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 		}
 	} else {
 		await sendResponse(message, `No queue channels set.`
-			+ `\nSet a queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``
+			+ `\nSet a queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\`.`
 		);
 		return null;
 	}
@@ -568,8 +568,10 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
  * @param queueGuild
  * @param parsed Parsed message - prefix, command, argument.
  * @param message Discord message object.
+ * @param queueChannel
  */
-async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message, queueChannel?: VoiceChannel | TextChannel): Promise<void> {
+async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message,
+	queueChannel?: VoiceChannel | TextChannel): Promise<void> {
 
 	queueChannel = queueChannel || await fetchChannel(queueGuild, parsed, message);
 	if (!queueChannel) return;
@@ -585,7 +587,7 @@ async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 		// Create new display
 		await addStoredDisplays(queueChannel, displayChannel, embedList);
 	} else {
-		message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\``)
+		message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`)
 			.catch(() => null);
     }
 }
@@ -1106,7 +1108,7 @@ async function resumeQueueAfterOffline() {
 	const storedQueueGuilds = await storedQueueGuildsQuery;
 	for (const storedQueueGuild of storedQueueGuilds) {
 		try {
-			const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id);
+			const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
 
 			if (guild) {
 				const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);

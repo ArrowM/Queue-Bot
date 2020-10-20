@@ -233,14 +233,14 @@ function generateEmbed(queueGuild, queueChannel) {
         const queueMembers = yield knex('queue_members')
             .where('queue_channel_id', queueChannel.id).orderBy('created_at');
         const embedList = [{
-                "title": `${queueChannel.name} queue`,
+                "title": `${queueChannel.name}`,
                 "color": storedColor,
                 "description": queueChannel.type === 'voice' ?
                     `Join the **${queueChannel.name}** voice channel to join this queue.` + (yield getGracePeriodString(queueGuild.grace_period)) :
                     `Type \`${storedPrefix}${config_json_1.default.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
                 "fields": [{
                         "inline": false,
-                        "name": `Current queue length: **${queueMembers ? queueMembers.length : 0}**`,
+                        "name": `Queue length: **${queueMembers ? queueMembers.length : 0}**`,
                         "value": "\u200b"
                     }]
             }];
@@ -358,16 +358,16 @@ function findChannel(queueGuild, availableChannels, parsed, message, includeMent
         let response;
         if (availableChannels.length === 0) {
             response = 'No ' + (type ? `**${type}** ` : '') + 'queue channels set.'
-                + '\nSet a ' + (type ? `${type} ` : '') + `queue first using \`${queueGuild.prefix}${config_json_1.default.queueCmd} {channel name}\``;
+                + '\nSet a ' + (type ? `${type} ` : '') + `queue first using \`${queueGuild.prefix}${config_json_1.default.queueCmd} {channel name}\`.`;
         }
         else {
-            response = 'Invalid ' + (type ? `**${type}** ` : '') + `channel name! Try \`${queueGuild.prefix}${parsed.command} `;
+            response = 'Invalid ' + (type ? `**${type}** ` : '') + `channel name. Try \`${queueGuild.prefix}${parsed.command} `;
             if (availableChannels.length === 1) {
                 response += availableChannels[0].name + (includeMention ? ' @{user}' : '') + '`.';
             }
             else {
                 response += '{channel name}' + (includeMention ? ' @{user}' : '') + '`.'
-                    + '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}`;
+                    + '\nAvailable ' + (type ? `**${type}** ` : '') + `channel names: ${availableChannels.map(channel => ' `' + channel.name + '`')}.`;
             }
         }
         yield sendResponse(message, response);
@@ -390,7 +390,7 @@ function fetchChannel(queueGuild, parsed, message, includeMention, type) {
         }
         else {
             yield sendResponse(message, `No queue channels set.`
-                + `\nSet a queue first using \`${queueGuild.prefix}${config_json_1.default.queueCmd} {channel name}\``);
+                + `\nSet a queue first using \`${queueGuild.prefix}${config_json_1.default.queueCmd} {channel name}\`.`);
             return null;
         }
     });
@@ -435,7 +435,7 @@ function displayQueue(queueGuild, parsed, message, queueChannel) {
             yield addStoredDisplays(queueChannel, displayChannel, embedList);
         }
         else {
-            message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\``)
+            message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`)
                 .catch(() => null);
         }
     });
