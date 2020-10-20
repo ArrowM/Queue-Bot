@@ -405,9 +405,9 @@ function start(queueGuild, parsed, message) {
                 channel.join().then(connection => {
                     var _a, _b;
                     if (connection) {
-                        connection.on('error', null);
-                        connection.on('failed', null);
-                        connection.on('disconnect', null);
+                        connection.on('error', () => null);
+                        connection.on('failed', () => null);
+                        connection.on('disconnect', () => null);
                         (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
                         (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
                     }

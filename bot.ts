@@ -549,7 +549,7 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 		if (channel.type === 'voice') {
 			channel.join().then(connection => {
 				if (connection) {
-					connection.on('error', null); connection.on('failed', null); connection.on('disconnect', null);
+					connection.on('error', () => null); connection.on('failed', () => null); connection.on('disconnect', () => null);
 
 					connection.voice?.setSelfDeaf(true);
 					connection.voice?.setSelfMute(true);
