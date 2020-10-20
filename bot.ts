@@ -1163,7 +1163,7 @@ client.once('ready', async () => {
 			table.text('grace_period');
 			table.text('prefix');
 			table.text('color');
-			table.boolean('msg_mode');
+			table.integer('msg_mode');
 		}).catch(e => console.error(e));
 	});
 	await knex.schema.hasTable('queue_channels').then(exists => {

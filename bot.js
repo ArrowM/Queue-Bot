@@ -878,7 +878,7 @@ client.once('ready', () => __awaiter(void 0, void 0, void 0, function* () {
                 table.text('grace_period');
                 table.text('prefix');
                 table.text('color');
-                table.boolean('msg_mode');
+                table.integer('msg_mode');
             }).catch(e => console.error(e));
     });
     yield knex.schema.hasTable('queue_channels').then(exists => {
