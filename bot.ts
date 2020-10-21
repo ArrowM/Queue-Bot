@@ -2,8 +2,8 @@
 import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
 import { Mutex, MutexInterface } from 'async-mutex';
 import Knex from 'knex';
-import config from "./config.json";
-import DBL from "dblapi.js";
+import config from './config.json';
+import DBL from 'dblapi.js';
 
 // Setup client
  require('events').EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
@@ -14,19 +14,26 @@ const client = new Client({
 			name: `${config.prefix}${config.helpCmd} for help`
 		},
 		status: 'online'
-	}
+	},
+	messageEditHistoryMaxSize: 0,	// Don't cache edits
+	messageCacheMaxSize: 100,		// Cache up to 100 messages per channel
+	messageCacheLifetime: 3600,		// Cache messages for 1 hour
+	messageSweepInterval: 1800,		// Sweep every 30 minutes.
 });
 client.login(config.token);
 
 // Top GG integration
-if (config.topGgToken) new DBL(config.topGgToken, client);
+if (config.topGgToken) {
+	const dbl = new DBL(config.topGgToken, client);
+	dbl.on('error', () => null);
+}
 
 // Map commands to database columns and display strings
 const ServerSettings = {
-	[config.gracePeriodCmd]: { dbVariable: 'grace_period', str: "grace period" },
-	[config.prefixCmd]: { dbVariable: 'prefix', str: "prefix" },
-	[config.colorCmd]: { dbVariable: 'color', str: "color" },
-	[config.modeCmd]: {dbVariable: 'msg_mode', str: "message mode"}
+	[config.gracePeriodCmd]: { dbVariable: 'grace_period', str: 'grace period' },
+	[config.prefixCmd]: { dbVariable: 'prefix', str: 'prefix' },
+	[config.colorCmd]: { dbVariable: 'color', str: 'color' },
+	[config.modeCmd]: {dbVariable: 'msg_mode', str: 'message mode' }
 };
 Object.freeze(ServerSettings);
 
@@ -65,7 +72,7 @@ interface QueueMember {
 interface DisplayChannel {
 	queue_channel_id: string;
 	display_channel_id: string;
-	embed_ids: string[];
+	embed_id: string;
 }
 
 // Storage Mutexes
@@ -103,24 +110,24 @@ async function sendResponse(message: Message, messageToSend: {} | string): Promi
  * 
  * @param queueChannel
  * @param displayChannel
- * @param embedList
+ * @param msgEmbed
  */
 async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displayChannel: TextChannel,
-	embedList: Partial<MessageEmbed>[]): Promise<void> {
-	
+	msgEmbed: Partial<MessageEmbed>): Promise<void> {
+
 	await getLock(displayChannelsLocks, queueChannel.id).runExclusive(async () => {
-		const embedIds: string[] = [];
+		let embedId: string;
 		// For each embed, send and collect the id
-		for (const displayEmbed of embedList) {
-			await displayChannel.send({ embed: displayEmbed })
-				.then(msg => { if (msg) embedIds.push(msg.id) })
-				.catch(() => null);
-		}
+
+		await displayChannel.send({ embed: msgEmbed })
+			.then(msg => { if (msg) embedId = msg.id })
+			.catch(() => null);
+
 		// Store the ids in the database
 		await knex<DisplayChannel>('display_channels').insert({
 			queue_channel_id: queueChannel.id,
 			display_channel_id: displayChannel.id,
-			embed_ids: embedIds
+			embed_id: embedId
 		});
 	});
 }
@@ -151,11 +158,9 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 			if (!displayChannel) continue;
 			// Attempt to delete each of display embeds from discord
-			for (const embedId of storedDisplayChannel.embed_ids) {
-				await displayChannel.messages.fetch(embedId)
-					.then(embed => embed?.delete())
-					.catch(() => null);
-			}
+			await displayChannel.messages.fetch(storedDisplayChannel.embed_id)
+				.then(embed => embed?.delete())
+				.catch(() => null);
 		}
 	});
 }
@@ -311,62 +316,48 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
  * @param queueGuild
  * @param queueChannel Discord message object.
  */
-async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>[]> {
+async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>> {
 
-	const storedPrefix = queueGuild.prefix;
 	const storedColor = queueGuild.color as unknown as number;
-
 	const queueMembers = await knex<QueueMember>('queue_members')
 		.where('queue_channel_id', queueChannel.id).orderBy('created_at');
 
-	const embedList: Partial<MessageEmbed>[] = [{
-		"title": `${queueChannel.name}`,
-		"color": storedColor,
-		"description":
+	const msgEmbed: Partial<MessageEmbed> = {
+		'title': `${queueChannel.name}`,
+		'color': storedColor,
+		'description':
 			queueChannel.type === 'voice' ?
 				// Voice
 				`Join the **${queueChannel.name}** voice channel to join this queue.` + await getGracePeriodString(queueGuild.grace_period) :
 				// Text
-				`Type \`${storedPrefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
-		"fields": [{
-			"inline": false,
-			"name": `Queue length: **${queueMembers ? queueMembers.length : 0}**`,
-			"value": "\u200b"
-		}]
-	}];
-	// Handle empty queue
+				`Type \`${queueGuild.prefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
+		'fields': []
+	};
+	
 	if (!queueMembers || queueMembers.length === 0) {
-		embedList[0]['fields'][0]['value'] = 'No members in queue.';
+		// Handle empty queue
+		msgEmbed['fields'].push({
+			'inline': false,
+			'name': '\u200b',
+			'value': 'No members in queue.'
+		});
 	} else {
 		// Handle non-empty
 		const maxEmbedSize = 25;
-		let position = 0;					//  0, 24, 49, 74
-		let sliceStop = maxEmbedSize - 1;	// 24, 49, 74, 99 
-		for (let i = 0; i <= queueMembers.length / maxEmbedSize; i++) {
-			if (i > 0) { // Creating additional embed after the first embed
-				embedList.push({
-					"title": null,
-					"color": storedColor,
-					"description": null,
-					"fields": []
-				});
-			}
-
-			// Populate with names and numbers
-			queueMembers.slice(position, sliceStop).map(queueMember => {
-				embedList[i]['fields'].push({
-					"inline": false,
-					"name": (++position).toString(),
-					"value": `<@!${queueMember.queue_member_id}>`
-						+ (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '')
-				});
+		let position = 0;
+		for (let i = 0; i < queueMembers.length / maxEmbedSize; i++) {
+			msgEmbed['fields'].push({
+				'inline': false,
+				'name': '\u200b',
+				'value': queueMembers.slice(position, position + maxEmbedSize).reduce((accumlator, queueMember) =>
+					accumlator = accumlator + `${++position} <@!${queueMember.queue_member_id}>`
+					+ (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '') + '\n', '')
 			});
-
-			sliceStop += maxEmbedSize;
 		}
+		msgEmbed.fields[0].name = `Queue length: **${queueMembers ? queueMembers.length : 0}**`
 	}
 
-	return embedList;
+	return msgEmbed;
 }
 
 /**
@@ -384,7 +375,7 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 		if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
 		// Create an embed list
-		const embedList = await generateEmbed(queueGuild, queueChannel);
+		const msgEmbed = await generateEmbed(queueGuild, queueChannel);
 		for (const storedDisplayChannel of storedDisplayChannels) {
 			// For each embed list of the queue
 			try {
@@ -397,39 +388,18 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 						if (queueGuild.msg_mode === 1) {
 							/* Edit */
 							// Retrieved display embeds
-							const storedEmbeds: Message[] = [];
-							let removeEmbeds = false;
-							for (const id of storedDisplayChannel.embed_ids) {
-								const storedEmbed: Message = await displayChannel.messages.fetch(id).catch(() => null);
-								if (storedEmbed) {
-									storedEmbeds.push(storedEmbed);
-								} else {
-									removeEmbeds = true;
-								}
-							}
-							if (removeEmbeds) {
-								await removeStoredDisplays(queueChannel.id, displayChannel.id);
-								continue;
-							} else if (storedEmbeds.length === embedList.length) {
-								// Replace the old embeds via edit
-								for (let i = 0; i < embedList.length; i++) {
-									await storedEmbeds[i]
-										.edit({ embed: embedList[i] })
-										.catch(() => null);
-								}
+							const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
+							if (storedEmbed) {
+								await storedEmbed.edit({ embed: msgEmbed }).catch(() => null);
 							} else {
-								// Remove the old embed list
-								await removeStoredDisplays(queueChannel.id, displayChannel.id);
-								// Create a new embed list
-								await addStoredDisplays(queueChannel, displayChannel, embedList);
+								await addStoredDisplays(queueChannel, displayChannel, msgEmbed);
 							}
-						}
-						else {
+						} else {
 							/* Replace */
 							// Remove old display
 							await removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
 							// Create new display
-							await addStoredDisplays(queueChannel, displayChannel, embedList);
+							await addStoredDisplays(queueChannel, displayChannel, msgEmbed);
 						}
 					}
 				} else {
@@ -820,88 +790,88 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
 
 	const embeds: {}[] = [
         {
-            "embed": {
-                "title": "Non-Restricted Commands",
-                "color": storedColor,
-                "author": {
-                    "name": "Queue Bot",
-                    "url": "https://top.gg/bot/679018301543677959",
-                    "iconUrl": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/icon.png"
+            'embed': {
+                'title': 'Non-Restricted Commands',
+                'color': storedColor,
+                'author': {
+                    'name': 'Queue Bot',
+                    'url': 'https://top.gg/bot/679018301543677959',
+                    'iconUrl': 'https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/icon.png'
                 },
-                "fields": [
+                'fields': [
                     {
-                        "name": "Access",
-                        "value": "Available to everyone."
+                        'name': 'Access',
+                        'value': 'Available to everyone.'
                     },
                     {
-                        "name": "Join a Text Channel Queue",
-						"value": `\`${storedPrefix}${config.joinCmd} {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`
+                        'name': 'Join a Text Channel Queue',
+						'value': `\`${storedPrefix}${config.joinCmd} {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`
 					}
                 ]
             }
 		},
         {
-            "embed": {
-                "title": "Restricted Commands",
-				"color": storedColor,
-				"image": {
-					"url": "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif"
+            'embed': {
+                'title': 'Restricted Commands',
+				'color': storedColor,
+				'image': {
+					'url': 'https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif'
 				},
-				"fields": [
+				'fields': [
                     {
-						"name": "Access",
-						"value": "Available to owners or users with `queue mod`, `mod` or `admin` in their server roles."
+						'name': 'Access',
+						'value': 'Available to owners or users with `queue mod`, `mod` or `admin` in their server roles.'
                     },
                     {
-						"name": "Modify & View Queues",
-						"value": `\`${storedPrefix}${config.queueCmd} {channel name}\` creates a new queue or deletes an existing queue.`
+						'name': 'Modify & View Queues',
+						'value': `\`${storedPrefix}${config.queueCmd} {channel name}\` creates a new queue or deletes an existing queue.`
 							+ `\n\`${storedPrefix}${config.queueCmd}\` shows the existing queues.`
                     },
                     {
-                        "name": "Display Queue Members",
-                        "value": `\`${storedPrefix}${config.displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`
+                        'name': 'Display Queue Members',
+                        'value': `\`${storedPrefix}${config.displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`
                     },
                     {
-                        "name": "Pull Users from Voice Queue",
-                        "value": `\`${storedPrefix}${config.startCmd} {channel name}\` adds the bot to a queue voice channel.`
+                        'name': 'Pull Users from Voice Queue',
+                        'value': `\`${storedPrefix}${config.startCmd} {channel name}\` adds the bot to a queue voice channel.`
                             + ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.`
                             + ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`
                     },
                     {
-                        "name": "Pull Users from Text Queue",
-                        "value": `\`${storedPrefix}${config.nextCmd} {channel name}\` removes the next person in the text queue and displays their name.`
+                        'name': 'Pull Users from Text Queue',
+                        'value': `\`${storedPrefix}${config.nextCmd} {channel name}\` removes the next person in the text queue and displays their name.`
                     },
                     {
-                        "name": "Add Others to a Text Channel Queue",
-                        "value": `\`${storedPrefix}${config.joinCmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
+                        'name': 'Add Others to a Text Channel Queue',
+                        'value': `\`${storedPrefix}${config.joinCmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`
                     },
                     {
-                        "name": "Kick Users from Queue",
-                        "value": `\`${storedPrefix}${config.kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
+                        'name': 'Kick Users from Queue',
+                        'value': `\`${storedPrefix}${config.kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`
                     },
                     {
-                        "name": "Clear Queue",
-                        "value": `\`${storedPrefix}${config.clearCmd} {channel name}\` clears a queue.`
+                        'name': 'Clear Queue',
+                        'value': `\`${storedPrefix}${config.clearCmd} {channel name}\` clears a queue.`
 					},
 					{
-						"name": "Shuffle Queue",
-						"value": `\`${storedPrefix}${config.shuffleCmd} {channel name}\` shuffles a queue.`
+						'name': 'Shuffle Queue',
+						'value': `\`${storedPrefix}${config.shuffleCmd} {channel name}\` shuffles a queue.`
 					},
                     {
-                        "name": "Change the Grace Period",
-                        "value": `\`${storedPrefix}${config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`
+                        'name': 'Change the Grace Period',
+                        'value': `\`${storedPrefix}${config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`
                     },
                     {
-                        "name": "Change the Command Prefix",
-                        "value": `\`${storedPrefix}${config.prefixCmd} {new prefix}\` changes the prefix for commands.`
+                        'name': 'Change the Command Prefix',
+                        'value': `\`${storedPrefix}${config.prefixCmd} {new prefix}\` changes the prefix for commands.`
                     },
                     {
-                        "name": "Change the Color",
-                        "value": `\`${storedPrefix}${config.colorCmd} {new color}\` changes the color of bot messages.`
+                        'name': 'Change the Color',
+                        'value': `\`${storedPrefix}${config.colorCmd} {new color}\` changes the color of bot messages.`
 					},
 					{
-						"name": "Change the Display Mode",
-						"value": `\`${storedPrefix}${config.modeCmd} {new mode}\` changes how the display messages are updated.`
+						'name': 'Change the Display Mode',
+						'value': `\`${storedPrefix}${config.modeCmd} {new mode}\` changes how the display messages are updated.`
 							+ `\n\`${storedPrefix}${config.modeCmd}\` displays the different update modes.`
 					}
                 ]
@@ -927,7 +897,7 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
 			message.author.send(em).catch(() => null)
 		});
 
-		await sendResponse(message, "I have sent help to your PMs.");
+		await sendResponse(message, 'I have sent help to your PMs.');
 	}
 }
 
@@ -957,8 +927,8 @@ async function setServerSettings(queueGuild: QueueGuild, parsed: ParsedArguments
 		await sendResponse(message, `Set \`${setting.str}\` to \`${parsed.arguments}\`.`);
 	} else {
 		await sendResponse(message, {
-			"embed": embed,
-			"content":
+			'embed': embed,
+			'content':
 				`The ${setting.str} is currently set to \`${queueGuild[setting.dbVariable]}\`.\n`
 				+ `Set a new ${setting.str} using \`${queueGuild.prefix}${parsed.command} {${setting.str}}\`.\n`
 				+ extraErrorLine
@@ -1009,7 +979,7 @@ client.on('message', async message => {
 	if (message.content.startsWith(queueGuild.prefix)) {
 		// Parse the message
 		// Note: prefix can contain spaces. Command can not contains spaces. parsedArgs can contain spaces.
-		parsed.command = message.content.substring(queueGuild.prefix.length).split(" ")[0];
+		parsed.command = message.content.substring(queueGuild.prefix.length).split(' ')[0];
 		parsed.arguments = message.content.substring(queueGuild.prefix.length + parsed.command.length + 1).trim();
 		const hasPermission = await checkPermission(message);
 		// Restricted commands
@@ -1063,9 +1033,9 @@ client.on('message', async message => {
 						/^#?[0-9A-F]{6}$/i.test(parsed.arguments),
 						'Use HEX color:',
 						{
-							"title": "Hex color picker",
-							"url": "https://htmlcolorcodes.com/color-picker/",
-							"color": queueGuild.color
+							'title': 'Hex color picker',
+							'url': 'https://htmlcolorcodes.com/color-picker/',
+							'color': queueGuild.color
 						}
 					);
 					break;
@@ -1188,11 +1158,9 @@ client.once('ready', async () => {
 			table.increments('id').primary();
 			table.text('queue_channel_id');
 			table.text('display_channel_id');
-			table.specificType('embed_ids', 'TEXT []');
+			table.text('embed_id');
 		}).catch(e => console.error(e));
 	});
-
-	await resumeQueueAfterOffline();
 
 	// Migration of msg_on_update to msg_mode
 	if (await knex.schema.hasColumn('queue_guilds', 'msg_on_update')) {
@@ -1203,7 +1171,22 @@ client.once('ready', async () => {
 				.update('msg_mode', queueGuild['msg_on_update'] ? 2 : 1);
 		})
 		await knex.schema.table('queue_guilds', table => table.dropColumn('msg_on_update'));
-    }
+	}
+
+	// Migration of msg_on_update to msg_mode
+	if (await knex.schema.hasColumn('display_channels', 'embed_ids')) {
+		console.log('Migrating display embed ids');
+		await knex.schema.table('display_channels', table => table.text('embed_id'));
+		(await knex<DisplayChannel>('display_channels')).forEach(async displayChannel => {
+			await knex<DisplayChannel>('display_channels')
+				.where('display_channel_id', displayChannel.display_channel_id)
+				.where('queue_channel_id', displayChannel.queue_channel_id)
+				.update('embed_id', displayChannel['embed_ids'][0]);
+		})
+		await knex.schema.table('display_channels', table => table.dropColumn('embed_ids'));
+	}
+
+	await resumeQueueAfterOffline();
 
 	console.log('Ready!');
 });
