@@ -15,10 +15,10 @@ const client = new Client({
 		},
 		status: 'online'
 	},
-	messageEditHistoryMaxSize: 0,	// Don't cache edits
-	messageCacheMaxSize: 300,		// Cache up to 300 messages per channel
-	messageCacheLifetime: 1800,		// Cache messages for 30 minutes
-	messageSweepInterval: 900,		// Sweep every 15 minutes
+	messageEditHistoryMaxSize: 0,	// Do not cache edits
+	messageCacheMaxSize: 10,		// Cache up to 10 messages per channel
+	messageCacheLifetime: 21600,	// Cache messages for 6 hours
+	messageSweepInterval: 10800,	// Sweep every 3 hours
 });
 client.login(config.token);
 
@@ -168,8 +168,8 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
 		for (const storedDisplayChannel of storedDisplayChannels) {
 			const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 			if (!displayChannel) continue;
-			// Attempt to delete each of display embeds from discord
-			await displayChannel.messages.fetch(storedDisplayChannel.embed_id)
+
+			await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false)
 				.then(embed => embed?.delete())
 				.catch(() => null);
 		}
@@ -411,7 +411,7 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 
 						if (queueGuild.msg_mode === 1) {
 							/* Edit */
-							// Retrieved display embeds
+							// Retrieved display embed
 							const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
 							if (storedEmbed) {
 								await storedEmbed.edit({ embed: msgEmbed }).catch(() => null);

@@ -27,9 +27,9 @@ const client = new discord_js_1.Client({
         status: 'online'
     },
     messageEditHistoryMaxSize: 0,
-    messageCacheMaxSize: 300,
-    messageCacheLifetime: 1800,
-    messageSweepInterval: 900,
+    messageCacheMaxSize: 10,
+    messageCacheLifetime: 21600,
+    messageSweepInterval: 10800,
 });
 client.login(config_json_1.default.token);
 if (config_json_1.default.topGgToken) {
@@ -119,7 +119,7 @@ function removeStoredDisplays(queueChannelId, displayChannelIdToRemove, deleteOl
                 const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
                 if (!displayChannel)
                     continue;
-                yield displayChannel.messages.fetch(storedDisplayChannel.embed_id)
+                yield displayChannel.messages.fetch(storedDisplayChannel.embed_id, false)
                     .then(embed => embed === null || embed === void 0 ? void 0 : embed.delete())
                     .catch(() => null);
             }
