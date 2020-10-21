@@ -318,46 +318,42 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
  */
 async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>> {
 
-	const storedColor = queueGuild.color as unknown as number;
 	const queueMembers = await knex<QueueMember>('queue_members')
 		.where('queue_channel_id', queueChannel.id).orderBy('created_at');
 
-	const msgEmbed: Partial<MessageEmbed> = {
-		'title': `${queueChannel.name}`,
-		'color': storedColor,
-		'description':
-			queueChannel.type === 'voice' ?
-				// Voice
-				`Join the **${queueChannel.name}** voice channel to join this queue.` + await getGracePeriodString(queueGuild.grace_period) :
-				// Text
-				`Type \`${queueGuild.prefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
-		'fields': []
-	};
+	const embed = new MessageEmbed();
+	embed.setTitle(queueChannel.name);
+	embed.setColor(queueGuild.color);
+	embed.setDescription(queueChannel.type === 'voice' ?
+		// Voice
+		`Join the **${queueChannel.name}** voice channel to join this queue.` + await getGracePeriodString(queueGuild.grace_period) :
+		// Text
+		`Type \`${queueGuild.prefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
+	);
+	embed.setTimestamp();
 	
 	if (!queueMembers || queueMembers.length === 0) {
 		// Handle empty queue
-		msgEmbed['fields'].push({
-			'inline': false,
-			'name': '\u200b',
-			'value': 'No members in queue.'
-		});
+		embed.addField(
+			'\u200b',
+			'No members in queue.'
+		);
 	} else {
 		// Handle non-empty
 		const maxEmbedSize = 25;
 		let position = 0;
 		for (let i = 0; i < queueMembers.length / maxEmbedSize; i++) {
-			msgEmbed['fields'].push({
-				'inline': false,
-				'name': '\u200b',
-				'value': queueMembers.slice(position, position + maxEmbedSize).reduce((accumlator, queueMember) =>
+			embed.addField(
+				'\u200b',
+				queueMembers.slice(position, position + maxEmbedSize).reduce((accumlator, queueMember) =>
 					accumlator = accumlator + `${++position} <@!${queueMember.queue_member_id}>`
 					+ (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '') + '\n', '')
-			});
+			);
 		}
-		msgEmbed.fields[0].name = `Queue length: **${queueMembers ? queueMembers.length : 0}**`
+		embed.fields[0].name = `Queue length: **${queueMembers ? queueMembers.length : 0}**`
 	}
 
-	return msgEmbed;
+	return embed;
 }
 
 /**

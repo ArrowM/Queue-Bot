@@ -230,38 +230,28 @@ function getGracePeriodString(gracePeriod) {
 }
 function generateEmbed(queueGuild, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
-        const storedColor = queueGuild.color;
         const queueMembers = yield knex('queue_members')
             .where('queue_channel_id', queueChannel.id).orderBy('created_at');
-        const msgEmbed = {
-            'title': `${queueChannel.name}`,
-            'color': storedColor,
-            'description': queueChannel.type === 'voice' ?
-                `Join the **${queueChannel.name}** voice channel to join this queue.` + (yield getGracePeriodString(queueGuild.grace_period)) :
-                `Type \`${queueGuild.prefix}${config_json_1.default.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
-            'fields': []
-        };
+        const embed = new discord_js_1.MessageEmbed();
+        embed.setTitle(queueChannel.name);
+        embed.setColor(queueGuild.color);
+        embed.setDescription(queueChannel.type === 'voice' ?
+            `Join the **${queueChannel.name}** voice channel to join this queue.` + (yield getGracePeriodString(queueGuild.grace_period)) :
+            `Type \`${queueGuild.prefix}${config_json_1.default.joinCmd} ${queueChannel.name}\` to join or leave this queue.`);
+        embed.setTimestamp();
         if (!queueMembers || queueMembers.length === 0) {
-            msgEmbed['fields'].push({
-                'inline': false,
-                'name': '\u200b',
-                'value': 'No members in queue.'
-            });
+            embed.addField('\u200b', 'No members in queue.');
         }
         else {
             const maxEmbedSize = 25;
             let position = 0;
             for (let i = 0; i < queueMembers.length / maxEmbedSize; i++) {
-                msgEmbed['fields'].push({
-                    'inline': false,
-                    'name': '\u200b',
-                    'value': queueMembers.slice(position, position + maxEmbedSize).reduce((accumlator, queueMember) => accumlator = accumlator + `${++position} <@!${queueMember.queue_member_id}>`
-                        + (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '') + '\n', '')
-                });
+                embed.addField('\u200b', queueMembers.slice(position, position + maxEmbedSize).reduce((accumlator, queueMember) => accumlator = accumlator + `${++position} <@!${queueMember.queue_member_id}>`
+                    + (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '') + '\n', ''));
             }
-            msgEmbed.fields[0].name = `Queue length: **${queueMembers ? queueMembers.length : 0}**`;
+            embed.fields[0].name = `Queue length: **${queueMembers ? queueMembers.length : 0}**`;
         }
-        return msgEmbed;
+        return embed;
     });
 }
 function updateDisplayQueue(queueGuild, queueChannels) {
