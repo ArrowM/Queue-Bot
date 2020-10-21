@@ -16,9 +16,9 @@ const client = new Client({
 		status: 'online'
 	},
 	messageEditHistoryMaxSize: 0,	// Don't cache edits
-	messageCacheMaxSize: 100,		// Cache up to 100 messages per channel
-	messageCacheLifetime: 3600,		// Cache messages for 1 hour
-	messageSweepInterval: 1800,		// Sweep every 30 minutes.
+	messageCacheMaxSize: 300,		// Cache up to 300 messages per channel
+	messageCacheLifetime: 1800,		// Cache messages for 30 minutes
+	messageSweepInterval: 900,		// Sweep every 15 minutes
 });
 client.login(config.token);
 
@@ -124,11 +124,12 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
 			.catch(() => null);
 
 		// Store the ids in the database
-		await knex<DisplayChannel>('display_channels').insert({
-			queue_channel_id: queueChannel.id,
-			display_channel_id: displayChannel.id,
-			embed_id: embedId
-		});
+		await knex<DisplayChannel>('display_channels')
+			.insert({
+				queue_channel_id: queueChannel.id,
+				display_channel_id: displayChannel.id,
+				embed_id: embedId
+			});
 	});
 }
 
@@ -141,15 +142,25 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
 async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRemove?: string, deleteOldDisplayMsg = true): Promise<void> {
 
 	await getLock(displayChannelsLocks, queueChannelId).runExclusive(async () => {
-		// Retreive list of stored embeds for display channel
-		let storedDisplayChannelsQuery = knex('display_channels').where('queue_channel_id', queueChannelId);
-		if (displayChannelIdToRemove) {
-			storedDisplayChannelsQuery = storedDisplayChannelsQuery.where('display_channel_id', displayChannelIdToRemove);
-		}
 
-		const storedDisplayChannels = await storedDisplayChannelsQuery;
-		// Delete stored embeds
-		await storedDisplayChannelsQuery.del();
+		let storedDisplayChannels: DisplayChannel[];
+
+		// Retreive list of stored embeds for display channel
+		if (displayChannelIdToRemove) {
+			storedDisplayChannels = await knex('display_channels')
+				.where('queue_channel_id', queueChannelId)
+				.where('display_channel_id', displayChannelIdToRemove);
+			await knex('display_channels')
+				.where('queue_channel_id', queueChannelId)
+				.where('display_channel_id', displayChannelIdToRemove)
+				.del();
+		} else {
+			storedDisplayChannels = await knex('display_channels')
+				.where('queue_channel_id', queueChannelId);
+			await knex('display_channels')
+				.where('queue_channel_id', queueChannelId)
+				.del();
+		}
 
 		if (!storedDisplayChannels || !deleteOldDisplayMsg) return;
 
@@ -175,11 +186,12 @@ async function addStoredQueueMembers(queueChannelId: string, memberIdsToAdd: str
 
 	await getLock(membersLocks, queueChannelId).runExclusive(async () => {
 		for (const memberId of memberIdsToAdd) {
-			await knex<QueueMember>('queue_members').insert({
-				queue_channel_id: queueChannelId,
-				queue_member_id: memberId,
-				personal_message: personalMessage
-			});
+			await knex<QueueMember>('queue_members')
+				.insert({
+					queue_channel_id: queueChannelId,
+					queue_member_id: memberId,
+					personal_message: personalMessage
+				});
 		}
 	});
 }
@@ -193,18 +205,18 @@ async function removeStoredQueueMembers(queueChannelId: string, memberIdsToRemov
 
 	await getLock(membersLocks, queueChannelId).runExclusive(async () => {
 		// Retreive list of stored embeds for display channel
-		let storedMemberQuery;
 		if (memberIdsToRemove) {
-			storedMemberQuery = knex<QueueMember>('queue_members')
+			await knex<QueueMember>('queue_members')
 				.where('queue_channel_id', queueChannelId)
 				.whereIn('queue_member_id', memberIdsToRemove)
-				.first();
+				.first()
+				.del();
 		} else {
-			storedMemberQuery = knex<QueueMember>('queue_members')
+			await knex<QueueMember>('queue_members')
 				.where('queue_channel_id', queueChannelId)
-				.first();
+				.first()
+				.del();
 		}
-		await storedMemberQuery.del();
 	});
 }
 
@@ -216,10 +228,11 @@ async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel): 
 
 	await getLock(queueChannelsLocks, channelToAdd.guild.id).runExclusive(async () => {
 		// Fetch old channels
-		await knex<QueueChannel>('queue_channels').insert({
-			queue_channel_id: channelToAdd.id,
-			guild_id: channelToAdd.guild.id
-		}).catch(() => null);
+		await knex<QueueChannel>('queue_channels')
+			.insert({
+				queue_channel_id: channelToAdd.id,
+				guild_id: channelToAdd.guild.id
+			}).catch(() => null);
 	});
 	if (channelToAdd.type === 'voice') {
 		await addStoredQueueMembers(channelToAdd.id, channelToAdd.members
@@ -236,17 +249,22 @@ async function removeStoredQueueChannel(guildId: string, channelIdToRemove?: str
 
 	await getLock(queueChannelsLocks, guildId).runExclusive(async () => {
 		if (channelIdToRemove) {
-			await knex<QueueChannel>('queue_channels').where('queue_channel_id', channelIdToRemove).first().del();
+			await knex<QueueChannel>('queue_channels')
+				.where('queue_channel_id', channelIdToRemove)
+				.first()
+				.del();
 			await removeStoredQueueMembers(channelIdToRemove);
 			await removeStoredDisplays(channelIdToRemove);
 		} else {
-			const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guildId);
-			const storedQueueChannels = await storedQueueChannelsQuery;
+			const storedQueueChannels = await knex<QueueChannel>('queue_channels')
+				.where('guild_id', guildId);
 			for (const storedQueueChannel of storedQueueChannels) {
 				await removeStoredQueueMembers(storedQueueChannel.queue_channel_id);
 				await removeStoredDisplays(storedQueueChannel.queue_channel_id);
 			}
-			await storedQueueChannelsQuery.del();
+			await knex<QueueChannel>('queue_channels')
+				.where('guild_id', guildId)
+				.del();
 		}
 	});
 }
@@ -260,8 +278,8 @@ async function fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | T
 	const queueChannelIdsToRemove: string[] = [];
 	const queueChannels = await getLock(queueChannelsLocks, guild.id).runExclusive(async () => {
 		// Fetch stored channels
-		const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
-		const storedQueueChannels = await storedQueueChannelsQuery;
+		const storedQueueChannels = await knex<QueueChannel>('queue_channels')
+			.where('guild_id', guild.id);
 		if (!storedQueueChannels) return null;
 
 		const queueChannels: (VoiceChannel | TextChannel)[] = [];
@@ -330,13 +348,18 @@ async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel |
 		// Text
 		`Type \`${queueGuild.prefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`,
 	);
-	embed.setTimestamp();
+	//embed.setTimestamp();
 	
 	if (!queueMembers || queueMembers.length === 0) {
 		// Handle empty queue
 		embed.addField(
-			'\u200b',
-			'No members in queue.'
+			'No members in queue.',
+			'\u200b'
+		);
+	} else if (queueMembers.length > 625) {
+		embed.addField(
+			'Max size of 625 users reached.',
+			'Contact the support server: https://discord.gg/RbmfnP3'
 		);
 	} else {
 		// Handle non-empty
@@ -345,9 +368,13 @@ async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel |
 		for (let i = 0; i < queueMembers.length / maxEmbedSize; i++) {
 			embed.addField(
 				'\u200b',
-				queueMembers.slice(position, position + maxEmbedSize).reduce((accumlator, queueMember) =>
-					accumlator = accumlator + `${++position} <@!${queueMember.queue_member_id}>`
-					+ (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '') + '\n', '')
+				queueMembers
+					.slice(position, position + maxEmbedSize)
+					.reduce((accumlator, queueMember) =>
+						accumlator = accumlator +
+						`${++position} <@!${queueMember.queue_member_id}>`
+						+ (queueMember.personal_message ? ' -- ' + queueMember.personal_message : '') + '\n',
+					'')
 			);
 		}
 		embed.fields[0].name = `Queue length: **${queueMembers ? queueMembers.length : 0}**`
@@ -366,12 +393,13 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
 	// For each updated queue
 	for (const queueChannel of queueChannels) {
 		if (!queueChannel) continue;
-		const storedDisplayChannelsQuery = knex<DisplayChannel>('display_channels').where('queue_channel_id', queueChannel.id);
-		const storedDisplayChannels = await storedDisplayChannelsQuery;
+		const storedDisplayChannels = await knex<DisplayChannel>('display_channels')
+			.where('queue_channel_id', queueChannel.id);
 		if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
 		// Create an embed list
 		const msgEmbed = await generateEmbed(queueGuild, queueChannel);
+
 		for (const storedDisplayChannel of storedDisplayChannels) {
 			// For each embed list of the queue
 			try {
@@ -672,9 +700,10 @@ async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 		await sendResponse(message, `\`${queueGuild.prefix}${config.nextCmd}\` can only be used on text channel queues.`);
 	} else {
 		// Get the older member entry for the queue
-		const nextQueueMemberQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id)
-			.orderBy('created_at').first();
-		const nextQueueMember = await nextQueueMemberQuery;
+		const nextQueueMember = await knex<QueueMember>('queue_members')
+			.where('queue_channel_id', queueChannel.id)
+			.orderBy('created_at')
+			.first();
 
 		if (nextQueueMember) {
 			// Display and remove member from the the queue
@@ -706,15 +735,18 @@ async function kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, messa
 
 	let updateDisplays = false;
 	await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
-		const storedQueueMembersQuery = knex<QueueMember>('queue_members')
+		const storedQueueMemberIds = await knex<QueueMember>('queue_members')
 			.where('queue_channel_id', queueChannel.id)
-			.whereIn('queue_member_id', memberIdsToKick);
-		const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
+			.whereIn('queue_member_id', memberIdsToKick)
+			.pluck('queue_member_id');
 
 		if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
 			updateDisplays = true;
 			// Remove from queue
-			await storedQueueMembersQuery.del();
+			await knex<QueueMember>('queue_members')
+				.where('queue_channel_id', queueChannel.id)
+				.whereIn('queue_member_id', memberIdsToKick)
+				.del();
 			await sendResponse(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
 				+ ` from the \`${queueChannel.name}\` queue.`);
 		}
@@ -744,12 +776,13 @@ async function shuffleQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 	if (!queueChannel) return;
 
 	await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
-		const queueMembersQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id);
-		const queueMembers = await queueMembersQuery;
+		const queueMembers = await knex<QueueMember>('queue_members')
+			.where('queue_channel_id', queueChannel.id);
 		const queueMemberTimeStamps = queueMembers.map(member => member.created_at);
 		shuffleArray(queueMemberTimeStamps);
 		for (let i = 0; i < queueMembers.length; i++) {
-			await knex<QueueMember>('queue_members').where('id', queueMembers[i].id)
+			await knex<QueueMember>('queue_members')
+				.where('id', queueMembers[i].id)
 				.update('created_at', queueMemberTimeStamps[i]);
         }
 	});
@@ -916,7 +949,9 @@ async function setServerSettings(queueGuild: QueueGuild, parsed: ParsedArguments
 	
 	if (parsed.arguments && passesValueRestrictions) {
 		// Store channel to database
-		await knex<QueueGuild>('queue_guilds').where('guild_id', message.guild.id).first()
+		await knex<QueueGuild>('queue_guilds')
+			.where('guild_id', message.guild.id)
+			.first()
 			.update(setting.dbVariable, parsed.arguments);
 		queueGuild[setting.dbVariable] = parsed.arguments;
 		await updateDisplayQueue(queueGuild, channels);
@@ -1070,39 +1105,46 @@ client.on('message', async message => {
 });
 
 async function resumeQueueAfterOffline() {
-	const storedQueueGuildsQuery = knex<QueueGuild>('queue_guilds');
-	const storedQueueGuilds = await storedQueueGuildsQuery;
+	const storedQueueGuilds = await knex<QueueGuild>('queue_guilds');
 	for (const storedQueueGuild of storedQueueGuilds) {
 		try {
 			const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
 
 			if (guild) {
-				const storedQueueChannelsQuery = knex<QueueChannel>('queue_channels').where('guild_id', guild.id);
-				const storedQueueChannels = await storedQueueChannelsQuery;
+				const storedQueueChannels = await knex<QueueChannel>('queue_channels')
+					.where('guild_id', guild.id);
 				for (const storedQueueChannel of storedQueueChannels) {
 					const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
 					if (queueChannel) {
 						if (queueChannel.type !== 'voice') continue;
 
 						// Fetch stored and live members
-						const storedQueueMembersQuery = knex<QueueMember>('queue_members').where('queue_channel_id', queueChannel.id);
-						const storedQueueMemberIds = (await storedQueueMembersQuery).map(member => member.queue_member_id);
+						const storedQueueMemberIds = await knex<QueueMember>('queue_members')
+							.where('queue_channel_id', queueChannel.id)
+							.pluck('queue_member_id');
 						const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
 
 						// Update member lists
 						for (const storedQueueMemberId of storedQueueMemberIds) {
 							if (!queueMemberIds.includes(storedQueueMemberId)) {
-								await storedQueueMembersQuery.where('queue_member_id', storedQueueMemberId).del();
+								await knex<QueueMember>('queue_members')
+									.where('queue_channel_id', queueChannel.id)
+									.where('queue_member_id', storedQueueMemberId)
+									.del();
 							}
 						}
+
 						for (const queueMemberId of queueMemberIds) {
 							if (!storedQueueMemberIds.includes(queueMemberId)) {
-								await storedQueueMembersQuery.insert({
-									queue_channel_id: queueChannel.id,
-									queue_member_id: queueMemberId
-								});
+								await knex<QueueMember>('queue_members')
+									.where('queue_channel_id', queueChannel.id)
+									.insert({
+										queue_channel_id: queueChannel.id,
+										queue_member_id: queueMemberId
+									});
 							}
 						}
+
 						// Update displays
 						await updateDisplayQueue(storedQueueGuild, [queueChannel]);
 					} else {
@@ -1112,7 +1154,9 @@ async function resumeQueueAfterOffline() {
 				}
 			} else {
 				// Cleanup deleted guilds
-				await storedQueueGuildsQuery.where('guild_id', storedQueueGuild.guild_id).del();
+				await knex<QueueGuild>('queue_guilds')
+					.where('guild_id', storedQueueGuild.guild_id)
+					.del();
 				await removeStoredQueueChannel(storedQueueGuild.guild_id);
 			}
 		} catch (e) {
@@ -1165,7 +1209,7 @@ client.once('ready', async () => {
 		(await knex<QueueGuild>('queue_guilds')).forEach(async queueGuild => {
 			await knex<QueueGuild>('queue_guilds').where('guild_id', queueGuild.guild_id)
 				.update('msg_mode', queueGuild['msg_on_update'] ? 2 : 1);
-		})
+		});
 		await knex.schema.table('queue_guilds', table => table.dropColumn('msg_on_update'));
 	}
 
@@ -1178,7 +1222,7 @@ client.once('ready', async () => {
 				.where('display_channel_id', displayChannel.display_channel_id)
 				.where('queue_channel_id', displayChannel.queue_channel_id)
 				.update('embed_id', displayChannel['embed_ids'][0]);
-		})
+		});
 		await knex.schema.table('display_channels', table => table.dropColumn('embed_ids'));
 	}
 
