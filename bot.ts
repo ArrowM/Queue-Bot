@@ -1117,6 +1117,7 @@ async function resumeQueueAfterOffline() {
 					const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
 					if (queueChannel) {
 						if (queueChannel.type !== 'voice') continue;
+						let updateDisplay = false;
 
 						// Fetch stored and live members
 						const storedQueueMemberIds = await knex<QueueMember>('queue_members')
@@ -1127,6 +1128,7 @@ async function resumeQueueAfterOffline() {
 						// Update member lists
 						for (const storedQueueMemberId of storedQueueMemberIds) {
 							if (!queueMemberIds.includes(storedQueueMemberId)) {
+								updateDisplay = true;
 								await knex<QueueMember>('queue_members')
 									.where('queue_channel_id', queueChannel.id)
 									.where('queue_member_id', storedQueueMemberId)
@@ -1136,6 +1138,7 @@ async function resumeQueueAfterOffline() {
 
 						for (const queueMemberId of queueMemberIds) {
 							if (!storedQueueMemberIds.includes(queueMemberId)) {
+								updateDisplay = true;
 								await knex<QueueMember>('queue_members')
 									.where('queue_channel_id', queueChannel.id)
 									.insert({
@@ -1145,8 +1148,10 @@ async function resumeQueueAfterOffline() {
 							}
 						}
 
-						// Update displays
-						await updateDisplayQueue(storedQueueGuild, [queueChannel]);
+						if (updateDisplay) {
+							// Update displays
+							await updateDisplayQueue(storedQueueGuild, [queueChannel]);
+                        }
 					} else {
 						// Cleanup deleted queue channels
 						await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
@@ -1160,7 +1165,7 @@ async function resumeQueueAfterOffline() {
 				await removeStoredQueueChannel(storedQueueGuild.guild_id);
 			}
 		} catch (e) {
-			// SKIP
+			console.log(e);
         }
 	}
 }

@@ -827,12 +827,14 @@ function resumeQueueAfterOffline() {
                         if (queueChannel) {
                             if (queueChannel.type !== 'voice')
                                 continue;
+                            let updateDisplay = false;
                             const storedQueueMemberIds = yield knex('queue_members')
                                 .where('queue_channel_id', queueChannel.id)
                                 .pluck('queue_member_id');
                             const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
                             for (const storedQueueMemberId of storedQueueMemberIds) {
                                 if (!queueMemberIds.includes(storedQueueMemberId)) {
+                                    updateDisplay = true;
                                     yield knex('queue_members')
                                         .where('queue_channel_id', queueChannel.id)
                                         .where('queue_member_id', storedQueueMemberId)
@@ -841,6 +843,7 @@ function resumeQueueAfterOffline() {
                             }
                             for (const queueMemberId of queueMemberIds) {
                                 if (!storedQueueMemberIds.includes(queueMemberId)) {
+                                    updateDisplay = true;
                                     yield knex('queue_members')
                                         .where('queue_channel_id', queueChannel.id)
                                         .insert({
@@ -849,7 +852,9 @@ function resumeQueueAfterOffline() {
                                     });
                                 }
                             }
-                            yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
+                            if (updateDisplay) {
+                                yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
+                            }
                         }
                         else {
                             yield removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
@@ -864,6 +869,7 @@ function resumeQueueAfterOffline() {
                 }
             }
             catch (e) {
+                console.log(e);
             }
         }
     });
