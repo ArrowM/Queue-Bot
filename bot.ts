@@ -269,6 +269,7 @@ async function removeStoredQueueChannel(guildId: string, channelIdToRemove?: str
 	});
 }
 
+
 /**
  * 
  * @param guild
@@ -1110,62 +1111,63 @@ async function resumeQueueAfterOffline() {
 		try {
 			const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
 
-			if (guild) {
-				const storedQueueChannels = await knex<QueueChannel>('queue_channels')
-					.where('guild_id', guild.id);
-				for (const storedQueueChannel of storedQueueChannels) {
-					const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
-					if (queueChannel) {
-						if (queueChannel.type !== 'voice') continue;
-						let updateDisplay = false;
+			const storedQueueChannels = await knex<QueueChannel>('queue_channels')
+				.where('guild_id', guild.id);
+			for (const storedQueueChannel of storedQueueChannels) {
+				const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
+				if (queueChannel) {
+					if (queueChannel.type !== 'voice') continue;
+					let updateDisplay = false;
 
-						// Fetch stored and live members
-						const storedQueueMemberIds = await knex<QueueMember>('queue_members')
-							.where('queue_channel_id', queueChannel.id)
-							.pluck('queue_member_id');
-						const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
+					// Fetch stored and live members
+					const storedQueueMemberIds = await knex<QueueMember>('queue_members')
+						.where('queue_channel_id', queueChannel.id)
+						.pluck('queue_member_id');
+					const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
 
-						// Update member lists
-						for (const storedQueueMemberId of storedQueueMemberIds) {
-							if (!queueMemberIds.includes(storedQueueMemberId)) {
-								updateDisplay = true;
-								await knex<QueueMember>('queue_members')
-									.where('queue_channel_id', queueChannel.id)
-									.where('queue_member_id', storedQueueMemberId)
-									.del();
-							}
+					// Update member lists
+					for (const storedQueueMemberId of storedQueueMemberIds) {
+						if (!queueMemberIds.includes(storedQueueMemberId)) {
+							updateDisplay = true;
+							await knex<QueueMember>('queue_members')
+								.where('queue_channel_id', queueChannel.id)
+								.where('queue_member_id', storedQueueMemberId)
+								.del();
 						}
-
-						for (const queueMemberId of queueMemberIds) {
-							if (!storedQueueMemberIds.includes(queueMemberId)) {
-								updateDisplay = true;
-								await knex<QueueMember>('queue_members')
-									.where('queue_channel_id', queueChannel.id)
-									.insert({
-										queue_channel_id: queueChannel.id,
-										queue_member_id: queueMemberId
-									});
-							}
-						}
-
-						if (updateDisplay) {
-							// Update displays
-							await updateDisplayQueue(storedQueueGuild, [queueChannel]);
-                        }
-					} else {
-						// Cleanup deleted queue channels
-						await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
 					}
+
+					for (const queueMemberId of queueMemberIds) {
+						if (!storedQueueMemberIds.includes(queueMemberId)) {
+							updateDisplay = true;
+							await knex<QueueMember>('queue_members')
+								.where('queue_channel_id', queueChannel.id)
+								.insert({
+									queue_channel_id: queueChannel.id,
+									queue_member_id: queueMemberId
+								});
+						}
+					}
+
+					if (updateDisplay) {
+						// Update displays
+						await updateDisplayQueue(storedQueueGuild, [queueChannel]);
+                    }
+				} else {
+					// Cleanup deleted queue channels
+					await removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
 				}
-			} else {
+			}
+		} catch (e) {
+			if (e?.code === 50001) {
+				console.log('Deleting Guild ' + storedQueueGuild.guild_id);
 				// Cleanup deleted guilds
+				await removeStoredQueueChannel(storedQueueGuild.guild_id);
 				await knex<QueueGuild>('queue_guilds')
 					.where('guild_id', storedQueueGuild.guild_id)
 					.del();
-				await removeStoredQueueChannel(storedQueueGuild.guild_id);
-			}
-		} catch (e) {
-			console.log(e);
+			} else {
+				console.log(e);
+            }
         }
 	}
 }

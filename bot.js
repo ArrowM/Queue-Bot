@@ -819,57 +819,58 @@ function resumeQueueAfterOffline() {
         for (const storedQueueGuild of storedQueueGuilds) {
             try {
                 const guild = yield client.guilds.fetch(storedQueueGuild.guild_id);
-                if (guild) {
-                    const storedQueueChannels = yield knex('queue_channels')
-                        .where('guild_id', guild.id);
-                    for (const storedQueueChannel of storedQueueChannels) {
-                        const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id);
-                        if (queueChannel) {
-                            if (queueChannel.type !== 'voice')
-                                continue;
-                            let updateDisplay = false;
-                            const storedQueueMemberIds = yield knex('queue_members')
-                                .where('queue_channel_id', queueChannel.id)
-                                .pluck('queue_member_id');
-                            const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
-                            for (const storedQueueMemberId of storedQueueMemberIds) {
-                                if (!queueMemberIds.includes(storedQueueMemberId)) {
-                                    updateDisplay = true;
-                                    yield knex('queue_members')
-                                        .where('queue_channel_id', queueChannel.id)
-                                        .where('queue_member_id', storedQueueMemberId)
-                                        .del();
-                                }
-                            }
-                            for (const queueMemberId of queueMemberIds) {
-                                if (!storedQueueMemberIds.includes(queueMemberId)) {
-                                    updateDisplay = true;
-                                    yield knex('queue_members')
-                                        .where('queue_channel_id', queueChannel.id)
-                                        .insert({
-                                        queue_channel_id: queueChannel.id,
-                                        queue_member_id: queueMemberId
-                                    });
-                                }
-                            }
-                            if (updateDisplay) {
-                                yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
+                const storedQueueChannels = yield knex('queue_channels')
+                    .where('guild_id', guild.id);
+                for (const storedQueueChannel of storedQueueChannels) {
+                    const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id);
+                    if (queueChannel) {
+                        if (queueChannel.type !== 'voice')
+                            continue;
+                        let updateDisplay = false;
+                        const storedQueueMemberIds = yield knex('queue_members')
+                            .where('queue_channel_id', queueChannel.id)
+                            .pluck('queue_member_id');
+                        const queueMemberIds = queueChannel.members.filter(member => !member.user.bot).keyArray();
+                        for (const storedQueueMemberId of storedQueueMemberIds) {
+                            if (!queueMemberIds.includes(storedQueueMemberId)) {
+                                updateDisplay = true;
+                                yield knex('queue_members')
+                                    .where('queue_channel_id', queueChannel.id)
+                                    .where('queue_member_id', storedQueueMemberId)
+                                    .del();
                             }
                         }
-                        else {
-                            yield removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
+                        for (const queueMemberId of queueMemberIds) {
+                            if (!storedQueueMemberIds.includes(queueMemberId)) {
+                                updateDisplay = true;
+                                yield knex('queue_members')
+                                    .where('queue_channel_id', queueChannel.id)
+                                    .insert({
+                                    queue_channel_id: queueChannel.id,
+                                    queue_member_id: queueMemberId
+                                });
+                            }
+                        }
+                        if (updateDisplay) {
+                            yield updateDisplayQueue(storedQueueGuild, [queueChannel]);
                         }
                     }
-                }
-                else {
-                    yield knex('queue_guilds')
-                        .where('guild_id', storedQueueGuild.guild_id)
-                        .del();
-                    yield removeStoredQueueChannel(storedQueueGuild.guild_id);
+                    else {
+                        yield removeStoredQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
+                    }
                 }
             }
             catch (e) {
-                console.log(e);
+                if ((e === null || e === void 0 ? void 0 : e.code) === 50001) {
+                    console.log('Deleting Guild ' + storedQueueGuild.guild_id);
+                    yield removeStoredQueueChannel(storedQueueGuild.guild_id);
+                    yield knex('queue_guilds')
+                        .where('guild_id', storedQueueGuild.guild_id)
+                        .del();
+                }
+                else {
+                    console.log(e);
+                }
             }
         }
     });
