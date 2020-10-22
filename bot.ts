@@ -543,12 +543,12 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 		if (channel.type === 'voice') {
 			channel.join().then(connection => {
 				if (connection) {
-					connection.on('error', () => null); connection.on('failed', () => null); connection.on('disconnect', () => null);
-
+					connection.on('error', console.log);
+					connection.on('failed', console.log);
 					connection.voice?.setSelfDeaf(true);
 					connection.voice?.setSelfMute(true);
                 }
-			}).catch(null);
+			}).catch(() => null);
 		} else {
 			await sendResponse(message, 'I can only join voice channels.');
 		}
@@ -1236,6 +1236,7 @@ client.on('shardResume', async () => {
 	await resumeQueueAfterOffline();
 	console.log('Reconnected!');
 });
+
 
 /**
  * Store members who leave queues, time stamp them
