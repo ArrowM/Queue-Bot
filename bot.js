@@ -27,9 +27,10 @@ const client = new discord_js_1.Client({
         status: 'online'
     },
     messageEditHistoryMaxSize: 0,
-    messageCacheMaxSize: 10,
-    messageCacheLifetime: 21600,
-    messageSweepInterval: 10800,
+    messageCacheMaxSize: 5,
+    messageCacheLifetime: 6 * 3600,
+    messageSweepInterval: 3600,
+    restWsBridgeTimeout: 10000,
 });
 client.login(config_json_1.default.token);
 if (config_json_1.default.topGgToken) {
@@ -390,8 +391,8 @@ function start(queueGuild, parsed, message) {
                 channel.join().then(connection => {
                     var _a, _b;
                     if (connection) {
-                        connection.on('error', console.log);
-                        connection.on('failed', console.log);
+                        connection.on('error', () => null);
+                        connection.on('failed', () => null);
                         (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
                         (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
                     }
@@ -869,7 +870,7 @@ function resumeQueueAfterOffline() {
                         .del();
                 }
                 else {
-                    console.log(e);
+                    console.error(e);
                 }
             }
         }
