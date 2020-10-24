@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
-import { Mutex, MutexInterface } from 'async-mutex';
 import Knex from 'knex';
 import config from './config.json';
 import DBL from 'dblapi.js';
@@ -16,8 +15,8 @@ const client = new Client({
         status: 'online'
     },
     messageEditHistoryMaxSize: 0,	// Do not cache edits
-    messageCacheMaxSize: 5,			// Cache up to 10 messages per channel
-    messageCacheLifetime: 6 * 3600,	// Cache messages for 6 hours
+    messageCacheMaxSize: 5,		    // Cache up to 10 messages per channel
+    messageCacheLifetime: 3 * 3600,	// Cache messages for 3 hours
     messageSweepInterval: 3600,		// Sweep every hour
     restWsBridgeTimeout: 10000,		// Maximum time permitted between REST responses and their corresponding websocket events (default: 5000)
 });
@@ -76,20 +75,6 @@ interface DisplayChannel {
     embed_id: string;
 }
 
-// Storage Mutexes
-const queueChannelsLocks = new Map<string, MutexInterface>();		// Map<QueueGuild id, MutexInterface>;
-const membersLocks = new Map<string, MutexInterface>();				// Map<QueueChannel id, MutexInterface>;
-const displayChannelsLocks = new Map<string, MutexInterface>();		// Map<QueueChannel id, MutexInterface>;
-
-function getLock(map: Map<string, MutexInterface>, key: string): MutexInterface {
-    let lock = map.get(key);
-    if (!lock) {
-        lock = new Mutex();
-        map.set(key, lock);
-    }
-    return lock;
-}
-
 /**
  * Send message
  * @param message
@@ -114,22 +99,20 @@ async function sendResponse(message: Message, messageToSend: {} | string): Promi
  */
 async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displayChannel: TextChannel,
     msgEmbed: Partial<MessageEmbed>): Promise<void> {
-    await getLock(displayChannelsLocks, queueChannel.id).runExclusive(async () => {
-        let embedId: string;
-        // For each embed, send and collect the id
+    let embedId: string;
+    // For each embed, send and collect the id
 
-        await displayChannel.send({ embed: msgEmbed })
-            .then(msg => { if (msg) embedId = msg.id })
-            .catch(() => null);
+    await displayChannel.send({ embed: msgEmbed })
+        .then(msg => { if (msg) embedId = msg.id })
+        .catch(() => null);
 
-        // Store the ids in the database
-        await knex<DisplayChannel>('display_channels')
-            .insert({
-                queue_channel_id: queueChannel.id,
-                display_channel_id: displayChannel.id,
-                embed_id: embedId
-            });
-    });
+    // Store the ids in the database
+    await knex<DisplayChannel>('display_channels')
+        .insert({
+            queue_channel_id: queueChannel.id,
+            display_channel_id: displayChannel.id,
+            embed_id: embedId
+        });
 }
 
 /**
@@ -139,38 +122,36 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
  * @param deleteOldDisplayMsg
  */
 async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRemove?: string, deleteOldDisplayMsg = true): Promise<void> {
-    await getLock(displayChannelsLocks, queueChannelId).runExclusive(async () => {
-        let storedDisplayChannels: DisplayChannel[];
+    let storedDisplayChannels: DisplayChannel[];
 
-        // Retreive list of stored embeds for display channel
-        if (displayChannelIdToRemove) {
-            storedDisplayChannels = await knex('display_channels')
-                .where('queue_channel_id', queueChannelId)
-                .where('display_channel_id', displayChannelIdToRemove);
-            await knex('display_channels')
-                .where('queue_channel_id', queueChannelId)
-                .where('display_channel_id', displayChannelIdToRemove)
-                .del();
-        } else {
-            storedDisplayChannels = await knex('display_channels')
-                .where('queue_channel_id', queueChannelId);
-            await knex('display_channels')
-                .where('queue_channel_id', queueChannelId)
-                .del();
-        }
+    // Retreive list of stored embeds for display channel
+    if (displayChannelIdToRemove) {
+        storedDisplayChannels = await knex('display_channels')
+            .where('queue_channel_id', queueChannelId)
+            .where('display_channel_id', displayChannelIdToRemove);
+        await knex('display_channels')
+            .where('queue_channel_id', queueChannelId)
+            .where('display_channel_id', displayChannelIdToRemove)
+            .del();
+    } else {
+        storedDisplayChannels = await knex('display_channels')
+            .where('queue_channel_id', queueChannelId);
+        await knex('display_channels')
+            .where('queue_channel_id', queueChannelId)
+            .del();
+    }
 
-        if (!storedDisplayChannels || !deleteOldDisplayMsg) return;
+    if (!storedDisplayChannels || !deleteOldDisplayMsg) return;
 
-        // If found, delete them from discord
-        for (const storedDisplayChannel of storedDisplayChannels) {
-            const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
-            if (!displayChannel) continue;
+    // If found, delete them from discord
+    for (const storedDisplayChannel of storedDisplayChannels) {
+        const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
+        if (!displayChannel) continue;
 
-            await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false)
-                .then(embed => embed?.delete())
-                .catch(() => null);
-        }
-    });
+        await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false)
+            .then(embed => embed?.delete())
+            .catch(() => null);
+    }
 }
 
 /**
@@ -180,16 +161,14 @@ async function removeStoredDisplays(queueChannelId: string, displayChannelIdToRe
  * @param personalMessage
  */
 async function addStoredQueueMembers(queueChannelId: string, memberIdsToAdd: string[], personalMessage?: string): Promise<void> {
-    await getLock(membersLocks, queueChannelId).runExclusive(async () => {
-        for (const memberId of memberIdsToAdd) {
-            await knex<QueueMember>('queue_members')
-                .insert({
-                    queue_channel_id: queueChannelId,
-                    queue_member_id: memberId,
-                    personal_message: personalMessage
-                });
-        }
-    });
+    for (const memberId of memberIdsToAdd) {
+        await knex<QueueMember>('queue_members')
+            .insert({
+                queue_channel_id: queueChannelId,
+                queue_member_id: memberId,
+                personal_message: personalMessage
+            });
+    }
 }
 
 /**
@@ -198,21 +177,19 @@ async function addStoredQueueMembers(queueChannelId: string, memberIdsToAdd: str
  * @param memberIdsToRemove
  */
 async function removeStoredQueueMembers(queueChannelId: string, memberIdsToRemove?: string[]): Promise<void> {
-    await getLock(membersLocks, queueChannelId).runExclusive(async () => {
-        // Retreive list of stored embeds for display channel
-        if (memberIdsToRemove) {
-            await knex<QueueMember>('queue_members')
-                .where('queue_channel_id', queueChannelId)
-                .whereIn('queue_member_id', memberIdsToRemove)
-                .first()
-                .del();
-        } else {
-            await knex<QueueMember>('queue_members')
-                .where('queue_channel_id', queueChannelId)
-                .first()
-                .del();
-        }
-    });
+    // Retreive list of stored embeds for display channel
+    if (memberIdsToRemove) {
+        await knex<QueueMember>('queue_members')
+            .where('queue_channel_id', queueChannelId)
+            .whereIn('queue_member_id', memberIdsToRemove)
+            .first()
+            .del();
+    } else {
+        await knex<QueueMember>('queue_members')
+            .where('queue_channel_id', queueChannelId)
+            .first()
+            .del();
+    }
 }
 
 /**
@@ -220,14 +197,12 @@ async function removeStoredQueueMembers(queueChannelId: string, memberIdsToRemov
  * @param channelToAdd
  */
 async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel): Promise<void> {
-    await getLock(queueChannelsLocks, channelToAdd.guild.id).runExclusive(async () => {
-        // Fetch old channels
-        await knex<QueueChannel>('queue_channels')
-            .insert({
-                queue_channel_id: channelToAdd.id,
-                guild_id: channelToAdd.guild.id
-            }).catch(() => null);
-    });
+    // Fetch old channels
+    await knex<QueueChannel>('queue_channels')
+        .insert({
+            queue_channel_id: channelToAdd.id,
+            guild_id: channelToAdd.guild.id
+        }).catch(() => null);
     if (channelToAdd.type === 'voice') {
         await addStoredQueueMembers(channelToAdd.id, channelToAdd.members
             .filter(member => !member.user.bot).map(member => member.id));
@@ -240,26 +215,24 @@ async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel): 
  * @param channelIdToRemove
  */
 async function removeStoredQueueChannel(guildId: string, channelIdToRemove?: string): Promise<void> {
-    await getLock(queueChannelsLocks, guildId).runExclusive(async () => {
-        if (channelIdToRemove) {
-            await knex<QueueChannel>('queue_channels')
-                .where('queue_channel_id', channelIdToRemove)
-                .first()
-                .del();
-            await removeStoredQueueMembers(channelIdToRemove);
-            await removeStoredDisplays(channelIdToRemove);
-        } else {
-            const storedQueueChannels = await knex<QueueChannel>('queue_channels')
-                .where('guild_id', guildId);
-            for (const storedQueueChannel of storedQueueChannels) {
-                await removeStoredQueueMembers(storedQueueChannel.queue_channel_id);
-                await removeStoredDisplays(storedQueueChannel.queue_channel_id);
-            }
-            await knex<QueueChannel>('queue_channels')
-                .where('guild_id', guildId)
-                .del();
+    if (channelIdToRemove) {
+        await knex<QueueChannel>('queue_channels')
+            .where('queue_channel_id', channelIdToRemove)
+            .first()
+            .del();
+        await removeStoredQueueMembers(channelIdToRemove);
+        await removeStoredDisplays(channelIdToRemove);
+    } else {
+        const storedQueueChannels = await knex<QueueChannel>('queue_channels')
+            .where('guild_id', guildId);
+        for (const storedQueueChannel of storedQueueChannels) {
+            await removeStoredQueueMembers(storedQueueChannel.queue_channel_id);
+            await removeStoredDisplays(storedQueueChannel.queue_channel_id);
         }
-    });
+        await knex<QueueChannel>('queue_channels')
+            .where('guild_id', guildId)
+            .del();
+    }
 }
 
 /**
@@ -268,29 +241,26 @@ async function removeStoredQueueChannel(guildId: string, channelIdToRemove?: str
  */
 async function fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
     const queueChannelIdsToRemove: string[] = [];
-    const queueChannels = await getLock(queueChannelsLocks, guild.id).runExclusive(async () => {
-        // Fetch stored channels
-        const storedQueueChannels = await knex<QueueChannel>('queue_channels')
-            .where('guild_id', guild.id);
-        if (!storedQueueChannels) return null;
+    // Fetch stored channels
+    const storedQueueChannels = await knex<QueueChannel>('queue_channels')
+        .where('guild_id', guild.id);
+    if (!storedQueueChannels) return null;
 
-        const queueChannels: (VoiceChannel | TextChannel)[] = [];
+    const queueChannels: (VoiceChannel | TextChannel)[] = [];
 
-        // Check for deleted channels
-        // Going backwards allows the removal of entries while visiting each one
-        for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
-            const queueChannelId = storedQueueChannels[i].queue_channel_id;
-            const queueChannel = guild.channels.cache.get(queueChannelId) as VoiceChannel | TextChannel;
-            if (queueChannel) {
-                // Still exists, add to return list
-                queueChannels.push(queueChannel);
-            } else {
-                // Channel has been deleted, update database
-                queueChannelIdsToRemove.push(queueChannelId);
-            }
+    // Check for deleted channels
+    // Going backwards allows the removal of entries while visiting each one
+    for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
+        const queueChannelId = storedQueueChannels[i].queue_channel_id;
+        const queueChannel = guild.channels.cache.get(queueChannelId) as VoiceChannel | TextChannel;
+        if (queueChannel) {
+            // Still exists, add to return list
+            queueChannels.push(queueChannel);
+        } else {
+            // Channel has been deleted, update database
+            queueChannelIdsToRemove.push(queueChannelId);
         }
-        return queueChannels;
-    });
+    }
     for (const queueChannelId of queueChannelIdsToRemove) {
         await removeStoredQueueChannel(guild.id, queueChannelId);
     }
@@ -711,23 +681,21 @@ async function kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, messa
     if (!memberIdsToKick || memberIdsToKick.length === 0) return;
 
     let updateDisplays = false;
-    await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
-        const storedQueueMemberIds = await knex<QueueMember>('queue_members')
+    const storedQueueMemberIds = await knex<QueueMember>('queue_members')
+        .where('queue_channel_id', queueChannel.id)
+        .whereIn('queue_member_id', memberIdsToKick)
+        .pluck('queue_member_id');
+
+    if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
+        updateDisplays = true;
+        // Remove from queue
+        await knex<QueueMember>('queue_members')
             .where('queue_channel_id', queueChannel.id)
             .whereIn('queue_member_id', memberIdsToKick)
-            .pluck('queue_member_id');
-
-        if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
-            updateDisplays = true;
-            // Remove from queue
-            await knex<QueueMember>('queue_members')
-                .where('queue_channel_id', queueChannel.id)
-                .whereIn('queue_member_id', memberIdsToKick)
-                .del();
-            await sendResponse(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
-                + ` from the \`${queueChannel.name}\` queue.`);
-        }
-    });
+            .del();
+        await sendResponse(message, 'Kicked ' + storedQueueMemberIds.map(id => `<@!${id}>`).join(', ')
+            + ` from the \`${queueChannel.name}\` queue.`);
+    }
     if (updateDisplays) await updateDisplayQueue(queueGuild, [queueChannel]);
 }
 
@@ -752,17 +720,15 @@ async function shuffleQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
     const queueChannel = await fetchChannel(queueGuild, parsed, message);
     if (!queueChannel) return;
 
-    await getLock(membersLocks, queueChannel.id).runExclusive(async () => {
-        const queueMembers = await knex<QueueMember>('queue_members')
-            .where('queue_channel_id', queueChannel.id);
-        const queueMemberTimeStamps = queueMembers.map(member => member.created_at);
-        shuffleArray(queueMemberTimeStamps);
-        for (let i = 0; i < queueMembers.length; i++) {
-            await knex<QueueMember>('queue_members')
-                .where('id', queueMembers[i].id)
-                .update('created_at', queueMemberTimeStamps[i]);
-        }
-    });
+    const queueMembers = await knex<QueueMember>('queue_members')
+        .where('queue_channel_id', queueChannel.id);
+    const queueMemberTimeStamps = queueMembers.map(member => member.created_at);
+    shuffleArray(queueMemberTimeStamps);
+    for (let i = 0; i < queueMembers.length; i++) {
+        await knex<QueueMember>('queue_members')
+            .where('id', queueMembers[i].id)
+            .update('created_at', queueMemberTimeStamps[i]);
+    }
     await updateDisplayQueue(queueGuild, [queueChannel]);
     await sendResponse(message, `\`${queueChannel.name}\` queue shuffled.`);
 }
