@@ -800,7 +800,6 @@ function resumeQueueAfterOffline() {
         for (const storedQueueGuild of storedQueueGuilds) {
             try {
                 const guild = yield client.guilds.fetch(storedQueueGuild.guild_id);
-                yield setNickname(guild, storedQueueGuild.prefix);
                 const storedQueueChannels = yield knex('queue_channels')
                     .where('guild_id', guild.id);
                 for (const storedQueueChannel of storedQueueChannels) {

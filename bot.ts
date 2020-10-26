@@ -1061,7 +1061,6 @@ async function resumeQueueAfterOffline(): Promise<void> {
     for (const storedQueueGuild of storedQueueGuilds) {
         try {
             const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
-            await setNickname(guild, storedQueueGuild.prefix);
 
             const storedQueueChannels = await knex<QueueChannel>('queue_channels')
                 .where('guild_id', guild.id);
