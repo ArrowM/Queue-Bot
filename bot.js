@@ -703,7 +703,7 @@ function checkPermission(message) {
 }
 function setNickname(guild, prefix) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield guild.me.setNickname(`(${prefix}) Queue Bot`);
+        yield guild.me.setNickname(`(${prefix}) Queue Bot`).catch(() => null);
     });
 }
 function createDefaultGuild(guild) {

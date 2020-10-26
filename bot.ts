@@ -926,7 +926,7 @@ async function checkPermission(message: Message): Promise<boolean> {
  * @param prefix
  */
 async function setNickname(guild: Guild, prefix: string): Promise<void> {
-    await guild.me.setNickname(`(${prefix}) Queue Bot`);
+    await guild.me.setNickname(`(${prefix}) Queue Bot`).catch(() => null);
 }
 
 /**
