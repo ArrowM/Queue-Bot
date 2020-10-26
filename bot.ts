@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/camelcase */
-//import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
-import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js-light';
+import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
+//import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js-light';
 import Knex from 'knex';
 import config from './config.json';
 import DBL from 'dblapi.js';

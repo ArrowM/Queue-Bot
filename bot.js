@@ -12,12 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const discord_js_light_1 = require("discord.js-light");
+const discord_js_1 = require("discord.js");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
 const dblapi_js_1 = __importDefault(require("dblapi.js"));
 require('events').EventEmitter.defaultMaxListeners = 0;
-const client = new discord_js_light_1.Client({
+const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
     presence: {
         activity: {
@@ -225,7 +225,7 @@ function generateEmbed(queueGuild, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
         const queueMembers = yield knex('queue_members')
             .where('queue_channel_id', queueChannel.id).orderBy('created_at');
-        const embed = new discord_js_light_1.MessageEmbed();
+        const embed = new discord_js_1.MessageEmbed();
         embed.setTitle(queueChannel.name);
         embed.setColor(queueGuild.color);
         embed.setDescription(queueChannel.type === 'voice' ?
