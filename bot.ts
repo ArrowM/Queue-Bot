@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
-//import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js-light';
+//import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
+import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed, VoiceConnection } from 'discord.js-light';
 import Knex from 'knex';
 import config from './config.json';
 import DBL from 'dblapi.js';
@@ -8,6 +8,13 @@ import DBL from 'dblapi.js';
 // Setup client
 require('events').EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
 const client = new Client({
+    cacheGuilds: true,
+    cacheChannels: true,
+    cacheRoles: false,
+    cacheOverwrites: false,
+    cacheEmojis: false,
+    cachePresences: false,
+
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
     presence: {
         activity: {
@@ -83,10 +90,9 @@ interface DisplayChannel {
  */
 async function sendResponse(message: Message, messageToSend: {} | string): Promise<Message> {
     const channel = message.channel as TextChannel;
-    if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-        return message.channel.send(messageToSend)
-            .catch(() => null);
-    } else {
+    try {
+        return message.channel.send(messageToSend);
+    } catch (e) {
         return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
             .catch(() => null);
     }
@@ -104,8 +110,7 @@ async function addStoredDisplays(queueChannel: VoiceChannel | TextChannel, displ
     // For each embed, send and collect the id
 
     await displayChannel.send({ embed: msgEmbed })
-        .then(msg => { if (msg) embedId = msg.id })
-        .catch(() => null);
+        .then(msg => { if (msg) embedId = msg.id });
 
     // Store the ids in the database
     await knex<DisplayChannel>('display_channels')
@@ -366,24 +371,21 @@ async function updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceC
                 const displayChannel = await client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
 
                 if (displayChannel) {
-                    if (displayChannel.permissionsFor(displayChannel.guild.me).has('SEND_MESSAGES') &&
-                        displayChannel.permissionsFor(displayChannel.guild.me).has('EMBED_LINKS')) {
-                        if (queueGuild.msg_mode === 1) {
-                            /* Edit */
-                            // Retrieved display embed
-                            const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
-                            if (storedEmbed) {
-                                await storedEmbed.edit({ embed: msgEmbed }).catch(() => null);
-                            } else {
-                                await addStoredDisplays(queueChannel, displayChannel, msgEmbed);
-                            }
+                    if (queueGuild.msg_mode === 1) {
+                        /* Edit */
+                        // Retrieved display embed
+                        const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id, true).catch(() => null);
+                        if (storedEmbed) {
+                            await storedEmbed.edit({ embed: msgEmbed }).catch(() => null);
                         } else {
-                            /* Replace */
-                            // Remove old display
-                            await removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
-                            // Create new display
                             await addStoredDisplays(queueChannel, displayChannel, msgEmbed);
                         }
+                    } else {
+                        /* Replace */
+                        // Remove old display
+                        await removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
+                        // Create new display
+                        await addStoredDisplays(queueChannel, displayChannel, msgEmbed);
                     }
                 } else {
                     // Handled deleted display channels
@@ -494,10 +496,15 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
     const channel = await fetchChannel(queueGuild, parsed, message, false, 'voice');
     if (!channel) return;
 
-    if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
-        if (channel.type === 'voice') {
-            try {
-                channel.join().then(connection => {
+    if (channel.type === 'voice') {
+        try {
+            channel
+                .join()
+                .catch(async () => {
+                    await sendResponse(message, 'I need the permissions to join your voice channel!');
+                    return null;
+                })
+                .then((connection: VoiceConnection) => {
                     if (connection) {
                         connection.on('error', () => null);
                         connection.on('failed', () => null);
@@ -505,14 +512,11 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
                         connection.voice?.setSelfMute(true);
                     }
                 });
-            } catch (e) {
-                // ignore
-            }
-        } else {
-            await sendResponse(message, 'I can only join voice channels.');
+        } catch (e) {
+            // ignore
         }
     } else {
-        await sendResponse(message, 'I need the permissions to join your voice channel!');
+        await sendResponse(message, 'I can only join voice channels.');
     }
 }
 
@@ -530,14 +534,13 @@ async function displayQueue(queueGuild: QueueGuild, parsed: ParsedArguments, mes
 
     const displayChannel = message.channel as TextChannel;
 
-    if (displayChannel.permissionsFor(message.guild.me).has('SEND_MESSAGES')
-        && displayChannel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
+    try {
         const embedList = await generateEmbed(queueGuild, queueChannel);
         // Remove old display
         await removeStoredDisplays(queueChannel.id, displayChannel.id);
         // Create new display
         await addStoredDisplays(queueChannel, displayChannel, embedList);
-    } else {
+    } catch (e) {
         message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`)
             .catch(() => null);
     }
@@ -858,10 +861,10 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
     const channel = await findChannel(queueGuild, availableChannels, parsed, message, false, 'text') as TextChannel;
 
     if (parsed.arguments && channel) {
-        if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
+        try {
             // Channel found and bot has permission, print.
-            embeds.forEach(em => channel.send(em).catch(() => null));
-        } else {
+            embeds.forEach(em => channel.send(em));
+        } catch (e) {
             // Channel found, but no permission. Send permission and help messages to user.
             message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
                 .catch(() => null);
@@ -1210,8 +1213,8 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
     const newVoiceChannel = newVoiceState?.channel;
 
     if (oldVoiceChannel !== newVoiceChannel) {
-        const member = newVoiceState.member;
-        const guild = newVoiceState.guild;
+        const member = newVoiceState?.member || oldVoiceState.member;
+        const guild = newVoiceState?.guild || oldVoiceState.guild;
 
         const queueGuild = await knex<QueueGuild>('queue_guilds').where('guild_id', guild.id).first();
         const storedOldQueueChannel = oldVoiceChannel ?
