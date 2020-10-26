@@ -921,18 +921,28 @@ async function checkPermission(message: Message): Promise<boolean> {
 }
 
 /**
- *
- * @param guildId
+ * 
+ * @param guild
+ * @param prefix
  */
-async function createDefaultGuild(guildId: string): Promise<QueueGuild> {
+async function setNickname(guild: Guild, prefix: string): Promise<void> {
+    await guild.me.setNickname(`(${prefix}) Queue Bot`);
+}
+
+/**
+ *
+ * @param guild
+ */
+async function createDefaultGuild(guild: Guild): Promise<QueueGuild> {
     await knex<QueueGuild>('queue_guilds').insert({
-        guild_id: guildId,
+        guild_id: guild.id,
         grace_period: '0',
         prefix: config.prefix,
         color: '#51ff7e',
         msg_mode: 1
     }).catch(() => null);
-    return await knex<QueueGuild>('queue_guilds').where('guild_id', guildId).first();
+    await setNickname(guild, config.prefix);
+    return await knex<QueueGuild>('queue_guilds').where('guild_id', guild.id).first();
 }
 
 interface ParsedArguments {
@@ -942,10 +952,10 @@ interface ParsedArguments {
 
 client.on('message', async message => {
     if (message.author.bot) return;
-    const guildId = message.guild.id;
+    const guild = message.guild;
     // NOTE: DO NOT USE queue_channel_ids from the variable. Lock first, then call knex<GuildQueue>('queue_guilds').
-    const queueGuild = await knex<QueueGuild>('queue_guilds').where('guild_id', guildId).first()
-        || await createDefaultGuild(guildId);
+    const queueGuild = await knex<QueueGuild>('queue_guilds').where('guild_id', guild.id).first()
+        || await createDefaultGuild(guild);
 
     const parsed: ParsedArguments = { command: null, arguments: null };
     if (message.content.startsWith(queueGuild.prefix)) {
@@ -998,6 +1008,7 @@ client.on('message', async message => {
                     setServerSettings(queueGuild, parsed, message,
                         true,
                     );
+                    await setNickname(guild, parsed.arguments);
                     break;
                 // Color
                 case config.colorCmd:
@@ -1045,11 +1056,12 @@ client.on('message', async message => {
     }
 });
 
-async function resumeQueueAfterOffline() {
+async function resumeQueueAfterOffline(): Promise<void> {
     const storedQueueGuilds = await knex<QueueGuild>('queue_guilds');
     for (const storedQueueGuild of storedQueueGuilds) {
         try {
             const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
+            await setNickname(guild, storedQueueGuild.prefix);
 
             const storedQueueChannels = await knex<QueueChannel>('queue_channels')
                 .where('guild_id', guild.id);

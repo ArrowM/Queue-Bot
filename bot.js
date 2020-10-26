@@ -701,24 +701,30 @@ function checkPermission(message) {
         return message.member.roles.cache.some(role => regex.test(role.name)) || message.member.id === message.guild.ownerID;
     });
 }
-function createDefaultGuild(guildId) {
+function setNickname(guild, prefix) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield guild.me.setNickname(`(${prefix}) Queue Bot`);
+    });
+}
+function createDefaultGuild(guild) {
     return __awaiter(this, void 0, void 0, function* () {
         yield knex('queue_guilds').insert({
-            guild_id: guildId,
+            guild_id: guild.id,
             grace_period: '0',
             prefix: config_json_1.default.prefix,
             color: '#51ff7e',
             msg_mode: 1
         }).catch(() => null);
-        return yield knex('queue_guilds').where('guild_id', guildId).first();
+        yield setNickname(guild, config_json_1.default.prefix);
+        return yield knex('queue_guilds').where('guild_id', guild.id).first();
     });
 }
 client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* () {
     if (message.author.bot)
         return;
-    const guildId = message.guild.id;
-    const queueGuild = (yield knex('queue_guilds').where('guild_id', guildId).first())
-        || (yield createDefaultGuild(guildId));
+    const guild = message.guild;
+    const queueGuild = (yield knex('queue_guilds').where('guild_id', guild.id).first())
+        || (yield createDefaultGuild(guild));
     const parsed = { command: null, arguments: null };
     if (message.content.startsWith(queueGuild.prefix)) {
         parsed.command = message.content.substring(queueGuild.prefix.length).split(' ')[0];
@@ -752,6 +758,7 @@ client.on('message', (message) => __awaiter(void 0, void 0, void 0, function* ()
                     break;
                 case config_json_1.default.prefixCmd:
                     setServerSettings(queueGuild, parsed, message, true);
+                    yield setNickname(guild, parsed.arguments);
                     break;
                 case config_json_1.default.colorCmd:
                     setServerSettings(queueGuild, parsed, message, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), 'Use HEX color:', {
@@ -793,6 +800,7 @@ function resumeQueueAfterOffline() {
         for (const storedQueueGuild of storedQueueGuilds) {
             try {
                 const guild = yield client.guilds.fetch(storedQueueGuild.guild_id);
+                yield setNickname(guild, storedQueueGuild.prefix);
                 const storedQueueChannels = yield knex('queue_channels')
                     .where('guild_id', guild.id);
                 for (const storedQueueChannel of storedQueueChannels) {
