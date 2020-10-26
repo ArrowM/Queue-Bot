@@ -929,8 +929,8 @@ function markLeavingMember(member, oldVoiceChannel) {
     });
 }
 client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0, void 0, void 0, function* () {
-    const oldVoiceChannel = oldVoiceState.channel;
-    const newVoiceChannel = newVoiceState.channel;
+    const oldVoiceChannel = oldVoiceState === null || oldVoiceState === void 0 ? void 0 : oldVoiceState.channel;
+    const newVoiceChannel = newVoiceState === null || newVoiceState === void 0 ? void 0 : newVoiceState.channel;
     if (oldVoiceChannel !== newVoiceChannel) {
         const member = newVoiceState.member;
         const guild = newVoiceState.guild;

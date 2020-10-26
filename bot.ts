@@ -1206,8 +1206,8 @@ async function markLeavingMember(member: GuildMember, oldVoiceChannel: VoiceChan
 
 // Monitor for users joining voice channels
 client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
-    const oldVoiceChannel = oldVoiceState.channel;
-    const newVoiceChannel = newVoiceState.channel;
+    const oldVoiceChannel = oldVoiceState?.channel;
+    const newVoiceChannel = newVoiceState?.channel;
 
     if (oldVoiceChannel !== newVoiceChannel) {
         const member = newVoiceState.member;
