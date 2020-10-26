@@ -12,12 +12,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const discord_js_1 = require("discord.js");
+const discord_js_light_1 = require("discord.js-light");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
 const dblapi_js_1 = __importDefault(require("dblapi.js"));
 require('events').EventEmitter.defaultMaxListeners = 0;
-const client = new discord_js_1.Client({
+const client = new discord_js_light_1.Client({
+    cacheGuilds: true,
+    cacheChannels: true,
+    cacheRoles: false,
+    cacheOverwrites: false,
+    cacheEmojis: false,
+    cachePresences: false,
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
     presence: {
         activity: {
@@ -55,11 +61,10 @@ const knex = knex_1.default({
 function sendResponse(message, messageToSend) {
     return __awaiter(this, void 0, void 0, function* () {
         const channel = message.channel;
-        if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-            return message.channel.send(messageToSend)
-                .catch(() => null);
+        try {
+            return message.channel.send(messageToSend);
         }
-        else {
+        catch (e) {
             return message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
                 .catch(() => null);
         }
@@ -70,8 +75,7 @@ function addStoredDisplays(queueChannel, displayChannel, msgEmbed) {
         let embedId;
         yield displayChannel.send({ embed: msgEmbed })
             .then(msg => { if (msg)
-            embedId = msg.id; })
-            .catch(() => null);
+            embedId = msg.id; });
         yield knex('display_channels')
             .insert({
             queue_channel_id: queueChannel.id,
@@ -225,7 +229,7 @@ function generateEmbed(queueGuild, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
         const queueMembers = yield knex('queue_members')
             .where('queue_channel_id', queueChannel.id).orderBy('created_at');
-        const embed = new discord_js_1.MessageEmbed();
+        const embed = new discord_js_light_1.MessageEmbed();
         embed.setTitle(queueChannel.name);
         embed.setColor(queueGuild.color);
         embed.setDescription(queueChannel.type === 'voice' ?
@@ -266,21 +270,18 @@ function updateDisplayQueue(queueGuild, queueChannels) {
                 try {
                     const displayChannel = yield client.channels.fetch(storedDisplayChannel.display_channel_id);
                     if (displayChannel) {
-                        if (displayChannel.permissionsFor(displayChannel.guild.me).has('SEND_MESSAGES') &&
-                            displayChannel.permissionsFor(displayChannel.guild.me).has('EMBED_LINKS')) {
-                            if (queueGuild.msg_mode === 1) {
-                                const storedEmbed = yield displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
-                                if (storedEmbed) {
-                                    yield storedEmbed.edit({ embed: msgEmbed }).catch(() => null);
-                                }
-                                else {
-                                    yield addStoredDisplays(queueChannel, displayChannel, msgEmbed);
-                                }
+                        if (queueGuild.msg_mode === 1) {
+                            const storedEmbed = yield displayChannel.messages.fetch(storedDisplayChannel.embed_id, true).catch(() => null);
+                            if (storedEmbed) {
+                                yield storedEmbed.edit({ embed: msgEmbed }).catch(() => null);
                             }
                             else {
-                                yield removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
                                 yield addStoredDisplays(queueChannel, displayChannel, msgEmbed);
                             }
+                        }
+                        else {
+                            yield removeStoredDisplays(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
+                            yield addStoredDisplays(queueChannel, displayChannel, msgEmbed);
                         }
                     }
                     else {
@@ -359,28 +360,29 @@ function start(queueGuild, parsed, message) {
         const channel = yield fetchChannel(queueGuild, parsed, message, false, 'voice');
         if (!channel)
             return;
-        if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
-            if (channel.type === 'voice') {
-                try {
-                    channel.join().then(connection => {
-                        var _a, _b;
-                        if (connection) {
-                            connection.on('error', () => null);
-                            connection.on('failed', () => null);
-                            (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
-                            (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
-                        }
-                    });
-                }
-                catch (e) {
-                }
+        if (channel.type === 'voice') {
+            try {
+                channel
+                    .join()
+                    .catch(() => __awaiter(this, void 0, void 0, function* () {
+                    yield sendResponse(message, 'I need the permissions to join your voice channel!');
+                    return null;
+                }))
+                    .then((connection) => {
+                    var _a, _b;
+                    if (connection) {
+                        connection.on('error', () => null);
+                        connection.on('failed', () => null);
+                        (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
+                        (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
+                    }
+                });
             }
-            else {
-                yield sendResponse(message, 'I can only join voice channels.');
+            catch (e) {
             }
         }
         else {
-            yield sendResponse(message, 'I need the permissions to join your voice channel!');
+            yield sendResponse(message, 'I can only join voice channels.');
         }
     });
 }
@@ -390,13 +392,12 @@ function displayQueue(queueGuild, parsed, message, queueChannel) {
         if (!queueChannel)
             return;
         const displayChannel = message.channel;
-        if (displayChannel.permissionsFor(message.guild.me).has('SEND_MESSAGES')
-            && displayChannel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
+        try {
             const embedList = yield generateEmbed(queueGuild, queueChannel);
             yield removeStoredDisplays(queueChannel.id, displayChannel.id);
             yield addStoredDisplays(queueChannel, displayChannel, embedList);
         }
-        else {
+        catch (e) {
             message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`)
                 .catch(() => null);
         }
@@ -655,10 +656,10 @@ function help(queueGuild, parsed, message) {
         const availableChannels = message.guild.channels.cache.array();
         const channel = yield findChannel(queueGuild, availableChannels, parsed, message, false, 'text');
         if (parsed.arguments && channel) {
-            if (channel.permissionsFor(message.guild.me).has('SEND_MESSAGES') && channel.permissionsFor(message.guild.me).has('EMBED_LINKS')) {
-                embeds.forEach(em => channel.send(em).catch(() => null));
+            try {
+                embeds.forEach(em => channel.send(em));
             }
-            else {
+            catch (e) {
                 message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
                     .catch(() => null);
             }
@@ -932,8 +933,8 @@ client.on('voiceStateUpdate', (oldVoiceState, newVoiceState) => __awaiter(void 0
     const oldVoiceChannel = oldVoiceState === null || oldVoiceState === void 0 ? void 0 : oldVoiceState.channel;
     const newVoiceChannel = newVoiceState === null || newVoiceState === void 0 ? void 0 : newVoiceState.channel;
     if (oldVoiceChannel !== newVoiceChannel) {
-        const member = newVoiceState.member;
-        const guild = newVoiceState.guild;
+        const member = (newVoiceState === null || newVoiceState === void 0 ? void 0 : newVoiceState.member) || oldVoiceState.member;
+        const guild = (newVoiceState === null || newVoiceState === void 0 ? void 0 : newVoiceState.guild) || oldVoiceState.guild;
         const queueGuild = yield knex('queue_guilds').where('guild_id', guild.id).first();
         const storedOldQueueChannel = oldVoiceChannel ?
             yield knex('queue_channels').where('queue_channel_id', oldVoiceChannel.id).first()
