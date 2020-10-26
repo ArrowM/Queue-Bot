@@ -12,12 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const discord_js_1 = require("discord.js");
+const discord_js_light_1 = require("discord.js-light");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
 const dblapi_js_1 = __importDefault(require("dblapi.js"));
 require('events').EventEmitter.defaultMaxListeners = 0;
-const client = new discord_js_1.Client({
+const client = new discord_js_light_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
     presence: {
         activity: {
@@ -225,7 +225,7 @@ function generateEmbed(queueGuild, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
         const queueMembers = yield knex('queue_members')
             .where('queue_channel_id', queueChannel.id).orderBy('created_at');
-        const embed = new discord_js_1.MessageEmbed();
+        const embed = new discord_js_light_1.MessageEmbed();
         embed.setTitle(queueChannel.name);
         embed.setColor(queueGuild.color);
         embed.setDescription(queueChannel.type === 'voice' ?
@@ -361,15 +361,19 @@ function start(queueGuild, parsed, message) {
             return;
         if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
             if (channel.type === 'voice') {
-                channel.join().then(connection => {
-                    var _a, _b;
-                    if (connection) {
-                        connection.on('error', () => null);
-                        connection.on('failed', () => null);
-                        (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
-                        (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
-                    }
-                }).catch(() => null);
+                try {
+                    channel.join().then(connection => {
+                        var _a, _b;
+                        if (connection) {
+                            connection.on('error', () => null);
+                            connection.on('failed', () => null);
+                            (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
+                            (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
+                        }
+                    });
+                }
+                catch (e) {
+                }
             }
             else {
                 yield sendResponse(message, 'I can only join voice channels.');
@@ -705,7 +709,7 @@ function createDefaultGuild(guildId) {
             prefix: config_json_1.default.prefix,
             color: '#51ff7e',
             msg_mode: 1
-        });
+        }).catch(() => null);
         return yield knex('queue_guilds').where('guild_id', guildId).first();
     });
 }

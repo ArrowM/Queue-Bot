@@ -11,10 +11,15 @@
   "license": "ISC",
   "dependencies": {
     "async-mutex": "^0.2.4",
+    "bufferutil": "^4.0.1",
     "dblapi.js": "^2.4.1",
     "discord.js": "^12.4.0",
+    "discord.js-light": "^3.3.3",
+    "erlpack": "github:discordapp/erlpack",
     "knex": "^0.21.6",
-    "pg": "^8.4.1"
+    "pg": "^8.4.1",
+    "utf-8-validate": "^5.0.2",
+    "zlib-sync": "^0.1.7"
   },
   "devDependencies": {
     "@types/node": "^14.14.0"

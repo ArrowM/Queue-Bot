@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
+//import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
+import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js-light';
 import Knex from 'knex';
 import config from './config.json';
 import DBL from 'dblapi.js';
@@ -495,14 +496,18 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
 
     if (channel.permissionsFor(message.guild.me).has('CONNECT')) {
         if (channel.type === 'voice') {
-            channel.join().then(connection => {
-                if (connection) {
-                    connection.on('error', () => null);
-                    connection.on('failed', () => null);
-                    connection.voice?.setSelfDeaf(true);
-                    connection.voice?.setSelfMute(true);
-                }
-            }).catch(() => null);
+            try {
+                channel.join().then(connection => {
+                    if (connection) {
+                        connection.on('error', () => null);
+                        connection.on('failed', () => null);
+                        connection.voice?.setSelfDeaf(true);
+                        connection.voice?.setSelfMute(true);
+                    }
+                });
+            } catch (e) {
+                // ignore
+            }
         } else {
             await sendResponse(message, 'I can only join voice channels.');
         }
@@ -927,7 +932,7 @@ async function createDefaultGuild(guildId: string): Promise<QueueGuild> {
         prefix: config.prefix,
         color: '#51ff7e',
         msg_mode: 1
-    });
+    }).catch(() => null);
     return await knex<QueueGuild>('queue_guilds').where('guild_id', guildId).first();
 }
 
