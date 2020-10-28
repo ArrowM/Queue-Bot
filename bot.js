@@ -32,6 +32,7 @@ const client = new discord_js_1.Client({
     restWsBridgeTimeout: 10000,
 });
 client.login(config_json_1.default.token);
+client.on('error', console.log);
 if (config_json_1.default.topGgToken) {
     const dbl = new dblapi_js_1.default(config_json_1.default.topGgToken, client);
     dbl.on('error', () => null);

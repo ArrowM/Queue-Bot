@@ -21,6 +21,7 @@ const client = new Client({
     restWsBridgeTimeout: 10000,		// Maximum time permitted between REST responses and their corresponding websocket events (default: 5000)
 });
 client.login(config.token);
+client.on('error', console.log);
 
 // Top GG integration
 if (config.topGgToken) {
