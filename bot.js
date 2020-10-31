@@ -477,25 +477,27 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
 }
 function popTextQueue(queueGuild, parsed, message) {
     return __awaiter(this, void 0, void 0, function* () {
+        const lastArg = parsed.arguments.split(' ').slice(-1).pop();
+        const numToPop = +lastArg || 1;
+        if (!numToPop || numToPop === 0) {
+            sendResponse(message, `\`ammount\` must be a postive number!`);
+            return;
+        }
         const queueChannel = yield fetchChannel(queueGuild, parsed, message, false, 'text');
         if (!queueChannel)
             return;
-        if (queueChannel.type !== 'text') {
-            yield sendResponse(message, `\`${queueGuild.prefix}${config_json_1.default.nextCmd}\` can only be used on text channel queues.`);
+        let nextQueueMembers = yield knex('queue_members')
+            .where('queue_channel_id', queueChannel.id)
+            .orderBy('created_at');
+        nextQueueMembers = nextQueueMembers.slice(0, numToPop);
+        if (nextQueueMembers.length > 0) {
+            sendResponse(message, `Pulled ` + nextQueueMembers.map(member => `<@!${member.queue_member_id}>`).join(', ')
+                + ` from \`${queueChannel.name}\`.`);
+            yield removeStoredQueueMembers(queueChannel.id, nextQueueMembers.map(member => member.queue_member_id));
+            yield updateDisplayQueue(queueGuild, [queueChannel]);
         }
         else {
-            const nextQueueMember = yield knex('queue_members')
-                .where('queue_channel_id', queueChannel.id)
-                .orderBy('created_at')
-                .first();
-            if (nextQueueMember) {
-                sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
-                yield removeStoredQueueMembers(queueChannel.id, [nextQueueMember.queue_member_id]);
-                yield updateDisplayQueue(queueGuild, [queueChannel]);
-            }
-            else {
-                sendResponse(message, `\`${queueChannel.name}\` is empty.`);
-            }
+            sendResponse(message, `\`${queueChannel.name}\` is empty.`);
         }
     });
 }
@@ -615,7 +617,7 @@ function help(queueGuild, parsed, message) {
                         },
                         {
                             'name': 'Pull Users from Text Queue',
-                            'value': `\`${storedPrefix}${config_json_1.default.nextCmd} {channel name}\` removes the next person in the text queue and displays their name.`
+                            'value': `\`${storedPrefix}${config_json_1.default.nextCmd} {channel name} {OPTIONAL: amount}\` removes people from the text queue and displays their name.`
                         },
                         {
                             'name': 'Add Others to a Text Channel Queue',

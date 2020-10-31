@@ -647,26 +647,38 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
  * @param message Discord message object.
  */
 async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+    // Get number of users to pop
+    const lastArg = parsed.arguments.split(' ').slice(-1).pop();
+    const numToPop = +lastArg || 1;
+    if (!numToPop || numToPop === 0) {
+        sendResponse(message, `\`ammount\` must be a postive number!`);
+        return;
+    }
+
     const queueChannel = await fetchChannel(queueGuild, parsed, message, false, 'text');
     if (!queueChannel) return;
 
-    if (queueChannel.type !== 'text') {
-        await sendResponse(message, `\`${queueGuild.prefix}${config.nextCmd}\` can only be used on text channel queues.`);
-    } else {
-        // Get the older member entry for the queue
-        const nextQueueMember = await knex<QueueMember>('queue_members')
-            .where('queue_channel_id', queueChannel.id)
-            .orderBy('created_at')
-            .first();
+    // Get the oldest member entry for the queue
+    let nextQueueMembers = await knex<QueueMember>('queue_members')
+        .where('queue_channel_id', queueChannel.id)
+        .orderBy('created_at');
+    nextQueueMembers = nextQueueMembers.slice(0, numToPop);
 
-        if (nextQueueMember) {
-            // Display and remove member from the the queue
-            sendResponse(message, `Pulled next user (<@!${nextQueueMember.queue_member_id}>) from \`${queueChannel.name}\`.`);
-            await removeStoredQueueMembers(queueChannel.id, [nextQueueMember.queue_member_id]);
-            await updateDisplayQueue(queueGuild, [queueChannel]);
-        } else {
-            sendResponse(message, `\`${queueChannel.name}\` is empty.`);
-        }
+    if (nextQueueMembers.length > 0) {
+        //if (queueChannel.type === 'voice') {
+        //    //nextQueueMembers.map(queueMember => {
+        //    //    const member = queueChannel.members.find(member => member.id === queueMember.queue_member_id);
+        //    //    member.voice.setChannel(CHANNEL).catch(() => null);
+        //    //})
+        //}
+
+        // Display and remove member from the the queue
+        sendResponse(message, `Pulled ` + nextQueueMembers.map(member => `<@!${member.queue_member_id}>`).join(', ')
+            + ` from \`${queueChannel.name}\`.`);
+        await removeStoredQueueMembers(queueChannel.id, nextQueueMembers.map(member => member.queue_member_id));
+        await updateDisplayQueue(queueGuild, [queueChannel]);
+    } else {
+        sendResponse(message, `\`${queueChannel.name}\` is empty.`);
     }
 }
 
@@ -815,7 +827,7 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
                     },
                     {
                         'name': 'Pull Users from Text Queue',
-                        'value': `\`${storedPrefix}${config.nextCmd} {channel name}\` removes the next person in the text queue and displays their name.`
+                        'value': `\`${storedPrefix}${config.nextCmd} {channel name} {OPTIONAL: amount}\` removes people from the text queue and displays their name.`
                     },
                     {
                         'name': 'Add Others to a Text Channel Queue',

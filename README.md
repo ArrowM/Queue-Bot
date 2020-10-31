@@ -17,7 +17,7 @@ Moderator commands are available to the server owner and users with any of the f
 | List Queues | `!q` | List the names of the existing queues. | 
 | Display a Queue | `!d {channel name}` | Display the members in a queue. These messages stay updated. | 
 | Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull in the person at the front of the queue. | 
-| Pull from Text | `!n {channel name}` | Remove the next person a the text queue and displays their name. |
+| Pull from Text | `!n {channel name} {OPTIONAL: amount}` |  Removes people from the text queue and displays their name. |
 | Join | `!j {channel name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | Add one or more people to a queue. | 
 | Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kick one or more people from a queue. |
 | Clear | `!clear {channel name}` | Clear a queue. |
