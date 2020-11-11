@@ -12,10 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const dblapi_js_1 = __importDefault(require("dblapi.js"));
 const discord_js_1 = require("discord.js");
 const knex_1 = __importDefault(require("knex"));
 const config_json_1 = __importDefault(require("./config.json"));
-const dblapi_js_1 = __importDefault(require("dblapi.js"));
 require('events').EventEmitter.defaultMaxListeners = 0;
 const client = new discord_js_1.Client({
     ws: { intents: ['GUILDS', 'GUILD_VOICE_STATES', 'GUILD_MESSAGES'] },
@@ -26,10 +26,9 @@ const client = new discord_js_1.Client({
         status: 'online'
     },
     messageEditHistoryMaxSize: 0,
-    messageCacheMaxSize: 5,
-    messageCacheLifetime: 3 * 3600,
-    messageSweepInterval: 3600,
-    restWsBridgeTimeout: 10000,
+    messageCacheMaxSize: 2,
+    messageCacheLifetime: 6 * 60 * 60,
+    messageSweepInterval: 30 * 60,
 });
 client.login(config_json_1.default.token);
 client.on('error', console.error);

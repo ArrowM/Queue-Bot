@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { Client, Guild, Message, TextChannel, VoiceChannel, GuildMember, MessageEmbed } from 'discord.js';
+import DBL from 'dblapi.js';
+import { Client, Guild, GuildMember, Message, MessageEmbed, TextChannel, VoiceChannel } from 'discord.js';
 import Knex from 'knex';
 import config from './config.json';
-import DBL from 'dblapi.js';
 
 // Setup client
 require('events').EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
@@ -14,11 +14,10 @@ const client = new Client({
         },
         status: 'online'
     },
-    messageEditHistoryMaxSize: 0,	// Do not cache edits
-    messageCacheMaxSize: 5,		    // Cache up to 10 messages per channel
-    messageCacheLifetime: 3 * 3600,	// Cache messages for 3 hours
-    messageSweepInterval: 3600,		// Sweep every hour
-    restWsBridgeTimeout: 10000,		// Maximum time permitted between REST responses and their corresponding websocket events (default: 5000)
+    messageEditHistoryMaxSize: 0,	    // Do not cache edits
+    messageCacheMaxSize: 2,		        // Cache up to 2 messages per channel
+    messageCacheLifetime: 6 * 60 * 60,	// Cache messages for 6 hours
+    messageSweepInterval: 30 * 60,      // Sweep every 1/2 hour
 });
 client.login(config.token);
 client.on('error', console.error);
@@ -935,7 +934,7 @@ async function checkPermission(message: Message): Promise<boolean> {
 }
 
 /**
- * 
+ *
  * @param guild
  * @param prefix
  */
