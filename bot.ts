@@ -646,7 +646,7 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
             memberIdsToRemove.push(memberId);
         } else {
              // Not in queue, set to add
-            if (storedQueueChannel && storedQueueMembers.length >= +storedQueueChannel.max_members) {
+            if (storedQueueChannel?.max_members && storedQueueMembers.length >= +storedQueueChannel.max_members) {
                 sendResponse(message, `Failed to join. ${queueChannel.name} queue is full (${+storedQueueChannel.max_members}/${+storedQueueChannel.max_members}).`);
             } else {
                 memberIdsToAdd.push(memberId);

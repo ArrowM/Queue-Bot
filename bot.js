@@ -477,7 +477,7 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
                 memberIdsToRemove.push(memberId);
             }
             else {
-                if (storedQueueChannel && storedQueueMembers.length >= +storedQueueChannel.max_members) {
+                if ((storedQueueChannel === null || storedQueueChannel === void 0 ? void 0 : storedQueueChannel.max_members) && storedQueueMembers.length >= +storedQueueChannel.max_members) {
                     sendResponse(message, `Failed to join. ${queueChannel.name} queue is full (${+storedQueueChannel.max_members}/${+storedQueueChannel.max_members}).`);
                 }
                 else {
