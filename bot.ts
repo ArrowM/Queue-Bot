@@ -60,6 +60,7 @@ interface QueueGuild {
 interface QueueChannel {
     queue_channel_id: string;
     guild_id: string;
+    max_members: string;
 }
 
 interface QueueMember {
@@ -197,12 +198,13 @@ async function removeStoredQueueMembers(queueChannelId: string, memberIdsToRemov
  *
  * @param channelToAdd
  */
-async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel): Promise<void> {
+async function addStoredQueueChannel(channelToAdd: VoiceChannel | TextChannel, maxMembers?: number): Promise<void> {
     // Fetch old channels
     await knex<QueueChannel>('queue_channels')
         .insert({
             queue_channel_id: channelToAdd.id,
-            guild_id: channelToAdd.guild.id
+            guild_id: channelToAdd.guild.id,
+            max_members: maxMembers?.toString()
         }).catch(() => null);
     if (channelToAdd.type === 'voice') {
         await addStoredQueueMembers(channelToAdd.id, channelToAdd.members
@@ -269,6 +271,30 @@ async function fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | T
 }
 
 /**
+ * Fetch tailing number from a string.
+ * Ex:  '!n #general 2' returns 2.
+ * @param message
+ * @param argument
+ */
+function getTailingNumberFromString(message: Message, argument: string): number {
+    // Get number of users to pop
+    let num = +argument.split(' ').slice(-1).pop();
+    if (isNaN(num)) {
+        num = null;
+    } else {
+        if (num < 1) {
+            sendResponse(message, `\`amount\` must be a postive number!`);
+            num = null;
+        }
+        if (num > 625) {
+            sendResponse(message, `Max \`amount\` is 625. Using 625.`);
+            num = 625;
+        }
+    }
+    return num;
+}
+
+/**
  * Return a grace period in string form
  * @param gracePeriod Guild id.
  */
@@ -297,11 +323,15 @@ async function getGracePeriodString(gracePeriod: string): Promise<string> {
  * @param queueChannel Discord message object.
  */
 async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<Partial<MessageEmbed>> {
-    const queueMembers = await knex<QueueMember>('queue_members')
-        .where('queue_channel_id', queueChannel.id).orderBy('created_at');
+    const storedQueueChannel = await knex<QueueChannel>('queue_channels')
+        .where('queue_channel_id', queueChannel.id)
+        .first();
+    const queueMembers = (await knex<QueueMember>('queue_members')
+        .where('queue_channel_id', queueChannel.id).orderBy('created_at'))
+        .slice(0, +storedQueueChannel.max_members || 625);
 
     const embed = new MessageEmbed();
-    embed.setTitle(queueChannel.name);
+    embed.setTitle(queueChannel.name + (storedQueueChannel.max_members ? `  -  ${queueMembers.length}/${storedQueueChannel.max_members}` : ''));
     embed.setColor(queueGuild.color);
     embed.setDescription(queueChannel.type === 'voice' ?
         // Voice
@@ -316,11 +346,6 @@ async function generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel |
         embed.addField(
             'No members in queue.',
             '\u200b'
-        );
-    } else if (queueMembers.length > 625) {
-        embed.addField(
-            'Max size of 625 users reached.',
-            'Contact the support server: https://discord.gg/RbmfnP3'
         );
     } else {
         // Handle non-empty
@@ -554,6 +579,7 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
     // Setup common variables
     const parsedArgs = parsed.arguments;
     const guild = message.guild;
+
     // Get stored queue channel list from database
     const storedChannels = await fetchStoredQueueChannels(guild);
     // Channel argument provided. Toggle it
@@ -567,8 +593,11 @@ async function setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
             await removeStoredQueueChannel(guild.id, queueChannel.id);
             await sendResponse(message, `Deleted queue for \`${queueChannel.name}\`.`);
         } else {
+            // Get number of users to pop
+            const maxMembersInQueue = getTailingNumberFromString(message, parsedArgs);
+            if (maxMembersInQueue && maxMembersInQueue < 1) return;
             // It's not in the list, add it
-            await addStoredQueueChannel(queueChannel);
+            await addStoredQueueChannel(queueChannel, maxMembersInQueue);
             await displayQueue(queueGuild, parsed, message, queueChannel);
         }
     } else {
@@ -596,19 +625,18 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
     // Get queue channel
     const queueChannel = await fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, 'text');
     if (!queueChannel) return;
-    // Parse message and members
-    const personalMessage = parsed.arguments
-        .replace(/(<(@!?|#)\w+>)/gi, '')
-        .replace(queueChannel.name, '')
-        .substring(0, 128)
-        .trim();
+
+    const storedQueueChannel = await knex<QueueChannel>('queue_channels')
+        .where('queue_channel_id', queueChannel.id)
+        .first();
+    const storedQueueMembers = await knex<QueueMember>('queue_members')
+        .where('queue_channel_id', queueChannel.id);
+
+    // Parse members
     let memberIdsToToggle = [message.member.id];
     if (authorHasPermissionToQueueOthers && message.mentions.members.size > 0) {
         memberIdsToToggle = message.mentions.members.array().map(member => member.id);
     }
-
-    const storedQueueMembers = await knex<QueueMember>('queue_members')
-        .where('queue_channel_id', queueChannel.id);
 
     const memberIdsToAdd: string[] = [];
     const memberIdsToRemove: string[] = [];
@@ -617,8 +645,12 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
             // Already in queue, set to remove
             memberIdsToRemove.push(memberId);
         } else {
-            // Not in queue, set to add
-            memberIdsToAdd.push(memberId);
+             // Not in queue, set to add
+            if (storedQueueChannel && storedQueueMembers.length >= +storedQueueChannel.max_members) {
+                sendResponse(message, `Failed to join. ${queueChannel.name} queue is full (${+storedQueueChannel.max_members}/${+storedQueueChannel.max_members}).`);
+            } else {
+                memberIdsToAdd.push(memberId);
+            }
         }
     }
 
@@ -630,6 +662,12 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
             + ` from the \`${queueChannel.name}\` queue.\n`;
     }
     if (memberIdsToAdd.length > 0) {
+        // Parse message
+        const personalMessage = parsed.arguments
+            .replace(/(<(@!?|#)\w+>)/gi, '')
+            .replace(queueChannel.name, '')
+            .substring(0, 128)
+            .trim();
         // Add to queue
         await addStoredQueueMembers(queueChannel.id, memberIdsToAdd, personalMessage);
         messageString += 'Added ' + memberIdsToAdd.map(id => `<@!${id}>`).join(', ')
@@ -648,12 +686,8 @@ async function joinTextChannel(queueGuild: QueueGuild, parsed: ParsedArguments, 
  */
 async function popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
     // Get number of users to pop
-    const lastArg = parsed.arguments.split(' ').slice(-1).pop();
-    const numToPop = +lastArg || 1;
-    if (!numToPop || numToPop === 0) {
-        sendResponse(message, `\`ammount\` must be a postive number!`);
-        return;
-    }
+    const numToPop = getTailingNumberFromString(message, parsed.arguments) || 1;
+    if (numToPop < 1) return;
 
     const queueChannel = await fetchChannel(queueGuild, parsed, message, false, 'text');
     if (!queueChannel) return;
@@ -812,7 +846,7 @@ async function help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Me
                     },
                     {
                         'name': 'Modify & View Queues',
-                        'value': `\`${storedPrefix}${config.queueCmd} {channel name}\` creates a new queue or deletes an existing queue.`
+                        'value': `\`${storedPrefix}${config.queueCmd} {channel name} {OPTIONAL: size}\` creates a new queue or deletes an existing queue.`
                             + `\n\`${storedPrefix}${config.queueCmd}\` shows the existing queues.`
                     },
                     {
@@ -1137,42 +1171,7 @@ async function resumeQueueAfterOffline(): Promise<void> {
     }
 }
 
-// Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
-client.once('ready', async () => {
-    // Create a table
-    await knex.schema.hasTable('queue_guilds').then(exists => {
-        if (!exists) knex.schema.createTable('queue_guilds', table => {
-            table.text('guild_id').primary();
-            table.text('grace_period');
-            table.text('prefix');
-            table.text('color');
-            table.integer('msg_mode');
-        }).catch(e => console.error(e));
-    });
-    await knex.schema.hasTable('queue_channels').then(exists => {
-        if (!exists) knex.schema.createTable('queue_channels', table => {
-            table.text('queue_channel_id').primary();
-            table.text('guild_id');
-        }).catch(e => console.error(e));
-    });
-    await knex.schema.hasTable('queue_members').then(exists => {
-        if (!exists) knex.schema.createTable('queue_members', table => {
-            table.increments('id').primary();
-            table.text('queue_channel_id');
-            table.text('queue_member_id');
-            table.text('personal_message');
-            table.timestamp('created_at').defaultTo(knex.fn.now());
-        }).catch(e => console.error(e));
-    });
-    await knex.schema.hasTable('display_channels').then(exists => {
-        if (!exists) knex.schema.createTable('display_channels', table => {
-            table.increments('id').primary();
-            table.text('queue_channel_id');
-            table.text('display_channel_id');
-            table.text('embed_id');
-        }).catch(e => console.error(e));
-    });
-
+async function tableModifications() {
     // Migration of msg_on_update to msg_mode
     if (await knex.schema.hasColumn('queue_guilds', 'msg_on_update')) {
         console.log('Migrating message mode');
@@ -1197,8 +1196,51 @@ client.once('ready', async () => {
         await knex.schema.table('display_channels', table => table.dropColumn('embed_ids'));
     }
 
-    await resumeQueueAfterOffline();
+    // Add max_members column to queue_channels
+    if (!(await knex.schema.hasColumn('queue_channels', 'max_members'))) {
+        await knex.schema.table('queue_channels', table => table.text('max_members'));
+    }
+}
 
+// Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
+client.once('ready', async () => {
+    // Create a table
+    await knex.schema.hasTable('queue_guilds').then(exists => {
+        if (!exists) knex.schema.createTable('queue_guilds', table => {
+            table.text('guild_id').primary();
+            table.text('grace_period');
+            table.text('prefix');
+            table.text('color');
+            table.integer('msg_mode');
+        }).catch(e => console.error(e));
+    });
+    await knex.schema.hasTable('queue_channels').then(exists => {
+        if (!exists) knex.schema.createTable('queue_channels', table => {
+            table.text('queue_channel_id').primary();
+            table.text('guild_id');
+            table.text('max_members');
+        }).catch(e => console.error(e));
+    });
+    await knex.schema.hasTable('queue_members').then(exists => {
+        if (!exists) knex.schema.createTable('queue_members', table => {
+            table.increments('id').primary();
+            table.text('queue_channel_id');
+            table.text('queue_member_id');
+            table.text('personal_message');
+            table.timestamp('created_at').defaultTo(knex.fn.now());
+        }).catch(e => console.error(e));
+    });
+    await knex.schema.hasTable('display_channels').then(exists => {
+        if (!exists) knex.schema.createTable('display_channels', table => {
+            table.increments('id').primary();
+            table.text('queue_channel_id');
+            table.text('display_channel_id');
+            table.text('embed_id');
+        }).catch(e => console.error(e));
+    });
+
+    await tableModifications();
+    await resumeQueueAfterOffline();
     console.log('Ready!');
 });
 

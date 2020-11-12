@@ -13,7 +13,7 @@ Note: If you only have 1 queue, you can skip the channel name argument.
 Moderator commands are available to the server owner and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
 | Function | Command | Description |
 |-|-|-|
-| Create & Destroy Queues | `!q {channel name}` | Create or destory a queue for a specified channel. |
+| Create & Destroy Queues | `!q {channel name} {OPTIONAL: size}` | Create or destory a queue for a specified channel. |
 | List Queues | `!q` | List the names of the existing queues. | 
 | Display a Queue | `!d {channel name}` | Display the members in a queue. These messages stay updated. | 
 | Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull in the person at the front of the queue. | 

@@ -141,12 +141,13 @@ function removeStoredQueueMembers(queueChannelId, memberIdsToRemove) {
         }
     });
 }
-function addStoredQueueChannel(channelToAdd) {
+function addStoredQueueChannel(channelToAdd, maxMembers) {
     return __awaiter(this, void 0, void 0, function* () {
         yield knex('queue_channels')
             .insert({
             queue_channel_id: channelToAdd.id,
-            guild_id: channelToAdd.guild.id
+            guild_id: channelToAdd.guild.id,
+            max_members: maxMembers === null || maxMembers === void 0 ? void 0 : maxMembers.toString()
         }).catch(() => null);
         if (channelToAdd.type === 'voice') {
             yield addStoredQueueMembers(channelToAdd.id, channelToAdd.members
@@ -201,6 +202,23 @@ function fetchStoredQueueChannels(guild) {
         return queueChannels;
     });
 }
+function getTailingNumberFromString(message, argument) {
+    let num = +argument.split(' ').slice(-1).pop();
+    if (isNaN(num)) {
+        num = null;
+    }
+    else {
+        if (num < 1) {
+            sendResponse(message, `\`amount\` must be a postive number!`);
+            num = null;
+        }
+        if (num > 625) {
+            sendResponse(message, `Max \`amount\` is 625. Using 625.`);
+            num = 625;
+        }
+    }
+    return num;
+}
 const gracePeriodCache = new Map();
 function getGracePeriodString(gracePeriod) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -224,19 +242,20 @@ function getGracePeriodString(gracePeriod) {
 }
 function generateEmbed(queueGuild, queueChannel) {
     return __awaiter(this, void 0, void 0, function* () {
-        const queueMembers = yield knex('queue_members')
-            .where('queue_channel_id', queueChannel.id).orderBy('created_at');
+        const storedQueueChannel = yield knex('queue_channels')
+            .where('queue_channel_id', queueChannel.id)
+            .first();
+        const queueMembers = (yield knex('queue_members')
+            .where('queue_channel_id', queueChannel.id).orderBy('created_at'))
+            .slice(0, +storedQueueChannel.max_members || 625);
         const embed = new discord_js_1.MessageEmbed();
-        embed.setTitle(queueChannel.name);
+        embed.setTitle(queueChannel.name + (storedQueueChannel.max_members ? `  -  ${queueMembers.length}/${storedQueueChannel.max_members}` : ''));
         embed.setColor(queueGuild.color);
         embed.setDescription(queueChannel.type === 'voice' ?
             `Join the **${queueChannel.name}** voice channel to join this queue.` + (yield getGracePeriodString(queueGuild.grace_period)) :
             `Type \`${queueGuild.prefix}${config_json_1.default.joinCmd} ${queueChannel.name}\` to join or leave this queue.`);
         if (!queueMembers || queueMembers.length === 0) {
             embed.addField('No members in queue.', '\u200b');
-        }
-        else if (queueMembers.length > 625) {
-            embed.addField('Max size of 625 users reached.', 'Contact the support server: https://discord.gg/RbmfnP3');
         }
         else {
             const maxEmbedSize = 25;
@@ -419,7 +438,10 @@ function setQueueChannel(queueGuild, parsed, message) {
                 yield sendResponse(message, `Deleted queue for \`${queueChannel.name}\`.`);
             }
             else {
-                yield addStoredQueueChannel(queueChannel);
+                const maxMembersInQueue = getTailingNumberFromString(message, parsedArgs);
+                if (maxMembersInQueue && maxMembersInQueue < 1)
+                    return;
+                yield addStoredQueueChannel(queueChannel, maxMembersInQueue);
                 yield displayQueue(queueGuild, parsed, message, queueChannel);
             }
         }
@@ -439,17 +461,15 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
         const queueChannel = yield fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, 'text');
         if (!queueChannel)
             return;
-        const personalMessage = parsed.arguments
-            .replace(/(<(@!?|#)\w+>)/gi, '')
-            .replace(queueChannel.name, '')
-            .substring(0, 128)
-            .trim();
+        const storedQueueChannel = yield knex('queue_channels')
+            .where('queue_channel_id', queueChannel.id)
+            .first();
+        const storedQueueMembers = yield knex('queue_members')
+            .where('queue_channel_id', queueChannel.id);
         let memberIdsToToggle = [message.member.id];
         if (authorHasPermissionToQueueOthers && message.mentions.members.size > 0) {
             memberIdsToToggle = message.mentions.members.array().map(member => member.id);
         }
-        const storedQueueMembers = yield knex('queue_members')
-            .where('queue_channel_id', queueChannel.id);
         const memberIdsToAdd = [];
         const memberIdsToRemove = [];
         for (const memberId of memberIdsToToggle) {
@@ -457,7 +477,12 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
                 memberIdsToRemove.push(memberId);
             }
             else {
-                memberIdsToAdd.push(memberId);
+                if (storedQueueChannel && storedQueueMembers.length >= +storedQueueChannel.max_members) {
+                    sendResponse(message, `Failed to join. ${queueChannel.name} queue is full (${+storedQueueChannel.max_members}/${+storedQueueChannel.max_members}).`);
+                }
+                else {
+                    memberIdsToAdd.push(memberId);
+                }
             }
         }
         let messageString = '';
@@ -467,6 +492,11 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
                 + ` from the \`${queueChannel.name}\` queue.\n`;
         }
         if (memberIdsToAdd.length > 0) {
+            const personalMessage = parsed.arguments
+                .replace(/(<(@!?|#)\w+>)/gi, '')
+                .replace(queueChannel.name, '')
+                .substring(0, 128)
+                .trim();
             yield addStoredQueueMembers(queueChannel.id, memberIdsToAdd, personalMessage);
             messageString += 'Added ' + memberIdsToAdd.map(id => `<@!${id}>`).join(', ')
                 + ` to the \`${queueChannel.name}\` queue.`;
@@ -477,12 +507,9 @@ function joinTextChannel(queueGuild, parsed, message, authorHasPermissionToQueue
 }
 function popTextQueue(queueGuild, parsed, message) {
     return __awaiter(this, void 0, void 0, function* () {
-        const lastArg = parsed.arguments.split(' ').slice(-1).pop();
-        const numToPop = +lastArg || 1;
-        if (!numToPop || numToPop === 0) {
-            sendResponse(message, `\`ammount\` must be a postive number!`);
+        const numToPop = getTailingNumberFromString(message, parsed.arguments) || 1;
+        if (numToPop < 1)
             return;
-        }
         const queueChannel = yield fetchChannel(queueGuild, parsed, message, false, 'text');
         if (!queueChannel)
             return;
@@ -602,7 +629,7 @@ function help(queueGuild, parsed, message) {
                         },
                         {
                             'name': 'Modify & View Queues',
-                            'value': `\`${storedPrefix}${config_json_1.default.queueCmd} {channel name}\` creates a new queue or deletes an existing queue.`
+                            'value': `\`${storedPrefix}${config_json_1.default.queueCmd} {channel name} {OPTIONAL: size}\` creates a new queue or deletes an existing queue.`
                                 + `\n\`${storedPrefix}${config_json_1.default.queueCmd}\` shows the existing queues.`
                         },
                         {
@@ -860,6 +887,33 @@ function resumeQueueAfterOffline() {
         }
     });
 }
+function tableModifications() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (yield knex.schema.hasColumn('queue_guilds', 'msg_on_update')) {
+            console.log('Migrating message mode');
+            yield knex.schema.table('queue_guilds', table => table.integer('msg_mode'));
+            (yield knex('queue_guilds')).forEach((queueGuild) => __awaiter(this, void 0, void 0, function* () {
+                yield knex('queue_guilds').where('guild_id', queueGuild.guild_id)
+                    .update('msg_mode', queueGuild['msg_on_update'] ? 2 : 1);
+            }));
+            yield knex.schema.table('queue_guilds', table => table.dropColumn('msg_on_update'));
+        }
+        if (yield knex.schema.hasColumn('display_channels', 'embed_ids')) {
+            console.log('Migrating display embed ids');
+            yield knex.schema.table('display_channels', table => table.text('embed_id'));
+            (yield knex('display_channels')).forEach((displayChannel) => __awaiter(this, void 0, void 0, function* () {
+                yield knex('display_channels')
+                    .where('display_channel_id', displayChannel.display_channel_id)
+                    .where('queue_channel_id', displayChannel.queue_channel_id)
+                    .update('embed_id', displayChannel['embed_ids'][0]);
+            }));
+            yield knex.schema.table('display_channels', table => table.dropColumn('embed_ids'));
+        }
+        if (!(yield knex.schema.hasColumn('queue_channels', 'max_members'))) {
+            yield knex.schema.table('queue_channels', table => table.text('max_members'));
+        }
+    });
+}
 client.once('ready', () => __awaiter(void 0, void 0, void 0, function* () {
     yield knex.schema.hasTable('queue_guilds').then(exists => {
         if (!exists)
@@ -876,6 +930,7 @@ client.once('ready', () => __awaiter(void 0, void 0, void 0, function* () {
             knex.schema.createTable('queue_channels', table => {
                 table.text('queue_channel_id').primary();
                 table.text('guild_id');
+                table.text('max_members');
             }).catch(e => console.error(e));
     });
     yield knex.schema.hasTable('queue_members').then(exists => {
@@ -897,26 +952,7 @@ client.once('ready', () => __awaiter(void 0, void 0, void 0, function* () {
                 table.text('embed_id');
             }).catch(e => console.error(e));
     });
-    if (yield knex.schema.hasColumn('queue_guilds', 'msg_on_update')) {
-        console.log('Migrating message mode');
-        yield knex.schema.table('queue_guilds', table => table.integer('msg_mode'));
-        (yield knex('queue_guilds')).forEach((queueGuild) => __awaiter(void 0, void 0, void 0, function* () {
-            yield knex('queue_guilds').where('guild_id', queueGuild.guild_id)
-                .update('msg_mode', queueGuild['msg_on_update'] ? 2 : 1);
-        }));
-        yield knex.schema.table('queue_guilds', table => table.dropColumn('msg_on_update'));
-    }
-    if (yield knex.schema.hasColumn('display_channels', 'embed_ids')) {
-        console.log('Migrating display embed ids');
-        yield knex.schema.table('display_channels', table => table.text('embed_id'));
-        (yield knex('display_channels')).forEach((displayChannel) => __awaiter(void 0, void 0, void 0, function* () {
-            yield knex('display_channels')
-                .where('display_channel_id', displayChannel.display_channel_id)
-                .where('queue_channel_id', displayChannel.queue_channel_id)
-                .update('embed_id', displayChannel['embed_ids'][0]);
-        }));
-        yield knex.schema.table('display_channels', table => table.dropColumn('embed_ids'));
-    }
+    yield tableModifications();
     yield resumeQueueAfterOffline();
     console.log('Ready!');
 }));
