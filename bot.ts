@@ -16,7 +16,7 @@ const client = new Client({
     },
     messageEditHistoryMaxSize: 0,	    // Do not cache edits
     messageCacheMaxSize: 2,		        // Cache up to 2 messages per channel
-    messageCacheLifetime: 6 * 60 * 60,	// Cache messages for 6 hours
+    messageCacheLifetime: 3 * 60 * 60,	// Cache messages for 3 hours
     messageSweepInterval: 30 * 60,      // Sweep every 1/2 hour
 });
 client.login(config.token);
@@ -499,8 +499,9 @@ async function start(queueGuild: QueueGuild, parsed: ParsedArguments, message: M
             try {
                 channel.join().then(connection => {
                     if (connection) {
-                        connection.on('error', () => null);
-                        connection.on('failed', () => null);
+                        connection.on('uncaughtException', e => console.error(e));
+                        connection.on('error', e => console.error(e));
+                        connection.on('failed', e => console.error(e));
                         connection.voice?.setSelfDeaf(true);
                         connection.voice?.setSelfMute(true);
                     }

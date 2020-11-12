@@ -27,7 +27,7 @@ const client = new discord_js_1.Client({
     },
     messageEditHistoryMaxSize: 0,
     messageCacheMaxSize: 2,
-    messageCacheLifetime: 6 * 60 * 60,
+    messageCacheLifetime: 3 * 60 * 60,
     messageSweepInterval: 30 * 60,
 });
 client.login(config_json_1.default.token);
@@ -366,8 +366,9 @@ function start(queueGuild, parsed, message) {
                     channel.join().then(connection => {
                         var _a, _b;
                         if (connection) {
-                            connection.on('error', () => null);
-                            connection.on('failed', () => null);
+                            connection.on('uncaughtException', e => console.error(e));
+                            connection.on('error', e => console.error(e));
+                            connection.on('failed', e => console.error(e));
                             (_a = connection.voice) === null || _a === void 0 ? void 0 : _a.setSelfDeaf(true);
                             (_b = connection.voice) === null || _b === void 0 ? void 0 : _b.setSelfMute(true);
                         }
