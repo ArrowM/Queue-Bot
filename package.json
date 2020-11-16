@@ -4,7 +4,8 @@
   "description": "A Discord bot!",
   "main": "bot.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -p .",
+    "start": "node build/bot.js"
   },
   "keywords": [],
   "author": "Arrow",
@@ -16,7 +17,7 @@
     "knex": "^0.21.12",
     "libsodium-wrappers": "^0.7.8",
     "node-gyp": "^7.1.2",
-    "pg": "^8.5.0",
+    "pg": "^8.5.1",
     "utf-8-validate": "^5.0.3",
     "zlib-sync": "^0.1.7"
   },
