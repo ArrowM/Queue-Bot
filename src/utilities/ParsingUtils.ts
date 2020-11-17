@@ -1,7 +1,7 @@
 import { Client, Message, TextChannel, VoiceChannel } from "discord.js";
 import config from '../config.json';
 import Knex from "knex";
-import { BaseClass } from "../BaseClass";
+import { BaseClass } from "./BaseClass";
 import { MessageUtils } from "./MessageUtils";
 import { DatabaseUtils } from "./DatabaseUtils";
 import { ParsedArguments, QueueGuild } from "../Interfaces";

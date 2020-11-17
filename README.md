@@ -39,7 +39,7 @@ Moderator commands are available to the server owner and users with any of the f
 	3b. Run the installer. Use the default port. Skip Stack Builder. Remember the password you set, you will need it later.  
 	3c. Open Windows start menu, search for and open SQL Shell (psql).  
 	3d. Leave the default login values for Server, Database, Port, and Username.  
-	3e. Enter the password you chose during installation.   
+	3e. Enter the password you chose during installation.  
 	3f. Create a new database. (The semicolon is important):  
 		`CREATE DATABASE queue;`  
 	3g. Close command prompt.  

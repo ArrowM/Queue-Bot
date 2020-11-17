@@ -1,6 +1,6 @@
 import { Message, MessageEmbed, TextChannel, VoiceChannel } from "discord.js";
 import config from '../config.json';
-import { BaseClass } from "../BaseClass";
+import { BaseClass } from "./BaseClass";
 import { QueueChannel, QueueGuild, QueueMember } from "../Interfaces";
 
 export class MessageUtils extends BaseClass {

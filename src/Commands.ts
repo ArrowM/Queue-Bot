@@ -1,8 +1,8 @@
 import { Client, Message, TextChannel, VoiceChannel } from "discord.js";
 import Knex from "knex";
-import { BaseClass } from "./BaseClass";
 import config from './config.json';
 import { DisplayChannel, ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./Interfaces";
+import { BaseClass } from "./utilities/BaseClass";
 import { DatabaseUtils } from "./utilities/DatabaseUtils";
 import { MessageUtils } from "./utilities/MessageUtils";
 import { ParsingUtils } from "./utilities/ParsingUtils";
@@ -16,7 +16,7 @@ const ServerSettingVariables = {
 };
 Object.freeze(ServerSettingVariables);
 
-export class CommandManager extends BaseClass {
+export class Commands extends BaseClass {
     protected databaseUtils: DatabaseUtils;
     protected messageUtils: MessageUtils;
     protected parsingUtils: ParsingUtils;

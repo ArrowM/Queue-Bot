@@ -6,7 +6,7 @@ import Knex from 'knex';
 import config from './config.json';
 import { DatabaseUtils } from './utilities/DatabaseUtils';
 import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from './Interfaces';
-import { CommandManager } from './CommandManager';
+import { Commands } from './Commands';
 
 // Setup client
 EventEmitter.defaultMaxListeners = 0;   // Maximum number of events that can be handled at once.
@@ -45,7 +45,7 @@ const knex = Knex({
 });
 
 const databaseUtils = new DatabaseUtils(client, knex);
-const commandManager = new CommandManager(client, knex, databaseUtils);
+const commands = new Commands(client, knex, databaseUtils);
 
 /**
  * Determine whether user has permission to interact with bot
@@ -95,50 +95,50 @@ client.on('message', async message => {
             switch (parsed.command) {
                 // Start
                 case config.startCmd:
-                    commandManager.start(queueGuild, parsed, message);
+                    commands.start(queueGuild, parsed, message);
                     break;
                 // Display
                 case config.displayCmd:
-                    commandManager.displayQueue(queueGuild, parsed, message);
+                    commands.displayQueue(queueGuild, parsed, message);
                     break;
                 // Set Queue
                 case config.queueCmd:
-                    commandManager.setQueueChannel(queueGuild, parsed, message);
+                    commands.setQueueChannel(queueGuild, parsed, message);
                     break;
                 // Pop next user
                 case config.nextCmd:
-                    commandManager.popTextQueue(queueGuild, parsed, message);
+                    commands.popTextQueue(queueGuild, parsed, message);
                     break;
                 // Pop next user
                 case config.kickCmd:
-                    commandManager.kickMember(queueGuild, parsed, message);
+                    commands.kickMember(queueGuild, parsed, message);
                     break;
                 // Clear queue
                 case config.clearCmd:
-                    commandManager.clearQueue(queueGuild, parsed, message);
+                    commands.clearQueue(queueGuild, parsed, message);
                     break;
                 // Shuffle queue
                 case config.shuffleCmd:
-                    commandManager.shuffleQueue(queueGuild, parsed, message);
+                    commands.shuffleQueue(queueGuild, parsed, message);
                     break;
 
                 // Grace period
                 case config.gracePeriodCmd:
-                    commandManager.setServerSetting(queueGuild, parsed, message,
+                    commands.setServerSetting(queueGuild, parsed, message,
                         +parsed.arguments >= 0 && +parsed.arguments <= 6000,
                         'Grace period must be between `0` and `6000` seconds.'
                     );
                     break;
                 // Prefix
                 case config.prefixCmd:
-                    commandManager.setServerSetting(queueGuild, parsed, message,
+                    commands.setServerSetting(queueGuild, parsed, message,
                         true,
                     );
                     setNickname(guild, parsed.arguments);
                     break;
                 // Color
                 case config.colorCmd:
-                    commandManager.setServerSetting(queueGuild, parsed, message,
+                    commands.setServerSetting(queueGuild, parsed, message,
                         /^#?[0-9A-F]{6}$/i.test(parsed.arguments),
                         'Use HEX color:',
                         {
@@ -150,7 +150,7 @@ client.on('message', async message => {
                     break;
                 // Toggle New message on update
                 case config.modeCmd:
-                    commandManager.setServerSetting(queueGuild, parsed, message,
+                    commands.setServerSetting(queueGuild, parsed, message,
                         +parsed.arguments >= 1 && +parsed.arguments <= 3,
                         'When the queue changes: \n' +
                         '`1`: (default) Update old display message \n' +
@@ -169,16 +169,16 @@ client.on('message', async message => {
         switch (parsed.command) {
             // Help
             case config.helpCmd:
-                commandManager.help(queueGuild, parsed, message);
+                commands.help(queueGuild, parsed, message);
                 break;
             // Join Text Queue
             case config.joinCmd:
-                commandManager.joinTextChannel(queueGuild, parsed, message, hasPermission);
+                commands.joinTextChannel(queueGuild, parsed, message, hasPermission);
                 break;
         }
     } else if (message.content === config.prefix + config.helpCmd) {
         // Default help command
-        commandManager.help(queueGuild, parsed, message);
+        commands.help(queueGuild, parsed, message);
     }
 });
 
@@ -227,7 +227,7 @@ async function resumeQueueAfterOffline(): Promise<void> {
 
                     if (updateDisplay) {
                         // Update displays
-                        await commandManager.updateDisplayQueue(storedQueueGuild, [queueChannel]);
+                        await commands.updateDisplayQueue(storedQueueGuild, [queueChannel]);
                     }
                 } else {
                     // Cleanup deleted queue channels
@@ -347,7 +347,7 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
             channelsToUpdate.push(oldVoiceChannel);
         }
         if (channelsToUpdate.length > 0) {
-            commandManager.updateDisplayQueue(queueGuild, channelsToUpdate);
+            commands.updateDisplayQueue(queueGuild, channelsToUpdate);
         }
     }
 });
