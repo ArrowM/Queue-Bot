@@ -24,10 +24,10 @@ Moderator commands are available to the server owner and users with any of the f
 | Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
 ||||
 |**Server Settings**|||
-| Command Prefix | `!prefix {new prefix}` | Change the prefix for Queue Bot commands. |
-| Change Color | `!color {new color}` | Change the color of bot messages. |
-| Grace Period | `!grace {time in seconds}` | Change how long a person can leave a queue before losing their spot. |
-| Update Mode | `!mode {new mode}` | Changes how the display messages are updated. Use `!mode` to see the different update modes.
+| Change the Command Prefix | `!prefix {new prefix}` | Change the prefix for Queue Bot commands. |
+| Change the  Color | `!color {new color}` | Change the color of bot messages. |
+| Change the Grace Period | `!grace {time in seconds}` | Change how long a person can leave a queue before losing their spot. |
+| Change the Display Mode | `!mode {new mode}` | Changes how the display messages are updated. Use `!mode` to see the different update modes.
 
 ![Example of `!s`](docs/example.gif)  
 
@@ -47,7 +47,7 @@ Moderator commands are available to the server owner and users with any of the f
 5. Modify `config.json`:  
 	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.  
   
-| Required Config Fields | Description                                                                                                                       |
+| REQUIRED Config Fields | Description                                                                                                                       |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | prefix                 | Command prefix (Default: `!`)                                                                                                     |
 | token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. |
@@ -81,10 +81,11 @@ Moderator commands are available to the server owner and users with any of the f
 
 ![Token Location](docs/token_location.PNG)  
 
-5. [Install NodeJS 14](https://discordjs.guide/preparations/#installing-node-js)  
-6. Install Dependencies. Open commmand prompt in project directory (If you have the project open in file explorer, click on the directory bar and enter "cmd"). Enter `npm install` into command prompt. You can ignore the NPM warnings. Keep the command prompt open.
-7. Start the Bot. Enter `node bot.js` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
-8. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
-	9a. In command prompt (set to the project directory), enter `npm install pm2`  
+5. [Install NodeJS 12+](https://discordjs.guide/preparations/#installing-node-js)  
+6. Install Dependencies. Open commmand prompt in project directory (If you have the project open in file explorer, click on the directory bar, enter `cmd`, and hit enter). Enter `npm install` into command prompt. You can ignore NPM warnings. Keep the command prompt open.  
+7. Build the bot. In the same command prompt, enter `npm run build`.
+8. Start the Bot. Enter `npm run start` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
+9. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
+	9a. In command prompt, enter `npm install pm2`  
 	9b. To start the bot, enter `pm2 start bot.js`  
 	9c. To stop the bot, enter `pm2 stop bot.js`  
