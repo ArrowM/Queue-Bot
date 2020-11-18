@@ -1,4 +1,4 @@
-import { BaseClass } from "../../BaseClass";
+import { BaseClass } from "../BaseClass";
 
 export abstract class DatabaseTable extends BaseClass {
     protected abstract updateTableStructure(): Promise<void>;

@@ -227,7 +227,7 @@ async function resumeQueueAfterOffline(): Promise<void> {
 
                     if (updateDisplay) {
                         // Update displays
-                        await commands.updateDisplayQueue(storedQueueGuild, [queueChannel]);
+                        await commands.updateDisplayQueue(storedQueueGuild, [queueChannel], true);
                     }
                 } else {
                     // Cleanup deleted queue channels

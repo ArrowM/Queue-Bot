@@ -60,7 +60,7 @@ export class Commands extends BaseClass {
    * @param queueGuild
    * @param queueChannels Channels to update
    */
-    public async updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceChannel | TextChannel)[]): Promise<void> {
+    public async updateDisplayQueue(queueGuild: QueueGuild, queueChannels: (VoiceChannel | TextChannel)[], silentUpdate?: boolean): Promise<void> {
         // For each updated queue
         for (const queueChannel of queueChannels) {
             if (!queueChannel) continue;
@@ -79,7 +79,7 @@ export class Commands extends BaseClass {
                     if (displayChannel) {
                         if (displayChannel.permissionsFor(displayChannel.guild.me).has('SEND_MESSAGES') &&
                             displayChannel.permissionsFor(displayChannel.guild.me).has('EMBED_LINKS')) {
-                            if (queueGuild.msg_mode === 1) {
+                            if (queueGuild.msg_mode === 1 || silentUpdate) {
                                 /* Edit */
                                 // Retrieved display embed
                                 const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
