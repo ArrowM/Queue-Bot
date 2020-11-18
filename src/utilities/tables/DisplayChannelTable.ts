@@ -106,7 +106,8 @@ export class DisplayChannelTable extends DatabaseTable {
                 .catch(() => null) as TextChannel;
 
             if (displayChannel) {
-                await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false)
+                await displayChannel.messages
+                    .fetch(storedDisplayChannel.embed_id, false)
                     .then(embed => embed?.delete())
                     .catch(() => null);
             }

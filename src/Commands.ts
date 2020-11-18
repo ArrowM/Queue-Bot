@@ -74,7 +74,7 @@ export class Commands extends BaseClass {
             for (const storedDisplayChannel of storedDisplayChannels) {
                 // For each embed list of the queue
                 try {
-                    const displayChannel = await this.client.channels.fetch(storedDisplayChannel.display_channel_id) as TextChannel;
+                    const displayChannel = await this.client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null) as TextChannel;
 
                     if (displayChannel) {
                         if (displayChannel.permissionsFor(displayChannel.guild.me).has('SEND_MESSAGES') &&
@@ -293,7 +293,7 @@ export class Commands extends BaseClass {
                 .update(setting.dbVariable, parsed.arguments);
             queueGuild[setting.dbVariable] = parsed.arguments;
             MessageUtils.sendResponse(message, `Set \`${setting.str}\` to \`${parsed.arguments}\`.`);
-            await this.updateDisplayQueue(queueGuild, channels);
+            await this.updateDisplayQueue(queueGuild, channels, true);
         } else {
             MessageUtils.sendResponse(message, {
                 'embed': embed,
@@ -535,7 +535,6 @@ export class Commands extends BaseClass {
                 try {
                     channel.join().then(connection => {
                         if (connection) {
-                            connection.on('uncaughtException', e => console.error(e));
                             connection.on('warn', e => console.warn(e));
                             connection.on('error', e => console.error(e));
                             connection.on('failed', e => console.error(e));

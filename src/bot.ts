@@ -26,6 +26,10 @@ const client = new Client({
 client.login(config.token);
 client.on('error', console.error);
 client.on('shardError', console.error);
+client.on('uncaughtException', (err, origin) => console.error(
+    `Caught exception: ${err}\n` +
+    `Exception origin: ${origin}`
+));
 
 // Top GG integration
 if (config.topGgToken) {
@@ -186,7 +190,7 @@ async function resumeQueueAfterOffline(): Promise<void> {
     const storedQueueGuilds = await knex<QueueGuild>('queue_guilds');
     for (const storedQueueGuild of storedQueueGuilds) {
         try {
-            const guild = await client.guilds.fetch(storedQueueGuild.guild_id);
+            const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null);
 
             const storedQueueChannels = await knex<QueueChannel>('queue_channels')
                 .where('guild_id', guild.id);
@@ -227,7 +231,7 @@ async function resumeQueueAfterOffline(): Promise<void> {
 
                     if (updateDisplay) {
                         // Update displays
-                        await commands.updateDisplayQueue(storedQueueGuild, [queueChannel], true);
+                        await commands.updateDisplayQueue(storedQueueGuild, [queueChannel]);
                     }
                 } else {
                     // Cleanup deleted queue channels
@@ -297,11 +301,10 @@ client.on('voiceStateUpdate', async (oldVoiceState, newVoiceState) => {
             await knex<QueueChannel>('queue_channels').where('queue_channel_id', newVoiceChannel.id).first()
             : undefined;
 
-        const channelsToUpdate: VoiceChannel[] = [];
-
         if (storedOldQueueChannel && storedNewQueueChannel && member.user.bot) {
             return;
         }
+        const channelsToUpdate: VoiceChannel[] = [];
         if (storedNewQueueChannel && !member.user.bot) {
             // Joined queue channel
             // Check for existing, don't duplicate member entries
