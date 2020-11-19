@@ -4,7 +4,7 @@
   "description": "A Discord bot!",
   "main": "bot.js",
   "scripts": {
-    "build": "npm ci && tsc -p .",
+    "build": "tsc -p .",
     "start": "node build/bot.js"
   },
   "keywords": [],
