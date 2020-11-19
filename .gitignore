@@ -5,15 +5,11 @@
 !/tsconfig.json
 !/db-transfer-script
 !/update-node.sh
-
-# Bot code
 !/src
-!/build
 
 # Documentation
 !/README.md
 !/docs
 
-# @types
-!/node_modules/@types
+# Exclude
 /build

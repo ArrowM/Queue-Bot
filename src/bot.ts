@@ -32,8 +32,8 @@ client.on('uncaughtException', (err, origin) => console.error(
 ));
 
 // Top GG integration
-if (config.topGgToken) {
-    const dbl = new DBL(config.topGgToken, client);
+if (config['topGgToken']) {
+    const dbl = new DBL(config['topGgToken'], client);
     dbl.on('error', () => null);
 }
 
