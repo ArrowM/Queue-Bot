@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "A Discord bot!",
   "main": "build/bot.js",
-   "scripts": {
-      "build": "eslint src/** --fix && tsc -p .",
-      "start": "node build/bot.js"
-   },
+  "scripts": {
+    "build": "eslint src/** --fix && tsc -p .",
+    "start": "node build/bot.js"
+  },
   "keywords": [],
   "author": "Arrow",
   "license": "ISC",
