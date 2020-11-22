@@ -7,13 +7,13 @@ import { Mutex } from "async-mutex";
 
 interface QueueUpdateRequest {
    queueGuild: QueueGuild;
-   queueChannels: Array<VoiceChannel | TextChannel>;
+   queueChannel: VoiceChannel | TextChannel;
    silentUpdate: boolean;
 }
 
 export class MessageUtils extends Base {
    private static queueLock = new Mutex();
-   private static pendingQueueUpdates: QueueUpdateRequest[] = [];
+   private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
    private static responseLock = new Mutex();
    private static pendingResponses: Map<TextChannel | NewsChannel, MessageOptions> = new Map();
    private static gracePeriodCache = new Map();
@@ -27,10 +27,10 @@ export class MessageUtils extends Base {
          // Queue Displays
          this.queueLock.runExclusive(() => {
             if (this.pendingQueueUpdates) {
-               for (const updateRequest of this.pendingQueueUpdates) {
-                  this.updateQueueDisplays(updateRequest);
+               for (const request of this.pendingQueueUpdates.values()) {
+                  this.updateQueueDisplays(request);
                }
-               this.pendingQueueUpdates = [];
+               this.pendingQueueUpdates.clear();
             }
          });
          // Other Messages
@@ -53,16 +53,18 @@ export class MessageUtils extends Base {
     */
    public static async scheduleDisplayUpdate(
       _queueGuild: QueueGuild,
-      _queueChannels: Array<VoiceChannel | TextChannel>,
+      _queueChannel: VoiceChannel | TextChannel,
       _silentUpdate?: boolean
    ): Promise<void> {
-      this.queueLock.runExclusive(() => {
-         this.pendingQueueUpdates.push({
-            queueGuild: _queueGuild,
-            queueChannels: _queueChannels,
-            silentUpdate: _silentUpdate,
+      if (_queueChannel) {
+         this.queueLock.runExclusive(() => {
+            this.pendingQueueUpdates.set(_queueChannel.id, {
+               queueGuild: _queueGuild,
+               queueChannel: _queueChannel,
+               silentUpdate: _silentUpdate,
+            });
          });
-      });
+      }
    }
 
    /**
@@ -72,55 +74,52 @@ export class MessageUtils extends Base {
     */
    public static async updateQueueDisplays(updateRequest: QueueUpdateRequest): Promise<void> {
       const queueGuild = updateRequest.queueGuild;
-      for (const queueChannel of updateRequest.queueChannels) {
-         if (!queueChannel) {
-            continue;
-         }
-         const storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
-         if (!storedDisplayChannels || storedDisplayChannels.length === 0) {
-            return;
-         }
+      const queueChannel = updateRequest.queueChannel;
 
-         // Create an embed list
-         const msgEmbed = await MessageUtils.generateEmbed(queueGuild, queueChannel);
+      const storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
+      if (!storedDisplayChannels || storedDisplayChannels.length === 0) {
+         return;
+      }
 
-         for (const storedDisplayChannel of storedDisplayChannels) {
-            // For each embed list of the queue
-            try {
-               const displayChannel: TextChannel = await Base.getClient()
-                  .channels.fetch(storedDisplayChannel.display_channel_id)
-                  .catch(() => null);
+      // Create an embed list
+      const msgEmbed = await MessageUtils.generateEmbed(queueGuild, queueChannel);
 
-               if (displayChannel) {
-                  if (
-                     displayChannel.permissionsFor(displayChannel.guild.me).has("SEND_MESSAGES") &&
-                     displayChannel.permissionsFor(displayChannel.guild.me).has("EMBED_LINKS")
-                  ) {
-                     if (queueGuild.msg_mode === 1 || updateRequest.silentUpdate) {
-                        /* Edit */
-                        // Retrieved display embed
-                        const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
+      for (const storedDisplayChannel of storedDisplayChannels) {
+         // For each embed list of the queue
+         try {
+            const displayChannel: TextChannel = await Base.getClient()
+               .channels.fetch(storedDisplayChannel.display_channel_id)
+               .catch(() => null);
 
-                        if (storedEmbed) {
-                           await storedEmbed.edit(msgEmbed).catch(() => console.error);
-                        } else {
-                           await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, msgEmbed);
-                        }
+            if (displayChannel) {
+               if (
+                  displayChannel.permissionsFor(displayChannel.guild.me).has("SEND_MESSAGES") &&
+                  displayChannel.permissionsFor(displayChannel.guild.me).has("EMBED_LINKS")
+               ) {
+                  if (queueGuild.msg_mode === 1 || updateRequest.silentUpdate) {
+                     /* Edit */
+                     // Retrieved display embed
+                     const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
+
+                     if (storedEmbed) {
+                        await storedEmbed.edit(msgEmbed).catch(() => console.error);
                      } else {
-                        /* Replace */
-                        // Remove old display
-                        await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
-                        // Create new display
                         await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, msgEmbed);
                      }
+                  } else {
+                     /* Replace */
+                     // Remove old display
+                     await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
+                     // Create new display
+                     await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, msgEmbed);
                   }
-               } else {
-                  // Handled deleted display channels
-                  await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
                }
-            } catch (e) {
-               // Skip
+            } else {
+               // Handled deleted display channels
+               await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
             }
+         } catch (e) {
+            // Skip
          }
       }
    }
@@ -146,7 +145,7 @@ export class MessageUtils extends Base {
                   existingPendingResponse.content = messageToSend;
                }
             } else {
-               if (existingPendingResponse.content || existingPendingResponse.embed) {
+               if (existingPendingResponse.embed) {
                   destination.send(existingPendingResponse);
                }
                existingPendingResponse = messageToSend;

@@ -224,7 +224,7 @@ export class Commands {
          );
       }
       if (updateDisplays) {
-         await MessageUtils.scheduleDisplayUpdate(queueGuild, [queueChannel]);
+         await MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       }
    }
 
@@ -258,7 +258,9 @@ export class Commands {
             .update(setting.dbVariable, parsed.arguments);
          queueGuild[setting.dbVariable] = parsed.arguments;
          MessageUtils.scheduleResponse(message, `Set \`${setting.str}\` to \`${parsed.arguments}\`.`);
-         await MessageUtils.scheduleDisplayUpdate(queueGuild, channels, true);
+         for (const channel of channels) {
+            await MessageUtils.scheduleDisplayUpdate(queueGuild, channel, true);
+         }
       } else {
          MessageUtils.scheduleResponse(message, {
             content:
@@ -410,7 +412,7 @@ export class Commands {
       });
 
       MessageUtils.scheduleResponse(message, response);
-      MessageUtils.scheduleDisplayUpdate(queueGuild, [queueChannel]);
+      MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
    }
 
    /**
@@ -454,7 +456,7 @@ export class Commands {
             queueChannel.id,
             nextQueueMembers.map((member) => member.queue_member_id)
          );
-         await MessageUtils.scheduleDisplayUpdate(queueGuild, [queueChannel]);
+         await MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       } else {
          MessageUtils.scheduleResponse(message, `\`${queueChannel.name}\` is empty.`);
       }
@@ -478,7 +480,7 @@ export class Commands {
       for (let i = 0; i < queueMembers.length; i++) {
          await Base.getKnex()<QueueMember>("queue_members").where("id", queueMembers[i].id).update("created_at", queueMemberTimeStamps[i]);
       }
-      await MessageUtils.scheduleDisplayUpdate(queueGuild, [queueChannel]);
+      await MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       MessageUtils.scheduleResponse(message, `\`${queueChannel.name}\` queue shuffled.`);
    }
 
@@ -495,7 +497,7 @@ export class Commands {
       }
 
       await QueueMemberTable.unstoreQueueMembers(queueChannel.id);
-      await MessageUtils.scheduleDisplayUpdate(queueGuild, [queueChannel]);
+      await MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       MessageUtils.scheduleResponse(message, `\`${queueChannel.name}\` queue cleared.`);
    }
 
