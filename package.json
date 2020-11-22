@@ -4,7 +4,8 @@
   "description": "A Discord bot!",
   "main": "build/bot.js",
   "scripts": {
-    "build": "eslint src/** --fix && tsc -p .",
+    "build": "tsc -p .",
+    "format": "eslint src/** --fix",
     "start": "node build/bot.js"
   },
   "keywords": [],
