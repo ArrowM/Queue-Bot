@@ -6,7 +6,7 @@
    "scripts": {
       "build": "tsc -p .",
       "format": "eslint src/** --fix --no-error-on-unmatched-pattern",
-      "start": "node build/bot.js"
+      "start": "cd build && node bot.js"
    },
    "keywords": [],
    "author": "Arrow",
