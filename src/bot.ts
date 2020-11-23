@@ -239,24 +239,26 @@ async function resumeAfterOffline(): Promise<void> {
          // Clean display channels
          const storedDisplayChannels = await knex<DisplayChannel>("display_channels");
          for (const storedDisplayChannel of storedDisplayChannels) {
-            const queueChannel: VoiceChannel | TextChannel = await client.channels
-               .fetch(storedDisplayChannel.queue_channel_id)
-               .catch(() => null);
-            if (queueChannel) {
-               const displayChannel = queueChannel.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel;
-               if (displayChannel) {
-                  const msg = displayChannel.messages.fetch(storedDisplayChannel.embed_id);
-                  if (!msg) {
-                     console.log(3);
-                     await knex<DisplayChannel>("display_channels").where("id", storedDisplayChannel.id).del();
+            try {
+               const queueChannel = (await client.channels.fetch(storedDisplayChannel.queue_channel_id)) as VoiceChannel | TextChannel;
+               if (queueChannel) {
+                  const displayChannel = queueChannel.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel;
+                  if (displayChannel) {
+                     const msg = displayChannel.messages.fetch(storedDisplayChannel.embed_id);
+                     if (!msg) {
+                        console.log(3);
+                        await knex<DisplayChannel>("display_channels").where("id", storedDisplayChannel.id).del();
+                     }
+                  } else {
+                     console.log(2);
+                     DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
                   }
                } else {
-                  console.log(2);
-                  DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
+                  console.log(1);
+                  QueueChannelTable.unstoreQueueChannel(guild.id, storedDisplayChannel.queue_channel_id);
                }
-            } else {
-               console.log(1);
-               QueueChannelTable.unstoreQueueChannel(guild.id, storedDisplayChannel.queue_channel_id);
+            } catch (e) {
+               // EMPTY
             }
          }
       } catch (e) {

@@ -87,9 +87,8 @@ export class DisplayChannelTable {
       for (const storedDisplayChannel of storedDisplayChannels) {
          try {
             const displayChannel = (await Base.getClient().channels.fetch(storedDisplayChannel.display_channel_id)) as TextChannel;
-            if (displayChannel && displayChannel.permissionsFor(displayChannel.guild.me).has("MANAGE_MESSAGES")) {
-               await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false).then((embed) => embed?.delete());
-            }
+            const embed = await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false);
+            await embed.delete();
          } catch (e) {
             // EMPTY
          }
