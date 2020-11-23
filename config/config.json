@@ -20,6 +20,7 @@
    "helpCmd": "h",
    "joinCmd": "j",
    "kickCmd": "k",
+   "limitCmd": "limit",
    "modeCmd": "mode",
    "nextCmd": "n",
    "queueCmd": "q",
