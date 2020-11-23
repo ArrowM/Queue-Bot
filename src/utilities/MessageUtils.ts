@@ -28,6 +28,7 @@ export class MessageUtils extends Base {
          this.queueLock.runExclusive(() => {
             if (this.pendingQueueUpdates) {
                for (const request of this.pendingQueueUpdates.values()) {
+                  console.log(Date.now() + " - " + request.queueChannel.name);
                   this.updateQueueDisplays(request);
                }
                this.pendingQueueUpdates.clear();
@@ -42,7 +43,7 @@ export class MessageUtils extends Base {
                this.pendingResponses.clear();
             }
          });
-      }, 1000);
+      }, 1200);
    }
 
    /**
