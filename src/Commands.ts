@@ -215,8 +215,8 @@ export class Commands {
          updateDisplays = true;
          // Remove from queue
          await Base.getKnex()<QueueMember>("queue_members")
-            .where("queue_channel_id", queueChannel.id)
             .whereIn("queue_member_id", memberIdsToKick)
+            .where("queue_channel_id", queueChannel.id)
             .del();
          MessageUtils.scheduleResponse(
             message,
@@ -299,6 +299,11 @@ export class Commands {
          if (storedChannels.some((storedChannel) => storedChannel.id === queueChannel.id)) {
             // Channel is already stored, remove it
             await QueueChannelTable.unstoreQueueChannel(guild.id, queueChannel.id);
+            if (queueChannel.type === "voice") {
+               if (queueChannel.userLimit > 0) {
+                  (queueChannel as VoiceChannel).setUserLimit(0).catch(() => null);
+               }
+            }
             MessageUtils.scheduleResponse(message, `Deleted queue for \`${queueChannel.name}\`.`);
          } else {
             // Get number of users to pop

@@ -88,13 +88,10 @@ export class ParsingUtils {
             response += channels[0].name + (includeMention ? " @{user}" : "") + "`.";
          } else {
             // Multiple channels, list them
-            response +=
-               "{channel name}" +
-               (includeMention ? " @{user}" : "") +
-               "`." +
-               "\nAvailable " +
-               (type ? `**${type}** ` : "") +
-               `channel names: ${channels.map((channel) => " `" + channel.name + "`")}.`;
+            response += "{channel name}" + (includeMention ? " @{user}" : "") + "`.";
+            // + "\nAvailable "
+            // + (type ? `**${type}** ` : "")
+            // + `channel names: ${channels.map((channel) => " `" + channel.name + "`")}.`;
          }
       }
       MessageUtils.scheduleResponse(message, response);

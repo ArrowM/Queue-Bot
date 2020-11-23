@@ -4,18 +4,21 @@ export interface ParsedArguments {
 }
 
 export interface QueueChannel {
+   id: number;
    queue_channel_id: string;
    guild_id: string;
    max_members: string;
 }
 
 export interface DisplayChannel {
+   id: number;
    queue_channel_id: string;
    display_channel_id: string;
    embed_id: string;
 }
 
 export interface QueueGuild {
+   id: number;
    guild_id: string;
    grace_period: string;
    prefix: string;

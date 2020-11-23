@@ -3,7 +3,7 @@ import { Guild, GuildMember, Message, TextChannel, VoiceChannel } from "discord.
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import config from "./config.json";
-import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
+import { DisplayChannel, ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
@@ -187,13 +187,13 @@ client.on("message", async (message) => {
    }
 });
 
-async function resumeQueueAfterOffline(): Promise<void> {
+async function resumeAfterOffline(): Promise<void> {
    const storedQueueGuilds = await knex<QueueGuild>("queue_guilds");
    for (const storedQueueGuild of storedQueueGuilds) {
       try {
          const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null);
          if (!guild) continue;
-
+         // Clean queue channels
          const storedQueueChannels = await knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
          for (const storedQueueChannel of storedQueueChannels) {
             const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
@@ -236,11 +236,34 @@ async function resumeQueueAfterOffline(): Promise<void> {
                await QueueChannelTable.unstoreQueueChannel(guild.id, storedQueueChannel.queue_channel_id);
             }
          }
+         // Clean display channels
+         const storedDisplayChannels = await knex<DisplayChannel>("display_channels");
+         for (const storedDisplayChannel of storedDisplayChannels) {
+            const queueChannel: VoiceChannel | TextChannel = await client.channels
+               .fetch(storedDisplayChannel.queue_channel_id)
+               .catch(() => null);
+            if (queueChannel) {
+               const displayChannel = queueChannel.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel;
+               if (displayChannel) {
+                  const msg = displayChannel.messages.fetch(storedDisplayChannel.embed_id);
+                  if (!msg) {
+                     console.log(3);
+                     await knex<DisplayChannel>("display_channels").where("id", storedDisplayChannel.id).del();
+                  }
+               } else {
+                  console.log(2);
+                  DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
+               }
+            } else {
+               console.log(1);
+               QueueChannelTable.unstoreQueueChannel(guild.id, storedDisplayChannel.queue_channel_id);
+            }
+         }
       } catch (e) {
          if (e?.code === 50001) {
             // Cleanup deleted guilds
             await QueueChannelTable.unstoreQueueChannel(storedQueueGuild.guild_id);
-            await knex<QueueGuild>("queue_guilds").where("guild_id", storedQueueGuild.guild_id).del();
+            knex<QueueGuild>("queue_guilds").where("guild_id", storedQueueGuild.guild_id).del();
          } else {
             console.error(e);
          }
@@ -250,12 +273,12 @@ async function resumeQueueAfterOffline(): Promise<void> {
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once("ready", async () => {
-   await resumeQueueAfterOffline();
+   await resumeAfterOffline();
    console.log("Ready!");
 });
 
 client.on("shardResume", async () => {
-   await resumeQueueAfterOffline();
+   await resumeAfterOffline();
    console.log("Reconnected!");
 });
 

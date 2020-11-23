@@ -17,9 +17,8 @@ export class MessageUtils extends Base {
    private static responseLock = new Mutex();
    private static pendingResponses: Map<TextChannel | NewsChannel, MessageOptions> = new Map();
    private static gracePeriodCache = new Map();
-
    /**
-    * Send scheduled display updates every second
+    * Send scheduled display updates every 1.1 seconds
     * Necessary to comply with Discord API rate limits
     */
    public static async startScheduler() {
@@ -29,6 +28,7 @@ export class MessageUtils extends Base {
             if (this.pendingQueueUpdates) {
                for (const request of this.pendingQueueUpdates.values()) {
                   this.updateQueueDisplays(request);
+                  //console.log(Date.now() + " - " + request.queueChannel.name);
                }
                this.pendingQueueUpdates.clear();
             }
@@ -38,11 +38,12 @@ export class MessageUtils extends Base {
             if (this.pendingResponses) {
                for (const [key, value] of this.pendingResponses) {
                   key.send(value).catch(() => console.error);
+                  //console.log(Date.now() + " ~ response");
                }
                this.pendingResponses.clear();
             }
          });
-      }, 1200);
+      }, 1100);
    }
 
    /**
@@ -103,16 +104,12 @@ export class MessageUtils extends Base {
 
                      if (storedEmbed) {
                         await storedEmbed.edit(msgEmbed).catch(() => console.error);
-                     } else {
-                        await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, msgEmbed);
+                        continue;
                      }
-                  } else {
-                     /* Replace */
-                     // Remove old display
-                     await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode === 2);
-                     // Create new display
-                     await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, msgEmbed);
                   }
+                  /* Replace */
+                  await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
+                  await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, msgEmbed);
                }
             } else {
                // Handled deleted display channels

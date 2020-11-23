@@ -38,18 +38,18 @@ export class DisplayChannelTable {
    ): Promise<void> {
       let embedId: string;
       // For each embed, send and collect the id
-
       await displayChannel
          .send(msgEmbed)
          .then((msg) => (embedId = (msg as Message)?.id))
          .catch(() => null);
-
-      // Store the ids in the database
-      await Base.getKnex()<DisplayChannel>("display_channels").insert({
-         display_channel_id: displayChannel.id,
-         embed_id: embedId,
-         queue_channel_id: queueChannel.id,
-      });
+      // Store the id in the database
+      if (embedId) {
+         await Base.getKnex()<DisplayChannel>("display_channels").insert({
+            display_channel_id: displayChannel.id,
+            embed_id: embedId,
+            queue_channel_id: queueChannel.id,
+         });
+      }
    }
 
    /**
@@ -67,16 +67,16 @@ export class DisplayChannelTable {
 
       // Retreive list of stored embeds for display channel
       if (displayChannelIdToRemove) {
-         storedDisplayChannels = await Base.getKnex()("display_channels")
+         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels")
             .where("queue_channel_id", queueChannelId)
             .where("display_channel_id", displayChannelIdToRemove);
-         await Base.getKnex()("display_channels")
+         await Base.getKnex()<DisplayChannel>("display_channels")
             .where("queue_channel_id", queueChannelId)
             .where("display_channel_id", displayChannelIdToRemove)
             .del();
       } else {
-         storedDisplayChannels = await Base.getKnex()("display_channels").where("queue_channel_id", queueChannelId);
-         await Base.getKnex()("display_channels").where("queue_channel_id", queueChannelId).del();
+         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
+         await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).del();
       }
 
       if (!storedDisplayChannels || !deleteOldDisplayMsg) {
