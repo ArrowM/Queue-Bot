@@ -3,7 +3,7 @@ import { Guild, GuildMember, Message, TextChannel, VoiceChannel } from "discord.
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import config from "./config.json";
-import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
+import { DisplayChannel, ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
@@ -246,31 +246,21 @@ async function resumeAfterOffline(): Promise<void> {
          }
       }
    }
-   //// Clean display channels
-   //const storedDisplayChannels = await knex<DisplayChannel>("display_channels");
-   //for (const storedDisplayChannel of storedDisplayChannels) {
-   //   try {
-   //      const queueChannel = (await client.channels.fetch(storedDisplayChannel.queue_channel_id)) as VoiceChannel | TextChannel;
-   //      if (queueChannel) {
-   //         const displayChannel = queueChannel.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel;
-   //         if (displayChannel) {
-   //            const msg = await displayChannel.messages.fetch(storedDisplayChannel.embed_id);
-   //            if (!msg) {
-   //               console.log(3);
-   //               await knex<DisplayChannel>("display_channels").where("id", storedDisplayChannel.id).del();
-   //            }
-   //         } else {
-   //            console.log(2);
-   //            DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
-   //         }
-   //      } else {
-   //         console.log(1);
-   //         DisplayChannelTable.unstoreDisplayChannel(queueChannel.id);
-   //      }
-   //   } catch (e) {
-   //      // EMPTY
-   //   }
-   //}
+   // Cleanup displays db duplicates
+   const storedDisplayChannels = await knex<DisplayChannel>("display_channels").orderBy("queue_channel_id").orderBy("id", "desc");
+   const queueChannelIds = new Map<string, Set<string>>();
+   for (const storedDisplayChannel of storedDisplayChannels) {
+      const displaySet = queueChannelIds.get(storedDisplayChannel.queue_channel_id);
+      if (displaySet) {
+         if (displaySet.has(storedDisplayChannel.display_channel_id)) {
+            await knex<DisplayChannel>("display_channels").where("id", storedDisplayChannel.id).del();
+         } else {
+            displaySet.add(storedDisplayChannel.display_channel_id);
+         }
+      } else {
+         queueChannelIds.set(storedDisplayChannel.queue_channel_id, new Set([storedDisplayChannel.display_channel_id]));
+      }
+   }
 }
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
