@@ -191,7 +191,7 @@ async function resumeAfterOffline(): Promise<void> {
    const storedQueueGuilds = await knex<QueueGuild>("queue_guilds");
    for (const storedQueueGuild of storedQueueGuilds) {
       try {
-         const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null);
+         const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id); // do not catch here
          if (!guild) continue;
          // Clean queue channels
          const storedQueueChannels = await knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
@@ -239,6 +239,7 @@ async function resumeAfterOffline(): Promise<void> {
       } catch (e) {
          if (e?.code === 50001) {
             // Cleanup deleted guilds
+            console.log("deleting guild");
             await QueueChannelTable.unstoreQueueChannel(storedQueueGuild.guild_id);
             knex<QueueGuild>("queue_guilds").where("guild_id", storedQueueGuild.guild_id).del();
          } else {
