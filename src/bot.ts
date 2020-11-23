@@ -2,7 +2,6 @@ import DBL from "dblapi.js";
 import { Guild, GuildMember, Message, TextChannel, VoiceChannel } from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
-import config from "./config.json";
 import { DisplayChannel, ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
@@ -16,14 +15,15 @@ import util from "util";
 
 // Setup client
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
-const client = Base.getClient();
-const knex = Base.getKnex();
 QueueGuildTable.initTable();
 QueueChannelTable.initTable();
 DisplayChannelTable.initTable();
 QueueMemberTable.initTable();
 MessageUtils.startScheduler();
 
+const config = Base.getConfig();
+const client = Base.getClient();
+const knex = Base.getKnex();
 client.login(config.token);
 client.on("error", console.error);
 client.on("shardError", console.error);

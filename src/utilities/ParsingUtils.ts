@@ -1,10 +1,10 @@
 import { Message, TextChannel, VoiceChannel } from "discord.js";
-import config from "../config.json";
+import { Base } from "./Base";
 import { ParsedArguments, QueueGuild } from "./Interfaces";
 import { MessageUtils } from "./MessageUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 
-export class ParsingUtils {
+export class ParsingUtils extends Base {
    /**
     * Fetch tailing number from a string.
     * Ex:  '!n #general 2' returns 2.
@@ -80,7 +80,7 @@ export class ParsingUtils {
             "queue channels set." +
             "\nSet a " +
             (type ? `${type} ` : "") +
-            `queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\`.`;
+            `queue first using \`${queueGuild.prefix}${this.config.queueCmd} {channel name}\`.`;
       } else {
          response = "Invalid " + (type ? `**${type}** ` : "") + `channel name. Try \`${queueGuild.prefix}${parsed.command} `;
          if (channels.length === 1) {
@@ -132,7 +132,7 @@ export class ParsingUtils {
       } else {
          MessageUtils.scheduleResponse(
             message,
-            `No queue channels set.` + `\nSet a queue first using \`${queueGuild.prefix}${config.queueCmd} {channel name}\`.`
+            `No queue channels set.` + `\nSet a queue first using \`${queueGuild.prefix}${this.config.queueCmd} {channel name}\`.`
          );
       }
       return null;

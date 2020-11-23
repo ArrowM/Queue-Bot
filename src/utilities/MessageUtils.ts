@@ -1,5 +1,4 @@
 import { Message, MessageEmbed, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
-import config from "../config.json";
 import { DisplayChannel, QueueChannel, QueueGuild, QueueMember } from "./Interfaces";
 import { Base } from "./Base";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
@@ -77,7 +76,7 @@ export class MessageUtils extends Base {
       const queueGuild = updateRequest.queueGuild;
       const queueChannel = updateRequest.queueChannel;
 
-      const storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
+      const storedDisplayChannels = await this.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
       if (!storedDisplayChannels || storedDisplayChannels.length === 0) {
          return;
       }
@@ -88,9 +87,7 @@ export class MessageUtils extends Base {
       for (const storedDisplayChannel of storedDisplayChannels) {
          // For each embed list of the queue
          try {
-            const displayChannel: TextChannel = await Base.getClient()
-               .channels.fetch(storedDisplayChannel.display_channel_id)
-               .catch(() => null);
+            const displayChannel: TextChannel = await this.client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
 
             if (displayChannel) {
                if (
@@ -185,9 +182,9 @@ export class MessageUtils extends Base {
     * @param queueChannel Discord message object.
     */
    public static async generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<MessageOptions> {
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+      const storedQueueChannel = await this.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
       const queueMembers = (
-         await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy("created_at")
+         await this.knex<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy("created_at")
       ).slice(0, +storedQueueChannel.max_members || 625);
 
       const _embed = new MessageEmbed();
@@ -201,7 +198,7 @@ export class MessageUtils extends Base {
               `Join the **${queueChannel.name}** voice channel to join this queue.` +
                  (await this.getGracePeriodString(queueGuild.grace_period))
             : // Text
-              `Type \`${queueGuild.prefix}${config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`
+              `Type \`${queueGuild.prefix}${this.config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`
       );
 
       if (!queueMembers || queueMembers.length === 0) {

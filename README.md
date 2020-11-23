@@ -44,7 +44,7 @@ Moderator commands are available to the server owner and users with any of the f
 		`CREATE DATABASE queue;`  
 	3g. Close command prompt.  
 4. Open the Queue Bot folder.  
-5. Modify `config.json`:  
+5. Modify `config/config.json`:  
 	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.  
   
 | REQUIRED Config Fields | Description                                                                                                                       |

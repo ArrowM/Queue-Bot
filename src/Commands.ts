@@ -1,5 +1,4 @@
 import { Message, MessageEmbed, MessageOptions, TextChannel, VoiceChannel } from "discord.js";
-import config from "./config.json";
 import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { MessageUtils } from "./utilities/MessageUtils";
@@ -9,16 +8,16 @@ import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import { MutexUtils } from "./utilities/MutexUtils";
 
-export class Commands {
+export class Commands extends Base {
    // Map commands to database columns and display strings
    private static serverSettingVariables = {
-      [config.gracePeriodCmd]: {
+      [Base.config.gracePeriodCmd]: {
          dbVariable: "grace_period",
          str: "grace period",
       },
-      [config.prefixCmd]: { dbVariable: "prefix", str: "prefix" },
-      [config.colorCmd]: { dbVariable: "color", str: "color" },
-      [config.modeCmd]: { dbVariable: "msg_mode", str: "message mode" },
+      [Base.config.prefixCmd]: { dbVariable: "prefix", str: "prefix" },
+      [Base.config.colorCmd]: { dbVariable: "color", str: "color" },
+      [Base.config.modeCmd]: { dbVariable: "msg_mode", str: "message mode" },
    };
 
    /**
@@ -81,7 +80,7 @@ export class Commands {
                   },
                   {
                      name: "Join a Text Channel Queue",
-                     value: `\`${storedPrefix}${config.joinCmd} {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`,
+                     value: `\`${storedPrefix}${this.config.joinCmd} {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`,
                   },
                ],
                title: "Non-Restricted Commands",
@@ -98,57 +97,57 @@ export class Commands {
                   {
                      name: "Modify & View Queues",
                      value:
-                        `\`${storedPrefix}${config.queueCmd} {channel name} {OPTIONAL: size}\` creates a new queue or deletes an existing queue.` +
-                        `\n\`${storedPrefix}${config.queueCmd}\` shows the existing queues.`,
+                        `\`${storedPrefix}${this.config.queueCmd} {channel name} {OPTIONAL: size}\` creates a new queue or deletes an existing queue.` +
+                        `\n\`${storedPrefix}${this.config.queueCmd}\` shows the existing queues.`,
                   },
                   {
                      name: "Display Queue Members",
-                     value: `\`${storedPrefix}${config.displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`,
+                     value: `\`${storedPrefix}${this.config.displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`,
                   },
                   {
                      name: "Pull Users from Voice Queue",
                      value:
-                        `\`${storedPrefix}${config.startCmd} {channel name}\` adds the bot to a queue voice channel.` +
+                        `\`${storedPrefix}${this.config.startCmd} {channel name}\` adds the bot to a queue voice channel.` +
                         ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.` +
                         ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`,
                   },
                   {
                      name: "Pull Users from Text Queue",
-                     value: `\`${storedPrefix}${config.nextCmd} {channel name} {OPTIONAL: amount}\` removes people from the text queue and displays their name.`,
+                     value: `\`${storedPrefix}${this.config.nextCmd} {channel name} {OPTIONAL: amount}\` removes people from the text queue and displays their name.`,
                   },
                   {
                      name: "Add Others to a Text Channel Queue",
-                     value: `\`${storedPrefix}${config.joinCmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`,
+                     value: `\`${storedPrefix}${this.config.joinCmd} {channel name} @{user 1} @{user 2} ...\` adds other people from text channel queue.`,
                   },
                   {
                      name: "Kick Users from Queue",
-                     value: `\`${storedPrefix}${config.kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`,
+                     value: `\`${storedPrefix}${this.config.kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`,
                   },
                   {
                      name: "Clear Queue",
-                     value: `\`${storedPrefix}${config.clearCmd} {channel name}\` clears a queue.`,
+                     value: `\`${storedPrefix}${this.config.clearCmd} {channel name}\` clears a queue.`,
                   },
                   {
                      name: "Shuffle Queue",
-                     value: `\`${storedPrefix}${config.shuffleCmd} {channel name}\` shuffles a queue.`,
+                     value: `\`${storedPrefix}${this.config.shuffleCmd} {channel name}\` shuffles a queue.`,
                   },
                   {
                      name: "Change the Grace Period",
-                     value: `\`${storedPrefix}${config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`,
+                     value: `\`${storedPrefix}${this.config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`,
                   },
                   {
                      name: "Change the Command Prefix",
-                     value: `\`${storedPrefix}${config.prefixCmd} {new prefix}\` changes the prefix for commands.`,
+                     value: `\`${storedPrefix}${this.config.prefixCmd} {new prefix}\` changes the prefix for commands.`,
                   },
                   {
                      name: "Change the Color",
-                     value: `\`${storedPrefix}${config.colorCmd} {new color}\` changes the color of bot messages.`,
+                     value: `\`${storedPrefix}${this.config.colorCmd} {new color}\` changes the color of bot messages.`,
                   },
                   {
                      name: "Change the Display Mode",
                      value:
-                        `\`${storedPrefix}${config.modeCmd} {new mode}\` changes how the display messages are updated.` +
-                        `\n\`${storedPrefix}${config.modeCmd}\` displays the different update modes.`,
+                        `\`${storedPrefix}${this.config.modeCmd} {new mode}\` changes how the display messages are updated.` +
+                        `\n\`${storedPrefix}${this.config.modeCmd}\` displays the different update modes.`,
                   },
                ],
                image: {
@@ -206,7 +205,7 @@ export class Commands {
       }
 
       let updateDisplays = false;
-      const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
+      const storedQueueMemberIds = await this.knex<QueueMember>("queue_members")
          .where("queue_channel_id", queueChannel.id)
          .whereIn("queue_member_id", memberIdsToKick)
          .pluck("queue_member_id");
@@ -214,7 +213,7 @@ export class Commands {
       if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
          updateDisplays = true;
          // Remove from queue
-         await Base.getKnex()<QueueMember>("queue_members")
+         await this.knex<QueueMember>("queue_members")
             .whereIn("queue_member_id", memberIdsToKick)
             .where("queue_channel_id", queueChannel.id)
             .del();
@@ -252,7 +251,7 @@ export class Commands {
 
       if (parsed.arguments && passesValueRestrictions) {
          // Store channel to database
-         await Base.getKnex()<QueueGuild>("queue_guilds")
+         await this.knex<QueueGuild>("queue_guilds")
             .where("guild_id", message.guild.id)
             .first()
             .update(setting.dbVariable, parsed.arguments);
@@ -339,7 +338,7 @@ export class Commands {
          } else {
             MessageUtils.scheduleResponse(
                message,
-               `No queue channels set.` + `\nSet a new queue channel using \`${queueGuild.prefix}${config.queueCmd} {channel name}\``
+               `No queue channels set.` + `\nSet a new queue channel using \`${queueGuild.prefix}${this.config.queueCmd} {channel name}\``
                // 	+ `\nChannels: ${channels.map(channel => ` \`${channel.name}\``)}`
             );
          }
@@ -365,11 +364,11 @@ export class Commands {
          return;
       }
 
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+      const storedQueueChannel = await this.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
 
       let response = "";
       await MutexUtils.getMemberLock(storedQueueChannel.queue_channel_id).runExclusive(async () => {
-         const storedQueueMembers = await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
+         const storedQueueMembers = await this.knex<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
 
          // Parse members
          let memberIdsToToggle = [message.member.id];
@@ -439,9 +438,7 @@ export class Commands {
       }
 
       // Get the oldest member entry for the queue
-      let nextQueueMembers = await Base.getKnex()<QueueMember>("queue_members")
-         .where("queue_channel_id", queueChannel.id)
-         .orderBy("created_at");
+      let nextQueueMembers = await this.knex<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy("created_at");
       nextQueueMembers = nextQueueMembers.slice(0, numToPop);
 
       if (nextQueueMembers.length > 0) {
@@ -479,11 +476,11 @@ export class Commands {
          return;
       }
 
-      const queueMembers = await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
+      const queueMembers = await this.knex<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
       const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
       this.shuffleArray(queueMemberTimeStamps);
       for (let i = 0; i < queueMembers.length; i++) {
-         await Base.getKnex()<QueueMember>("queue_members").where("id", queueMembers[i].id).update("created_at", queueMemberTimeStamps[i]);
+         await this.knex<QueueMember>("queue_members").where("id", queueMembers[i].id).update("created_at", queueMemberTimeStamps[i]);
       }
       await MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       MessageUtils.scheduleResponse(message, `\`${queueChannel.name}\` queue shuffled.`);
