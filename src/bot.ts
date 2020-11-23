@@ -244,7 +244,7 @@ async function resumeAfterOffline(): Promise<void> {
                if (queueChannel) {
                   const displayChannel = queueChannel.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel;
                   if (displayChannel) {
-                     const msg = displayChannel.messages.fetch(storedDisplayChannel.embed_id);
+                     const msg = await displayChannel.messages.fetch(storedDisplayChannel.embed_id);
                      if (!msg) {
                         console.log(3);
                         await knex<DisplayChannel>("display_channels").where("id", storedDisplayChannel.id).del();
