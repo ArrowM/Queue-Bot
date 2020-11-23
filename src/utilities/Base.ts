@@ -15,7 +15,9 @@ export class Base {
       return this.client;
    }
 
-   protected static config = JSON.parse(readFileSync("./config/config.json", "utf8"));
+   protected static config =
+      JSON.parse(readFileSync("./config/config.json", "utf8")).catch((): any => null) ||
+      JSON.parse(readFileSync("../config/config.json", "utf8"));
 
    protected static knex = Knex({
       client: Base.config.databaseType,
