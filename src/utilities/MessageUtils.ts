@@ -51,11 +51,7 @@ export class MessageUtils extends Base {
     * @param _queueChannels
     * @param _silentUpdate
     */
-   public static async scheduleDisplayUpdate(
-      _queueGuild: QueueGuild,
-      _queueChannel: VoiceChannel | TextChannel,
-      _silentUpdate?: boolean
-   ): Promise<void> {
+   public static scheduleDisplayUpdate(_queueGuild: QueueGuild, _queueChannel: VoiceChannel | TextChannel, _silentUpdate?: boolean): void {
       if (_queueChannel) {
          this.queueLock.runExclusive(() => {
             this.pendingQueueUpdates.set(_queueChannel.id, {
@@ -123,7 +119,7 @@ export class MessageUtils extends Base {
     * @param message
     * @param messageToSend
     */
-   public static async scheduleResponse(message: Message, messageToSend: MessageOptions | string): Promise<void> {
+   public static scheduleResponse(message: Message, messageToSend: MessageOptions | string): void {
       const destination = message.channel as TextChannel | NewsChannel;
       if (
          destination.permissionsFor(message.guild.me).has("SEND_MESSAGES") &&

@@ -33,3 +33,33 @@ export interface QueueMember {
    personal_message: string;
    created_at: string;
 }
+
+export interface ConfigFile {
+   token: string;
+   topGgToken: string;
+
+   color: string;
+   databaseType: string;
+   databaseHost: string;
+   databaseName: string;
+   databaseUsername: string;
+   databasePassword: string;
+   gracePeriod: string;
+   permissionsRegexp: string;
+   prefix: string;
+
+   clearCmd: string;
+   colorCmd: string;
+   displayCmd: string;
+   gracePeriodCmd: string;
+   helpCmd: string;
+   joinCmd: string;
+   kickCmd: string;
+   limitCmd: string;
+   modeCmd: string;
+   nextCmd: string;
+   prefixCmd: string;
+   queueCmd: string;
+   shuffleCmd: string;
+   startCmd: string;
+}

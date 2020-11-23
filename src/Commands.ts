@@ -308,9 +308,7 @@ export class Commands extends Base {
             // Get number of users to pop
             let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsedArgs);
             if (maxMembersInQueue) {
-               if (maxMembersInQueue < 1) {
-                  return;
-               }
+               if (maxMembersInQueue < 1) return; // invalid amount
                if (queueChannel.type === "voice") {
                   if (maxMembersInQueue > 99) {
                      MessageUtils.scheduleResponse(message, `Max \`amount\` is 99. Using 99.`);
@@ -535,6 +533,47 @@ export class Commands extends Base {
          }
       } else {
          MessageUtils.scheduleResponse(message, "I need the permissions to join your voice channel!");
+      }
+   }
+
+   /**
+    * Change voice channel limits command
+    * @param queueGuild
+    * @param parsed Parsed message - prefix, command, argument.
+    * @param message Discord message object.
+    */
+   public static async setSizeLimit(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+      // Setup common variables
+      const parsedArgs = parsed.arguments;
+      const guild = message.guild;
+      // Channel argument provided. Toggle it
+      if (parsedArgs) {
+         // Get stored queue channel list from database
+         const channels = guild.channels.cache.filter((channel) => channel.type !== "category").array() as (VoiceChannel | TextChannel)[];
+         const queueChannel = ParsingUtils.extractChannel(channels, parsed, message);
+         let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsedArgs);
+         if (queueChannel && maxMembersInQueue) {
+            if (maxMembersInQueue < 1) return; // invalid amount
+            if (queueChannel.type === "voice") {
+               if (maxMembersInQueue > 99) {
+                  MessageUtils.scheduleResponse(message, `Max \`amount\` is 99. Using 99.`);
+                  maxMembersInQueue = 99;
+               }
+               if (queueChannel.permissionsFor(guild.me).has("MANAGE_CHANNELS")) {
+                  (queueChannel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
+               } else {
+                  MessageUtils.scheduleResponse(
+                     message,
+                     "I can automatically set voice channel user limits if you grant me permission. " +
+                        "Found in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Channels`"
+                  );
+               }
+            }
+            MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+            await this.knex<QueueChannel>("queue_channels")
+               .where("queue_channel_id", queueChannel.id)
+               .update("max_members", maxMembersInQueue);
+         }
       }
    }
 

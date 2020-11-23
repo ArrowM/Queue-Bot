@@ -1,9 +1,10 @@
 import { Client } from "discord.js";
 import { readFileSync } from "fs";
 import Knex from "knex";
+import { ConfigFile } from "./Interfaces";
 
 export class Base {
-   public static getConfig() {
+   public static getConfig(): ConfigFile {
       return this.config;
    }
 
@@ -15,7 +16,7 @@ export class Base {
       return this.client;
    }
 
-   protected static config = JSON.parse(readFileSync("../config/config.json", "utf8"));
+   protected static config: ConfigFile = JSON.parse(readFileSync("../config/config.json", "utf8"));
 
    protected static knex = Knex({
       client: Base.config.databaseType,

@@ -1,5 +1,5 @@
 import DBL from "dblapi.js";
-import { Guild, GuildMember, Message, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, GuildMember, Message, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import { DisplayChannel, ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
@@ -45,26 +45,14 @@ if (config.topGgToken) {
  * @param message Discord message object.
  */
 function checkPermission(message: Message): boolean {
-   const regex = RegExp(config.permissionsRegexp, "i");
-   return message.member.roles.cache.some((role) => regex.test(role.name)) || message.member.id === message.guild.ownerID;
-}
-
-function setNickname(guild: Guild, prefix: string): void {
-   guild.me.setNickname(`(${prefix}) Queue Bot`).catch(() => null);
-}
-
-async function createDefaultGuild(guild: Guild): Promise<QueueGuild> {
-   await knex<QueueGuild>("queue_guilds")
-      .insert({
-         color: "#51ff7e",
-         grace_period: "0",
-         guild_id: guild.id,
-         msg_mode: 1,
-         prefix: config.prefix,
-      })
-      .catch(() => null);
-   setNickname(guild, config.prefix);
-   return await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first();
+   try {
+      const channel = message.channel as TextChannel | NewsChannel;
+      const authorPerms = channel.permissionsFor(message.author);
+      const authorRoles = message.member.roles.cache;
+      return authorPerms.has("ADMINISTRATOR") || authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name));
+   } catch (e) {
+      return false;
+   }
 }
 
 client.on("message", async (message) => {
@@ -72,7 +60,8 @@ client.on("message", async (message) => {
       return;
    }
    const guild = message.guild;
-   const queueGuild = (await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first()) || (await createDefaultGuild(guild));
+   const queueGuild =
+      (await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first()) || (await QueueGuildTable.storeQueueGuild(guild));
 
    const parsed: ParsedArguments = { command: null, arguments: null };
    if (message.content.startsWith(queueGuild.prefix)) {
@@ -112,6 +101,10 @@ client.on("message", async (message) => {
             case config.shuffleCmd:
                Commands.shuffleQueue(queueGuild, parsed, message);
                break;
+            // Limit queue size
+            case config.limitCmd:
+               Commands.setSizeLimit(queueGuild, parsed, message);
+               break;
 
             // Grace period
             case config.gracePeriodCmd:
@@ -126,7 +119,7 @@ client.on("message", async (message) => {
             // Prefix
             case config.prefixCmd:
                Commands.setServerSetting(queueGuild, parsed, message, true);
-               setNickname(guild, parsed.arguments);
+               guild.me.setNickname(`(${parsed.arguments}) Queue Bot`).catch(() => null);
                break;
             // Color
             case config.colorCmd:
@@ -158,6 +151,7 @@ client.on("message", async (message) => {
             config.nextCmd,
             config.kickCmd,
             config.clearCmd,
+            config.shuffleCmd,
             config.gracePeriodCmd,
             config.prefixCmd,
             config.colorCmd,
@@ -238,10 +232,7 @@ async function resumeAfterOffline(): Promise<void> {
          }
       } catch (e) {
          if (e?.code === 50001) {
-            // Cleanup deleted guilds
-            console.log("deleting guild");
-            await QueueChannelTable.unstoreQueueChannel(storedQueueGuild.guild_id);
-            knex<QueueGuild>("queue_guilds").where("guild_id", storedQueueGuild.guild_id).del();
+            await QueueGuildTable.unstoreQueueGuild(storedQueueGuild.guild_id);
          } else {
             console.error(e);
          }
@@ -273,6 +264,14 @@ client.once("ready", async () => {
 client.on("shardResume", async () => {
    await resumeAfterOffline();
    console.log("Reconnected!");
+});
+
+client.on("guildCreate", async (guild) => {
+   await QueueGuildTable.storeQueueGuild(guild);
+});
+
+client.on("guildDelete", async (guild) => {
+   await QueueGuildTable.unstoreQueueGuild(guild.id);
 });
 
 /**

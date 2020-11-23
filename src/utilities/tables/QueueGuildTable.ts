@@ -1,5 +1,7 @@
 import { QueueGuild } from "../Interfaces";
 import { Base } from "../Base";
+import { Guild } from "discord.js";
+import { QueueChannelTable } from "./QueueChannelTable";
 
 export class QueueGuildTable extends Base {
    /**
@@ -21,6 +23,33 @@ export class QueueGuildTable extends Base {
       });
 
       this.updateTableStructure();
+   }
+
+   /**
+    *
+    * @param guild
+    */
+   public static async storeQueueGuild(guild: Guild): Promise<QueueGuild> {
+      await this.knex<QueueGuild>("queue_guilds")
+         .insert({
+            color: "#51ff7e",
+            grace_period: "0",
+            guild_id: guild.id,
+            msg_mode: 1,
+            prefix: this.config.prefix,
+         })
+         .catch(() => null);
+      guild.me.setNickname(`(${this.config.prefix}) Queue Bot`).catch(() => null);
+      return await this.knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first();
+   }
+
+   /**
+    *
+    * @param guild
+    */
+   public static async unstoreQueueGuild(guildId: string): Promise<void> {
+      await QueueChannelTable.unstoreQueueChannel(guildId);
+      await this.knex<QueueGuild>("queue_guilds").where("guild_id", guildId).del();
    }
 
    /**
