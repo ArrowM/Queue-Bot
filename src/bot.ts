@@ -263,6 +263,9 @@ async function resumeAfterOffline(): Promise<void> {
                console.log(2);
                DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
             }
+         } else {
+            console.log(1);
+            DisplayChannelTable.unstoreDisplayChannel(queueChannel.id);
          }
       } catch (e) {
          // EMPTY
