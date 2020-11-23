@@ -132,6 +132,10 @@ export class Commands extends Base {
                      value: `\`${storedPrefix}${this.config.shuffleCmd} {channel name}\` shuffles a queue.`,
                   },
                   {
+                     name: "Change Queue Size Limit",
+                     value: `\`${storedPrefix}${this.config.limitCmd} {channel name} {size limit} \` changes queue size limit.`,
+                  },
+                  {
                      name: "Change the Grace Period",
                      value: `\`${storedPrefix}${this.config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`,
                   },

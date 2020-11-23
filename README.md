@@ -22,6 +22,7 @@ Moderator commands are available to the server owner and users with any of the f
 | Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kick one or more people from a queue. |
 | Clear | `!clear {channel name}` | Clear a queue. |
 | Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
+| Change Queue Size Limit | `!limit {channel name} {size limit}` | Changes queue size limit. |
 ||||
 |**Server Settings**|||
 | Change the Command Prefix | `!prefix {new prefix}` | Change the prefix for Queue Bot commands. |
@@ -73,6 +74,7 @@ Moderator commands are available to the server owner and users with any of the f
 | helpCmd                | Command to display the help information.                                                                                          |
 | joinCmd                | Command to join a text channel queue.                                                                                             |
 | kickCmd                | Command to kick users from a queue.                                                                                               |
+| limitCmd               | Command to change queue size limit.                                                                                               |
 | modeCmd                | Command to change the display messaging mode.                                                                                     |
 | nextCmd                | Command to pull the next user from a text channel.                                                                                |
 | queueCmd               | Command to change queues.                                                                                                         |
