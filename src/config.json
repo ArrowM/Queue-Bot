@@ -1,5 +1,5 @@
 {
-   "token": "NzIxNDAxODc4NjU0NDg0NjMw.XuT_2g.3rjo86RSAHqv4mARIjgOZZOiHsU",
+   "token": "YOUR_TOKEN_HERE",
    "topGgToken": "",
 
    "color": "#478E81",
@@ -10,7 +10,7 @@
    "databasePassword": " ",
    "gracePeriod": "0",
    "permissionsRegexp": "\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b",
-   "prefix": "~",
+   "prefix": "!",
 
    "clearCmd": "clear",
    "colorCmd": "color",
