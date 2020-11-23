@@ -85,15 +85,13 @@ export class DisplayChannelTable {
 
       // If found, delete them from discord
       for (const storedDisplayChannel of storedDisplayChannels) {
-         const displayChannel = (await Base.getClient()
-            .channels.fetch(storedDisplayChannel.display_channel_id)
-            .catch(() => null)) as TextChannel;
-
-         if (displayChannel) {
-            await displayChannel.messages
-               .fetch(storedDisplayChannel.embed_id, false)
-               .then((embed) => embed?.delete())
-               .catch(() => null);
+         try {
+            const displayChannel = (await Base.getClient().channels.fetch(storedDisplayChannel.display_channel_id)) as TextChannel;
+            if (displayChannel && displayChannel.permissionsFor(displayChannel.guild.me).has("MANAGE_MESSAGES")) {
+               await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false).then((embed) => embed?.delete());
+            }
+         } catch (e) {
+            // EMPTY
          }
       }
    }
