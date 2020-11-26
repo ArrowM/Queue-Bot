@@ -86,7 +86,7 @@ export class DisplayChannelTable extends Base {
             const displayChannel = (await this.client.channels.fetch(storedDisplayChannel.display_channel_id)) as TextChannel | NewsChannel;
             const displayMessage = await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false);
             if (deleteOldDisplayMsg) {
-               await displayMessage.delete();
+               await displayMessage.delete().catch(() => null);
             } else {
                if (displayChannel.permissionsFor(displayChannel.guild.me).has("MANAGE_MESSAGES")) {
                   setTimeout(() => displayMessage.reactions.removeAll().catch(() => null), 1000); // Timeout to avoid rate limit

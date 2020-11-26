@@ -100,10 +100,12 @@ export class ParsingUtils extends Base {
          }
       }
       //MessageUtils.scheduleResponseToMessage(response, message);
-      const _response = await message.channel.send(response);
-      setTimeout(() => {
-         _response.delete().catch(() => null);
-      }, 10 * 1000);
+      const _response = await message.channel.send(response).catch(() => null) as Message;
+      if (_response) {
+         setTimeout(() => {
+            _response.delete().catch(() => null);
+         }, 10 * 1000);
+      }
    }
 
    /**

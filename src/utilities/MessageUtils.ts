@@ -29,7 +29,7 @@ export class MessageUtils extends Base {
          // Other Messages
          if (this.pendingResponses) {
             for (const [key, value] of this.pendingResponses) {
-               key.send(value).catch(() => console.error);
+               key.send(value).catch(() => null);
             }
             this.pendingResponses.clear();
          }
@@ -138,7 +138,7 @@ export class MessageUtils extends Base {
             }
          } else {
             if (existingPendingResponse.embed) {
-               channel.send(existingPendingResponse);
+               channel.send(existingPendingResponse).catch(() => null);
             }
             existingPendingResponse = response;
          }
