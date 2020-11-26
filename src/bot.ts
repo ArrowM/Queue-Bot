@@ -327,21 +327,28 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       if (storedOldQueueChannel && newVoiceChannel) {
          // Left queue channel
          if (member.user.bot) {
-            // Pop the nextQueueMember off the stored queue
-            const nextStoredQueueMember = await knex<QueueMember>("queue_members")
+            // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit
+            let storedQueueMembers = await knex<QueueMember>("queue_members")
                .where("queue_channel_id", oldVoiceChannel.id)
-               .orderBy("created_at")
-               .first();
-            if (nextStoredQueueMember) {
-               const nextQueueMember: GuildMember = await guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
-               // Block recentMember caching when the bot is used to pull someone
-               if (nextQueueMember) {
-                  blockNextCache.add(nextQueueMember.id);
-                  // Swap bot with nextQueueMember
-                  nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
-                  member.voice.setChannel(oldVoiceChannel).catch(() => null);
+               .orderBy("created_at");
+            if (storedQueueMembers.length > 0) {
+               storedQueueMembers = storedQueueMembers.slice(0, newVoiceChannel.userLimit ? newVoiceChannel.userLimit : 1);
+               const queueMembers: GuildMember[] = [];
+               for (const storedQueueMember of storedQueueMembers) {
+                  const queueMember = (await guild.members.fetch(storedQueueMember.queue_member_id).catch(() => null)) as GuildMember;
+                  if (queueMember) queueMembers.push(queueMember);
+               }
+               if (queueMembers.length > 0) {
+                  // Block recentMember caching when the bot is used to pull someone
+                  for (let i = 0; i < queueMembers.length; i++) {
+                     setTimeout(() => {
+                        blockNextCache.add(queueMembers[i].id);
+                        queueMembers[i].voice.setChannel(newVoiceChannel).catch(() => null);
+                     }, Math.floor(i / 5) * 5050); // Rate limit
+                  }
                }
             }
+            member.voice.setChannel(oldVoiceChannel).catch(() => null);
          } else {
             if (blockNextCache.delete(member.id)) {
                // Getting pulled using bot, do not cache
