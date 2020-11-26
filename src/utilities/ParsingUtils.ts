@@ -1,4 +1,4 @@
-import { Message, TextChannel, VoiceChannel } from "discord.js";
+import { Message, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
 import { ParsedArguments, QueueGuild } from "./Interfaces";
 import { MessageUtils } from "./MessageUtils";
@@ -13,14 +13,18 @@ export class ParsingUtils extends Base {
     */
    public static getTailingNumberFromString(message: Message, argument: string): number {
       // Get number of users to pop
-      let num = +argument.split(" ").slice(-1).pop();
+      let arg = argument.split(" ").slice(-1).pop();
+      if (arg === "") return null;
+
+      let num = +arg;
       if (isNaN(num)) {
-         num = null;
+         return null;
       } else if (num < 1) {
-         MessageUtils.scheduleResponse(message, `\`amount\` must be a postive number!`);
-         num = null;
+         MessageUtils.scheduleResponseToMessage(`\`amount\` must be a postive number!`, message);
+         return null;
+      } else {
+         return num;
       }
-      return num;
    }
 
    /**
@@ -30,10 +34,10 @@ export class ParsingUtils extends Base {
     * @param message
     */
    public static extractChannel(
-      availableChannels: Array<VoiceChannel | TextChannel>,
+      availableChannels: (VoiceChannel | TextChannel | NewsChannel)[],
       parsed: ParsedArguments,
       message: Message
-   ): VoiceChannel | TextChannel {
+   ): VoiceChannel | TextChannel | NewsChannel {
       let channel = availableChannels.find((ch) => ch.id === message.mentions.channels.array()[0]?.id);
       if (!channel && parsed.arguments) {
          const splitArgs = parsed.arguments.split(" ");
@@ -64,37 +68,42 @@ export class ParsingUtils extends Base {
     * @param includeMention
     * @param type
     */
-   public static reportChannelNotFound(
+   public static async reportChannelNotFound(
       queueGuild: QueueGuild,
       parsed: ParsedArguments,
-      channels: Array<VoiceChannel | TextChannel>,
+      channels: (VoiceChannel | TextChannel | NewsChannel)[],
       message: Message,
       includeMention: boolean,
-      type: string
-   ): void {
+      isAQueue: boolean,
+      type?: string
+   ): Promise<void> {
+      /* eslint-disable prettier/prettier */
+      const target = isAQueue ? "queue" : "channel";
       let response;
       if (channels.length === 0) {
+
          response =
-            "No " +
-            (type ? `**${type}** ` : "") +
-            "queue channels set." +
-            "\nSet a " +
-            (type ? `${type} ` : "") +
-            `queue first using \`${queueGuild.prefix}${this.config.queueCmd} {channel name}\`.`;
+            "No " + (type ? `**${type}** ` : "") + `queue ${target}s set.\n` +
+            "Set a " + (type ? `${type} ` : "") + `queue first using \`${queueGuild.prefix}${this.config.queueCmd} {${target} name}\`.`;
       } else {
-         response = "Invalid " + (type ? `**${type}** ` : "") + `channel name. Try \`${queueGuild.prefix}${parsed.command} `;
+         response = "Invalid " + (type ? `**${type}** ` : "") + `${target} name. Try \`${queueGuild.prefix}${parsed.command} `;
          if (channels.length === 1) {
             // Single channel, recommend the single channel
             response += channels[0].name + (includeMention ? " @{user}" : "") + "`.";
          } else {
             // Multiple channels, list them
             response += "{channel name}" + (includeMention ? " @{user}" : "") + "`.";
-            // + "\nAvailable "
-            // + (type ? `**${type}** ` : "")
-            // + `channel names: ${channels.map((channel) => " `" + channel.name + "`")}.`;
+            if (isAQueue) {
+               response +=
+                  "\nAvailable " + (type ? `**${type}** ` : "") + `queues: ${channels.map((channel) => " `" + channel.name + "`")}.`;
+            }
          }
       }
-      MessageUtils.scheduleResponse(message, response);
+      //MessageUtils.scheduleResponseToMessage(response, message);
+      const _response = await message.channel.send(response);
+      setTimeout(() => {
+         _response.delete().catch(() => null);
+      }, 10 * 1000);
    }
 
    /**
@@ -111,7 +120,7 @@ export class ParsingUtils extends Base {
       message: Message,
       includeMention?: boolean,
       type?: string
-   ): Promise<VoiceChannel | TextChannel> {
+   ): Promise<VoiceChannel | TextChannel | NewsChannel> {
       const guild = message.guild;
       const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(guild);
 
@@ -126,13 +135,13 @@ export class ParsingUtils extends Base {
             if (channel) {
                return channel;
             } else {
-               this.reportChannelNotFound(queueGuild, parsed, availableChannels, message, includeMention, type);
+               this.reportChannelNotFound(queueGuild, parsed, availableChannels, message, includeMention, true, type);
             }
          }
       } else {
-         MessageUtils.scheduleResponse(
-            message,
-            `No queue channels set.` + `\nSet a queue first using \`${queueGuild.prefix}${this.config.queueCmd} {channel name}\`.`
+         MessageUtils.scheduleResponseToMessage(
+            `No queue channels set.` + `\nSet a queue first using \`${queueGuild.prefix}${this.config.queueCmd} {channel name}\`.`,
+            message
          );
       }
       return null;

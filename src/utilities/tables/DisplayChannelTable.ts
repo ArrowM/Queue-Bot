@@ -1,6 +1,7 @@
-import { Message, MessageOptions, TextChannel, VoiceChannel } from "discord.js";
+import { Message, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
+import { MessageUtils } from "../MessageUtils";
 
 export class DisplayChannelTable extends Base {
    /**
@@ -30,23 +31,24 @@ export class DisplayChannelTable extends Base {
     * @param msgEmbed
     */
    public static async storeDisplayChannel(
-      queueChannel: VoiceChannel | TextChannel,
-      displayChannel: TextChannel,
-      msgEmbed: MessageOptions
-   ): Promise<void> {
-      let embedId: string;
-      // For each embed, send and collect the id
-      await displayChannel
-         .send(msgEmbed)
-         .then((msg) => (embedId = (msg as Message)?.id))
-         .catch(() => null);
-      // Store the id in the database
-      if (embedId) {
-         await this.knex<DisplayChannel>("display_channels").insert({
-            display_channel_id: displayChannel.id,
-            embed_id: embedId,
-            queue_channel_id: queueChannel.id,
-         });
+      queueChannel: VoiceChannel | TextChannel | NewsChannel,
+      displayChannel: TextChannel | NewsChannel,
+      displayEmbed: MessageOptions
+   ): Promise<Message> {
+      const displayPermissions = displayChannel.permissionsFor(displayChannel.guild.me);
+      if (displayPermissions.has("SEND_MESSAGES") && displayPermissions.has("EMBED_LINKS")) {
+         const response = (await displayChannel.send(displayEmbed).catch()) as Message;
+         if (response) {
+            if (queueChannel.type === "text") {
+               MessageUtils.sendReaction(response, this.config.joinEmoji);
+            }
+            await this.knex<DisplayChannel>("display_channels").insert({
+               display_channel_id: displayChannel.id,
+               embed_id: response.id,
+               queue_channel_id: queueChannel.id,
+            });
+         }
+         return response;
       }
    }
 
@@ -76,17 +78,26 @@ export class DisplayChannelTable extends Base {
          storedDisplayChannels = await this.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
          await this.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).del();
       }
-
-      if (!storedDisplayChannels || !deleteOldDisplayMsg) {
-         return;
-      }
+      if (!storedDisplayChannels) return;
 
       // If found, delete them from discord
       for (const storedDisplayChannel of storedDisplayChannels) {
          try {
-            const displayChannel = (await this.client.channels.fetch(storedDisplayChannel.display_channel_id)) as TextChannel;
-            const embed = await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false);
-            await embed.delete();
+            const displayChannel = (await this.client.channels.fetch(storedDisplayChannel.display_channel_id)) as TextChannel | NewsChannel;
+            const displayMessage = await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false);
+            if (deleteOldDisplayMsg) {
+               await displayMessage.delete();
+            } else {
+               if (displayChannel.permissionsFor(displayChannel.guild.me).has("MANAGE_MESSAGES")) {
+                  setTimeout(() => displayMessage.reactions.removeAll().catch(() => null), 1000); // Timeout to avoid rate limit
+               } else {
+                  MessageUtils.scheduleResponseToChannel(
+                     "I can clean up old queue reactions, but I need a new permission.\n" +
+                        "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Messages`.",
+                     displayChannel
+                  );
+               }
+            }
          } catch (e) {
             // EMPTY
          }
@@ -108,8 +119,8 @@ export class DisplayChannelTable extends Base {
          await this.knex.schema.table("display_channels", (table) => table.text("embed_id"));
          (await this.knex<DisplayChannel>("display_channels")).forEach(async (displayChannel) => {
             await this.knex<DisplayChannel>("display_channels")
-               .where("display_channel_id", displayChannel.display_channel_id)
                .where("queue_channel_id", displayChannel.queue_channel_id)
+               .where("display_channel_id", displayChannel.display_channel_id)
                .update("embed_id", displayChannel["embed_ids"][0]);
          });
          await this.knex.schema.table("display_channels", (table) => table.dropColumn("embed_ids"));

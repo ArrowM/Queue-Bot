@@ -2,18 +2,15 @@ import { Message, MessageEmbed, MessageOptions, NewsChannel, TextChannel, VoiceC
 import { DisplayChannel, QueueChannel, QueueGuild, QueueMember } from "./Interfaces";
 import { Base } from "./Base";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
-import { Mutex } from "async-mutex";
 
 interface QueueUpdateRequest {
    queueGuild: QueueGuild;
-   queueChannel: VoiceChannel | TextChannel;
+   queueChannel: VoiceChannel | TextChannel | NewsChannel;
    silentUpdate: boolean;
 }
 
 export class MessageUtils extends Base {
-   private static queueLock = new Mutex();
    private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
-   private static responseLock = new Mutex();
    private static pendingResponses: Map<TextChannel | NewsChannel, MessageOptions> = new Map();
    private static gracePeriodCache = new Map();
    /**
@@ -23,25 +20,19 @@ export class MessageUtils extends Base {
    public static async startScheduler() {
       setInterval(() => {
          // Queue Displays
-         this.queueLock.runExclusive(() => {
-            if (this.pendingQueueUpdates) {
-               for (const request of this.pendingQueueUpdates.values()) {
-                  this.updateQueueDisplays(request);
-                  //console.log(Date.now() + " - " + request.queueChannel.name);
-               }
-               this.pendingQueueUpdates.clear();
+         if (this.pendingQueueUpdates) {
+            for (const request of this.pendingQueueUpdates.values()) {
+               this.updateQueueDisplays(request);
             }
-         });
+            this.pendingQueueUpdates.clear();
+         }
          // Other Messages
-         this.responseLock.runExclusive(() => {
-            if (this.pendingResponses) {
-               for (const [key, value] of this.pendingResponses) {
-                  key.send(value).catch(() => console.error);
-                  //console.log(Date.now() + " ~ response");
-               }
-               this.pendingResponses.clear();
+         if (this.pendingResponses) {
+            for (const [key, value] of this.pendingResponses) {
+               key.send(value).catch(() => console.error);
             }
-         });
+            this.pendingResponses.clear();
+         }
       }, 1100);
    }
 
@@ -51,14 +42,16 @@ export class MessageUtils extends Base {
     * @param _queueChannels
     * @param _silentUpdate
     */
-   public static scheduleDisplayUpdate(_queueGuild: QueueGuild, _queueChannel: VoiceChannel | TextChannel, _silentUpdate?: boolean): void {
+   public static scheduleDisplayUpdate(
+      _queueGuild: QueueGuild,
+      _queueChannel: VoiceChannel | TextChannel | NewsChannel,
+      _silentUpdate?: boolean
+   ): void {
       if (_queueChannel) {
-         this.queueLock.runExclusive(() => {
-            this.pendingQueueUpdates.set(_queueChannel.id, {
-               queueGuild: _queueGuild,
-               queueChannel: _queueChannel,
-               silentUpdate: _silentUpdate,
-            });
+         this.pendingQueueUpdates.set(_queueChannel.id, {
+            queueGuild: _queueGuild,
+            queueChannel: _queueChannel,
+            silentUpdate: _silentUpdate,
          });
       }
    }
@@ -78,12 +71,14 @@ export class MessageUtils extends Base {
       }
 
       // Create an embed list
-      const msgEmbed = await MessageUtils.generateEmbed(queueGuild, queueChannel);
+      const displayEmbed = await MessageUtils.generateEmbed(queueGuild, queueChannel);
 
       for (const storedDisplayChannel of storedDisplayChannels) {
          // For each embed list of the queue
          try {
-            const displayChannel: TextChannel = await this.client.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null);
+            const displayChannel: TextChannel | NewsChannel = await this.client.channels
+               .fetch(storedDisplayChannel.display_channel_id)
+               .catch(() => null);
 
             if (displayChannel) {
                if (
@@ -96,13 +91,13 @@ export class MessageUtils extends Base {
                      const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
 
                      if (storedEmbed) {
-                        await storedEmbed.edit(msgEmbed).catch(() => console.error);
+                        await storedEmbed.edit(displayEmbed).catch(() => null);
                         continue;
                      }
                   }
                   /* Replace */
                   await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
-                  await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, msgEmbed);
+                  await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, displayEmbed);
                }
             } else {
                // Handled deleted display channels
@@ -119,31 +114,39 @@ export class MessageUtils extends Base {
     * @param message
     * @param messageToSend
     */
-   public static scheduleResponse(message: Message, messageToSend: MessageOptions | string): void {
-      const destination = message.channel as TextChannel | NewsChannel;
-      if (
-         destination.permissionsFor(message.guild.me).has("SEND_MESSAGES") &&
-         destination.permissionsFor(message.guild.me).has("EMBED_LINKS")
-      ) {
+   public static scheduleResponseToMessage(response: MessageOptions | string, message: Message): void {
+      const channel = message.channel as TextChannel | NewsChannel;
+      if (!this.scheduleResponseToChannel(response, channel)) {
+         message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
+      }
+   }
+
+   /**
+    * Attempt to send a response to channel, return false if bot lacks permissiosn.
+    * @param response
+    * @param channel
+    */
+   public static scheduleResponseToChannel(response: MessageOptions | string, channel: TextChannel | NewsChannel): boolean {
+      if (channel.permissionsFor(channel.guild.me).has("SEND_MESSAGES") && channel.permissionsFor(channel.guild.me).has("EMBED_LINKS")) {
          // Schedule to response to channel
-         this.responseLock.runExclusive(() => {
-            let existingPendingResponse = this.pendingResponses.get(destination) || {};
-            if (typeof messageToSend === "string") {
-               if (existingPendingResponse.content) {
-                  existingPendingResponse.content += "\n" + messageToSend;
-               } else {
-                  existingPendingResponse.content = messageToSend;
-               }
+         let existingPendingResponse = this.pendingResponses.get(channel) || {};
+         if (typeof response === "string") {
+            if (existingPendingResponse.content) {
+               existingPendingResponse.content += "\n" + response;
             } else {
-               if (existingPendingResponse.embed) {
-                  destination.send(existingPendingResponse);
-               }
-               existingPendingResponse = messageToSend;
+               existingPendingResponse.content = response;
             }
-            this.pendingResponses.set(destination, existingPendingResponse);
-         });
+         } else {
+            if (existingPendingResponse.embed) {
+               channel.send(existingPendingResponse);
+            }
+            existingPendingResponse = response;
+         }
+
+         this.pendingResponses.set(channel, existingPendingResponse);
+         return true;
       } else {
-         message.author.send(`I don't have permission to write messages and embeds in \`${destination.name}\``).catch(() => null);
+         return false;
       }
    }
 
@@ -177,7 +180,10 @@ export class MessageUtils extends Base {
     * @param queueGuild
     * @param queueChannel Discord message object.
     */
-   public static async generateEmbed(queueGuild: QueueGuild, queueChannel: TextChannel | VoiceChannel): Promise<MessageOptions> {
+   public static async generateEmbed(
+      queueGuild: QueueGuild,
+      queueChannel: TextChannel | NewsChannel | VoiceChannel
+   ): Promise<MessageOptions> {
       const storedQueueChannel = await this.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
       const queueMembers = (
          await this.knex<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy("created_at")
@@ -194,7 +200,7 @@ export class MessageUtils extends Base {
               `Join the **${queueChannel.name}** voice channel to join this queue.` +
                  (await this.getGracePeriodString(queueGuild.grace_period))
             : // Text
-              `Type \`${queueGuild.prefix}${this.config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`
+              `React with ${this.config.joinEmoji} to join or leave this queue.`
       );
 
       if (!queueMembers || queueMembers.length === 0) {
@@ -224,5 +230,24 @@ export class MessageUtils extends Base {
       }
 
       return { embed: _embed };
+   }
+
+   /**
+    *
+    * @param message
+    * @param emoji
+    */
+   public static async sendReaction(message: Message, emoji: string): Promise<void> {
+      const channel = message.channel as TextChannel | NewsChannel;
+      const channelPermissions = channel.permissionsFor(channel.guild.me);
+      if (channelPermissions.has("ADD_REACTIONS")) {
+         await message.react(emoji);
+      } else {
+         MessageUtils.scheduleResponseToChannel(
+            "I can let people join via reaction, but I need a new permission.\n" +
+               "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Add Reactions`.",
+            channel
+         );
+      }
    }
 }

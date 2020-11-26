@@ -1,4 +1,4 @@
-import { Guild, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { QueueChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
@@ -28,7 +28,7 @@ export class QueueChannelTable extends Base {
     *
     * @param channelToAdd
     */
-   public static async storeQueueChannel(channelToAdd: VoiceChannel | TextChannel, maxMembers?: number): Promise<void> {
+   public static async storeQueueChannel(channelToAdd: VoiceChannel | TextChannel | NewsChannel, maxMembers?: number): Promise<void> {
       // Fetch old channels
       await this.knex<QueueChannel>("queue_channels")
          .insert({
@@ -69,21 +69,18 @@ export class QueueChannelTable extends Base {
     *
     * @param guild
     */
-   public static async fetchStoredQueueChannels(guild: Guild): Promise<Array<VoiceChannel | TextChannel>> {
+   public static async fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | TextChannel | NewsChannel)[]> {
       const queueChannelIdsToRemove: string[] = [];
       // Fetch stored channels
       const storedQueueChannels = await this.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
-      if (!storedQueueChannels) {
-         return null;
-      }
+      if (!storedQueueChannels) return null;
 
-      const queueChannels: Array<VoiceChannel | TextChannel> = [];
-
+      const queueChannels: (VoiceChannel | TextChannel | NewsChannel)[] = [];
       // Check for deleted channels
       // Going backwards allows the removal of entries while visiting each one
       for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
          const queueChannelId = storedQueueChannels[i].queue_channel_id;
-         const queueChannel = guild.channels.cache.get(queueChannelId) as VoiceChannel | TextChannel;
+         const queueChannel = guild.channels.cache.get(queueChannelId) as VoiceChannel | TextChannel | NewsChannel;
          if (queueChannel) {
             // Still exists, add to return list
             queueChannels.push(queueChannel);

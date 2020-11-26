@@ -3,14 +3,7 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 
 ## How to use  
 Note: If you only have 1 queue, you can skip the channel name argument.
-### Commands available to everyone
-| Function | Command | Description |
-|-|-|-|
-| Join | `!j {channel name} {OPTIONAL: custom message}` | Join or leave  a text channel queue. |
-| | `!j #waiting-room This is my custom message!` | |
-| Help | `!h {OPTIONAL: channel name}` | Display all commands. |
-### Commands available to moderators
-Moderator commands are available to the server owner and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
+Commands are available to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
 | Function | Command | Description |
 |-|-|-|
 | Create & Destroy Queues | `!q {channel name} {OPTIONAL: size}` | Create or destory a queue for a specified channel. |
@@ -18,7 +11,6 @@ Moderator commands are available to the server owner and users with any of the f
 | Display a Queue | `!d {channel name}` | Display the members in a queue. These messages stay updated. | 
 | Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull in the person at the front of the queue. | 
 | Pull from Text | `!n {channel name} {OPTIONAL: amount}` |  Removes people from the text queue and displays their name. |
-| Join | `!j {channel name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | Add one or more people to a queue. | 
 | Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kick one or more people from a queue. |
 | Clear | `!clear {channel name}` | Clear a queue. |
 | Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
@@ -56,9 +48,9 @@ Moderator commands are available to the server owner and users with any of the f
   
 | Optional Config Fields | Description                                                                                                                       |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| databaseUsername		 | Database login username (Default: `postgres`)	                                                                                 |
-| databaseName           | Database name (Default: `queue`)																									 |
-| databaseHost           | Database host url (Default: `localhost`)																							 |
+| databaseUsername		 | Database login username (Default: `postgres`)	                                                                                  |
+| databaseName           | Database name (Default: `queue`)																				                                        |
+| databaseHost           | Database host url (Default: `localhost`)																	                                        |
 | databaseType           | Type of database for queue storage. (Default: `postgresql`)                                                                       |
 | gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                |
 | permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
@@ -72,7 +64,6 @@ Moderator commands are available to the server owner and users with any of the f
 | displayCmd             | Command to display a queue in a text channel.                                                                                     |
 | gracePeriodCmd         | Command to change the grace period.                                                                                               |
 | helpCmd                | Command to display the help information.                                                                                          |
-| joinCmd                | Command to join a text channel queue.                                                                                             |
 | kickCmd                | Command to kick users from a queue.                                                                                               |
 | limitCmd               | Command to change queue size limit.                                                                                               |
 | modeCmd                | Command to change the display messaging mode.                                                                                     |

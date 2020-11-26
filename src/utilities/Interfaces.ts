@@ -47,13 +47,13 @@ export interface ConfigFile {
    gracePeriod: string;
    permissionsRegexp: string;
    prefix: string;
+   joinEmoji: string;
 
    clearCmd: string;
    colorCmd: string;
    displayCmd: string;
    gracePeriodCmd: string;
    helpCmd: string;
-   joinCmd: string;
    kickCmd: string;
    limitCmd: string;
    modeCmd: string;

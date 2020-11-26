@@ -13,7 +13,6 @@
    "license": "ISC",
    "type": "commonjs",
    "dependencies": {
-      "async-mutex": "^0.2.4",
       "bufferutil": "^4.0.2",
       "dblapi.js": "^2.4.1",
       "discord.js": "^12.5.0",
@@ -25,8 +24,8 @@
       "zlib-sync": "^0.1.7"
    },
    "devDependencies": {
-      "@types/node": "^14.14.9",
-      "@typescript-eslint/parser": "^4.8.1",
+      "@types/node": "^14.14.10",
+      "@typescript-eslint/parser": "^4.8.2",
       "eslint": "^6.8.0",
       "eslint-config-prettier": "^6.15.0",
       "eslint-plugin-import": "^2.22.1",

@@ -1,5 +1,5 @@
 import DBL from "dblapi.js";
-import { Guild, GuildMember, Message, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, GuildMember, Message, MessageReaction, NewsChannel, PartialUser, TextChannel, User, VoiceChannel } from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import { DisplayChannel, ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
@@ -8,8 +8,6 @@ import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
-import { MutexUtils } from "./utilities/MutexUtils";
-import { MutexInterface } from "async-mutex";
 import { MessageUtils } from "./utilities/MessageUtils";
 import util from "util";
 
@@ -170,10 +168,6 @@ client.on("message", async (message) => {
          case config.helpCmd:
             Commands.help(queueGuild, parsed, message);
             break;
-         // Join Text Queue
-         case config.joinCmd:
-            Commands.joinTextChannel(queueGuild, parsed, message, hasPermission);
-            break;
       }
    } else if (message.content === config.prefix + config.helpCmd) {
       // Default help command
@@ -190,7 +184,7 @@ async function resumeAfterOffline(): Promise<void> {
          // Clean queue channels
          const storedQueueChannels = await knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
          for (const storedQueueChannel of storedQueueChannels) {
-            const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | VoiceChannel;
+            const queueChannel = guild.channels.cache.get(storedQueueChannel.queue_channel_id) as TextChannel | NewsChannel | VoiceChannel;
             if (queueChannel) {
                if (queueChannel.type !== "voice") continue;
                let updateDisplay = false;
@@ -223,7 +217,7 @@ async function resumeAfterOffline(): Promise<void> {
                }
                if (updateDisplay) {
                   // Update displays
-                  await MessageUtils.scheduleDisplayUpdate(storedQueueGuild, queueChannel);
+                  MessageUtils.scheduleDisplayUpdate(storedQueueGuild, queueChannel);
                }
             } else {
                // Cleanup deleted queue channels
@@ -315,56 +309,80 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       if (storedOldQueueChannel && storedNewQueueChannel && member.user.bot) {
          return;
       }
-      let memberReleases: MutexInterface.Releaser[] = [];
-      try {
-         if (storedNewQueueChannel && !member.user.bot) {
-            memberReleases.push(await MutexUtils.getMemberLock(storedNewQueueChannel.queue_channel_id).acquire());
-            // Joined queue channel
-            // Check for existing, don't duplicate member entries
-            const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
-            returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
+      if (storedNewQueueChannel && !member.user.bot) {
+         // Joined queue channel
+         // Check for existing, don't duplicate member entries
+         const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
+         returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
 
-            const withinGracePeriod = recentMember ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000 : false;
+         const withinGracePeriod = recentMember ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000 : false;
 
-            if (withinGracePeriod) {
-               await knex<QueueMember>("queue_members").insert(recentMember.member);
-            } else {
-               await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
-            }
-            MessageUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
+         if (withinGracePeriod) {
+            await knex<QueueMember>("queue_members").insert(recentMember.member);
+         } else {
+            await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
          }
-         if (storedOldQueueChannel) {
-            memberReleases.push(await MutexUtils.getMemberLock(storedOldQueueChannel.queue_channel_id).acquire());
-            // Left queue channel
-            if (member.user.bot && newVoiceChannel) {
-               // Pop the nextQueueMember off the stored queue
-               const nextStoredQueueMember = await knex<QueueMember>("queue_members")
-                  .where("queue_channel_id", oldVoiceChannel.id)
-                  .orderBy("created_at")
-                  .first();
-               if (nextStoredQueueMember) {
-                  const nextQueueMember: GuildMember = await guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
-                  // Block recentMember caching when the bot is used to pull someone
-                  if (nextQueueMember) {
-                     blockNextCache.add(nextQueueMember.id);
-                     // Swap bot with nextQueueMember
-                     nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
-                     member.voice.setChannel(oldVoiceChannel).catch(() => null);
-                  }
-               }
-            } else {
-               if (blockNextCache.delete(member.id)) {
-                  // Getting pulled using bot, do not cache
-                  await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id]);
-               } else {
-                  // Otherwise, cache it
-                  await markLeavingMember(member, oldVoiceChannel);
+         MessageUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
+      }
+      if (storedOldQueueChannel && newVoiceChannel) {
+         // Left queue channel
+         if (member.user.bot) {
+            // Pop the nextQueueMember off the stored queue
+            const nextStoredQueueMember = await knex<QueueMember>("queue_members")
+               .where("queue_channel_id", oldVoiceChannel.id)
+               .orderBy("created_at")
+               .first();
+            if (nextStoredQueueMember) {
+               const nextQueueMember: GuildMember = await guild.members.fetch(nextStoredQueueMember.queue_member_id).catch(() => null);
+               // Block recentMember caching when the bot is used to pull someone
+               if (nextQueueMember) {
+                  blockNextCache.add(nextQueueMember.id);
+                  // Swap bot with nextQueueMember
+                  nextQueueMember.voice.setChannel(newVoiceChannel).catch(() => null);
+                  member.voice.setChannel(oldVoiceChannel).catch(() => null);
                }
             }
-            MessageUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
+         } else {
+            if (blockNextCache.delete(member.id)) {
+               // Getting pulled using bot, do not cache
+               await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id]);
+            } else {
+               // Otherwise, cache it
+               await markLeavingMember(member, oldVoiceChannel);
+            }
          }
-      } finally {
-         memberReleases.forEach((release) => release());
+         MessageUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
       }
    }
 });
+
+client.on("messageReactionAdd", async (reaction, user) => {
+   await reactionToggle(reaction, user);
+});
+
+client.on("messageReactionRemove", async (reaction, user) => {
+   await reactionToggle(reaction, user);
+});
+
+async function reactionToggle(reaction: MessageReaction, user: User | PartialUser): Promise<void> {
+   if (reaction.partial) await reaction.fetch().catch(() => null);
+   reaction = reaction.message.reactions.cache.find((r) => r.emoji.name === Base.getConfig().joinEmoji); // Handles a library bug
+   if (!reaction || !reaction.me || user.bot) return;
+   const storedDisplayChannel = await knex<DisplayChannel>("display_channels").where("embed_id", reaction.message.id).first();
+   if (!storedDisplayChannel) return;
+   const storedQueueMember = await knex<QueueMember>("queue_members")
+      .where("queue_channel_id", storedDisplayChannel.queue_channel_id)
+      .where("queue_member_id", user.id)
+      .first();
+   if (storedQueueMember) {
+      await QueueMemberTable.unstoreQueueMembers(storedDisplayChannel.queue_channel_id, [user.id]);
+   } else {
+      await QueueMemberTable.storeQueueMembers(storedDisplayChannel.queue_channel_id, [user.id]);
+   }
+   const queueGuild = await knex<QueueGuild>("queue_guilds").where("guild_id", reaction.message.guild.id).first();
+   const queueChannel = reaction.message.guild.channels.cache.get(storedDisplayChannel.queue_channel_id) as
+      | TextChannel
+      | NewsChannel
+      | VoiceChannel;
+   MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+}
