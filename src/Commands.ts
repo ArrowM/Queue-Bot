@@ -69,7 +69,8 @@ export class Commands extends Base {
             fields: [
                {
                   name: "Access",
-                  value: "Available to owners or users with `queue mod`, `mod` or `admin` in their server roles.",
+                  value:
+                     "Commands are available to the server owner, administrators, and users with any of the following roles: `queue mod`, `mod` or `admin`.",
                },
                {
                   name: "Modify & View Queues",
@@ -130,7 +131,7 @@ export class Commands extends Base {
             image: {
                url: "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif",
             },
-            title: "Restricted Commands",
+            title: "Commands",
          },
       };
 
