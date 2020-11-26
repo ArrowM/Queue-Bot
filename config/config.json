@@ -9,6 +9,7 @@
    "databaseUsername": "postgres",
    "databasePassword": " ",
    "gracePeriod": "0",
+   "joinCmd": "j",
    "permissionsRegexp": "\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b",
    "prefix": "!",
 
@@ -18,7 +19,6 @@
    "displayCmd": "d",
    "gracePeriodCmd": "grace",
    "helpCmd": "h",
-   "joinCmd": "j",
    "kickCmd": "k",
    "limitCmd": "limit",
    "modeCmd": "mode",
