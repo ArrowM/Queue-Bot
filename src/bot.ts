@@ -324,9 +324,9 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
          }
          MessageUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
       }
-      if (storedOldQueueChannel && newVoiceChannel) {
+      if (storedOldQueueChannel) {
          // Left queue channel
-         if (member.user.bot) {
+         if (member.user.bot && newVoiceChannel) {
             // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit
             let storedQueueMembers = await knex<QueueMember>("queue_members")
                .where("queue_channel_id", oldVoiceChannel.id)
