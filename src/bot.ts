@@ -9,7 +9,7 @@ import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import { MessageUtils } from "./utilities/MessageUtils";
-//import util from "util";
+import util from "util";
 
 // Setup client
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
@@ -25,11 +25,11 @@ const knex = Base.getKnex();
 client.login(config.token);
 client.on("error", console.error);
 client.on("shardError", console.error);
+client.on("uncaughtException", (err, origin) => {
+   console.error(`Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, { depth: null })}`);
+});
 //client.on("rateLimit", (rateLimitInfo) => {
 //   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
-//});
-//client.on("uncaughtException", (err, origin) => {
-//   console.error(`Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, { depth: null })}`);
 //});
 
 // Top GG integration

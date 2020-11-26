@@ -19,7 +19,7 @@ Commands are available to the server owner, administrators, and users with any o
 | Create & Destroy Queues | `!q {channel name} {OPTIONAL: size}` | Create or destory a queue for a specified channel. |
 | List Queues | `!q` | List the names of the existing queues. | 
 | Display a Queue | `!d {channel name}` | Display the members in a queue. These messages stay updated. | 
-| Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull in the person at the front of the queue. | 
+| Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
 | Pull from Text | `!n {channel name} {OPTIONAL: amount}` |  Removes people from the text queue and displays their name. |
 | Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kick one or more people from a queue. |
 | Clear | `!clear {channel name}` | Clear a queue. |

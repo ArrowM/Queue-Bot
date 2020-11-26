@@ -86,8 +86,9 @@ export class Commands extends Base {
                   name: "Pull Users from Voice Queue",
                   value:
                      `\`${storedPrefix}${this.config.startCmd} {channel name}\` adds the bot to a queue voice channel.` +
-                     ` The bot can be pulled into a non-queue channel to automatically swap with person at the front of the queue.` +
-                     ` Right-click the bot to disconnect it from the voice channel when done. See the example gif below.`,
+                     ` Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue.` +
+                     ` If the destination queue has a size limit, the bot will pull people until the limit is met.` +
+                     ` See the example gif below.`,
                },
                {
                   name: "Pull Users from Text Queue",
