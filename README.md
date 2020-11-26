@@ -1,7 +1,17 @@
 # Debate-Queue-Bot
 Created to manage voice channel waiting rooms. This bot allows you to display the order of people waiting and easily pull them to another channel.  
 
-## How to use  
+## How to use
+**Commands are available to *priviliged users* - meaning the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.**  
+1. **Create a queue.** *Priviliged users* can create queues with `!q {channel name}` where `{channel name}` is the name of one of the server's text or voice channels. For example `!q Waiting Room` turns the Waiting Room voice channel into a queue.  
+2. **Have users join the queue.** Any user can join text queues by clicking on the queue reaction and join voice queues by joining the matching voice channel.  
+3. **Pull users from a queue.** *Priviliged users* can be pulled from a text queue using `!n {channel name}`. Pulling users from voice queues requires 2 steps -
+	First, use `!s {channel name}` to make the bot join the voice channel.
+	Second, drag the bot to the desired location and it will swap with the next person in a queue.
+	For example I create a queue using `!q Waiting Room`, then use `!s Waiting Room`, then I drag the bot to an `Among Us` voice channel when the next spot opens up.  
+4. **Customization.** *Priviliged users* can customize things like the bot's command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot. Use `!h` to see a full list of commands and customization options.
+
+## Commands
 Note: If you only have 1 queue, you can skip the channel name argument.
 Commands are available to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
 | Function | Command | Description |
@@ -18,13 +28,13 @@ Commands are available to the server owner, administrators, and users with any o
 ||||
 |**Server Settings**|||
 | Change the Command Prefix | `!prefix {new prefix}` | Change the prefix for Queue Bot commands. |
-| Change the  Color | `!color {new color}` | Change the color of bot messages. |
+| Change the Color | `!color {new color}` | Change the color of bot messages. |
 | Change the Grace Period | `!grace {time in seconds}` | Change how long a person can leave a queue before losing their spot. |
 | Change the Display Mode | `!mode {new mode}` | Changes how the display messages are updated. Use `!mode` to see the different update modes.
 
 ![Example of `!s`](docs/example.gif)  
 
-## How to Install
+## How to setup your own Queue Bot hosting
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
 2. Clone/download this repository  
 3. Create a database for storing queues. Here's a the steps for Windows:  
