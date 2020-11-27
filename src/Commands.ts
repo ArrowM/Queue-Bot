@@ -335,13 +335,6 @@ export class Commands extends Base {
       nextQueueMembers = nextQueueMembers.slice(0, numToPop);
 
       if (nextQueueMembers.length > 0) {
-         // if (queueChannel.type === 'voice') {
-         //    //nextQueueMembers.map(queueMember => {
-         //    //    const member = queueChannel.members.find(member => member.id === queueMember.queue_member_id);
-         //    //    member.voice.setChannel(CHANNEL).catch(() => null);
-         //    //})
-         // }
-
          // Display and remove member from the the queue
          MessageUtils.scheduleResponseToMessage(
             `Pulled ` + nextQueueMembers.map((member) => `<@!${member.queue_member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`,
@@ -408,8 +401,8 @@ export class Commands extends Base {
          return;
       }
 
-      if (channel.permissionsFor(message.guild.me).has("CONNECT")) {
-         if (channel.type === "voice") {
+      if (channel.type === "voice") {
+         if (channel.permissionsFor(message.guild.me).has("CONNECT")) {
             try {
                channel.join().then((connection) => {
                   if (connection) {
@@ -425,10 +418,10 @@ export class Commands extends Base {
                // ignore
             }
          } else {
-            MessageUtils.scheduleResponseToMessage("I can only join voice channels.", message);
+            MessageUtils.scheduleResponseToMessage(`I don't have permission to join ${channel.name}!`, message);
          }
       } else {
-         MessageUtils.scheduleResponseToMessage("I need the permissions to join your voice channel!", message);
+         MessageUtils.scheduleResponseToMessage("I can only join voice channels.", message);
       }
    }
 

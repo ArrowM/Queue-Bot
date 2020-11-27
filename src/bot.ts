@@ -294,74 +294,99 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    const oldVoiceChannel = oldVoiceState?.channel;
    const newVoiceChannel = newVoiceState?.channel;
 
-   if (oldVoiceChannel !== newVoiceChannel) {
-      const member = newVoiceState.member;
-      const guild = newVoiceState.guild;
+   if (oldVoiceChannel === newVoiceChannel) {
+      // Ignore mutes and deafens
+      return;
+   }
+   const member = newVoiceState.member;
+   const guild = newVoiceState.guild;
 
-      const queueGuild = await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first();
-      const storedOldQueueChannel = oldVoiceChannel
-         ? await knex<QueueChannel>("queue_channels").where("queue_channel_id", oldVoiceChannel.id).first()
-         : undefined;
-      const storedNewQueueChannel = newVoiceChannel
-         ? await knex<QueueChannel>("queue_channels").where("queue_channel_id", newVoiceChannel.id).first()
-         : undefined;
+   const queueGuild = await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first();
+   const storedOldQueueChannel = oldVoiceChannel
+      ? await knex<QueueChannel>("queue_channels").where("queue_channel_id", oldVoiceChannel.id).first()
+      : undefined;
+   const storedNewQueueChannel = newVoiceChannel
+      ? await knex<QueueChannel>("queue_channels").where("queue_channel_id", newVoiceChannel.id).first()
+      : undefined;
 
-      if (storedOldQueueChannel && storedNewQueueChannel && member.user.bot) {
-         return;
+   if (member.user.bot && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
+      // Ignore when the bot moves between queues or when it starts and stops
+      return;
+   }
+   if (storedNewQueueChannel && !member.user.bot) {
+      // Joined queue channel
+      // Check for existing, don't duplicate member entries
+      const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
+      returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
+
+      const withinGracePeriod = recentMember ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000 : false;
+
+      if (withinGracePeriod) {
+         await knex<QueueMember>("queue_members").insert(recentMember.member);
+      } else {
+         await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
       }
-      if (storedNewQueueChannel && !member.user.bot) {
-         // Joined queue channel
-         // Check for existing, don't duplicate member entries
-         const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
-         returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
-
-         const withinGracePeriod = recentMember ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000 : false;
-
-         if (withinGracePeriod) {
-            await knex<QueueMember>("queue_members").insert(recentMember.member);
-         } else {
-            await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
-         }
-         MessageUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
-      }
-      if (storedOldQueueChannel) {
-         // Left queue channel
-         if (member.user.bot && newVoiceChannel) {
-            // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit
-            let storedQueueMembers = await knex<QueueMember>("queue_members")
-               .where("queue_channel_id", oldVoiceChannel.id)
-               .orderBy("created_at");
-            if (storedQueueMembers.length > 0) {
-               storedQueueMembers = storedQueueMembers.slice(0, newVoiceChannel.userLimit ? newVoiceChannel.userLimit : 1);
-               const queueMembers: GuildMember[] = [];
-               for (const storedQueueMember of storedQueueMembers) {
-                  const queueMember = (await guild.members.fetch(storedQueueMember.queue_member_id).catch(() => null)) as GuildMember;
-                  if (queueMember) queueMembers.push(queueMember);
-               }
-               if (queueMembers.length > 0) {
-                  // Block recentMember caching when the bot is used to pull someone
-                  for (let i = 0; i < queueMembers.length; i++) {
-                     setTimeout(() => {
-                        blockNextCache.add(queueMembers[i].id);
-                        queueMembers[i].voice.setChannel(newVoiceChannel).catch(() => null);
-                     }, Math.floor(i / 5) * 5050); // Rate limit
-                  }
+      MessageUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
+   }
+   if (storedOldQueueChannel) {
+      // Left queue channel
+      if (member.user.bot && newVoiceChannel) {
+         // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit
+         let storedQueueMembers = await knex<QueueMember>("queue_members")
+            .where("queue_channel_id", oldVoiceChannel.id)
+            .orderBy("created_at");
+         if (storedQueueMembers.length > 0) {
+            storedQueueMembers = storedQueueMembers.slice(0, newVoiceChannel.userLimit ? newVoiceChannel.userLimit : 1);
+            const queueMembers: GuildMember[] = [];
+            for (const storedQueueMember of storedQueueMembers) {
+               const queueMember = (await guild.members.fetch(storedQueueMember.queue_member_id).catch(() => null)) as GuildMember;
+               if (queueMember) queueMembers.push(queueMember);
+            }
+            if (queueMembers.length > 0) {
+               // Block recentMember caching when the bot is used to pull someone
+               for (let i = 0; i < queueMembers.length; i++) {
+                  const queueMember = queueMembers[i];
+                  setTimeout(async () => {
+                     blockNextCache.add(queueMember.id);
+                     setChannel(queueMember, newVoiceChannel, oldVoiceChannel);
+                  }, Math.floor(i / 5) * 5050); // Rate limit
                }
             }
-            member.voice.setChannel(oldVoiceChannel).catch(() => null);
-         } else {
-            if (blockNextCache.delete(member.id)) {
-               // Getting pulled using bot, do not cache
-               await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id]);
-            } else {
-               // Otherwise, cache it
-               await markLeavingMember(member, oldVoiceChannel);
-            }
          }
-         MessageUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
+         setChannel(member, oldVoiceChannel, oldVoiceChannel);
+      } else {
+         if (blockNextCache.delete(member.id)) {
+            // Getting pulled using bot, do not cache
+            await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id]);
+         } else {
+            // Otherwise, cache it
+            await markLeavingMember(member, oldVoiceChannel);
+         }
       }
+      MessageUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
    }
 });
+
+async function setChannel(queueMember: GuildMember, newVoiceChannel: VoiceChannel, queueVoiceChannel: VoiceChannel) {
+   try {
+      if (newVoiceChannel.permissionsFor(queueMember).has("CONNECT")) {
+         // Move member
+         queueMember.voice.setChannel(newVoiceChannel);
+      } else {
+         // Can't move member out of the queue.
+         const storedDisplayChannel = await knex<DisplayChannel>("display_channels")
+            .where("queue_channel_id", queueVoiceChannel.id)
+            .first();
+         const displayChannel = queueMember.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel;
+         MessageUtils.scheduleResponseToChannel(
+            `<@!${queueMember.id}> does not have permission to join \`${newVoiceChannel.name}\``,
+            displayChannel
+         );
+      }
+   } catch (e) {
+      // Empty
+   }
+}
 
 client.on("messageReactionAdd", async (reaction, user) => {
    await reactionToggle(reaction, user);
