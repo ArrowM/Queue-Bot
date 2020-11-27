@@ -58,13 +58,14 @@ Commands are available to the server owner, administrators, and users with any o
   
 | Optional Config Fields | Description                                                                                                                       |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| color                  | The color of bot messages.                                                                                                        |
 | databaseUsername		 | Database login username (Default: `postgres`)	                                                                                  |
 | databaseName           | Database name (Default: `queue`)																				                                        |
 | databaseHost           | Database host url (Default: `localhost`)																	                                        |
 | databaseType           | Type of database for queue storage. (Default: `postgresql`)                                                                       |
 | gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                |
 | permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
-| color                  | The color of bot messages.                                                                                                        |
+| topGgToken             | Token for updating top.gg server count. This should be left blank.                                                                |
    
 | Config Command Fields  | Description                                                                                                                       |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
