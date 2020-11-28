@@ -15,14 +15,15 @@
 
    "clearCmd": "clear",
    "colorCmd": "color",
-   "prefixCmd": "prefix",
    "displayCmd": "d",
    "gracePeriodCmd": "grace",
    "helpCmd": "h",
+   "joinCmd": "j",
    "kickCmd": "k",
    "limitCmd": "limit",
    "modeCmd": "mode",
    "nextCmd": "n",
+   "prefixCmd": "prefix",
    "queueCmd": "q",
    "shuffleCmd": "shuffle",
    "startCmd": "s"
