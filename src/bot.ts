@@ -335,27 +335,40 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    if (storedOldQueueChannel) {
       // Left queue channel
       if (member.user.bot && newVoiceChannel) {
-         // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit
-         let storedQueueMembers = await knex<QueueMember>("queue_members")
-            .where("queue_channel_id", oldVoiceChannel.id)
-            .orderBy("created_at");
-         if (storedQueueMembers.length > 0) {
-            storedQueueMembers = storedQueueMembers.slice(0, newVoiceChannel.userLimit ? newVoiceChannel.userLimit : 1);
-            const queueMembers: GuildMember[] = [];
-            for (const storedQueueMember of storedQueueMembers) {
-               const queueMember = (await guild.members.fetch(storedQueueMember.queue_member_id).catch(() => null)) as GuildMember;
-               if (queueMember) queueMembers.push(queueMember);
-            }
-            if (queueMembers.length > 0) {
-               // Block recentMember caching when the bot is used to pull someone
-               for (let i = 0; i < queueMembers.length; i++) {
-                  const queueMember = queueMembers[i];
-                  setTimeout(async () => {
-                     blockNextCache.add(queueMember.id);
-                     setChannel(queueMember, newVoiceChannel, oldVoiceChannel);
-                  }, Math.floor(i / 5) * 5050); // Rate limit
+         // Check to see if I have perms to drag other users into this channel.
+         if (newVoiceChannel.permissionsFor(member.guild.me).has("CONNECT")) {
+            // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit.
+            let storedQueueMembers = await knex<QueueMember>("queue_members")
+               .where("queue_channel_id", oldVoiceChannel.id)
+               .orderBy("created_at");
+            if (storedQueueMembers.length > 0) {
+               storedQueueMembers = storedQueueMembers.slice(0, newVoiceChannel.userLimit ? newVoiceChannel.userLimit : 1);
+               const queueMembers: GuildMember[] = [];
+               for (const storedQueueMember of storedQueueMembers) {
+                  const queueMember = (await guild.members.fetch(storedQueueMember.queue_member_id).catch(() => null)) as GuildMember;
+                  if (queueMember) queueMembers.push(queueMember);
+               }
+               if (queueMembers.length > 0) {
+                  // Block recentMember caching when the bot is used to pull someone
+                  for (let i = 0; i < queueMembers.length; i++) {
+                     const queueMember = queueMembers[i];
+                     setTimeout(async () => {
+                        blockNextCache.add(queueMember.id);
+                        setChannel(queueMember, newVoiceChannel, oldVoiceChannel);
+                     }, Math.floor(i / 5) * 5050); // Rate limit
+                  }
                }
             }
+         } else {
+            // Request perms in display channel chat
+            const storedDisplayChannel = await knex<DisplayChannel>("display_channels")
+               .where("queue_channel_id", oldVoiceChannel.id)
+               .first();
+            const displayChannel = member.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
+            MessageUtils.scheduleResponseToChannel(
+               `I need the \`CONNECT\` permission in the \`${newVoiceChannel.name}\` voice channel to pull in queue members.`,
+               displayChannel
+            );
          }
          setChannel(member, oldVoiceChannel, oldVoiceChannel);
       } else {
@@ -373,23 +386,16 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
 
 async function setChannel(queueMember: GuildMember, newVoiceChannel: VoiceChannel, queueVoiceChannel: VoiceChannel) {
    try {
-      if (newVoiceChannel.permissionsFor(queueMember).has("CONNECT")) {
-         // Move member
-         queueMember.voice.setChannel(newVoiceChannel);
-      } else {
-         // Can't move member out of the queue.
-         const storedDisplayChannel = await knex<DisplayChannel>("display_channels")
-            .where("queue_channel_id", queueVoiceChannel.id)
-            .first();
-         const displayChannel = queueMember.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
-         MessageUtils.sendTempMessage(
-            `<@!${queueMember.id}> does not have permission to join \`${newVoiceChannel.name}\``,
-            displayChannel,
-            20
-         );
-      }
+      await queueMember.voice.setChannel(newVoiceChannel);
    } catch (e) {
-      // Empty
+      // Can't move member
+      const storedDisplayChannel = await knex<DisplayChannel>("display_channels").where("queue_channel_id", queueVoiceChannel.id).first();
+      const displayChannel = queueMember.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
+      MessageUtils.sendTempMessage(
+         `<@!${queueMember.id}> does not have permission to join \`${newVoiceChannel.name}\``,
+         displayChannel,
+         20
+      );
    }
 }
 
