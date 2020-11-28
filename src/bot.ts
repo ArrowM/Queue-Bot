@@ -122,7 +122,7 @@ client.on("message", async (message) => {
             // Color
             case config.colorCmd:
                Commands.setServerSetting(queueGuild, parsed, message, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), "Use HEX color:", {
-                  color: +queueGuild.color,
+                  color: queueGuild.color,
                   title: "Hex color picker",
                   url: "https://htmlcolorcodes.com/color-picker/",
                });

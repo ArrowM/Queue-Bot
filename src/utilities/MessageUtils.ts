@@ -252,7 +252,7 @@ export class MessageUtils extends Base {
    }
 
    /**
-    * 
+    *
     * @param response
     * @param channel
     * @param duration

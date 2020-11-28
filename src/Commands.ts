@@ -1,4 +1,4 @@
-import { Message, MessageEmbed, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Message, MessageEmbedOptions, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { MessageUtils } from "./utilities/MessageUtils";
@@ -246,7 +246,7 @@ export class Commands extends Base {
       message: Message,
       passesValueRestrictions: boolean,
       extraErrorLine?: string,
-      embed?: Partial<MessageEmbed>
+      embed?: Partial<MessageEmbedOptions>
    ): Promise<void> {
       // Setup common variables
       const setting = this.serverSettingVariables[parsed.command];
