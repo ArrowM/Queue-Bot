@@ -1,4 +1,4 @@
-import { Client } from "discord.js";
+import { Client, GuildMember } from "discord.js";
 import { readFileSync } from "fs";
 import Knex from "knex";
 import { ConfigFile } from "./Interfaces";
@@ -14,6 +14,10 @@ export class Base {
 
    public static getClient(): Client {
       return this.client;
+   }
+
+   public static isMe(member: GuildMember): boolean {
+      return member.id === member.guild.me.id;
    }
 
    protected static config: ConfigFile = JSON.parse(readFileSync("../config/config.json", "utf8"));

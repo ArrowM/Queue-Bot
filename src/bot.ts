@@ -197,7 +197,7 @@ async function resumeAfterOffline(): Promise<void> {
                const storedQueueMemberIds = await knex<QueueMember>("queue_members")
                   .where("queue_channel_id", queueChannel.id)
                   .pluck("queue_member_id");
-               const queueMemberIds = queueChannel.members.filter((member) => !member.user.bot).keyArray();
+               const queueMemberIds = queueChannel.members.filter((member) => !Base.isMe(member)).keyArray();
 
                // Update member lists
                for (const storedQueueMemberId of storedQueueMemberIds) {
@@ -313,11 +313,11 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       ? await knex<QueueChannel>("queue_channels").where("queue_channel_id", newVoiceChannel.id).first()
       : undefined;
 
-   if (member.user.bot && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
+   if (Base.isMe(member) && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
       // Ignore when the bot moves between queues or when it starts and stops
       return;
    }
-   if (storedNewQueueChannel && !member.user.bot) {
+   if (storedNewQueueChannel && !Base.isMe(member)) {
       // Joined queue channel
       // Check for existing, don't duplicate member entries
       const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
@@ -334,7 +334,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    }
    if (storedOldQueueChannel) {
       // Left queue channel
-      if (member.user.bot && newVoiceChannel) {
+      if (Base.isMe(member) && newVoiceChannel) {
          // Check to see if I have perms to drag other users into this channel.
          if (newVoiceChannel.permissionsFor(member.guild.me).has("CONNECT")) {
             // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit.
@@ -366,7 +366,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
                .first();
             const displayChannel = member.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
             MessageUtils.sendTempMessage(
-               `I need the \`CONNECT\` permission in the \`${newVoiceChannel.name}\` voice channel to pull in queue members.`,
+               `I need the **CONNECT** permission in the \`${newVoiceChannel.name}\` voice channel to pull in queue members.`,
                displayChannel,
                20
             );

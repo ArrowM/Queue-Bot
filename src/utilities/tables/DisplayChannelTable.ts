@@ -3,23 +3,25 @@ import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { MessageUtils } from "../MessageUtils";
 
-export class DisplayChannelTable extends Base {
+export class DisplayChannelTable {
    /**
     * Create & update DisplayChannel database table if necessary
     */
    public static initTable(): void {
-      this.knex.schema.hasTable("display_channels").then(async (exists) => {
-         if (!exists) {
-            await this.knex.schema
-               .createTable("display_channels", (table) => {
-                  table.increments("id").primary();
-                  table.text("queue_channel_id");
-                  table.text("display_channel_id");
-                  table.text("embed_id");
-               })
-               .catch((e) => console.error(e));
-         }
-      });
+      Base.getKnex()
+         .schema.hasTable("display_channels")
+         .then(async (exists) => {
+            if (!exists) {
+               await Base.getKnex()
+                  .schema.createTable("display_channels", (table) => {
+                     table.increments("id").primary();
+                     table.text("queue_channel_id");
+                     table.text("display_channel_id");
+                     table.text("embed_id");
+                  })
+                  .catch((e) => console.error(e));
+            }
+         });
 
       this.updateTableStructure();
    }
@@ -40,9 +42,9 @@ export class DisplayChannelTable extends Base {
          const response = (await displayChannel.send(displayEmbed).catch()) as Message;
          if (response) {
             if (queueChannel.type === "text") {
-               MessageUtils.sendReaction(response, this.config.joinEmoji);
+               MessageUtils.sendReaction(response, Base.getConfig().joinEmoji);
             }
-            await this.knex<DisplayChannel>("display_channels").insert({
+            await Base.getKnex()<DisplayChannel>("display_channels").insert({
                display_channel_id: displayChannel.id,
                embed_id: response.id,
                queue_channel_id: queueChannel.id,
@@ -67,23 +69,25 @@ export class DisplayChannelTable extends Base {
 
       // Retreive list of stored embeds for display channel
       if (displayChannelIdToRemove) {
-         storedDisplayChannels = await this.knex<DisplayChannel>("display_channels")
+         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels")
             .where("queue_channel_id", queueChannelId)
             .where("display_channel_id", displayChannelIdToRemove);
-         await this.knex<DisplayChannel>("display_channels")
+         await Base.getKnex()<DisplayChannel>("display_channels")
             .where("queue_channel_id", queueChannelId)
             .where("display_channel_id", displayChannelIdToRemove)
             .del();
       } else {
-         storedDisplayChannels = await this.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
-         await this.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).del();
+         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
+         await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).del();
       }
       if (!storedDisplayChannels) return;
 
       // If found, delete them from discord
       for (const storedDisplayChannel of storedDisplayChannels) {
          try {
-            const displayChannel = (await this.client.channels.fetch(storedDisplayChannel.display_channel_id)) as TextChannel | NewsChannel;
+            const displayChannel = (await Base.getClient().channels.fetch(storedDisplayChannel.display_channel_id)) as
+               | TextChannel
+               | NewsChannel;
             const displayMessage = await displayChannel.messages.fetch(storedDisplayChannel.embed_id, false);
             if (deleteOldDisplayMsg) {
                await displayMessage.delete().catch(() => null);
@@ -114,16 +118,16 @@ export class DisplayChannelTable extends Base {
     * Migration of embed_ids column to emdbed_id
     */
    private static async addEmbedId(): Promise<void> {
-      if (await this.knex.schema.hasColumn("display_channels", "embed_ids")) {
+      if (await Base.getKnex().schema.hasColumn("display_channels", "embed_ids")) {
          console.log("Migrating display embed ids");
-         await this.knex.schema.table("display_channels", (table) => table.text("embed_id"));
-         (await this.knex<DisplayChannel>("display_channels")).forEach(async (displayChannel) => {
-            await this.knex<DisplayChannel>("display_channels")
+         await Base.getKnex().schema.table("display_channels", (table) => table.text("embed_id"));
+         (await Base.getKnex()<DisplayChannel>("display_channels")).forEach(async (displayChannel) => {
+            await Base.getKnex()<DisplayChannel>("display_channels")
                .where("queue_channel_id", displayChannel.queue_channel_id)
                .where("display_channel_id", displayChannel.display_channel_id)
                .update("embed_id", displayChannel["embed_ids"][0]);
          });
-         await this.knex.schema.table("display_channels", (table) => table.dropColumn("embed_ids"));
+         await Base.getKnex().schema.table("display_channels", (table) => table.dropColumn("embed_ids"));
       }
    }
 }

@@ -4,7 +4,7 @@ import { ParsedArguments, QueueGuild } from "./Interfaces";
 import { MessageUtils } from "./MessageUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 
-export class ParsingUtils extends Base {
+export class ParsingUtils {
    /**
     * Fetch tailing number from a string.
     * Ex:  '!n #general 2' returns 2.
@@ -84,7 +84,7 @@ export class ParsingUtils extends Base {
 
          response =
             "No " + (type ? `**${type}** ` : "") + `queue ${target}s set.\n` +
-            "Set a " + (type ? `${type} ` : "") + `queue first using \`${queueGuild.prefix}${this.config.queueCmd} {${target} name}\`.`;
+            "Set a " + (type ? `${type} ` : "") + `queue first using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {${target} name}\`.`;
       } else {
          response = "Invalid " + (type ? `**${type}** ` : "") + `${target} name. Try \`${queueGuild.prefix}${parsed.command} `;
          if (channels.length === 1) {
@@ -137,7 +137,7 @@ export class ParsingUtils extends Base {
          }
       } else {
          MessageUtils.scheduleResponseToMessage(
-            `No queue channels set.` + `\nSet a queue first using \`${queueGuild.prefix}${this.config.queueCmd} {channel name}\`.`,
+            `No queue channels set.` + `\nSet a queue first using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {channel name}\`.`,
             message
          );
       }

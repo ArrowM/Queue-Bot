@@ -9,7 +9,7 @@ interface QueueUpdateRequest {
    silentUpdate: boolean;
 }
 
-export class MessageUtils extends Base {
+export class MessageUtils {
    private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
    private static pendingResponses: Map<TextChannel | NewsChannel, MessageOptions> = new Map();
    private static gracePeriodCache = new Map();
@@ -65,7 +65,7 @@ export class MessageUtils extends Base {
       const queueGuild = updateRequest.queueGuild;
       const queueChannel = updateRequest.queueChannel;
 
-      const storedDisplayChannels = await this.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
+      const storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
       if (!storedDisplayChannels || storedDisplayChannels.length === 0) {
          return;
       }
@@ -76,8 +76,8 @@ export class MessageUtils extends Base {
       for (const storedDisplayChannel of storedDisplayChannels) {
          // For each embed list of the queue
          try {
-            const displayChannel: TextChannel | NewsChannel = await this.client.channels
-               .fetch(storedDisplayChannel.display_channel_id)
+            const displayChannel: TextChannel | NewsChannel = await Base.getClient()
+               .channels.fetch(storedDisplayChannel.display_channel_id)
                .catch(() => null);
 
             if (displayChannel) {
@@ -184,9 +184,9 @@ export class MessageUtils extends Base {
       queueGuild: QueueGuild,
       queueChannel: TextChannel | NewsChannel | VoiceChannel
    ): Promise<MessageOptions> {
-      const storedQueueChannel = await this.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
       const queueMembers = (
-         await this.knex<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy("created_at")
+         await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy("created_at")
       ).slice(0, +storedQueueChannel.max_members || 625);
 
       const _embed = new MessageEmbed();
@@ -200,7 +200,9 @@ export class MessageUtils extends Base {
               `Join the **${queueChannel.name}** voice channel to join this queue.` +
                  (await this.getGracePeriodString(queueGuild.grace_period))
             : // Text
-              `React with ${this.config.joinEmoji} or type \`${queueGuild.prefix}${this.config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`
+              `React with ${Base.getConfig().joinEmoji} or type \`${queueGuild.prefix}${Base.getConfig().joinCmd} ${
+                 queueChannel.name
+              }\` to join or leave this queue.`
       );
 
       if (!queueMembers || queueMembers.length === 0) {

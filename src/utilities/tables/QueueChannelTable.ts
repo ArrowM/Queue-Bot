@@ -4,22 +4,24 @@ import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
 
-export class QueueChannelTable extends Base {
+export class QueueChannelTable {
    /**
     * Create & update QueueChannel database table if necessary
     */
    public static initTable(): void {
-      this.knex.schema.hasTable("queue_channels").then(async (exists) => {
-         if (!exists) {
-            await this.knex.schema
-               .createTable("queue_channels", (table) => {
-                  table.text("queue_channel_id").primary();
-                  table.text("guild_id");
-                  table.text("max_members");
-               })
-               .catch((e) => console.error(e));
-         }
-      });
+      Base.getKnex()
+         .schema.hasTable("queue_channels")
+         .then(async (exists) => {
+            if (!exists) {
+               await Base.getKnex()
+                  .schema.createTable("queue_channels", (table) => {
+                     table.text("queue_channel_id").primary();
+                     table.text("guild_id");
+                     table.text("max_members");
+                  })
+                  .catch((e) => console.error(e));
+            }
+         });
 
       this.updateTableStructure();
    }
@@ -30,7 +32,7 @@ export class QueueChannelTable extends Base {
     */
    public static async storeQueueChannel(channelToAdd: VoiceChannel | TextChannel | NewsChannel, maxMembers?: number): Promise<void> {
       // Fetch old channels
-      await this.knex<QueueChannel>("queue_channels")
+      await Base.getKnex()<QueueChannel>("queue_channels")
          .insert({
             guild_id: channelToAdd.guild.id,
             max_members: maxMembers?.toString(),
@@ -52,16 +54,16 @@ export class QueueChannelTable extends Base {
     */
    public static async unstoreQueueChannel(guildId: string, channelIdToRemove?: string): Promise<void> {
       if (channelIdToRemove) {
-         await this.knex<QueueChannel>("queue_channels").where("queue_channel_id", channelIdToRemove).first().del();
+         await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", channelIdToRemove).first().del();
          await QueueMemberTable.unstoreQueueMembers(channelIdToRemove);
          await DisplayChannelTable.unstoreDisplayChannel(channelIdToRemove);
       } else {
-         const storedQueueChannels = await this.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
+         const storedQueueChannels = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
          for (const storedQueueChannel of storedQueueChannels) {
             await QueueMemberTable.unstoreQueueMembers(storedQueueChannel.queue_channel_id);
             await DisplayChannelTable.unstoreDisplayChannel(storedQueueChannel.queue_channel_id);
          }
-         await this.knex<QueueChannel>("queue_channels").where("guild_id", guildId).del();
+         await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId).del();
       }
    }
 
@@ -72,7 +74,7 @@ export class QueueChannelTable extends Base {
    public static async fetchStoredQueueChannels(guild: Guild): Promise<(VoiceChannel | TextChannel | NewsChannel)[]> {
       const queueChannelIdsToRemove: string[] = [];
       // Fetch stored channels
-      const storedQueueChannels = await this.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
+      const storedQueueChannels = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
       if (!storedQueueChannels) return null;
 
       const queueChannels: (VoiceChannel | TextChannel | NewsChannel)[] = [];
@@ -106,8 +108,8 @@ export class QueueChannelTable extends Base {
     * Add max_members column
     */
    private static async addMaxMembers(): Promise<void> {
-      if (!(await this.knex.schema.hasColumn("queue_channels", "max_members"))) {
-         await this.knex.schema.table("queue_channels", (table) => table.text("max_members"));
+      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "max_members"))) {
+         await Base.getKnex().schema.table("queue_channels", (table) => table.text("max_members"));
       }
    }
 }
