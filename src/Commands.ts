@@ -58,92 +58,132 @@ export class Commands extends Base {
       const storedPrefix = queueGuild.prefix;
       const storedColor = queueGuild.color;
 
-      const response: MessageOptions = {
-         embed: {
-            author: {
-               iconURL: "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/icon.png",
-               name: "Queue Bot",
-               url: "https://top.gg/bot/679018301543677959",
+      const responses: MessageOptions[] = [
+         {
+            embed: {
+               author: {
+                  iconURL: "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/icon.png",
+                  name: "Queue Bot",
+                  url: "https://top.gg/bot/679018301543677959",
+               },
+               color: storedColor,
+               description:
+                  "*Privileged* users are the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.",
+               fields: [
+                  {
+                     name: "1. Create a queue",
+                     value: `*Privileged users* can create queues with \`${storedPrefix}${this.config.queueCmd} {channel name}\` where \`{channel name}\` is the name of one of the server's text or voice channels. For example \`${storedPrefix}${this.config.queueCmd} Waiting Room\` turns the Waiting Room voice channel into a queue.`,
+                  },
+                  {
+                     name: "2. Have users join the queue",
+                     value: `Any user can join text queues by clicking on the queue reaction or by using \`${storedPrefix}${this.config.joinCmd} {channel name}\`. Any user can join voice queues by joining the matching voice channel.`,
+                  },
+                  {
+                     name: "3. Pull users from a queue.",
+                     value: `*Privileged users* can be pulled from a text queue using\`${storedPrefix}${this.config.nextCmd} {channel name}\`. Pulling users from voice queues requires 2 steps -
+                           First, use\`${storedPrefix}${this.config.startCmd} {channel name}\` to make the bot join the voice channel.
+                           Second, drag the bot to the desired location and it will swap with the next person in a queue.
+                           For example I create a queue using\`${storedPrefix}${this.config.queueCmd} Waiting Room\`, then use\`${storedPrefix}${this.config.startCmd} Waiting Room\`, then I drag the bot to an\`Among Us\` voice channel when the next spot opens up.`,
+                  },
+                  {
+                     name: "4. Customization",
+                     value: ` *Privileged users* can customize things like the bot's command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot. Use \`${storedPrefix}${this.config.helpCmd}\` to see a full list of commands and customization options.`,
+                  },
+               ],
+               title: "How to use",
             },
-            color: storedColor,
-            fields: [
-               {
-                  name: "Access",
-                  value:
-                     "Commands are available to the server owner, administrators, and users with any of the following roles: `queue mod`, `mod` or `admin`.",
-               },
-               {
-                  name: "Modify & View Queues",
-                  value:
-                     `\`${storedPrefix}${this.config.queueCmd} {channel name} {OPTIONAL: size}\` creates a new queue or deletes an existing queue.` +
-                     `\n\`${storedPrefix}${this.config.queueCmd}\` shows the existing queues.`,
-               },
-               {
-                  name: "Display Queue Members",
-                  value: `\`${storedPrefix}${this.config.displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`,
-               },
-               {
-                  name: "Pull Users from Voice Queue",
-                  value:
-                     `\`${storedPrefix}${this.config.startCmd} {channel name}\` adds the bot to a queue voice channel.` +
-                     ` Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue.` +
-                     ` If the destination queue has a size limit, the bot will pull people until the limit is met.` +
-                     ` See the example gif below.`,
-               },
-               {
-                  name: "Pull Users from Text Queue",
-                  value: `\`${storedPrefix}${this.config.nextCmd} {channel name} {OPTIONAL: amount}\` removes people from the text queue and displays their name.`,
-               },
-               {
-                  name: "Kick Users from Queue",
-                  value: `\`${storedPrefix}${this.config.kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`,
-               },
-               {
-                  name: "Clear Queue",
-                  value: `\`${storedPrefix}${this.config.clearCmd} {channel name}\` clears a queue.`,
-               },
-               {
-                  name: "Shuffle Queue",
-                  value: `\`${storedPrefix}${this.config.shuffleCmd} {channel name}\` shuffles a queue.`,
-               },
-               {
-                  name: "Change Queue Size Limit",
-                  value: `\`${storedPrefix}${this.config.limitCmd} {channel name} {size limit} \` changes queue size limit.`,
-               },
-               {
-                  name: "Change the Grace Period",
-                  value: `\`${storedPrefix}${this.config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`,
-               },
-               {
-                  name: "Change the Command Prefix",
-                  value: `\`${storedPrefix}${this.config.prefixCmd} {new prefix}\` changes the prefix for commands.`,
-               },
-               {
-                  name: "Change the Color",
-                  value: `\`${storedPrefix}${this.config.colorCmd} {new color}\` changes the color of bot messages.`,
-               },
-               {
-                  name: "Change the Display Mode",
-                  value:
-                     `\`${storedPrefix}${this.config.modeCmd} {new mode}\` changes how the display messages are updated.` +
-                     `\n\`${storedPrefix}${this.config.modeCmd}\` displays the different update modes.`,
-               },
-            ],
-            image: {
-               url: "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif",
-            },
-            title: "Commands",
          },
-      };
+         {
+            embed: {
+               color: storedColor,
+               fields: [
+                  {
+                     name: "Join a Text Channel Queue",
+                     value: `\`${storedPrefix}${this.config.joinCmd} {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`,
+                  },
+               ],
+               title: "Commands Available to Everyone",
+            },
+         },
+         {
+            embed: {
+               color: storedColor,
+               description:
+                  "Commands are available to the server owner, administrators, and users with any of the following roles: `queue mod`, `mod` or `admin`.",
+               fields: [
+                  {
+                     name: "Modify & View Queues",
+                     value:
+                        `\`${storedPrefix}${this.config.queueCmd} {channel name} {OPTIONAL: size}\` creates a new queue or deletes an existing queue.` +
+                        `\n\`${storedPrefix}${this.config.queueCmd}\` shows the existing queues.`,
+                  },
+                  {
+                     name: "Display Queue Members",
+                     value: `\`${storedPrefix}${this.config.displayCmd} {channel name}\` displays the members in a queue. These messages stay updated.`,
+                  },
+                  {
+                     name: "Pull Users from Voice Queue",
+                     value:
+                        `\`${storedPrefix}${this.config.startCmd} {channel name}\` adds the bot to a queue voice channel.` +
+                        ` Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue.` +
+                        ` If the destination queue has a size limit, the bot will pull people until the limit is met.` +
+                        ` See the example gif below.`,
+                  },
+                  {
+                     name: "Pull Users from Text Queue",
+                     value: `\`${storedPrefix}${this.config.nextCmd} {channel name} {OPTIONAL: amount}\` removes people from the text queue and displays their name.`,
+                  },
+                  {
+                     name: "Kick Users from Queue",
+                     value: `\`${storedPrefix}${this.config.kickCmd} {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`,
+                  },
+                  {
+                     name: "Clear Queue",
+                     value: `\`${storedPrefix}${this.config.clearCmd} {channel name}\` clears a queue.`,
+                  },
+                  {
+                     name: "Shuffle Queue",
+                     value: `\`${storedPrefix}${this.config.shuffleCmd} {channel name}\` shuffles a queue.`,
+                  },
+                  {
+                     name: "Change Queue Size Limit",
+                     value: `\`${storedPrefix}${this.config.limitCmd} {channel name} {size limit} \` changes queue size limit.`,
+                  },
+                  {
+                     name: "Change the Grace Period",
+                     value: `\`${storedPrefix}${this.config.gracePeriodCmd} {time in seconds}\` changes how long a person can leave a queue before being removed.`,
+                  },
+                  {
+                     name: "Change the Command Prefix",
+                     value: `\`${storedPrefix}${this.config.prefixCmd} {new prefix}\` changes the prefix for commands.`,
+                  },
+                  {
+                     name: "Change the Color",
+                     value: `\`${storedPrefix}${this.config.colorCmd} {new color}\` changes the color of bot messages.`,
+                  },
+                  {
+                     name: "Change the Display Mode",
+                     value:
+                        `\`${storedPrefix}${this.config.modeCmd} {new mode}\` changes how the display messages are updated.` +
+                        `\n\`${storedPrefix}${this.config.modeCmd}\` displays the different update modes.`,
+                  },
+               ],
+               image: {
+                  url: "https://raw.githubusercontent.com/ArrowM/Queue-Bot/master/docs/example.gif",
+               },
+               title: "Privileged Commands",
+            },
+         },
+      ];
 
       const channels = message.guild.channels.cache.filter((channel) => channel.type === "text").array() as (TextChannel | NewsChannel)[];
       const displayChannel = ParsingUtils.extractChannel(channels, parsed, message) as TextChannel | NewsChannel;
 
       if (parsed.arguments && displayChannel) {
-         MessageUtils.scheduleResponseToChannel(response, displayChannel);
+         responses.forEach((response) => MessageUtils.scheduleResponseToChannel(response, displayChannel));
       } else {
          // No channel provided. Send help to user.
-         message.author.send(response).catch(() => null);
+         responses.forEach((response) => message.author.send(response).catch((e) => console.log(e)));
          MessageUtils.scheduleResponseToMessage("I have sent help to your PMs.", message);
       }
    }
@@ -310,6 +350,77 @@ export class Commands extends Base {
             );
          }
       }
+   }
+
+   /**
+    * Add a member into a text queue
+    * @param queueGuild
+    * @param parsed Parsed message - prefix, command, argument.
+    * @param message Discord message object.
+    * @param authorHasPermissionToQueueOthers whether the message author can queue others using mentions.
+    */
+   public static async joinTextChannel(
+      queueGuild: QueueGuild,
+      parsed: ParsedArguments,
+      message: Message,
+      authorHasPermissionToQueueOthers: boolean
+   ): Promise<void> {
+      // Get queue channel
+      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, "text");
+      if (!queueChannel) {
+         return;
+      }
+
+      const storedQueueChannel = await this.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+
+      const storedQueueMembers = await this.knex<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
+
+      // Parse members
+      let memberIdsToToggle = [message.member.id];
+      if (authorHasPermissionToQueueOthers && message.mentions.members.size > 0) {
+         memberIdsToToggle = message.mentions.members.array().map((member) => member.id);
+      }
+
+      const memberIdsToAdd: string[] = [];
+      const memberIdsToRemove: string[] = [];
+      for (const memberId of memberIdsToToggle) {
+         if (storedQueueMembers.some((storedMember) => storedMember.queue_member_id === memberId)) {
+            // Already in queue, set to remove
+            memberIdsToRemove.push(memberId);
+         } else {
+            // Not in queue, set to add
+            if (storedQueueChannel?.max_members && storedQueueMembers.length >= +storedQueueChannel.max_members) {
+               const channel = message.channel as TextChannel | NewsChannel;
+               MessageUtils.sendTempMessage(
+                  `Failed to join. ` +
+                     `\`${queueChannel.name}\` queue is full (${+storedQueueChannel.max_members}/${+storedQueueChannel.max_members}).`,
+                  channel,
+                  10
+               );
+            } else {
+               memberIdsToAdd.push(memberId);
+            }
+         }
+      }
+      let response = "";
+      if (memberIdsToRemove.length > 0) {
+         // Remove from queue
+         await QueueMemberTable.unstoreQueueMembers(queueChannel.id, memberIdsToRemove);
+         response += "Removed " + memberIdsToRemove.map((id) => `<@!${id}>`).join(", ") + ` from the \`${queueChannel.name}\` queue.\n`;
+      }
+      if (memberIdsToAdd.length > 0) {
+         // Parse message
+         const personalMessage = parsed.arguments
+            .replace(/(<(@!?|#)\w+>)/gi, "")
+            .replace(queueChannel.name, "")
+            .substring(0, 128)
+            .trim();
+         // Add to queue
+         await QueueMemberTable.storeQueueMembers(queueChannel.id, memberIdsToAdd, personalMessage);
+         response += "Added " + memberIdsToAdd.map((id) => `<@!${id}>`).join(", ") + ` to the \`${queueChannel.name}\` queue.`;
+      }
+      MessageUtils.scheduleResponseToMessage(response, message);
+      MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
    }
 
    /**

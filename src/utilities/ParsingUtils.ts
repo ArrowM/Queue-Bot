@@ -99,13 +99,8 @@ export class ParsingUtils extends Base {
             }
          }
       }
-      //MessageUtils.scheduleResponseToMessage(response, message);
-      const _response = await message.channel.send(response).catch(() => null) as Message;
-      if (_response) {
-         setTimeout(() => {
-            _response.delete().catch(() => null);
-         }, 10 * 1000);
-      }
+      const channel = message.channel as TextChannel | NewsChannel;
+      MessageUtils.sendTempMessage(response, channel, 10);
    }
 
    /**

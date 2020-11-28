@@ -54,6 +54,7 @@ export interface ConfigFile {
    displayCmd: string;
    gracePeriodCmd: string;
    helpCmd: string;
+   joinCmd: string;
    kickCmd: string;
    limitCmd: string;
    modeCmd: string;

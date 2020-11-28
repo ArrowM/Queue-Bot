@@ -2,9 +2,9 @@
 Created to manage voice channel waiting rooms. This bot allows you to display the order of people waiting and easily pull them to another channel.  
 
 ## How to use
-**Commands are available to *privileged users* - meaning the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.**  
+**Privileged users are the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.**  
 1. **Create a queue.** *Privileged users* can create queues with `!q {channel name}` where `{channel name}` is the name of one of the server's text or voice channels. For example `!q Waiting Room` turns the Waiting Room voice channel into a queue.  
-2. **Have users join the queue.** Any user can join text queues by clicking on the queue reaction and join voice queues by joining the matching voice channel.  
+2. **Have users join the queue.** Any user can join text queues by clicking on the queue reaction or by using `!j {channel name}`. Any user can join voice queues by joining the matching voice channel.  
 3. **Pull users from a queue.** *Privileged users* can be pulled from a text queue using `!n {channel name}`. Pulling users from voice queues requires 2 steps -
 	First, use `!s {channel name}` to make the bot join the voice channel.
 	Second, drag the bot to the desired location and it will swap with the next person in a queue.
@@ -13,7 +13,7 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 
 ## Commands
 Note: If you only have 1 queue, you can skip the channel name argument.
-Commands are available to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
+All commands except `Join` are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
 | Function | Command | Description |
 |-|-|-|
 | Create & Destroy Queues | `!q {channel name} {OPTIONAL: size}` | Create or destory a queue for a specified channel. |
@@ -21,6 +21,7 @@ Commands are available to the server owner, administrators, and users with any o
 | Display a Queue | `!d {channel name}` | Display the members in a queue. These messages stay updated. | 
 | Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
 | Pull from Text | `!n {channel name} {OPTIONAL: amount}` |  Removes people from the text queue and displays their name. |
+| Join | `!j {channel name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | Add one or more people to a queue. | 
 | Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kick one or more people from a queue. |
 | Clear | `!clear {channel name}` | Clear a queue. |
 | Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
@@ -75,6 +76,7 @@ Commands are available to the server owner, administrators, and users with any o
 | displayCmd             | Command to display a queue in a text channel.                                                                                     |
 | gracePeriodCmd         | Command to change the grace period.                                                                                               |
 | helpCmd                | Command to display the help information.                                                                                          |
+| joinCmd                | Command to join a text channel queue.  
 | kickCmd                | Command to kick users from a queue.                                                                                               |
 | limitCmd               | Command to change queue size limit.                                                                                               |
 | modeCmd                | Command to change the display messaging mode.                                                                                     |

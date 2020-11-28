@@ -168,6 +168,10 @@ client.on("message", async (message) => {
          case config.helpCmd:
             Commands.help(queueGuild, parsed, message);
             break;
+         // Join Text Queue
+         case config.joinCmd:
+            Commands.joinTextChannel(queueGuild, parsed, message, hasPermission);
+            break;
       }
    } else if (message.content === config.prefix + config.helpCmd) {
       // Default help command
@@ -377,10 +381,11 @@ async function setChannel(queueMember: GuildMember, newVoiceChannel: VoiceChanne
          const storedDisplayChannel = await knex<DisplayChannel>("display_channels")
             .where("queue_channel_id", queueVoiceChannel.id)
             .first();
-         const displayChannel = queueMember.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel;
-         MessageUtils.scheduleResponseToChannel(
+         const displayChannel = queueMember.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
+         MessageUtils.sendTempMessage(
             `<@!${queueMember.id}> does not have permission to join \`${newVoiceChannel.name}\``,
-            displayChannel
+            displayChannel,
+            20
          );
       }
    } catch (e) {

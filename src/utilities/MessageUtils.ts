@@ -200,7 +200,7 @@ export class MessageUtils extends Base {
               `Join the **${queueChannel.name}** voice channel to join this queue.` +
                  (await this.getGracePeriodString(queueGuild.grace_period))
             : // Text
-              `React with ${this.config.joinEmoji} to join or leave this queue.`
+              `React with ${this.config.joinEmoji} or type \`${queueGuild.prefix}${this.config.joinCmd} ${queueChannel.name}\` to join or leave this queue.`
       );
 
       if (!queueMembers || queueMembers.length === 0) {
@@ -248,6 +248,21 @@ export class MessageUtils extends Base {
                "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Add Reactions`.",
             channel
          );
+      }
+   }
+
+   /**
+    * 
+    * @param response
+    * @param channel
+    * @param duration
+    */
+   public static async sendTempMessage(response: string, channel: TextChannel | NewsChannel, duration: number): Promise<void> {
+      const _response = (await channel.send(response).catch(() => null)) as Message;
+      if (_response) {
+         setTimeout(() => {
+            _response.delete().catch(() => null);
+         }, duration * 1000);
       }
    }
 }
