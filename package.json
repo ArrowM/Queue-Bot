@@ -7,7 +7,7 @@
       "build": "tsc -p .",
       "format": "eslint src/** --fix --no-error-on-unmatched-pattern",
       "start": "cd build && node bot.js",
-      "restart": "tsc -p . && pm2 stop all && pm2 flush && pm start all"
+      "restart": "tsc -p . && pm2 stop all && pm2 flush && pm2 start all"
    },
    "keywords": [],
    "author": "Arrow",
