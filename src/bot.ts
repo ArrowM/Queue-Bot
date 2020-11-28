@@ -354,7 +354,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
                      const queueMember = queueMembers[i];
                      setTimeout(async () => {
                         blockNextCache.add(queueMember.id);
-                        setChannel(queueMember, newVoiceChannel, oldVoiceChannel);
+                        await queueMember.voice.setChannel(newVoiceChannel).catch(() => null);
                      }, Math.floor(i / 5) * 5050); // Rate limit
                   }
                }
@@ -365,12 +365,13 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
                .where("queue_channel_id", oldVoiceChannel.id)
                .first();
             const displayChannel = member.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
-            MessageUtils.scheduleResponseToChannel(
+            MessageUtils.sendTempMessage(
                `I need the \`CONNECT\` permission in the \`${newVoiceChannel.name}\` voice channel to pull in queue members.`,
-               displayChannel
+               displayChannel,
+               20
             );
          }
-         setChannel(member, oldVoiceChannel, oldVoiceChannel);
+         await member.voice.setChannel(oldVoiceChannel).catch(() => null);
       } else {
          if (blockNextCache.delete(member.id)) {
             // Getting pulled using bot, do not cache
@@ -383,21 +384,6 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       MessageUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
    }
 });
-
-async function setChannel(queueMember: GuildMember, newVoiceChannel: VoiceChannel, queueVoiceChannel: VoiceChannel) {
-   try {
-      await queueMember.voice.setChannel(newVoiceChannel);
-   } catch (e) {
-      // Can't move member
-      const storedDisplayChannel = await knex<DisplayChannel>("display_channels").where("queue_channel_id", queueVoiceChannel.id).first();
-      const displayChannel = queueMember.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
-      MessageUtils.sendTempMessage(
-         `<@!${queueMember.id}> does not have permission to join \`${newVoiceChannel.name}\``,
-         displayChannel,
-         20
-      );
-   }
-}
 
 client.on("messageReactionAdd", async (reaction, user) => {
    await reactionToggle(reaction, user);
