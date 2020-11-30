@@ -1,4 +1,9 @@
 # Debate-Queue-Bot
+
+[![Discord Bots](https://top.gg/api/widget/679018301543677959.svg)](https://top.gg/bot/679018301543677959)
+[![BuyMeACoffee](https://img.shields.io/badge/BuyMeACoffee-Donate-ff9004.svg?logo=CoffeeScript&style=flat-square)](https://www.buymeacoffee.com/Arroww)
+[![Discord Chat](https://img.shields.io/discord/678645128755150863?label=Discord&style=flat-square)](https://discord.gg/RbmfnP3)
+
 Created to manage voice channel waiting rooms. This bot allows you to display the order of people waiting and easily pull them to another channel.  
 
 ## How to use
