@@ -1,0 +1,46 @@
+[
+   {
+      "sent": false,
+      "date": "2020-12-06T00:00:00.000Z",
+      "message": {
+         "embed": {
+            "title": "Patch Notes for Dec 5, 2020",
+            "description": "There are some big features changes to highlight.",
+            "color": 16727808,
+            "footer": {
+               "text": "Thanks for using Queue Bot :)"
+            },
+            "fields": [
+               {
+                  "name": "+Autofill (voice)",
+                  "value": "New default behavior. The bot will set a \"target\" when you drag it from a queue to a new channel. If the new channel has a user limit, the bot will automatically move people when spots open up in the target channel. The bot can be disconnected from voice chat after setting a target channel.\nAutofill can be toggled using `!autofill {queue name} {on|off}`."
+               },
+               {
+                  "name": "+Joining via Reaction (text)",
+                  "value": "Users can join text queues by clicking on the reaction under the queue display. `!j` is sticking around, but reactions should be a bit cleaner."
+               },
+               {
+                  "name": "+Pull Amounts (voice & text)",
+                  "value": "`!pullnum {queue name} {#}` sets the default number of people to pull when Autofill is off or when using `!n`."
+               },
+               {
+                  "name": "+Size Limits (voice & text)",
+                  "value": "`!limit {queue name} {#}` sets queue size limit."
+               },
+               {
+                  "name": "+Command Cleanup",
+                  "value": "`!cleanup {on|off}` toggles the automatic deletion Queue Bot commands sent by users. This is off by default."
+               },
+               {
+                  "name": "General Improvements",
+                  "value": "I recently upgraded the hosting solution and fixed a bunch of bugs. The bot is still under active development so please join the [support server](https://discord.gg/RbmfnP3) if you find a bug or have an idea for a new feature."
+               },
+               {
+                  "name": "Support the Bot :heart:",
+                  "value": "Hosting isn't free and development takes a lot of time. There are a couple new ways to support the bot and future development:\n1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+               }
+            ]
+         }
+      }
+   }
+]

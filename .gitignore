@@ -3,7 +3,7 @@
 !/.gitignore
 !/package.json
 !/tsconfig.json
-!/db-transfer-script
+!/patch_notes
 !/update-node.sh
 !/src
 
