@@ -28,7 +28,7 @@ All commands except `Join` are restricted to the server owner, administrators, a
 | Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
 | Pull from Text | `!n {channel name} {OPTIONAL: amount}` |  Removes people from the text queue and displays their name. |
 | Join | `!j {channel name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | Add one or more people to a queue. |
-| Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kicks one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
+| Kick | `!k {OPTIONAL: channel name} @{user 1} @{user 2} ...` | Kicks one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
 | Clear | `!clear {channel name}` | Clear a queue. |
 | Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
 | Set Queue Size Limit | `!limit {channel name} {#}` | Sets queue size limit. |
