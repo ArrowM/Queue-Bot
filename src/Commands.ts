@@ -1,4 +1,4 @@
-import { Message, MessageEmbedOptions, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
+import { GuildChannel, Message, MessageEmbedOptions, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { MessagingUtils } from "./utilities/MessagingUtils";
@@ -167,8 +167,9 @@ export class Commands {
                   {
                      name: "Kick",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().kickCmd} {queue name} @{user 1} @{user 2} ...\` ` +
-                        `kicks one or more people from a queue.`,
+                        `\`${storedPrefix}${Base.getConfig().kickCmd} {OPTIONAL: queue name} @{user 1} @{user 2} ...\` ` +
+                        `kicks one or more people. If a queue name is given, it will kick from a single queue. ` +
+                        `Otherwise, it will kick people from every queue.`,
                   },
                   {
                      name: "Clear",
@@ -249,39 +250,58 @@ export class Commands {
     * @param message Discord message object.
     */
    public static async kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      // remove user mentions
+      // remove user mentions from text
       parsed.arguments = parsed.arguments.replace(/<@!?\d+>/gi, "").trim();
-      // Get queue channel
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, "text");
-      if (!queueChannel) {
-         return;
-      }
-      // Parse message and members
+      // Parse members id
       const memberIdsToKick = message.mentions.members.array().map((member) => member.id);
-      if (!memberIdsToKick || memberIdsToKick.length === 0) {
-         return;
+      if (!memberIdsToKick || memberIdsToKick.length === 0) return;
+      // Get channels to check - if user provides queue channel, use it. Otherwise check all stored queue channels.
+      let queueChannelsToCheck: GuildChannel[] = [];
+      if (parsed.arguments) {
+         const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0);
+         queueChannelsToCheck.push(queueChannel);
+      } else {
+         const storedQueueChannelIds = await Base.getKnex()<QueueChannel>("queue_channels")
+            .where("guild_id", queueGuild.guild_id)
+            .pluck("queue_channel_id");
+         for (const storedQueueChannelId of storedQueueChannelIds) {
+            const queueChannel = message.guild.channels.cache.get(storedQueueChannelId);
+            if (queueChannel) {
+               queueChannelsToCheck.push(queueChannel);
+            }
+         }
       }
-
-      let updateDisplays = false;
-      const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
-         .where("queue_channel_id", queueChannel.id)
-         .whereIn("queue_member_id", memberIdsToKick)
-         .pluck("queue_member_id");
-
-      if (storedQueueMemberIds && storedQueueMemberIds.length > 0) {
-         updateDisplays = true;
-         // Remove from queue
-         await Base.getKnex()<QueueMember>("queue_members")
-            .whereIn("queue_member_id", memberIdsToKick)
+      console.log(queueChannelsToCheck.length);
+      // Queue channel found - kick from 1 queue
+      for (const queueChannel of queueChannelsToCheck) {
+         const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
             .where("queue_channel_id", queueChannel.id)
-            .del();
+            .whereIn("queue_member_id", memberIdsToKick)
+            .pluck("queue_member_id");
+         if (!storedQueueMemberIds || storedQueueMemberIds.length === 0) continue;
+         // Remove from queue
+         if (queueChannel.type === "voice") {
+            const members = [];
+            for (const id of storedQueueMemberIds) {
+               const member = queueChannel.members.get(id);
+               if (member) {
+                  members.push(member);
+               }
+            }
+            for (const member of members) {
+               member?.voice?.kick().catch(() => null);
+            }
+         } else {
+            await Base.getKnex()<QueueMember>("queue_members")
+               .whereIn("queue_member_id", memberIdsToKick)
+               .where("queue_channel_id", queueChannel.id)
+               .del();
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel as TextChannel | NewsChannel | VoiceChannel);
+         }
          SchedulingUtils.scheduleResponseToMessage(
             "Kicked " + storedQueueMemberIds.map((id) => `<@!${id}>`).join(", ") + ` from the \`${queueChannel.name}\` queue.`,
             message
          );
-      }
-      if (updateDisplays) {
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       }
    }
 
