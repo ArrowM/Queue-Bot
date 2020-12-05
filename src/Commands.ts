@@ -271,7 +271,6 @@ export class Commands {
             }
          }
       }
-      console.log(queueChannelsToCheck.length);
       // Queue channel found - kick from 1 queue
       for (const queueChannel of queueChannelsToCheck) {
          const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
