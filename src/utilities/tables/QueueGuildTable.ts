@@ -57,13 +57,8 @@ export class QueueGuildTable {
    /**
     * Modify the database structure for code patches
     */
-   protected static updateTableStructure(): void {
-      this.addMsgMode();
-   }
-   /**
-    * Migration of msg_on_update to msg_mode
-    */
-   private static async addMsgMode(): Promise<void> {
+   protected static async updateTableStructure(): Promise<void> {
+      // Migration of msg_on_update to msg_mode
       if (await Base.getKnex().schema.hasColumn("queue_guilds", "msg_on_update")) {
          console.log("Migrating message mode");
          await Base.getKnex().schema.table("queue_guilds", (table) => table.integer("msg_mode"));
@@ -73,6 +68,11 @@ export class QueueGuildTable {
                .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
          });
          await Base.getKnex().schema.table("queue_guilds", (table) => table.dropColumn("msg_on_update"));
+      }
+      // Add cleanup_commands
+      if (!(await Base.getKnex().schema.hasColumn("queue_guilds", "cleanup_commands"))) {
+         await Base.getKnex().schema.table("queue_guilds", (table) => table.text("cleanup_commands"));
+         await Base.getKnex()<QueueGuild>("queue_guilds").update("cleanup_commands", "off");
       }
    }
 }

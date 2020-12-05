@@ -5,33 +5,37 @@ export interface ParsedArguments {
 
 export interface QueueChannel {
    id: number;
-   queue_channel_id: string;
    guild_id: string;
    max_members: string;
+   queue_channel_id: string;
+   target_channel_id: string;
+   auto_fill: number; // 0 off. 1 on.
+   pull_num: number;
 }
 
 export interface DisplayChannel {
    id: number;
-   queue_channel_id: string;
    display_channel_id: string;
    embed_id: string;
+   queue_channel_id: string;
 }
 
 export interface QueueGuild {
    id: number;
-   guild_id: string;
-   grace_period: string;
-   prefix: string;
    color: string;
+   cleanup_commands: string;
+   grace_period: string;
+   guild_id: string;
    msg_mode: number;
+   prefix: string;
 }
 
 export interface QueueMember {
    id: number;
+   created_at: string; // timestamp
+   personal_message: string;
    queue_channel_id: string;
    queue_member_id: string;
-   personal_message: string;
-   created_at: string;
 }
 
 export interface ConfigFile {
@@ -49,6 +53,8 @@ export interface ConfigFile {
    prefix: string;
    joinEmoji: string;
 
+   autofillCmd: string;
+   cleanupCmd: string;
    clearCmd: string;
    colorCmd: string;
    displayCmd: string;
@@ -60,6 +66,7 @@ export interface ConfigFile {
    modeCmd: string;
    nextCmd: string;
    prefixCmd: string;
+   pullNumCmd: string;
    queueCmd: string;
    shuffleCmd: string;
    startCmd: string;

@@ -34,9 +34,12 @@ export class QueueChannelTable {
       // Fetch old channels
       await Base.getKnex()<QueueChannel>("queue_channels")
          .insert({
+            auto_fill: 1,
             guild_id: channelToAdd.guild.id,
             max_members: maxMembers?.toString(),
+            pull_num: 1,
             queue_channel_id: channelToAdd.id,
+            target_channel_id: null,
          })
          .catch(() => null);
       if (channelToAdd.type === "voice") {
@@ -75,7 +78,6 @@ export class QueueChannelTable {
       const queueChannelIdsToRemove: string[] = [];
       // Fetch stored channels
       const storedQueueChannels = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
-      if (!storedQueueChannels) return null;
 
       const queueChannels: (VoiceChannel | TextChannel | NewsChannel)[] = [];
       // Check for deleted channels
@@ -100,16 +102,24 @@ export class QueueChannelTable {
    /**
     * Modify the database structure for code patches
     */
-   protected static updateTableStructure(): void {
-      this.addMaxMembers();
-   }
-
-   /**
-    * Add max_members column
-    */
-   private static async addMaxMembers(): Promise<void> {
+   protected static async updateTableStructure(): Promise<void> {
+      // Add max_members
       if (!(await Base.getKnex().schema.hasColumn("queue_channels", "max_members"))) {
          await Base.getKnex().schema.table("queue_channels", (table) => table.text("max_members"));
+      }
+      // Add target_channel_id
+      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "target_channel_id"))) {
+         await Base.getKnex().schema.table("queue_channels", (table) => table.text("target_channel_id"));
+      }
+      // Add auto_fill
+      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "auto_fill"))) {
+         await Base.getKnex().schema.table("queue_channels", (table) => table.integer("auto_fill"));
+         await Base.getKnex()<QueueChannel>("queue_channels").update("auto_fill", 1);
+      }
+      // Add pull_num
+      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "pull_num"))) {
+         await Base.getKnex().schema.table("queue_channels", (table) => table.integer("pull_num"));
+         await Base.getKnex()<QueueChannel>("queue_channels").update("pull_num", 1);
       }
    }
 }

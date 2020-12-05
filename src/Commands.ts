@@ -1,24 +1,15 @@
 import { Message, MessageEmbedOptions, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
-import { MessageUtils } from "./utilities/MessageUtils";
+import { MessagingUtils } from "./utilities/MessagingUtils";
 import { ParsingUtils } from "./utilities/ParsingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
+import { SchedulingUtils } from "./utilities/SchedulingUtils";
+import { fillTargetChannel } from "./bot";
 
 export class Commands {
-   // Map commands to database columns and display strings
-   private static serverSettingVariables = {
-      [Base.getConfig().gracePeriodCmd]: {
-         dbVariable: "grace_period",
-         str: "grace period",
-      },
-      [Base.getConfig().prefixCmd]: { dbVariable: "prefix", str: "prefix" },
-      [Base.getConfig().colorCmd]: { dbVariable: "color", str: "color" },
-      [Base.getConfig().modeCmd]: { dbVariable: "msg_mode", str: "message mode" },
-   };
-
    /**
     * Create an embed message to display a channel's queue
     * @param queueGuild
@@ -38,7 +29,7 @@ export class Commands {
       const displayChannel = message.channel as TextChannel | NewsChannel;
       const displayPermissions = displayChannel.permissionsFor(displayChannel.guild.me);
       if (displayPermissions.has("SEND_MESSAGES") && displayPermissions.has("EMBED_LINKS")) {
-         const msgEmbed = await MessageUtils.generateEmbed(queueGuild, queueChannel);
+         const msgEmbed = await MessagingUtils.generateEmbed(queueGuild, queueChannel);
          // Remove old display
          await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id);
          // Create new display
@@ -68,40 +59,53 @@ export class Commands {
                },
                color: storedColor,
                description:
-                  "*Privileged* users are the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.",
+                  "*Privileged* users are the server owner, administrators, and users with any of the following roles:" +
+                  "`mod`, `moderator`, `admin`, `administrator`.",
                fields: [
                   {
-                     name: "1. Create a queue",
-                     value: `*Privileged users* can create queues with \`${storedPrefix}${
-                        Base.getConfig().queueCmd
-                     } {channel name}\` where \`{channel name}\` is the name of one of the server's text or voice channels. For example \`${storedPrefix}${
-                        Base.getConfig().queueCmd
-                     } Waiting Room\` turns the Waiting Room voice channel into a queue.`,
+                     name: "1. Create a Queue",
+                     value:
+                        `*Privileged* users can create queues with \`${storedPrefix}${Base.getConfig().queueCmd} {channel name}\` ` +
+                        `where \`{channel name}\` is the name of a text or voice channels. For example, ` +
+                        `\`${storedPrefix}${Base.getConfig().queueCmd} Waiting Room\` turns the Waiting Room voice channel into a queue.`,
                   },
                   {
-                     name: "2. Have users join the queue",
-                     value: `Any user can join text queues by clicking on the queue reaction or by using \`${storedPrefix}${
-                        Base.getConfig().joinCmd
-                     } {channel name}\`. Any user can join voice queues by joining the matching voice channel.`,
+                     name: "2. Join a Queue",
+                     value:
+                        `Any user can join text queues by clicking the queue reaction or with ` +
+                        `\`${storedPrefix}${Base.getConfig().joinCmd} {queue name}\`. ` +
+                        `Any user can join voice queues by joining the matching voice channel.`,
                   },
                   {
-                     name: "3. Pull users from a queue.",
-                     value: `*Privileged users* can be pulled from a text queue using\`${storedPrefix}${
-                        Base.getConfig().nextCmd
-                     } {channel name}\`. Pulling users from voice queues requires 2 steps -
-                           First, use\`${storedPrefix}${Base.getConfig().startCmd} {channel name}\` to make the bot join the voice channel.
-                           Second, drag the bot to the desired location and it will swap with the next person in a queue.
-                           For example I create a queue using\`${storedPrefix}${
-                        Base.getConfig().queueCmd
-                     } Waiting Room\`, then use\`${storedPrefix}${
-                        Base.getConfig().startCmd
-                     } Waiting Room\`, then I drag the bot to an\`Among Us\` voice channel when the next spot opens up.`,
+                     name: "3. Pull Users From a Queue",
+                     value:
+                        `**TEXT**: *Privileged* users can be pulled from a text queue with ` +
+                        `\`${storedPrefix}${Base.getConfig().nextCmd} {queue name}\`.\n` +
+                        `**VOICE**: Pulling users from voice queues requires 2 steps:\n` +
+                        `1. \`${storedPrefix}${Base.getConfig().startCmd} {queue name}\` makes the bot join the voice channel.\n` +
+                        `2. Move the bot to a new channel to set a "target".\n` +
+                        `If the target channel has a user limit, ` +
+                        `(\`${storedPrefix}${Base.getConfig().limitCmd} {queue name} {#}\`), ` +
+                        `the bot will automatically move people from the queue to keep the target channel full. ` +
+                        `You can disconnect the bot from the voice channel.\n` +
+                        `If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever ` +
+                        `you want to pull people from the queue (the bot will swap with them). ` +
+                        `You can customize how many people the bot will pull each time using ` +
+                        `\`${storedPrefix}${Base.getConfig().pullNumCmd} {queue name} {#}\`.`,
                   },
                   {
-                     name: "4. Customization",
-                     value: ` *Privileged users* can customize things like the bot's command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot. Use \`${storedPrefix}${
-                        Base.getConfig().helpCmd
-                     }\` to see a full list of commands and customization options.`,
+                     name: "4. Customize",
+                     value:
+                        `*Privileged* users can customize the command prefix, message color, messaging mode, ` +
+                        `and how long people can leave a queue without losing their spot with the commands below.` +
+                        `There are also additional commands to do things like shuffling and clearing queues.`,
+                  },
+                  {
+                     name: "Support the Bot :heart:",
+                     value:
+                        "Hosting isn't free and development takes a lot of time. There are a couple ways to support the bot and future development:\n" +
+                        "1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n" +
+                        "2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww).",
                   },
                ],
                title: "How to use",
@@ -112,10 +116,10 @@ export class Commands {
                color: storedColor,
                fields: [
                   {
-                     name: "Join a Text Channel Queue",
-                     value: `\`${storedPrefix}${
-                        Base.getConfig().joinCmd
-                     } {channel name} {OPTIONAL: message to display next to your name}\` joins or leaves a text channel queue.`,
+                     name: "Join Text Queue",
+                     value:
+                        `\`${storedPrefix}${Base.getConfig().joinCmd} {queue name} {OPTIONAL: message to display next to your name}\` ` +
+                        `joins or leaves a text queue.`,
                   },
                ],
                title: "Commands Available to Everyone",
@@ -128,70 +132,93 @@ export class Commands {
                   "Commands are available to the server owner, administrators, and users with any of the following roles: `queue mod`, `mod` or `admin`.",
                fields: [
                   {
-                     name: "Modify & View Queues",
+                     name: "Create / Delete / View Queues",
                      value:
-                        `\`${storedPrefix}${
-                           Base.getConfig().queueCmd
-                        } {channel name} {OPTIONAL: size}\` creates a new queue or deletes an existing queue.` +
-                        `\n\`${storedPrefix}${Base.getConfig().queueCmd}\` shows the existing queues.`,
+                        `\`${storedPrefix}${Base.getConfig().queueCmd} {channel name} {OPTIONAL: size}\` ` +
+                        `creates a new queue or deletes an existing queue.\n` +
+                        `\`${storedPrefix}${Base.getConfig().queueCmd}\` shows the existing queues.`,
                   },
                   {
-                     name: "Display Queue Members",
-                     value: `\`${storedPrefix}${
-                        Base.getConfig().displayCmd
-                     } {channel name}\` displays the members in a queue. These messages stay updated.`,
-                  },
-                  {
-                     name: "Pull Users from Voice Queue",
+                     name: "Display Queue",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().startCmd} {channel name}\` adds the bot to a queue voice channel.` +
-                        ` Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue.` +
-                        ` If the destination queue has a size limit, the bot will pull people until the limit is met.` +
-                        ` See the example gif below.`,
+                        `\`${storedPrefix}${Base.getConfig().displayCmd} {queue name}\` ` +
+                        `displays the members in a queue.These messages stay updated.`,
                   },
                   {
-                     name: "Pull Users from Text Queue",
-                     value: `\`${storedPrefix}${
-                        Base.getConfig().nextCmd
-                     } {channel name} {OPTIONAL: amount}\` removes people from the text queue and displays their name.`,
-                  },
-                  {
-                     name: "Kick Users from Queue",
-                     value: `\`${storedPrefix}${
-                        Base.getConfig().kickCmd
-                     } {channel name} @{user 1} @{user 2} ...\` kicks one or more people from a queue.`,
-                  },
-                  {
-                     name: "Clear Queue",
-                     value: `\`${storedPrefix}${Base.getConfig().clearCmd} {channel name}\` clears a queue.`,
-                  },
-                  {
-                     name: "Shuffle Queue",
-                     value: `\`${storedPrefix}${Base.getConfig().shuffleCmd} {channel name}\` shuffles a queue.`,
-                  },
-                  {
-                     name: "Change Queue Size Limit",
-                     value: `\`${storedPrefix}${Base.getConfig().limitCmd} {channel name} {size limit} \` changes queue size limit.`,
-                  },
-                  {
-                     name: "Change the Grace Period",
-                     value: `\`${storedPrefix}${
-                        Base.getConfig().gracePeriodCmd
-                     } {time in seconds}\` changes how long a person can leave a queue before being removed.`,
-                  },
-                  {
-                     name: "Change the Command Prefix",
-                     value: `\`${storedPrefix}${Base.getConfig().prefixCmd} {new prefix}\` changes the prefix for commands.`,
-                  },
-                  {
-                     name: "Change the Color",
-                     value: `\`${storedPrefix}${Base.getConfig().colorCmd} {new color}\` changes the color of bot messages.`,
-                  },
-                  {
-                     name: "Change the Display Mode",
+                     name: "Pull from Voice Queue",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().modeCmd} {new mode}\` changes how the display messages are updated.` +
-                        `\n\`${storedPrefix}${Base.getConfig().modeCmd}\` displays the different update modes.`,
+                        `\`${storedPrefix}${Base.getConfig().startCmd} {queue name}\` adds the bot to a voice queue. ` +
+                        `Then the bot can be dragged into another channel to set a "target". ` +
+                        `If the target channel has a user limit, ` +
+                        `(\`${storedPrefix}${Base.getConfig().limitCmd} {queue name} {#}\`), ` +
+                        `the bot will automatically move people from the queue to keep the target channel full. ` +
+                        `You can disconnect the bot from the voice channel.\n` +
+                        `If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever ` +
+                        `you want to pull people from the queue (the bot will swap with them). ` +
+                        `You can customize how many people the bot will pull each time using ` +
+                        `\`${storedPrefix}${Base.getConfig().pullNumCmd} {queue name} {#}\`.`,
+                  },
+                  {
+                     name: "Pull from Text Queue",
+                     value:
+                        `\`${storedPrefix}${Base.getConfig().nextCmd} {queue name} {OPTIONAL: #}\` ` +
+                        `removes people from the text queue and displays their name.`,
+                  },
+                  {
+                     name: "Kick",
+                     value:
+                        `\`${storedPrefix}${Base.getConfig().kickCmd} {queue name} @{user 1} @{user 2} ...\` ` +
+                        `kicks one or more people from a queue.`,
+                  },
+                  {
+                     name: "Clear",
+                     value: `\`${storedPrefix}${Base.getConfig().clearCmd} {queue name}\` clears a queue.`,
+                  },
+                  {
+                     name: "Shuffle",
+                     value: `\`${storedPrefix}${Base.getConfig().shuffleCmd} {queue name}\` shuffles a queue.`,
+                  },
+                  {
+                     name: "Set Size Limit",
+                     value: `\`${storedPrefix}${Base.getConfig().limitCmd} {queue name} {#}\` sets queue size limit.`,
+                  },
+                  {
+                     name: "Autofill Voice Channels",
+                     value: `\`${storedPrefix}${Base.getConfig().autofillCmd} {queue name} {on|off}\`.`,
+                  },
+                  {
+                     name: "Set # of People to Pull at a time",
+                     value:
+                        `\`${storedPrefix}${Base.getConfig().pullNumCmd} {queue name} {#}\` ` +
+                        `sets the default number of people to pull when Autofill is off or when using ` +
+                        `\`${storedPrefix}${Base.getConfig().nextCmd}\`.`,
+                  },
+                  // Server settings
+                  {
+                     name: "Set Grace Period",
+                     value:
+                        `\`${storedPrefix}${Base.getConfig().gracePeriodCmd} {# seconds}\` ` +
+                        `sets how long a person can leave a queue before being removed.`,
+                  },
+                  {
+                     name: "Set Command Prefix",
+                     value: `\`${storedPrefix}${Base.getConfig().prefixCmd} {new prefix}\` sets the prefix for commands.`,
+                  },
+                  {
+                     name: "Set Color",
+                     value: `\`${storedPrefix}${Base.getConfig().colorCmd} {new color}\` sets the color of bot messages.`,
+                  },
+                  {
+                     name: "Set Display Mode",
+                     value:
+                        `\`${storedPrefix}${Base.getConfig().modeCmd} {#}\` sets how the display messages are updated.\n` +
+                        `\`${storedPrefix}${Base.getConfig().modeCmd}\` displays the different update modes.`,
+                  },
+                  {
+                     name: "Command Cleanup",
+                     value:
+                        `\`${storedPrefix}${Base.getConfig().cleanupCmd} {on|off}\` ` +
+                        `toggles the cleanup of user-sent Queue Bot commands.`,
                   },
                ],
                image: {
@@ -206,11 +233,12 @@ export class Commands {
       const displayChannel = ParsingUtils.extractChannel(channels, parsed, message) as TextChannel | NewsChannel;
 
       if (parsed.arguments && displayChannel) {
-         responses.forEach((response) => MessageUtils.scheduleResponseToChannel(response, displayChannel));
+         responses.forEach((response) => SchedulingUtils.scheduleResponseToChannel(response, displayChannel));
       } else {
          // No channel provided. Send help to user.
-         responses.forEach((response) => message.author.send(response).catch((e) => console.log(e)));
-         MessageUtils.scheduleResponseToMessage("I have sent help to your PMs.", message);
+         responses.forEach((response) => message.author.send(response).catch(() => null));
+         const channel = message.channel as TextChannel | NewsChannel;
+         MessagingUtils.sendTempMessage("I have sent help to your PMs.", channel, 10);
       }
    }
 
@@ -247,18 +275,18 @@ export class Commands {
             .whereIn("queue_member_id", memberIdsToKick)
             .where("queue_channel_id", queueChannel.id)
             .del();
-         MessageUtils.scheduleResponseToMessage(
+         SchedulingUtils.scheduleResponseToMessage(
             "Kicked " + storedQueueMemberIds.map((id) => `<@!${id}>`).join(", ") + ` from the \`${queueChannel.name}\` queue.`,
             message
          );
       }
       if (updateDisplays) {
-         MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       }
    }
 
    /**
-    * Change a server setting
+    * Set a server setting
     * @param queueGuild
     * @param parsed
     * @param message Discord message object.
@@ -276,8 +304,7 @@ export class Commands {
    ): Promise<void> {
       // Setup common variables
       const setting = this.serverSettingVariables[parsed.command];
-      const guild = message.guild;
-      const channels = await QueueChannelTable.fetchStoredQueueChannels(guild);
+      const channels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
 
       if (parsed.arguments && passesValueRestrictions) {
          // Store channel to database
@@ -286,17 +313,17 @@ export class Commands {
             .first()
             .update(setting.dbVariable, parsed.arguments);
          queueGuild[setting.dbVariable] = parsed.arguments;
-         MessageUtils.scheduleResponseToMessage(`Set \`${setting.str}\` to \`${parsed.arguments}\`.`, message);
+         SchedulingUtils.scheduleResponseToMessage(`Set \`${setting.label.toLowerCase()}\` to \`${parsed.arguments}\`.`, message);
          for (const channel of channels) {
-            MessageUtils.scheduleDisplayUpdate(queueGuild, channel, true);
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, channel, true);
          }
       } else {
-         MessageUtils.scheduleResponseToMessage(
+         SchedulingUtils.scheduleResponseToMessage(
             {
                content:
-                  `The ${setting.str} is currently set to \`${queueGuild[setting.dbVariable]}\`.\n` +
-                  `Set a new ${setting.str} using \`${queueGuild.prefix}${parsed.command} {${setting.str}}\`.\n` +
-                  extraErrorLine,
+                  `${setting.label} is \`${queueGuild[setting.dbVariable]}\`.\n` +
+                  `Set using \`${queueGuild.prefix}${parsed.command} {${setting.options}}\`.\n` +
+                  (extraErrorLine ? extraErrorLine : ""),
                embed,
             },
             message
@@ -311,14 +338,10 @@ export class Commands {
     * @param message Discord message object.
     */
    public static async setQueueChannel(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      // Setup common variables
-      const parsedArgs = parsed.arguments;
-      const guild = message.guild;
-
       // Get stored queue channel list from database
-      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(guild);
+      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
       // Channel argument provided. Toggle it
-      if (parsedArgs) {
+      if (parsed.arguments) {
          const channels = message.guild.channels.cache.filter((channel) => channel.type !== "category").array() as (
             | VoiceChannel
             | TextChannel
@@ -332,29 +355,36 @@ export class Commands {
 
          if (storedChannels.some((storedChannel) => storedChannel.id === queueChannel.id)) {
             // Channel is already stored, remove it
-            await QueueChannelTable.unstoreQueueChannel(guild.id, queueChannel.id);
+            await QueueChannelTable.unstoreQueueChannel(message.guild.id, queueChannel.id);
             if (queueChannel.type === "voice") {
                if (queueChannel.userLimit > 0) {
                   (queueChannel as VoiceChannel).setUserLimit(0).catch(() => null);
                }
             }
-            MessageUtils.scheduleResponseToMessage(`Deleted queue for \`${queueChannel.name}\`.`, message);
+            SchedulingUtils.scheduleResponseToMessage(`Deleted queue for \`${queueChannel.name}\`.`, message);
          } else {
             // Get number of users to pop
-            let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsedArgs);
+            let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
             if (maxMembersInQueue) {
                if (maxMembersInQueue < 1) return; // invalid amount
                if (queueChannel.type === "voice") {
                   if (maxMembersInQueue > 99) {
-                     MessageUtils.scheduleResponseToMessage(`Max \`amount\` is 99. Using 99.`, message);
+                     SchedulingUtils.scheduleResponseToMessage(`Max \`amount\` is 99. Using 99.`, message);
                      maxMembersInQueue = 99;
                   }
-                  if (queueChannel.permissionsFor(message.guild.me).has("MANAGE_CHANNELS")) {
-                     (queueChannel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
+                  if (queueChannel.permissionsFor(message.guild.me).has("CONNECT")) {
+                     if (queueChannel.permissionsFor(message.guild.me).has("MANAGE_CHANNELS")) {
+                        (queueChannel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
+                     } else {
+                        SchedulingUtils.scheduleResponseToMessage(
+                           "I can automatically set voice channel user limits, but I need a new permission.\n" +
+                              "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Channels`.",
+                           message
+                        );
+                     }
                   } else {
-                     MessageUtils.scheduleResponseToMessage(
-                        "I can automatically set voice channel user limits, but I need a new permission.\n" +
-                           "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Channels`.",
+                     SchedulingUtils.scheduleResponseToMessage(
+                        `I need the **CONNECT** permission in the \`${queueChannel.name}\` voice channel to pull in queue members.`,
                         message
                      );
                   }
@@ -367,12 +397,12 @@ export class Commands {
       } else {
          // No argument. Display current queues
          if (storedChannels.length > 0) {
-            MessageUtils.scheduleResponseToMessage(`Current queues: ${storedChannels.map((ch) => ` \`${ch.name}\``)}`, message);
+            SchedulingUtils.scheduleResponseToMessage(`Current queues: ${storedChannels.map((ch) => ` \`${ch.name}\``)}`, message);
          } else {
-            MessageUtils.scheduleResponseToMessage(
-               `No queue channels set.` +
-                  `\nSet a new queue channel using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {channel name}\``,
-               // 	+ `\nChannels: ${channels.map(channel => ` \`${channel.name}\``)}`
+            SchedulingUtils.scheduleResponseToMessage(
+               `No queue channels set.\n` +
+                  `Set a new queue channel using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {channel name}\`\n`,
+               // 	+ `Channels: ${channels.map(channel => ` \`${channel.name}\``)}`
                message
             );
          }
@@ -392,11 +422,8 @@ export class Commands {
       message: Message,
       authorHasPermissionToQueueOthers: boolean
    ): Promise<void> {
-      // Get queue channel
       const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, message.mentions.members.size > 0, "text");
-      if (!queueChannel) {
-         return;
-      }
+      if (!queueChannel) return;
 
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
 
@@ -418,7 +445,7 @@ export class Commands {
             // Not in queue, set to add
             if (storedQueueChannel?.max_members && storedQueueMembers.length >= +storedQueueChannel.max_members) {
                const channel = message.channel as TextChannel | NewsChannel;
-               MessageUtils.sendTempMessage(
+               MessagingUtils.sendTempMessage(
                   `Failed to join. ` +
                      `\`${queueChannel.name}\` queue is full (${+storedQueueChannel.max_members}/${+storedQueueChannel.max_members}).`,
                   channel,
@@ -446,8 +473,8 @@ export class Commands {
          await QueueMemberTable.storeQueueMembers(queueChannel.id, memberIdsToAdd, personalMessage);
          response += "Added " + memberIdsToAdd.map((id) => `<@!${id}>`).join(", ") + ` to the \`${queueChannel.name}\` queue.`;
       }
-      MessageUtils.scheduleResponseToMessage(response, message);
-      MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      SchedulingUtils.scheduleResponseToMessage(response, message);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
    }
 
    /**
@@ -457,16 +484,13 @@ export class Commands {
     * @param message Discord message object.
     */
    public static async popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      // Get number of users to pop
-      const numToPop = ParsingUtils.getTailingNumberFromString(message, parsed.arguments) || 1;
-      if (numToPop < 1) {
-         return;
-      }
-
       const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, false);
-      if (!queueChannel) {
-         return;
-      }
+      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+      if (!queueChannel) return;
+
+      // Get number of users to pop
+      const numToPop = ParsingUtils.getTailingNumberFromString(message, parsed.arguments) || storedQueueChannel.pull_num;
+      if (numToPop < 1) return;
 
       // Get the oldest member entry for the queue
       let nextQueueMembers = await Base.getKnex()<QueueMember>("queue_members")
@@ -476,7 +500,7 @@ export class Commands {
 
       if (nextQueueMembers.length > 0) {
          // Display and remove member from the the queue
-         MessageUtils.scheduleResponseToMessage(
+         SchedulingUtils.scheduleResponseToMessage(
             `Pulled ` + nextQueueMembers.map((member) => `<@!${member.queue_member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`,
             message
          );
@@ -484,9 +508,9 @@ export class Commands {
             queueChannel.id,
             nextQueueMembers.map((member) => member.queue_member_id)
          );
-         MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
       } else {
-         MessageUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` is empty.`, message);
+         SchedulingUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` is empty.`, message);
       }
    }
 
@@ -498,9 +522,7 @@ export class Commands {
     */
    public static async shuffleQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
       const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
-      if (!queueChannel) {
-         return;
-      }
+      if (!queueChannel) return;
 
       const queueMembers = await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
       const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
@@ -508,8 +530,9 @@ export class Commands {
       for (let i = 0; i < queueMembers.length; i++) {
          await Base.getKnex()<QueueMember>("queue_members").where("id", queueMembers[i].id).update("created_at", queueMemberTimeStamps[i]);
       }
-      MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-      MessageUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` queue shuffled.`, message);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      const channel = message.channel as TextChannel | NewsChannel;
+      MessagingUtils.sendTempMessage(`\`${queueChannel.name}\` queue shuffled.`, channel, 10);
    }
 
    /**
@@ -520,13 +543,11 @@ export class Commands {
     */
    public static async clearQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
       const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
-      if (!queueChannel) {
-         return;
-      }
+      if (!queueChannel) return;
 
       await QueueMemberTable.unstoreQueueMembers(queueChannel.id);
-      MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-      MessageUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` queue cleared.`, message);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      SchedulingUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` queue cleared.`, message);
    }
 
    /**
@@ -536,15 +557,13 @@ export class Commands {
     * @param message Discord message object.
     */
    public static async start(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const channel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, false, "voice");
-      if (!channel) {
-         return;
-      }
+      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, false, "voice");
+      if (!queueChannel) return;
 
-      if (channel.type === "voice") {
-         if (channel.permissionsFor(message.guild.me).has("CONNECT")) {
+      if (queueChannel.type === "voice") {
+         if (queueChannel.permissionsFor(message.guild.me).has("CONNECT")) {
             try {
-               channel.join().then((connection) => {
+               queueChannel.join().then((connection) => {
                   if (connection) {
                      connection.on("warn", () => null);
                      connection.on("error", () => null);
@@ -558,57 +577,142 @@ export class Commands {
                // ignore
             }
          } else {
-            MessageUtils.scheduleResponseToMessage(`I don't have permission to join ${channel.name}!`, message);
+            SchedulingUtils.scheduleResponseToMessage(`I don't have permission to join ${queueChannel.name}!`, message);
          }
       } else {
-         MessageUtils.scheduleResponseToMessage("I can only join voice channels.", message);
+         SchedulingUtils.scheduleResponseToMessage("I can only join voice channels.", message);
       }
    }
 
    /**
-    * Change voice channel limits command
+    * Set voice channel limits command
     * @param queueGuild
     * @param parsed Parsed message - prefix, command, argument.
     * @param message Discord message object.
     */
    public static async setSizeLimit(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      // Setup common variables
-      const parsedArgs = parsed.arguments;
-      const guild = message.guild;
-      // Channel argument provided. Toggle it
-      if (parsedArgs) {
-         // Get stored queue channel list from database
-         const channels = guild.channels.cache.filter((channel) => channel.type !== "category").array() as (
-            | VoiceChannel
-            | TextChannel
-            | NewsChannel
-         )[];
-         const queueChannel = ParsingUtils.extractChannel(channels, parsed, message);
-         let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsedArgs);
-         if (queueChannel && maxMembersInQueue) {
-            if (maxMembersInQueue < 1) return; // invalid amount
-            if (queueChannel.type === "voice") {
-               if (maxMembersInQueue > 99) {
-                  MessageUtils.scheduleResponseToMessage(`Max \`amount\` is 99. Using 99.`, message);
-                  maxMembersInQueue = 99;
-               }
-               if (queueChannel.permissionsFor(guild.me).has("MANAGE_CHANNELS")) {
-                  (queueChannel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
-               } else {
-                  MessageUtils.scheduleResponseToMessage(
-                     "I can automatically set voice channel user limits, but I need a new permission.\n" +
-                        "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Channels`.",
-                     message
-                  );
-               }
+      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+      if (!queueChannel) return;
+
+      let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
+      if (maxMembersInQueue) {
+         if (maxMembersInQueue < 1) return; // invalid amount
+         if (queueChannel.type === "voice") {
+            if (maxMembersInQueue > 99) {
+               const channel = message.channel as TextChannel | NewsChannel;
+               MessagingUtils.sendTempMessage(`Max \`amount\` is 99. Using 99.`, channel, 10);
+               maxMembersInQueue = 99;
             }
-            MessageUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-            await Base.getKnex()<QueueChannel>("queue_channels")
-               .where("queue_channel_id", queueChannel.id)
-               .update("max_members", maxMembersInQueue);
+            if (queueChannel.permissionsFor(message.guild.me).has("MANAGE_CHANNELS")) {
+               (queueChannel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
+            } else {
+               SchedulingUtils.scheduleResponseToMessage(
+                  "I can automatically set voice channel user limits, but I need a new permission.\n" +
+                     "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Channels`.",
+                  message
+               );
+            }
          }
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         await Base.getKnex()<QueueChannel>("queue_channels")
+            .where("queue_channel_id", queueChannel.id)
+            .update("max_members", maxMembersInQueue);
       }
    }
+
+   /**
+    *
+    * @param queueGuild
+    * @param parsed
+    * @param message
+    */
+   public static async setAutoFill(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+      const queueChannel = (await ParsingUtils.fetchChannel(queueGuild, parsed, message)) as VoiceChannel;
+      if (!queueChannel) return;
+      if (queueChannel.type !== "voice") {
+         const channel = message.channel as TextChannel | NewsChannel;
+         MessagingUtils.sendTempMessage(
+            `\`${queueGuild.prefix}${Base.getConfig().autofillCmd}\` can only be used on voice channels.`,
+            channel,
+            10
+         );
+         return;
+      }
+
+      const statusString = parsed.arguments
+         .replace(/(<(@!?|#)\w+>)/gi, "")
+         .replace(queueChannel.name, "")
+         .toLowerCase()
+         .trim();
+      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+      if (statusString) {
+         if (statusString === "on") {
+            await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).update("auto_fill", 1);
+            SchedulingUtils.scheduleResponseToMessage(`Set autofill for \`${queueChannel.name}\` to \`ON\`.`, message);
+            const targetChannel = queueChannel.guild.channels.cache.get(storedQueueChannel.target_channel_id) as VoiceChannel;
+            fillTargetChannel(storedQueueChannel, queueChannel, targetChannel);
+         } else if (statusString === "off") {
+            await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).update("auto_fill", 0);
+            SchedulingUtils.scheduleResponseToMessage(
+               `Set autofill for \`${queueChannel.name}\` to \`OFF\`\n` +
+                  `Queue Bot will pull \`${storedQueueChannel.pull_num}\` at a time.\n` +
+                  `You can set this amount using \`${queueGuild.prefix}${Base.getConfig().pullNumCmd} {#}\`.`,
+               message
+            );
+         } else {
+            const channel = message.channel as TextChannel | NewsChannel;
+            MessagingUtils.sendTempMessage(
+               `\`${queueGuild.prefix}${Base.getConfig().autofillCmd}\` argument must be \`ON\` or \`OFF\`.`,
+               channel,
+               10
+            );
+         }
+      } else {
+         SchedulingUtils.scheduleResponseToMessage(
+            `Autofill for \`${queueChannel.name}\` is ` +
+               (storedQueueChannel.auto_fill ? "`ON`" : `\`OFF\`.\nQueue Bot will pull \`${storedQueueChannel.pull_num}\` at a time.`),
+            message
+         );
+      }
+   }
+
+   /**
+    *
+    * @param queueGuild
+    * @param parsed
+    * @param message
+    */
+   public static async setPullNum(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+      // Get queue channel
+      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+      if (!queueChannel) return;
+
+      let pullNum = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
+      if (pullNum) {
+         if (pullNum < 0 || pullNum > 99) {
+            SchedulingUtils.scheduleResponseToMessage(`\`amount\` must be between 1 and 99`, message);
+         } else {
+            await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).update("pull_num", pullNum);
+            SchedulingUtils.scheduleResponseToMessage(`Set pull number for \`${queueChannel.name}\` to \`${pullNum}\``, message);
+         }
+      } else {
+         const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+         SchedulingUtils.scheduleResponseToMessage(
+            `Autofill for \`${queueChannel.name}\` is ${storedQueueChannel.auto_fill ? "`ON`" : "`OFF`"}.\n` +
+               `Queue Bot will pull \`${storedQueueChannel.pull_num}\` at a time.`,
+            message
+         );
+      }
+   }
+
+   // Map commands to database columns and display strings
+   private static serverSettingVariables = {
+      [Base.getConfig().gracePeriodCmd]: { dbVariable: "grace_period", label: "Grace period", options: "grace period" },
+      [Base.getConfig().prefixCmd]: { dbVariable: "prefix", label: "Prefix", options: "prefix" },
+      [Base.getConfig().colorCmd]: { dbVariable: "color", label: "Color", options: "color" },
+      [Base.getConfig().cleanupCmd]: { dbVariable: "cleanup_commands", label: "Cleanup", options: "on|off" },
+      [Base.getConfig().modeCmd]: { dbVariable: "msg_mode", label: "Message mode", options: "message mode" },
+   };
 
    /**
     * Shuffle using the Fisher-Yates algorithm

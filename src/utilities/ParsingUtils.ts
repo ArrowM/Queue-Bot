@@ -1,7 +1,8 @@
 import { Message, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
 import { ParsedArguments, QueueGuild } from "./Interfaces";
-import { MessageUtils } from "./MessageUtils";
+import { MessagingUtils } from "./MessagingUtils";
+import { SchedulingUtils } from "./SchedulingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 
 export class ParsingUtils {
@@ -20,7 +21,7 @@ export class ParsingUtils {
       if (isNaN(num)) {
          return null;
       } else if (num < 1) {
-         MessageUtils.scheduleResponseToMessage(`\`amount\` must be a postive number!`, message);
+         SchedulingUtils.scheduleResponseToMessage(`\`amount\` must be a postive number!`, message);
          return null;
       } else {
          return num;
@@ -92,7 +93,7 @@ export class ParsingUtils {
             response += channels[0].name + (includeMention ? " @{user}" : "") + "`.";
          } else {
             // Multiple channels, list them
-            response += "{channel name}" + (includeMention ? " @{user}" : "") + "`.";
+            response += `{${target} name}` + (includeMention ? " @{user}" : "") + "`.";
             if (isAQueue) {
                response +=
                   "\nAvailable " + (type ? `**${type}** ` : "") + `queues: ${channels.map((channel) => " `" + channel.name + "`")}.`;
@@ -100,7 +101,7 @@ export class ParsingUtils {
          }
       }
       const channel = message.channel as TextChannel | NewsChannel;
-      MessageUtils.sendTempMessage(response, channel, 10);
+      MessagingUtils.sendTempMessage(response, channel, 10);
    }
 
    /**
@@ -136,8 +137,9 @@ export class ParsingUtils {
             }
          }
       } else {
-         MessageUtils.scheduleResponseToMessage(
-            `No queue channels set.` + `\nSet a queue first using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {channel name}\`.`,
+         SchedulingUtils.scheduleResponseToMessage(
+            `No queue channels set.\n` +
+            `Set a queue first using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {channel name}\`.`,
             message
          );
       }

@@ -58,8 +58,9 @@ export class QueueMemberTable {
          await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannelId).first().del();
       }
    }
+
    /**
-    * Modify the database structure for code patches
+    *
     */
    protected static updateTableStructure(): void {
       // Empty

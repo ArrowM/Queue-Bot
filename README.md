@@ -8,13 +8,14 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 
 ## How to use
 **Privileged users are the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.**  
-1. **Create a queue.** *Privileged users* can create queues with `!q {channel name}` where `{channel name}` is the name of one of the server's text or voice channels. For example `!q Waiting Room` turns the Waiting Room voice channel into a queue.  
-2. **Have users join the queue.** Any user can join text queues by clicking on the queue reaction or by using `!j {channel name}`. Any user can join voice queues by joining the matching voice channel.  
-3. **Pull users from a queue.** *Privileged users* can be pulled from a text queue using `!n {channel name}`. Pulling users from voice queues requires 2 steps -
-	First, use `!s {channel name}` to make the bot join the voice channel.
-	Second, drag the bot to the desired location and it will swap with the next person in a queue.
-	For example I create a queue using `!q Waiting Room`, then use `!s Waiting Room`, then I drag the bot to an `Among Us` voice channel when the next spot opens up.  
-4. **Customization.** *Privileged users* can customize things like the bot's command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot. Use `!h` to see a full list of commands and customization options.
+1. **Create a Queue.** *Privileged users* can create queues with `!q {channel name}` where `{channel name}` is the name of a text or voice channels. For example, `!q Waiting Room` turns the Waiting Room voice channel into a queue.  
+2. **Join a Queue.** Any user can join text queues by clicking the queue reaction or with `!j {channel name}`. Any user can join voice queues by joining the matching voice channel.  
+3. **Pull Users From a Queue.**  
+	**TEXT**: *Privileged* users can be pulled from a text queue with `!n {queue name}`.  
+    **VOICE**: 1. `!s {queue name}` makes the bot join the voice channel. 2. Move the bot to a new channel to set a "target".  
+    If the target channel has a user limit, (`!limit {queue name} {#}`), the bot will automatically move people from the queue to keep the target channel full. You can disconnect the bot from the voice channel.  
+	If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever you want to pull people from the queue (the bot will swap with them). You can customize how many people the bot will pull each time using `!pullnum {queue name} {#}`.    
+4. **Customization.** *Privileged* users can customize the command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot with the commands below.There are also additional commands to do things like shuffling and clearing queues.  
 
 ## Commands
 Note: If you only have 1 queue, you can skip the channel name argument.
@@ -30,13 +31,16 @@ All commands except `Join` are restricted to the server owner, administrators, a
 | Kick | `!k {channel name} @{user 1} @{user 2} ...` | Kick one or more people from a queue. |
 | Clear | `!clear {channel name}` | Clear a queue. |
 | Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
-| Change Queue Size Limit | `!limit {channel name} {size limit}` | Changes queue size limit. |
+| Set Queue Size Limit | `!limit {channel name} {#}` | Sets queue size limit. |
+| Autofill | `!autofill {queue name} {on|off}` | Toggles autofill. |
+| Pull Amount | `!pullnum {queue name} {#}` | Sets the default number of people to pull. |
 ||||
 |**Server Settings**|||
-| Change the Command Prefix | `!prefix {new prefix}` | Change the prefix for Queue Bot commands. |
-| Change the Color | `!color {new color}` | Change the color of bot messages. |
-| Change the Grace Period | `!grace {time in seconds}` | Change how long a person can leave a queue before losing their spot. |
-| Change the Display Mode | `!mode {new mode}` | Changes how the display messages are updated. Use `!mode` to see the different update modes.
+| Set the Command Prefix | `!prefix {new prefix}` | Set the prefix for Queue Bot commands. |
+| Set the Color | `!color {new color}` | Set the color of bot messages. |
+| Set the Grace Period | `!grace {# seconds}` | Set how long a person can leave a queue before losing their spot. |
+| Set the Display Mode | `!mode {#}` | Sets how the display messages are updated. Use `!mode` to see the different update modes. |
+| Command Cleanup | `!cleanup {on|off}` | Toggles the cleanup of user-sent Queue Bot commands. |
 
 ![Example of `!s`](docs/example.gif)  
 
@@ -72,20 +76,23 @@ All commands except `Join` are restricted to the server owner, administrators, a
 | gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                |
 | permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
 | topGgToken             | Token for updating top.gg server count. This should be left blank.                                                                |
-   
+
 | Config Command Fields  | Description                                                                                                                       |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| autofillCmd            | Command to toggle autofill.                                                                                                       |
+| cleanupCmd             | Command to toggle command cleanup.                                                                                                |
 | clearCmd               | Command to clear the queue.                                                                                                       |
 | colorCmd               | Command to change the color.                                                                                                      |
-| commandPrefixCmd       | Command to change the command prefix.                                                                                             |
 | displayCmd             | Command to display a queue in a text channel.                                                                                     |
 | gracePeriodCmd         | Command to change the grace period.                                                                                               |
 | helpCmd                | Command to display the help information.                                                                                          |
-| joinCmd                | Command to join a text channel queue.  
+| joinCmd                | Command to join a text channel queue.                                                                                             |
 | kickCmd                | Command to kick users from a queue.                                                                                               |
 | limitCmd               | Command to change queue size limit.                                                                                               |
 | modeCmd                | Command to change the display messaging mode.                                                                                     |
 | nextCmd                | Command to pull the next user from a text channel.                                                                                |
+| prefixCmd              | Command to change the command prefix.                                                                                             |
+| pullNumCmd             | Command to change the number of people pulled at once.                                                                            |
 | queueCmd               | Command to change queues.                                                                                                         |
 | shuffleCmd             | Command to shuffle the queue.                                                                                                     |
 | startCmd               | Command to make the bot join a voice channel.                                                                                     |

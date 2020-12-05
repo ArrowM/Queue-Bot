@@ -2,59 +2,16 @@ import { Message, MessageEmbed, MessageOptions, NewsChannel, TextChannel, VoiceC
 import { DisplayChannel, QueueChannel, QueueGuild, QueueMember } from "./Interfaces";
 import { Base } from "./Base";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
+import { SchedulingUtils } from "./SchedulingUtils";
 
-interface QueueUpdateRequest {
+export interface QueueUpdateRequest {
    queueGuild: QueueGuild;
    queueChannel: VoiceChannel | TextChannel | NewsChannel;
    silentUpdate: boolean;
 }
 
-export class MessageUtils {
-   private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
-   private static pendingResponses: Map<TextChannel | NewsChannel, MessageOptions> = new Map();
-   private static gracePeriodCache = new Map();
-   /**
-    * Send scheduled display updates every 1.1 seconds
-    * Necessary to comply with Discord API rate limits
-    */
-   public static async startScheduler() {
-      setInterval(() => {
-         // Queue Displays
-         if (this.pendingQueueUpdates) {
-            for (const request of this.pendingQueueUpdates.values()) {
-               this.updateQueueDisplays(request);
-            }
-            this.pendingQueueUpdates.clear();
-         }
-         // Other Messages
-         if (this.pendingResponses) {
-            for (const [key, value] of this.pendingResponses) {
-               key.send(value).catch(() => null);
-            }
-            this.pendingResponses.clear();
-         }
-      }, 1100);
-   }
-
-   /**
-    * Schedule a queue channel to have it's displays updated
-    * @param _queueGuild
-    * @param _queueChannels
-    * @param _silentUpdate
-    */
-   public static scheduleDisplayUpdate(
-      _queueGuild: QueueGuild,
-      _queueChannel: VoiceChannel | TextChannel | NewsChannel,
-      _silentUpdate?: boolean
-   ): void {
-      if (_queueChannel) {
-         this.pendingQueueUpdates.set(_queueChannel.id, {
-            queueGuild: _queueGuild,
-            queueChannel: _queueChannel,
-            silentUpdate: _silentUpdate,
-         });
-      }
-   }
+export class MessagingUtils {
+   private static gracePeriodCache = new Map<string, string>();
 
    /**
     * Update a server's display messages
@@ -71,7 +28,7 @@ export class MessageUtils {
       }
 
       // Create an embed list
-      const displayEmbed = await MessageUtils.generateEmbed(queueGuild, queueChannel);
+      const displayEmbed = await this.generateEmbed(queueGuild, queueChannel);
 
       for (const storedDisplayChannel of storedDisplayChannels) {
          // For each embed list of the queue
@@ -106,47 +63,6 @@ export class MessageUtils {
          } catch (e) {
             // Skip
          }
-      }
-   }
-
-   /**
-    * Schedule a message to be sent
-    * @param message
-    * @param messageToSend
-    */
-   public static scheduleResponseToMessage(response: MessageOptions | string, message: Message): void {
-      const channel = message.channel as TextChannel | NewsChannel;
-      if (!this.scheduleResponseToChannel(response, channel)) {
-         message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
-      }
-   }
-
-   /**
-    * Attempt to send a response to channel, return false if bot lacks permissiosn.
-    * @param response
-    * @param channel
-    */
-   public static scheduleResponseToChannel(response: MessageOptions | string, channel: TextChannel | NewsChannel): boolean {
-      if (channel.permissionsFor(channel.guild.me).has("SEND_MESSAGES") && channel.permissionsFor(channel.guild.me).has("EMBED_LINKS")) {
-         // Schedule to response to channel
-         let existingPendingResponse = this.pendingResponses.get(channel) || {};
-         if (typeof response === "string") {
-            if (existingPendingResponse.content) {
-               existingPendingResponse.content += "\n" + response;
-            } else {
-               existingPendingResponse.content = response;
-            }
-         } else {
-            if (existingPendingResponse.embed) {
-               channel.send(existingPendingResponse).catch(() => null);
-            }
-            existingPendingResponse = response;
-         }
-
-         this.pendingResponses.set(channel, existingPendingResponse);
-         return true;
-      } else {
-         return false;
       }
    }
 
@@ -190,9 +106,12 @@ export class MessageUtils {
       ).slice(0, +storedQueueChannel.max_members || 625);
 
       const _embed = new MessageEmbed();
-      _embed.setTitle(
-         queueChannel.name + (storedQueueChannel.max_members ? `  -  ${queueMembers.length}/${storedQueueChannel.max_members}` : "")
-      );
+      let title = queueChannel.name;
+      if (storedQueueChannel.target_channel_id) {
+         const targetChannel = queueChannel.guild.channels.cache.get(storedQueueChannel.target_channel_id);
+         title += `  ->  ${targetChannel.name}`;
+      }
+      _embed.setTitle(title);
       _embed.setColor(queueGuild.color);
       _embed.setDescription(
          queueChannel.type === "voice"
@@ -205,10 +124,7 @@ export class MessageUtils {
               }\` to join or leave this queue.`
       );
 
-      if (!queueMembers || queueMembers.length === 0) {
-         // Handle empty queue
-         _embed.addField("No members in queue.", "\u200b");
-      } else {
+      if (queueMembers && queueMembers.length > 0) {
          // Handle non-empty
          const maxEmbedSize = 25;
          let position = 0;
@@ -219,8 +135,7 @@ export class MessageUtils {
                   .slice(position, position + maxEmbedSize)
                   .reduce(
                      (accumlator: string, queueMember: QueueMember) =>
-                        (accumlator =
-                           accumlator +
+                        (accumlator +=
                            `${++position} <@!${queueMember.queue_member_id}>` +
                            (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
                            "\n"),
@@ -228,9 +143,15 @@ export class MessageUtils {
                   )
             );
          }
-         _embed.fields[0].name = `Queue length: **${queueMembers ? queueMembers.length : 0}**`;
+      } else {
+         // Handle empty queue
+         _embed.addField("\u200b", "\u200b");
       }
-
+      if (storedQueueChannel.max_members) {
+         _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0} of ${storedQueueChannel.max_members}`;
+      } else {
+         _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0}`;
+      }
       return { embed: _embed };
    }
 
@@ -245,7 +166,7 @@ export class MessageUtils {
       if (channelPermissions.has("ADD_REACTIONS")) {
          await message.react(emoji);
       } else {
-         MessageUtils.scheduleResponseToChannel(
+         SchedulingUtils.scheduleResponseToChannel(
             "I can let people join via reaction, but I need a new permission.\n" +
                "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Add Reactions`.",
             channel

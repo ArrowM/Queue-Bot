@@ -1,7 +1,8 @@
 import { Message, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
-import { MessageUtils } from "../MessageUtils";
+import { MessagingUtils } from "../MessagingUtils";
+import { SchedulingUtils } from "../SchedulingUtils";
 
 export class DisplayChannelTable {
    /**
@@ -42,7 +43,7 @@ export class DisplayChannelTable {
          const response = (await displayChannel.send(displayEmbed).catch()) as Message;
          if (response) {
             if (queueChannel.type === "text") {
-               MessageUtils.sendReaction(response, Base.getConfig().joinEmoji);
+               MessagingUtils.sendReaction(response, Base.getConfig().joinEmoji);
             }
             await Base.getKnex()<DisplayChannel>("display_channels").insert({
                display_channel_id: displayChannel.id,
@@ -95,7 +96,7 @@ export class DisplayChannelTable {
                if (displayChannel.permissionsFor(displayChannel.guild.me).has("MANAGE_MESSAGES")) {
                   setTimeout(() => displayMessage.reactions.removeAll().catch(() => null), 1000); // Timeout to avoid rate limit
                } else {
-                  MessageUtils.scheduleResponseToChannel(
+                  SchedulingUtils.scheduleResponseToChannel(
                      "I can clean up old queue reactions, but I need a new permission.\n" +
                         "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Messages`.",
                      displayChannel
@@ -111,13 +112,8 @@ export class DisplayChannelTable {
    /**
     * Modify the database structure for code patches
     */
-   protected static updateTableStructure(): void {
-      this.addEmbedId();
-   }
-   /**
-    * Migration of embed_ids column to emdbed_id
-    */
-   private static async addEmbedId(): Promise<void> {
+   protected static async updateTableStructure(): Promise<void> {
+      // Migration of embed_ids to embed_id
       if (await Base.getKnex().schema.hasColumn("display_channels", "embed_ids")) {
          console.log("Migrating display embed ids");
          await Base.getKnex().schema.table("display_channels", (table) => table.text("embed_id"));

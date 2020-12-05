@@ -13,6 +13,8 @@
    "permissionsRegexp": "\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b",
    "prefix": "!",
 
+   "autofillCmd": "autofill",
+   "cleanupCmd": "cleanup",
    "clearCmd": "clear",
    "colorCmd": "color",
    "displayCmd": "d",
@@ -24,6 +26,7 @@
    "modeCmd": "mode",
    "nextCmd": "n",
    "prefixCmd": "prefix",
+   "pullNumCmd": "pullnum",
    "queueCmd": "q",
    "shuffleCmd": "shuffle",
    "startCmd": "s"
