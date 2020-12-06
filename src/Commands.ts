@@ -672,7 +672,9 @@ export class Commands {
             await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).update("auto_fill", 1);
             SchedulingUtils.scheduleResponseToMessage(`Set autofill for \`${queueChannel.name}\` to \`ON\`.`, message);
             const targetChannel = queueChannel.guild.channels.cache.get(storedQueueChannel.target_channel_id) as VoiceChannel;
-            fillTargetChannel(storedQueueChannel, queueChannel, targetChannel);
+            if (targetChannel) {
+               fillTargetChannel(storedQueueChannel, queueChannel, targetChannel);
+            }
          } else if (statusString === "off") {
             await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).update("auto_fill", 0);
             SchedulingUtils.scheduleResponseToMessage(
