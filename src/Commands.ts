@@ -384,14 +384,17 @@ export class Commands {
          } else {
             // Get number of users to pop
             let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
-            if (maxMembersInQueue) {
-               if (maxMembersInQueue < 1) return; // invalid amount
-               if (queueChannel.type === "voice") {
-                  if (maxMembersInQueue > 99) {
-                     SchedulingUtils.scheduleResponseToMessage(`Max \`amount\` is 99. Using 99.`, message);
-                     maxMembersInQueue = 99;
-                  }
-                  if (queueChannel.permissionsFor(message.guild.me).has("CONNECT")) {
+            if (!maxMembersInQueue && queueChannel["userLimit"]) {
+               maxMembersInQueue = queueChannel["userLimit"];
+            }
+            if (queueChannel.type === "voice") {
+               if (queueChannel.permissionsFor(message.guild.me).has("CONNECT")) {
+                  if (maxMembersInQueue) {
+                     if (maxMembersInQueue < 1) return; // invalid amount
+                     if (maxMembersInQueue > 99) {
+                        SchedulingUtils.scheduleResponseToMessage(`Max \`amount\` is 99. Using 99.`, message);
+                        maxMembersInQueue = 99;
+                     }
                      if (queueChannel.permissionsFor(message.guild.me).has("MANAGE_CHANNELS")) {
                         (queueChannel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
                      } else {
@@ -401,12 +404,12 @@ export class Commands {
                            message
                         );
                      }
-                  } else {
-                     SchedulingUtils.scheduleResponseToMessage(
-                        `I need the **CONNECT** permission in the \`${queueChannel.name}\` voice channel to pull in queue members.`,
-                        message
-                     );
                   }
+               } else {
+                  SchedulingUtils.scheduleResponseToMessage(
+                     `I need the **CONNECT** permission in the \`${queueChannel.name}\` voice channel to pull in queue members.`,
+                     message
+                  );
                }
             }
             // It's not in the list, add it
