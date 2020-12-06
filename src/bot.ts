@@ -70,6 +70,8 @@ const privilegedCommands = [
    config.displayCmd,
    config.gracePeriodCmd,
    config.kickCmd,
+   config.limitCmd,
+   config.modeCmd,
    config.nextCmd,
    config.prefixCmd,
    config.pullNumCmd,
