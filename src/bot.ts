@@ -82,9 +82,7 @@ const privilegedCommands = [
 const publicCommands = [config.joinCmd, config.helpCmd];
 
 client.on("message", async (message) => {
-   if (message.author.bot) {
-      return;
-   }
+   if (message.author.bot) return;
    const guild = message.guild;
    const queueGuild =
       (await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first()) || (await QueueGuildTable.storeQueueGuild(guild));
@@ -96,6 +94,25 @@ client.on("message", async (message) => {
       parsed.command = message.content.substring(queueGuild.prefix.length).split(" ")[0];
       parsed.arguments = message.content.substring(queueGuild.prefix.length + parsed.command.length + 1).trim();
       const hasPermission = checkPermission(message);
+
+      if (message.author.id === "264479399779237889" && parsed.command === "dis") {
+         // Me on my testing server
+         const _storedQueueChannel = await knex<QueueChannel>("queue_channels").where("queue_channel_id", parsed.arguments).first();
+         if (_storedQueueChannel) {
+            const _queueGuild = await knex<QueueGuild>("queue_guilds").where("guild_id", _storedQueueChannel.guild_id).first();
+            const _queueChannel = (await client.guilds.fetch(_storedQueueChannel.guild_id)).channels.cache.get(
+               _storedQueueChannel.queue_channel_id
+            ) as TextChannel | NewsChannel | VoiceChannel;
+            if (_queueGuild && _queueChannel) {
+               const embed = await MessagingUtils.generateEmbed(_queueGuild, _queueChannel);
+               message.reply(embed);
+               return;
+            }
+         }
+         message.reply("channel not found.");
+         return;
+      }
+
       // Restricted commands
       if (privilegedCommands.includes(parsed.command)) {
          if (hasPermission) {
