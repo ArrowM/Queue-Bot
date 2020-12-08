@@ -448,7 +448,6 @@ export class Commands {
       if (!queueChannel) return;
 
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
-
       const storedQueueMembers = await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
 
       // Parse members
@@ -507,8 +506,9 @@ export class Commands {
     */
    public static async popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
       const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, false);
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
       if (!queueChannel) return;
+      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
+      if (!storedQueueChannel) return;
 
       // Get number of users to pop
       const numToPop = ParsingUtils.getTailingNumberFromString(message, parsed.arguments) || storedQueueChannel.pull_num;
@@ -584,19 +584,22 @@ export class Commands {
 
       if (queueChannel.type === "voice") {
          if (queueChannel.permissionsFor(message.guild.me).has("CONNECT")) {
-            try {
-               queueChannel.join().then((connection) => {
-                  if (connection) {
-                     connection.on("warn", () => null);
-                     connection.on("error", () => null);
-                     connection.on("failed", () => null);
-                     connection.on("uncaughtException", () => null);
-                     connection.voice?.setSelfDeaf(true);
-                     connection.voice?.setSelfMute(true);
-                  }
-               });
-            } catch (e) {
-               // ignore
+            if (!queueChannel.full) {
+               queueChannel
+                  .join()
+                  .then((connection) => {
+                     if (connection) {
+                        connection.on("warn", () => null);
+                        connection.on("error", () => null);
+                        connection.on("failed", () => null);
+                        connection.on("uncaughtException", () => null);
+                        connection.voice?.setSelfDeaf(true);
+                        connection.voice?.setSelfMute(true);
+                     }
+                  })
+                  .catch(() => null);
+            } else {
+               SchedulingUtils.scheduleResponseToMessage(`I can't join ${queueChannel.name} because it is full`, message);
             }
          } else {
             SchedulingUtils.scheduleResponseToMessage(`I don't have permission to join ${queueChannel.name}!`, message);

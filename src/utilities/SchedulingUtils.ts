@@ -34,7 +34,11 @@ export class SchedulingUtils {
       } else {
          timestamps.push(Date.now());
       }
-      setTimeout(() => voice.setChannel(channel).catch(() => null), delay);
+      setTimeout(() => {
+         if (!channel.full) {
+            voice.setChannel(channel).catch(() => null);
+         }
+      }, delay);
       // EMPTY
    }
 
