@@ -7,7 +7,7 @@ import { QueueChannelTable } from "./tables/QueueChannelTable";
 
 export class ParsingUtils {
    /**
-    * Fetch tailing number from a string.
+    * Fetch tailing number from a string. Num must be > 1.
     * Ex:  '!n #general 2' returns 2.
     * @param message
     * @param argument
@@ -19,10 +19,10 @@ export class ParsingUtils {
 
       let num = +arg;
       if (isNaN(num)) {
-         return null;
+         return undefined;
       } else if (num < 1) {
          SchedulingUtils.scheduleResponseToMessage(`\`amount\` must be a postive number!`, message);
-         return null;
+         return undefined;
       } else {
          return num;
       }

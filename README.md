@@ -13,34 +13,37 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 3. **Pull Users From a Queue.**  
 	**TEXT**: *Privileged* users can be pulled from a text queue with `!n {queue name}`.  
     **VOICE**: 1. `!s {queue name}` makes the bot join the voice channel. 2. Move the bot to a new channel to set a "target".  
-    If the target channel has a user limit, (`!limit {queue name} {#}`), the bot will automatically move people from the queue to keep the target channel full. You can disconnect the bot from the voice channel.  
+   If the target channel has a user limit, (`!limit {queue name} {#}`), the bot will automatically move people from the queue to keep the target channel full. You can disconnect the bot from the voice channel.  
 	If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever you want to pull people from the queue (the bot will swap with them). You can customize how many people the bot will pull each time using `!pullnum {queue name} {#}`.    
 4. **Customization.** *Privileged* users can customize the command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot with the commands below.There are also additional commands to do things like shuffling and clearing queues.  
 
 ## Commands
 Note: If you only have 1 queue, you can skip the channel name argument.
-All commands except `Join` are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priveledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
-| Function | Command | Description |
-|-|-|-|
-| Create & Destroy Queues | `!q {channel name} {OPTIONAL: size}` | Create or destory a queue for a specified channel. |
-| List Queues | `!q` | List the names of the existing queues. | 
-| Display a Queue | `!d {channel name}` | Display the members in a queue. These messages stay updated. | 
-| Pull from Voice | `!s {channel name}` | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
-| Pull from Text | `!n {channel name} {OPTIONAL: amount}` |  Removes people from the text queue and displays their name. |
-| Join | `!j {channel name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | Add one or more people to a queue. |
-| Kick | `!k {OPTIONAL: channel name} @{user 1} @{user 2} ...` | Kicks one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
-| Clear | `!clear {channel name}` | Clear a queue. |
-| Shuffle | `!shuffle {channel name}` | Shuffle a queue. |
-| Set Queue Size Limit | `!limit {channel name} {#}` | Sets queue size limit. |
-| Autofill | `!autofill {queue name} {on|off}` | Toggles autofill. |
-| Pull Amount | `!pullnum {queue name} {#}` | Sets the default number of people to pull. |
-||||
+All commands except `Join` are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priviledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
+
+| Function | Command | Default | Description |
+|-|-|-|-|
+| Create & Destroy Queues | `!q {channel name} {OPTIONAL: size}` | | Create or destory a queue for a specified channel. |
+| List Queues | `!q` | | List the names of the existing queues. | 
+| Display a Queue | `!d {channel name}` | | Display the members in a queue. These messages stay updated. | 
+| Pull from Voice | `!s {channel name}` | | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
+| Pull from Text | `!n {channel name} {OPTIONAL: amount}` | |  Removes people from the text queue and displays their name. |
+| Join | `!j {channel name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | | Add one or more people to a queue. |
+| Kick | `!k {OPTIONAL: channel name} @{user 1} @{user 2} ...` | | Kicks one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
+| Clear | `!clear {channel name}` | | Clear a queue. |
+| Shuffle | `!shuffle {channel name}` | | Shuffle a queue. |
+| Set Queue Size Limit | `!limit {channel name} {#}` | | Sets queue size limit. |
+|||||
+|**Channel Settings**|||
+| Autofill | `!autofill {queue name} {on\|off}` | `on` | Toggles autofill. |
+| Pull Amount | `!pullnum {queue name} {#}` | `1` | Sets the default number of people to pull. |
+|||||
 |**Server Settings**|||
-| Set the Command Prefix | `!prefix {new prefix}` | Set the prefix for Queue Bot commands. |
-| Set the Color | `!color {new color}` | Set the color of bot messages. |
-| Set the Grace Period | `!grace {# seconds}` | Set how long a person can leave a queue before losing their spot. |
-| Set the Display Mode | `!mode {#}` | Sets how the display messages are updated. Use `!mode` to see the different update modes. |
-| Command Cleanup | `!cleanup {on|off}` | Toggles the cleanup of user-sent Queue Bot commands. |
+| Set the Command Prefix | `!prefix {new prefix}` | in config | Set the prefix for Queue Bot commands. |
+| Set the Color | `!color {new color}` | in config | Set the color of bot messages. |
+| Set the Grace Period | `!grace {# seconds}` | `0` | Set how long a person can leave a queue before losing their spot. |
+| Set the Display Mode | `!mode {#}` | `1` | Sets how the display messages are updated. Use `!mode` to see the different update modes. |
+| Command Cleanup | `!cleanup {on\|off}` | `on` | Toggles the cleanup of user-sent Queue Bot commands. |
 
 ![Example of `!s`](docs/example.gif)  
 

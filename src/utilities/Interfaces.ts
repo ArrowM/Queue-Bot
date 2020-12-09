@@ -16,7 +16,7 @@ export interface QueueChannel {
 export interface DisplayChannel {
    id: number;
    display_channel_id: string;
-   embed_id: string;
+   embed_ids: string[];
    queue_channel_id: string;
 }
 

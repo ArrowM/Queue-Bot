@@ -7,11 +7,11 @@ import { SchedulingUtils } from "./SchedulingUtils";
 export interface QueueUpdateRequest {
    queueGuild: QueueGuild;
    queueChannel: VoiceChannel | TextChannel | NewsChannel;
-   silentUpdate: boolean;
 }
 
 export class MessagingUtils {
    private static gracePeriodCache = new Map<string, string>();
+   private static MAX_MEMBERS_PER_EMBED = 200;
 
    /**
     * Update a server's display messages
@@ -22,14 +22,16 @@ export class MessagingUtils {
       const queueGuild = updateRequest.queueGuild;
       const queueChannel = updateRequest.queueChannel;
 
-      const storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
+      const storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where(
+         "queue_channel_id",
+         queueChannel.id
+      );
       if (!storedDisplayChannels || storedDisplayChannels.length === 0) {
          return;
       }
 
       // Create an embed list
-      const displayEmbed = await this.generateEmbed(queueGuild, queueChannel);
-
+      const embeds = await this.generateEmbed(queueGuild, queueChannel);
       for (const storedDisplayChannel of storedDisplayChannels) {
          // For each embed list of the queue
          try {
@@ -42,23 +44,39 @@ export class MessagingUtils {
                   displayChannel.permissionsFor(displayChannel.guild.me).has("SEND_MESSAGES") &&
                   displayChannel.permissionsFor(displayChannel.guild.me).has("EMBED_LINKS")
                ) {
-                  if (queueGuild.msg_mode === 1 || updateRequest.silentUpdate) {
+                  if (queueGuild.msg_mode === 1) {
                      /* Edit */
                      // Retrieved display embed
-                     const storedEmbed: Message = await displayChannel.messages.fetch(storedDisplayChannel.embed_id).catch(() => null);
+                     const storedEmbeds: Message[] = [];
+                     for (const id of storedDisplayChannel.embed_ids) {
+                        const storedEmbed = await displayChannel.messages.fetch(id).catch(() => null);
+                        if (storedEmbed) {
+                           storedEmbeds.push(storedEmbed);
+                        }
+                     }
 
-                     if (storedEmbed) {
-                        await storedEmbed.edit(displayEmbed).catch(() => null);
+                     if (storedEmbeds.length === embeds.length) {
+                        for (let i = 0; i < embeds.length; i++) {
+                           await storedEmbeds[i].edit(embeds[i]).catch(() => null);
+                        }
                         continue;
                      }
+                     // Else, fall through and delete the old and store the new.
                   }
                   /* Replace */
-                  await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
-                  await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, displayEmbed);
+                  await DisplayChannelTable.unstoreDisplayChannel(
+                     queueChannel.id,
+                     displayChannel.id,
+                     queueGuild.msg_mode !== 3
+                  );
+                  await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, embeds);
                }
             } else {
                // Handled deleted display channels
-               await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
+               await DisplayChannelTable.unstoreDisplayChannel(
+                  queueChannel.id,
+                  storedDisplayChannel.display_channel_id
+               );
             }
          } catch (e) {
             // Skip
@@ -92,47 +110,54 @@ export class MessagingUtils {
    }
 
    /**
-    * Create an Embed to represent everyone in a single queue. Will create multiple embeds for large queues
+    *
     * @param queueGuild
     * @param queueChannel Discord message object.
     */
    public static async generateEmbed(
       queueGuild: QueueGuild,
       queueChannel: TextChannel | NewsChannel | VoiceChannel
-   ): Promise<MessageOptions> {
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannel.id).first();
-      const queueMembers = (
-         await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy("created_at")
-      ).slice(0, +storedQueueChannel.max_members || 625);
+   ): Promise<MessageOptions[]> {
+      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
+         .where("queue_channel_id", queueChannel.id)
+         .first();
+      let queueMembers = await Base.getKnex()<QueueMember>("queue_members")
+         .where("queue_channel_id", queueChannel.id)
+         .orderBy("created_at");
+      if (storedQueueChannel.max_members) queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
 
-      const _embed = new MessageEmbed();
+      // Setup embed variables
       let title = queueChannel.name;
       if (storedQueueChannel.target_channel_id) {
          const targetChannel = queueChannel.guild.channels.cache.get(storedQueueChannel.target_channel_id);
          title += `  ->  ${targetChannel.name}`;
       }
-      _embed.setTitle(title);
-      _embed.setColor(queueGuild.color);
-      _embed.setDescription(
-         queueChannel.type === "voice"
-            ? // Voice
-              `Join the **${queueChannel.name}** voice channel to join this queue.` +
-                 (await this.getGracePeriodString(queueGuild.grace_period))
-            : // Text
-              `React with ${Base.getConfig().joinEmoji} or type \`${queueGuild.prefix}${Base.getConfig().joinCmd} ${
-                 queueChannel.name
-              }\` to join or leave this queue.`
-      );
+      let position = 0;
+      let description: string;
+      if (queueChannel.type === "voice") {
+         description =
+            `Join the **${queueChannel.name}** voice channel to join this queue.` +
+            (await this.getGracePeriodString(queueGuild.grace_period));
+      } else {
+         description =
+            `React with ${Base.getConfig().joinEmoji} or type \`${queueGuild.prefix}${Base.getConfig().joinCmd} ` +
+            `${queueChannel.name}\` to join or leave this queue.`;
+      }
+      let _queueMembers = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
 
-      if (queueMembers && queueMembers.length > 0) {
-         // Handle non-empty
-         const maxEmbedSize = 25;
-         let position = 0;
-         for (let i = 0; i < queueMembers.length / maxEmbedSize; i++) {
-            _embed.addField(
-               "\u200b",
-               queueMembers
-                  .slice(position, position + maxEmbedSize)
+      const embeds: MessageOptions[] = [];
+      for (;;) {
+         const _embed = new MessageEmbed();
+         _embed.setTitle(title);
+         _embed.setColor(queueGuild.color);
+         _embed.setDescription(description);
+         if (_queueMembers && _queueMembers.length > 0) {
+            // Handle non-empty
+            const maxFieldCount = 25;
+            for (let i = 0; i < _queueMembers.length / maxFieldCount; i++) {
+               const pos = position % this.MAX_MEMBERS_PER_EMBED;
+               const userList = _queueMembers
+                  .slice(pos, pos + maxFieldCount)
                   .reduce(
                      (accumlator: string, queueMember: QueueMember) =>
                         (accumlator +=
@@ -140,19 +165,26 @@ export class MessagingUtils {
                            (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
                            "\n"),
                      ""
-                  )
-            );
+                  );
+               _embed.addField("\u200b", userList);
+            }
+         } else {
+            // Handle empty queue
+            _embed.addField("\u200b", "\u200b");
          }
-      } else {
-         // Handle empty queue
-         _embed.addField("\u200b", "\u200b");
+         if (storedQueueChannel.max_members) {
+            _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0} of ${
+               storedQueueChannel.max_members
+            }`;
+         } else {
+            _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0}`;
+         }
+         embeds.push({ embed: _embed });
+         // Setup for next 200 members (Keep at the bottom of loop. We want to generate 1 embed for empty queues).
+         _queueMembers = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
+         if (_queueMembers.length === 0) break;
       }
-      if (storedQueueChannel.max_members) {
-         _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0} of ${storedQueueChannel.max_members}`;
-      } else {
-         _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0}`;
-      }
-      return { embed: _embed };
+      return embeds;
    }
 
    /**
@@ -180,7 +212,11 @@ export class MessagingUtils {
     * @param channel
     * @param duration
     */
-   public static async sendTempMessage(response: string, channel: TextChannel | NewsChannel, duration: number): Promise<void> {
+   public static async sendTempMessage(
+      response: string,
+      channel: TextChannel | NewsChannel,
+      duration: number
+   ): Promise<void> {
       const _response = (await channel.send(response).catch(() => null)) as Message;
       if (_response) {
          setTimeout(() => {

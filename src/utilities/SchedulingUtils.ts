@@ -75,14 +75,12 @@ export class SchedulingUtils {
     */
    public static scheduleDisplayUpdate(
       _queueGuild: QueueGuild,
-      _queueChannel: VoiceChannel | TextChannel | NewsChannel,
-      _silentUpdate?: boolean
+      _queueChannel: VoiceChannel | TextChannel | NewsChannel
    ): void {
       if (_queueChannel) {
          this.pendingQueueUpdates.set(_queueChannel.id, {
             queueGuild: _queueGuild,
             queueChannel: _queueChannel,
-            silentUpdate: _silentUpdate,
          });
       }
    }
@@ -95,7 +93,9 @@ export class SchedulingUtils {
    public static scheduleResponseToMessage(response: MessageOptions | string, message: Message): void {
       const channel = message.channel as TextChannel | NewsChannel;
       if (!this.scheduleResponseToChannel(response, channel)) {
-         message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
+         message.author
+            .send(`I don't have permission to write messages and embeds in \`${channel.name}\``)
+            .catch(() => null);
       }
    }
 
@@ -104,8 +104,14 @@ export class SchedulingUtils {
     * @param response
     * @param channel
     */
-   public static scheduleResponseToChannel(response: MessageOptions | string, channel: TextChannel | NewsChannel): boolean {
-      if (channel.permissionsFor(channel.guild.me).has("SEND_MESSAGES") && channel.permissionsFor(channel.guild.me).has("EMBED_LINKS")) {
+   public static scheduleResponseToChannel(
+      response: MessageOptions | string,
+      channel: TextChannel | NewsChannel
+   ): boolean {
+      if (
+         channel.permissionsFor(channel.guild.me).has("SEND_MESSAGES") &&
+         channel.permissionsFor(channel.guild.me).has("EMBED_LINKS")
+      ) {
          // Schedule to response to channel
          let existingPendingResponse = this.pendingResponses.get(channel) || {};
          if (typeof response === "string") {

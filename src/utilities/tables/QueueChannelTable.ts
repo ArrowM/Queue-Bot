@@ -8,8 +8,8 @@ export class QueueChannelTable {
    /**
     * Create & update QueueChannel database table if necessary
     */
-   public static initTable(): void {
-      Base.getKnex()
+   public static async initTable(): Promise<void> {
+      await Base.getKnex()
          .schema.hasTable("queue_channels")
          .then(async (exists) => {
             if (!exists) {
@@ -18,19 +18,25 @@ export class QueueChannelTable {
                      table.text("queue_channel_id").primary();
                      table.text("guild_id");
                      table.text("max_members");
+                     table.text("target_channel_id");
+                     table.integer("auto_fill");
+                     table.integer("pull_num");
                   })
                   .catch((e) => console.error(e));
             }
          });
 
-      this.updateTableStructure();
+      await this.updateTableStructure();
    }
 
    /**
     *
     * @param channelToAdd
     */
-   public static async storeQueueChannel(channelToAdd: VoiceChannel | TextChannel | NewsChannel, maxMembers?: number): Promise<void> {
+   public static async storeQueueChannel(
+      channelToAdd: VoiceChannel | TextChannel | NewsChannel,
+      maxMembers?: number
+   ): Promise<void> {
       // Fetch old channels
       await Base.getKnex()<QueueChannel>("queue_channels")
          .insert({
@@ -57,7 +63,10 @@ export class QueueChannelTable {
     */
    public static async unstoreQueueChannel(guildId: string, channelIdToRemove?: string): Promise<void> {
       if (channelIdToRemove) {
-         await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", channelIdToRemove).first().del();
+         await Base.getKnex()<QueueChannel>("queue_channels")
+            .where("queue_channel_id", channelIdToRemove)
+            .first()
+            .del();
          await QueueMemberTable.unstoreQueueMembers(channelIdToRemove);
          await DisplayChannelTable.unstoreDisplayChannel(channelIdToRemove);
       } else {

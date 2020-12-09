@@ -7,8 +7,8 @@ export class QueueGuildTable {
    /**
     * Create & update QueueGuild database table if necessary
     */
-   public static initTable(): void {
-      Base.getKnex()
+   public static async initTable(): Promise<void> {
+      await Base.getKnex()
          .schema.hasTable("queue_guilds")
          .then(async (exists) => {
             if (!exists) {
@@ -19,12 +19,13 @@ export class QueueGuildTable {
                      table.text("prefix");
                      table.text("color");
                      table.integer("msg_mode");
+                     table.text("cleanup_commands");
                   })
                   .catch((e) => console.error(e));
             }
          });
 
-      this.updateTableStructure();
+      await this.updateTableStructure();
    }
 
    /**

@@ -5,8 +5,8 @@ export class QueueMemberTable {
    /**
     * Create & update QueueGuild database table if necessary
     */
-   public static initTable(): void {
-      Base.getKnex()
+   public static async initTable(): Promise<void> {
+      await Base.getKnex()
          .schema.hasTable("queue_members")
          .then(async (exists) => {
             if (!exists) {
@@ -22,7 +22,7 @@ export class QueueMemberTable {
             }
          });
 
-      this.updateTableStructure();
+      await this.updateTableStructure();
    }
 
    /**
@@ -31,7 +31,11 @@ export class QueueMemberTable {
     * @param memberIdsToAdd
     * @param personalMessage
     */
-   public static async storeQueueMembers(queueChannelId: string, memberIdsToAdd: string[], personalMessage?: string): Promise<void> {
+   public static async storeQueueMembers(
+      queueChannelId: string,
+      memberIdsToAdd: string[],
+      personalMessage?: string
+   ): Promise<void> {
       for (const memberId of memberIdsToAdd) {
          await Base.getKnex()<QueueMember>("queue_members").insert({
             personal_message: personalMessage,

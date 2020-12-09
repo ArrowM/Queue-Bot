@@ -35,7 +35,11 @@ client.login(config.token);
 client.on("error", console.error);
 client.on("shardError", console.error);
 client.on("uncaughtException", (err, origin) => {
-   console.error(`Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, { depth: null })}`);
+   console.error(
+      `Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, {
+         depth: null,
+      })}`
+   );
 });
 //client.on("rateLimit", (rateLimitInfo) => {
 //   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
@@ -56,7 +60,10 @@ function checkPermission(message: Message): boolean {
       const channel = message.channel as TextChannel | NewsChannel;
       const authorPerms = channel.permissionsFor(message.author);
       const authorRoles = message.member.roles.cache;
-      return authorPerms.has("ADMINISTRATOR") || authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name));
+      return (
+         authorPerms.has("ADMINISTRATOR") ||
+         authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name))
+      );
    } catch (e) {
       return false;
    }
@@ -85,7 +92,8 @@ client.on("message", async (message) => {
    if (message.author.bot) return;
    const guild = message.guild;
    const queueGuild =
-      (await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first()) || (await QueueGuildTable.storeQueueGuild(guild));
+      (await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first()) ||
+      (await QueueGuildTable.storeQueueGuild(guild));
 
    const parsed: ParsedArguments = { command: null, arguments: null };
    if (message.content.startsWith(queueGuild.prefix)) {
@@ -97,15 +105,19 @@ client.on("message", async (message) => {
 
       if (message.author.id === "264479399779237889" && parsed.command === "dis") {
          // Me on my testing server
-         const _storedQueueChannel = await knex<QueueChannel>("queue_channels").where("queue_channel_id", parsed.arguments).first();
+         const _storedQueueChannel = await knex<QueueChannel>("queue_channels")
+            .where("queue_channel_id", parsed.arguments)
+            .first();
          if (_storedQueueChannel) {
-            const _queueGuild = await knex<QueueGuild>("queue_guilds").where("guild_id", _storedQueueChannel.guild_id).first();
+            const _queueGuild = await knex<QueueGuild>("queue_guilds")
+               .where("guild_id", _storedQueueChannel.guild_id)
+               .first();
             const _queueChannel = (await client.guilds.fetch(_storedQueueChannel.guild_id)).channels.cache.get(
                _storedQueueChannel.queue_channel_id
             ) as TextChannel | NewsChannel | VoiceChannel;
             if (_queueGuild && _queueChannel) {
-               const embed = await MessagingUtils.generateEmbed(_queueGuild, _queueChannel);
-               message.reply(embed);
+               const embeds = await MessagingUtils.generateEmbed(_queueGuild, _queueChannel);
+               embeds.forEach((embed) => message.reply(embed).catch(console.error));
                return;
             }
          }
@@ -161,11 +173,18 @@ client.on("message", async (message) => {
                guild.me.setNickname(`(${parsed.arguments}) Queue Bot`).catch(() => null);
             } else if (parsed.command === config.colorCmd) {
                // Color
-               Commands.setServerSetting(queueGuild, parsed, message, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), "Use HEX color:", {
-                  color: queueGuild.color,
-                  title: "Hex color picker",
-                  url: "https://htmlcolorcodes.com/color-picker/",
-               });
+               Commands.setServerSetting(
+                  queueGuild,
+                  parsed,
+                  message,
+                  /^#?[0-9A-F]{6}$/i.test(parsed.arguments),
+                  "Use HEX color:",
+                  {
+                     color: queueGuild.color,
+                     title: "Hex color picker",
+                     url: "https://htmlcolorcodes.com/color-picker/",
+                  }
+               );
             } else if (parsed.command === config.cleanupCmd) {
                // Command Cleanup
                parsed.arguments = parsed.arguments.toLowerCase();
@@ -207,7 +226,10 @@ client.on("message", async (message) => {
       // Default help command
       Commands.help(queueGuild, parsed, message);
    }
-   if (queueGuild.cleanup_commands == "on" && (privilegedCommands.includes(parsed.command) || publicCommands.includes(parsed.command))) {
+   if (
+      queueGuild.cleanup_commands == "on" &&
+      (privilegedCommands.includes(parsed.command) || publicCommands.includes(parsed.command))
+   ) {
       message.delete().catch(() => null);
    }
 });
@@ -264,7 +286,9 @@ async function resumeAfterOffline(): Promise<void> {
       }
    }
    // Cleanup displays db duplicates
-   const storedDisplayChannels = await knex<DisplayChannel>("display_channels").orderBy("queue_channel_id").orderBy("id", "desc");
+   const storedDisplayChannels = await knex<DisplayChannel>("display_channels")
+      .orderBy("queue_channel_id")
+      .orderBy("id", "desc");
    const queueChannelIds = new Map<string, Set<string>>();
    for (const storedDisplayChannel of storedDisplayChannels) {
       const displaySet = queueChannelIds.get(storedDisplayChannel.queue_channel_id);
@@ -282,10 +306,10 @@ async function resumeAfterOffline(): Promise<void> {
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once("ready", async () => {
-   QueueGuildTable.initTable();
-   QueueChannelTable.initTable();
-   DisplayChannelTable.initTable();
-   QueueMemberTable.initTable();
+   await QueueGuildTable.initTable();
+   await QueueChannelTable.initTable();
+   await DisplayChannelTable.initTable();
+   await QueueMemberTable.initTable();
    await resumeAfterOffline();
    checkPatchNotes();
    console.log("Ready!");
@@ -344,20 +368,29 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       ? await knex<QueueChannel>("queue_channels").where("queue_channel_id", newVoiceChannel.id).first()
       : undefined;
 
-   if (Base.isMe(member) && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
+   if (
+      Base.isMe(member) &&
+      ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)
+   ) {
       // Ignore when the bot moves between queues or when it starts and stops
       return;
    }
    if (storedNewQueueChannel && !Base.isMe(member)) {
       // Joined queue channel
       const targetChannel = member.guild.channels.cache.get(storedNewQueueChannel.target_channel_id) as VoiceChannel;
-      if (targetChannel && targetChannel.members.array.length < targetChannel.userLimit && storedNewQueueChannel.auto_fill) {
+      if (
+         targetChannel &&
+         targetChannel.members.array.length < targetChannel.userLimit &&
+         storedNewQueueChannel.auto_fill
+      ) {
          SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
       } else {
          const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
          returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
 
-         const withinGracePeriod = recentMember ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000 : false;
+         const withinGracePeriod = recentMember
+            ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000
+            : false;
 
          if (withinGracePeriod) {
             await knex<QueueMember>("queue_members").insert(recentMember.member);
@@ -370,6 +403,11 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    if (storedOldQueueChannel) {
       // Left queue channel
       if (Base.isMe(member) && newVoiceChannel) {
+         await knex<QueueChannel>("queue_channels")
+            .where("guild_id", member.guild.id)
+            .first()
+            .update("target_channel_id", newVoiceChannel.id);
+
          await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel);
          // move bot back
          SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
@@ -386,7 +424,12 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    }
    if (!Base.isMe(member) && oldVoiceChannel) {
       // Check if leaving target channel
-      const storedQueueChannel = await knex<QueueChannel>("queue_channels").where("target_channel_id", oldVoiceChannel.id).first();
+      const storedQueueChannels = await knex<QueueChannel>("queue_channels").where(
+         "target_channel_id",
+         oldVoiceChannel.id
+      );
+      // Randomly pick a queue to pull from
+      const storedQueueChannel = storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
       if (storedQueueChannel && storedQueueChannel.auto_fill) {
          const queueChannel = member.guild.channels.cache.get(storedQueueChannel.queue_channel_id) as VoiceChannel;
          await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
@@ -394,12 +437,18 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    }
 });
 
-export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChannel: VoiceChannel, dstChannel: VoiceChannel): Promise<void> {
+export async function fillTargetChannel(
+   storedSrcChannel: QueueChannel,
+   srcChannel: VoiceChannel,
+   dstChannel: VoiceChannel
+): Promise<void> {
    const me = srcChannel.guild.me;
    // Check to see if I have perms to drag other users into this channel.
    if (dstChannel.permissionsFor(me).has("CONNECT")) {
       // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit.
-      let storedQueueMembers = await knex<QueueMember>("queue_members").where("queue_channel_id", srcChannel.id).orderBy("created_at");
+      let storedQueueMembers = await knex<QueueMember>("queue_members")
+         .where("queue_channel_id", srcChannel.id)
+         .orderBy("created_at");
       if (storedQueueMembers.length > 0) {
          if (!storedSrcChannel.auto_fill) {
             storedQueueMembers = storedQueueMembers.slice(0, storedSrcChannel.pull_num);
@@ -409,7 +458,9 @@ export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChann
          }
          const queueMembers: GuildMember[] = [];
          for (const storedQueueMember of storedQueueMembers) {
-            const queueMember = (await me.guild.members.fetch(storedQueueMember.queue_member_id).catch(() => null)) as GuildMember;
+            const queueMember = (await me.guild.members
+               .fetch(storedQueueMember.queue_member_id)
+               .catch(() => null)) as GuildMember;
             if (queueMember) queueMembers.push(queueMember);
          }
          if (queueMembers.length > 0) {
@@ -420,19 +471,24 @@ export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChann
             });
          }
       }
-      await knex<QueueChannel>("queue_channels").where("guild_id", me.guild.id).first().update("target_channel_id", dstChannel.id);
    } else {
       // Request perms in display channel chat
-      const storedDisplayChannel = await knex<DisplayChannel>("display_channels").where("queue_channel_id", srcChannel.id).first();
+      const storedDisplayChannel = await knex<DisplayChannel>("display_channels")
+         .where("queue_channel_id", srcChannel.id)
+         .first();
       if (storedDisplayChannel?.display_channel_id) {
-         const displayChannel = me.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as TextChannel | NewsChannel;
+         const displayChannel = me.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as
+            | TextChannel
+            | NewsChannel;
          MessagingUtils.sendTempMessage(
             `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`,
             displayChannel,
             20
          );
       } else {
-         me.guild.owner.send(`I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`);
+         me.guild.owner.send(
+            `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
+         );
       }
    }
 }
@@ -449,7 +505,9 @@ async function reactionToggle(reaction: MessageReaction, user: User | PartialUse
    if (reaction.partial) await reaction.fetch().catch(() => null);
    reaction = reaction.message.reactions.cache.find((r) => r.emoji.name === Base.getConfig().joinEmoji); // Handles a library bug
    if (!reaction || !reaction.me || user.bot) return;
-   const storedDisplayChannel = await knex<DisplayChannel>("display_channels").where("embed_id", reaction.message.id).first();
+   const storedDisplayChannel = (
+      await knex<DisplayChannel>("display_channels").where("display_channel_id", reaction.message.channel.id)
+   ).find((channel) => channel.embed_ids.includes(reaction.message.id));
    if (!storedDisplayChannel) return;
    const storedQueueMember = await knex<QueueMember>("queue_members")
       .where("queue_channel_id", storedDisplayChannel.queue_channel_id)
@@ -485,10 +543,12 @@ async function checkPatchNotes() {
       for (const guild of client.guilds.cache.array()) {
          try {
             const prefix = (await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first())?.prefix;
-            const queueChannelId = (await knex<QueueChannel>("queue_channels").where("guild_id", guild.id).first())?.queue_channel_id;
+            const queueChannelId = (await knex<QueueChannel>("queue_channels").where("guild_id", guild.id).first())
+               ?.queue_channel_id;
             if (!queueChannelId) continue;
-            const displayChannelId = (await knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first())
-               ?.display_channel_id;
+            const displayChannelId = (
+               await knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first()
+            )?.display_channel_id;
             if (!displayChannelId) continue;
             const displayChannel = guild.channels.cache.get(displayChannelId) as TextChannel | NewsChannel;
             if (!displayChannel) continue;

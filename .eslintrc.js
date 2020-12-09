@@ -21,7 +21,7 @@ module.exports = {
   rules: {
     'prettier/prettier': ["warn", {
         "endOfLine": "auto",
-        "printWidth": 140,
+        "printWidth": 120,
         "tabWidth": 3
     }],
     'no-console': 'off'
