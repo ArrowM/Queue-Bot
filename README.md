@@ -12,7 +12,7 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 2. **Join a Queue.** Any user can join text queues by clicking the queue reaction or with `!j {channel name}`. Any user can join voice queues by joining the matching voice channel.  
 3. **Pull Users From a Queue.**  
 	**TEXT**: *Privileged* users can be pulled from a text queue with `!n {queue name}`.  
-    **VOICE**: 1. `!s {queue name}` makes the bot join the voice channel. 2. Move the bot to a new channel to set a "target".  
+    **VOICE**: 1. `!s {queue name}` makes the bot join the voice channel. 2. Move the bot to a new (non-queue) channel to set a "target".  
    If the target channel has a user limit, (`!limit {queue name} {#}`), the bot will automatically move people from the queue to keep the target channel full. You can disconnect the bot from the voice channel.  
 	If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever you want to pull people from the queue (the bot will swap with them). You can customize how many people the bot will pull each time using `!pullnum {queue name} {#}`.    
 4. **Customization.** *Privileged* users can customize the command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot with the commands below.There are also additional commands to do things like shuffling and clearing queues.  

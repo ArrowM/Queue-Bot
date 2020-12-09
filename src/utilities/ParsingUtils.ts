@@ -85,7 +85,7 @@ export class ParsingUtils {
 
          response =
             "No " + (type ? `**${type}** ` : "") + `queue ${target}s set.\n` +
-            "Set a " + (type ? `${type} ` : "") + `queue first using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {${target} name}\`.`;
+            "Set a " + (type ? `${type} ` : "") + `queue first using \`${queueGuild.prefix}${Base.getCmdConfig().queueCmd} {${target} name}\`.`;
       } else {
          response = "Invalid " + (type ? `**${type}** ` : "") + `${target} name. Try \`${queueGuild.prefix}${parsed.command} `;
          if (channels.length === 1) {
@@ -139,7 +139,7 @@ export class ParsingUtils {
       } else {
          SchedulingUtils.scheduleResponseToMessage(
             `No queue channels set.\n` +
-            `Set a queue first using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {channel name}\`.`,
+            `Set a queue first using \`${queueGuild.prefix}${Base.getCmdConfig().queueCmd} {channel name}\`.`,
             message
          );
       }

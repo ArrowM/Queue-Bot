@@ -38,7 +38,7 @@ export interface QueueMember {
    queue_member_id: string;
 }
 
-export interface ConfigFile {
+export interface ConfigJson {
    token: string;
    topGgToken: string;
 
@@ -52,7 +52,9 @@ export interface ConfigFile {
    permissionsRegexp: string;
    prefix: string;
    joinEmoji: string;
+}
 
+export interface CommandConfigJson {
    autofillCmd: string;
    cleanupCmd: string;
    clearCmd: string;

@@ -1,0 +1,19 @@
+{
+   "autofillCmd": "autofill",
+   "cleanupCmd": "cleanup",
+   "clearCmd": "clear",
+   "colorCmd": "color",
+   "displayCmd": "d",
+   "gracePeriodCmd": "grace",
+   "helpCmd": "h",
+   "joinCmd": "j",
+   "kickCmd": "k",
+   "limitCmd": "limit",
+   "modeCmd": "mode",
+   "nextCmd": "n",
+   "prefixCmd": "prefix",
+   "pullNumCmd": "pullnum",
+   "queueCmd": "q",
+   "shuffleCmd": "shuffle",
+   "startCmd": "s"
+}

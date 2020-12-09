@@ -6,10 +6,8 @@
 !/patch_notes
 !/update-node.sh
 !/src
+!/config
 
 # Documentation
 !/README.md
 !/docs
-
-# Exclude
-/build

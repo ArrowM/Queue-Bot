@@ -29,6 +29,7 @@ EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be ha
 SchedulingUtils.startScheduler();
 
 const config = Base.getConfig();
+const cmdConfig = Base.getCmdConfig();
 const client = Base.getClient();
 const knex = Base.getKnex();
 client.login(config.token);
@@ -69,25 +70,6 @@ function checkPermission(message: Message): boolean {
    }
 }
 
-const privilegedCommands = [
-   config.autofillCmd,
-   config.colorCmd,
-   config.cleanupCmd,
-   config.clearCmd,
-   config.displayCmd,
-   config.gracePeriodCmd,
-   config.kickCmd,
-   config.limitCmd,
-   config.modeCmd,
-   config.nextCmd,
-   config.prefixCmd,
-   config.pullNumCmd,
-   config.queueCmd,
-   config.shuffleCmd,
-   config.startCmd,
-];
-const publicCommands = [config.joinCmd, config.helpCmd];
-
 client.on("message", async (message) => {
    if (message.author.bot) return;
    const guild = message.guild;
@@ -126,39 +108,42 @@ client.on("message", async (message) => {
       }
 
       // Restricted commands
-      if (privilegedCommands.includes(parsed.command)) {
+      if (Object.values(cmdConfig).includes(parsed.command)) {
+         if (queueGuild.cleanup_commands == "on") {
+            setTimeout(() => message.delete().catch(() => null), 3000);
+         }
          if (hasPermission) {
-            if (parsed.command === config.startCmd) {
+            if (parsed.command === cmdConfig.startCmd) {
                // Start
                Commands.start(queueGuild, parsed, message);
-            } else if (parsed.command === config.displayCmd) {
+            } else if (parsed.command === cmdConfig.displayCmd) {
                // Display
                Commands.displayQueue(queueGuild, parsed, message);
-            } else if (parsed.command === config.queueCmd) {
+            } else if (parsed.command === cmdConfig.queueCmd) {
                // Set Queue
                Commands.setQueueChannel(queueGuild, parsed, message);
-            } else if (parsed.command === config.nextCmd) {
+            } else if (parsed.command === cmdConfig.nextCmd) {
                // Pop next user
                Commands.popTextQueue(queueGuild, parsed, message);
-            } else if (parsed.command === config.kickCmd) {
+            } else if (parsed.command === cmdConfig.kickCmd) {
                // Pop next user
                Commands.kickMember(queueGuild, parsed, message);
-            } else if (parsed.command === config.clearCmd) {
+            } else if (parsed.command === cmdConfig.clearCmd) {
                // Clear queue
                Commands.clearQueue(queueGuild, parsed, message);
-            } else if (parsed.command === config.shuffleCmd) {
+            } else if (parsed.command === cmdConfig.shuffleCmd) {
                // Shuffle queue
                Commands.shuffleQueue(queueGuild, parsed, message);
-            } else if (parsed.command === config.limitCmd) {
+            } else if (parsed.command === cmdConfig.limitCmd) {
                // Limit queue size
                Commands.setSizeLimit(queueGuild, parsed, message);
-            } else if (parsed.command === config.autofillCmd) {
+            } else if (parsed.command === cmdConfig.autofillCmd) {
                // Auto pull
                Commands.setAutoFill(queueGuild, parsed, message);
-            } else if (parsed.command === config.pullNumCmd) {
+            } else if (parsed.command === cmdConfig.pullNumCmd) {
                // Pull num
                Commands.setPullNum(queueGuild, parsed, message);
-            } else if (parsed.command === config.gracePeriodCmd) {
+            } else if (parsed.command === cmdConfig.gracePeriodCmd) {
                // Grace period
                Commands.setServerSetting(
                   queueGuild,
@@ -167,11 +152,11 @@ client.on("message", async (message) => {
                   +parsed.arguments >= 0 && +parsed.arguments <= 6000,
                   "Grace period must be between `0` and `6000` seconds."
                );
-            } else if (parsed.command === config.prefixCmd) {
+            } else if (parsed.command === cmdConfig.prefixCmd) {
                // Prefix
                Commands.setServerSetting(queueGuild, parsed, message, true);
                guild.me.setNickname(`(${parsed.arguments}) Queue Bot`).catch(() => null);
-            } else if (parsed.command === config.colorCmd) {
+            } else if (parsed.command === cmdConfig.colorCmd) {
                // Color
                Commands.setServerSetting(
                   queueGuild,
@@ -185,11 +170,11 @@ client.on("message", async (message) => {
                      url: "https://htmlcolorcodes.com/color-picker/",
                   }
                );
-            } else if (parsed.command === config.cleanupCmd) {
+            } else if (parsed.command === cmdConfig.cleanupCmd) {
                // Command Cleanup
                parsed.arguments = parsed.arguments.toLowerCase();
                Commands.setServerSetting(queueGuild, parsed, message, ["on", "off"].includes(parsed.arguments));
-            } else if (parsed.command === config.modeCmd) {
+            } else if (parsed.command === cmdConfig.modeCmd) {
                // Toggle new message on update
                Commands.setServerSetting(
                   queueGuild,
@@ -214,23 +199,17 @@ client.on("message", async (message) => {
       // Commands open to everyone
       switch (parsed.command) {
          // Help
-         case config.helpCmd:
+         case cmdConfig.helpCmd:
             Commands.help(queueGuild, parsed, message);
             break;
          // Join Text Queue
-         case config.joinCmd:
+         case cmdConfig.joinCmd:
             Commands.joinTextChannel(queueGuild, parsed, message, hasPermission);
             break;
       }
-   } else if (message.content === config.prefix + config.helpCmd) {
+   } else if (message.content === config.prefix + cmdConfig.helpCmd) {
       // Default help command
       Commands.help(queueGuild, parsed, message);
-   }
-   if (
-      queueGuild.cleanup_commands == "on" &&
-      (privilegedCommands.includes(parsed.command) || publicCommands.includes(parsed.command))
-   ) {
-      message.delete().catch(() => null);
    }
 });
 
@@ -503,7 +482,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
 
 async function reactionToggle(reaction: MessageReaction, user: User | PartialUser): Promise<void> {
    if (reaction.partial) await reaction.fetch().catch(() => null);
-   reaction = reaction.message.reactions.cache.find((r) => r.emoji.name === Base.getConfig().joinEmoji); // Handles a library bug
+   reaction = reaction.message.reactions.cache.find((r) => r.emoji.name === config.joinEmoji); // Handles a library bug
    if (!reaction || !reaction.me || user.bot) return;
    const storedDisplayChannel = (
       await knex<DisplayChannel>("display_channels").where("display_channel_id", reaction.message.channel.id)

@@ -140,7 +140,7 @@ export class MessagingUtils {
             (await this.getGracePeriodString(queueGuild.grace_period));
       } else {
          description =
-            `React with ${Base.getConfig().joinEmoji} or type \`${queueGuild.prefix}${Base.getConfig().joinCmd} ` +
+            `React with ${Base.getConfig().joinEmoji} or type \`${queueGuild.prefix}${Base.getCmdConfig().joinCmd} ` +
             `${queueChannel.name}\` to join or leave this queue.`;
       }
       let _queueMembers = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
@@ -196,7 +196,7 @@ export class MessagingUtils {
       const channel = message.channel as TextChannel | NewsChannel;
       const channelPermissions = channel.permissionsFor(channel.guild.me);
       if (channelPermissions.has("ADD_REACTIONS")) {
-         await message.react(emoji);
+         await message.react(emoji).catch(() => null);
       } else {
          SchedulingUtils.scheduleResponseToChannel(
             "I can let people join via reaction, but I need a new permission.\n" +

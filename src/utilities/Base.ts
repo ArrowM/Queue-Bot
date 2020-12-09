@@ -1,11 +1,15 @@
 import { Client, GuildMember } from "discord.js";
 import { readFileSync } from "fs";
 import Knex from "knex";
-import { ConfigFile } from "./Interfaces";
+import { CommandConfigJson, ConfigJson } from "./Interfaces";
 
 export class Base {
-   public static getConfig(): ConfigFile {
+   public static getConfig(): ConfigJson {
       return this.config;
+   }
+
+   public static getCmdConfig(): CommandConfigJson {
+      return this.cmdConfig;
    }
 
    public static getKnex(): Knex {
@@ -20,7 +24,8 @@ export class Base {
       return member.id === member.guild.me.id;
    }
 
-   protected static config: ConfigFile = JSON.parse(readFileSync("../config/config.json", "utf8"));
+   protected static config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
+   protected static cmdConfig: CommandConfigJson = JSON.parse(readFileSync("../config/command-config.json", "utf8"));
 
    protected static knex = Knex({
       client: Base.config.databaseType,
@@ -40,7 +45,7 @@ export class Base {
       partials: ["MESSAGE", "REACTION", "USER"],
       presence: {
          activity: {
-            name: `${Base.config.prefix}${Base.config.helpCmd} for help`,
+            name: `${Base.config.prefix}${Base.cmdConfig.helpCmd} for help`,
          },
          status: "online",
       },

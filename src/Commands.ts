@@ -74,39 +74,33 @@ export class Commands {
                   {
                      name: "1. Create a Queue",
                      value:
-                        `*Privileged* users can create queues with \`${storedPrefix}${
-                           Base.getConfig().queueCmd
-                        } {channel name}\` ` +
+                        `*Privileged* users can create queues with \`${storedPrefix}${Base.getCmdConfig().queueCmd} {channel name}\` ` +
                         `where \`{channel name}\` is the name of a text or voice channels. For example, ` +
-                        `\`${storedPrefix}${
-                           Base.getConfig().queueCmd
-                        } Waiting Room\` turns the Waiting Room voice channel into a queue.`,
+                        `\`${storedPrefix}${Base.getCmdConfig().queueCmd} Waiting Room\` turns the Waiting Room voice channel into a queue.`,
                   },
                   {
                      name: "2. Join a Queue",
                      value:
                         `Any user can join text queues by clicking the queue reaction or with ` +
-                        `\`${storedPrefix}${Base.getConfig().joinCmd} {queue name}\`. ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().joinCmd} {queue name}\`. ` +
                         `Any user can join voice queues by joining the matching voice channel.`,
                   },
                   {
                      name: "3. Pull Users From a Queue",
                      value:
                         `**TEXT**: *Privileged* users can be pulled from a text queue with ` +
-                        `\`${storedPrefix}${Base.getConfig().nextCmd} {queue name}\`.\n` +
+                        `\`${storedPrefix}${Base.getCmdConfig().nextCmd} {queue name}\`.\n` +
                         `**VOICE**: Pulling users from voice queues requires 2 steps:\n` +
-                        `1. \`${storedPrefix}${
-                           Base.getConfig().startCmd
-                        } {queue name}\` makes the bot join the voice channel.\n` +
-                        `2. Move the bot to a new channel to set a "target".\n` +
+                        `1. \`${storedPrefix}${Base.getCmdConfig().startCmd} {queue name}\` makes the bot join the voice channel.\n` +
+                        `2. Move the bot to a new (non-queue) channel to set a "target".\n` +
                         `If the target channel has a user limit, ` +
-                        `(\`${storedPrefix}${Base.getConfig().limitCmd} {queue name} {#}\`), ` +
+                        `(\`${storedPrefix}${Base.getCmdConfig().limitCmd} {queue name} {#}\`), ` +
                         `the bot will automatically move people from the queue to keep the target channel full. ` +
                         `You can disconnect the bot from the voice channel.\n` +
                         `If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever ` +
                         `you want to pull people from the queue (the bot will swap with them). ` +
                         `You can customize how many people the bot will pull each time using ` +
-                        `\`${storedPrefix}${Base.getConfig().pullNumCmd} {queue name} {#}\`.`,
+                        `\`${storedPrefix}${Base.getCmdConfig().pullNumCmd} {queue name} {#}\`.`,
                   },
                   {
                      name: "4. Customize",
@@ -133,9 +127,7 @@ export class Commands {
                   {
                      name: "Join Text Queue",
                      value:
-                        `\`${storedPrefix}${
-                           Base.getConfig().joinCmd
-                        } {queue name} {OPTIONAL: message to display next to your name}\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().joinCmd} {queue name} {OPTIONAL: message to display next to your name}\` ` +
                         `joins or leaves a text queue.`,
                   },
                ],
@@ -151,99 +143,91 @@ export class Commands {
                   {
                      name: "Create / Delete / View Queues",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().queueCmd} {channel name} {OPTIONAL: size}\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().queueCmd} {channel name} {OPTIONAL: size}\` ` +
                         `creates a new queue or deletes an existing queue.\n` +
-                        `\`${storedPrefix}${Base.getConfig().queueCmd}\` shows the existing queues.`,
+                        `\`${storedPrefix}${Base.getCmdConfig().queueCmd}\` shows the existing queues.`,
                   },
                   {
                      name: "Display Queue",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().displayCmd} {queue name}\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().displayCmd} {queue name}\` ` +
                         `displays the members in a queue.These messages stay updated.`,
                   },
                   {
                      name: "Pull from Voice Queue",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().startCmd} {queue name}\` adds the bot to a voice queue. ` +
-                        `Then the bot can be dragged into another channel to set a "target". ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().startCmd} {queue name}\` adds the bot to a voice queue. ` +
+                        `Then the bot can dragged to a (non-queue) channel to set a "target". ` +
                         `If the target channel has a user limit, ` +
-                        `(\`${storedPrefix}${Base.getConfig().limitCmd} {queue name} {#}\`), ` +
+                        `(\`${storedPrefix}${Base.getCmdConfig().limitCmd} {queue name} {#}\`), ` +
                         `the bot will automatically move people from the queue to keep the target channel full. ` +
                         `You can disconnect the bot from the voice channel.\n` +
                         `If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever ` +
                         `you want to pull people from the queue (the bot will swap with them). ` +
                         `You can customize how many people the bot will pull each time using ` +
-                        `\`${storedPrefix}${Base.getConfig().pullNumCmd} {queue name} {#}\`.`,
+                        `\`${storedPrefix}${Base.getCmdConfig().pullNumCmd} {queue name} {#}\`.`,
                   },
                   {
                      name: "Pull from Text Queue",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().nextCmd} {queue name} {OPTIONAL: #}\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().nextCmd} {queue name} {OPTIONAL: #}\` ` +
                         `removes people from the text queue and displays their name.`,
                   },
                   {
                      name: "Kick",
                      value:
-                        `\`${storedPrefix}${
-                           Base.getConfig().kickCmd
-                        } {OPTIONAL: queue name} @{user 1} @{user 2} ...\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().kickCmd} {OPTIONAL: queue name} @{user 1} @{user 2} ...\` ` +
                         `kicks one or more people. If a queue name is given, it will kick from a single queue. ` +
                         `Otherwise, it will kick people from every queue.`,
                   },
                   {
                      name: "Clear",
-                     value: `\`${storedPrefix}${Base.getConfig().clearCmd} {queue name}\` clears a queue.`,
+                     value: `\`${storedPrefix}${Base.getCmdConfig().clearCmd} {queue name}\` clears a queue.`,
                   },
                   {
                      name: "Shuffle",
-                     value: `\`${storedPrefix}${Base.getConfig().shuffleCmd} {queue name}\` shuffles a queue.`,
+                     value: `\`${storedPrefix}${Base.getCmdConfig().shuffleCmd} {queue name}\` shuffles a queue.`,
                   },
                   {
                      name: "Set Size Limit",
-                     value: `\`${storedPrefix}${Base.getConfig().limitCmd} {queue name} {#}\` sets queue size limit.`,
+                     value: `\`${storedPrefix}${Base.getCmdConfig().limitCmd} {queue name} {#}\` sets queue size limit.`,
                   },
                   {
                      name: "Autofill Voice Channels",
-                     value: `\`${storedPrefix}${Base.getConfig().autofillCmd} {queue name} {on|off}\`.`,
+                     value: `\`${storedPrefix}${Base.getCmdConfig().autofillCmd} {queue name} {on|off}\`.`,
                   },
                   {
                      name: "Set # of People to Pull at a time",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().pullNumCmd} {queue name} {#}\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().pullNumCmd} {queue name} {#}\` ` +
                         `sets the default number of people to pull when Autofill is off or when using ` +
-                        `\`${storedPrefix}${Base.getConfig().nextCmd}\`.`,
+                        `\`${storedPrefix}${Base.getCmdConfig().nextCmd}\`.`,
                   },
                   // Server settings
                   {
                      name: "Set Grace Period",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().gracePeriodCmd} {# seconds}\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().gracePeriodCmd} {# seconds}\` ` +
                         `sets how long a person can leave a queue before being removed.`,
                   },
                   {
                      name: "Set Command Prefix",
-                     value: `\`${storedPrefix}${
-                        Base.getConfig().prefixCmd
-                     } {new prefix}\` sets the prefix for commands.`,
+                     value: `\`${storedPrefix}${Base.getCmdConfig().prefixCmd} {new prefix}\` sets the prefix for commands.`,
                   },
                   {
                      name: "Set Color",
-                     value: `\`${storedPrefix}${
-                        Base.getConfig().colorCmd
-                     } {new color}\` sets the color of bot messages.`,
+                     value: `\`${storedPrefix}${Base.getCmdConfig().colorCmd} {new color}\` sets the color of bot messages.`,
                   },
                   {
                      name: "Set Display Mode",
                      value:
-                        `\`${storedPrefix}${
-                           Base.getConfig().modeCmd
-                        } {#}\` sets how the display messages are updated.\n` +
-                        `\`${storedPrefix}${Base.getConfig().modeCmd}\` displays the different update modes.`,
+                        `\`${storedPrefix}${Base.getCmdConfig().modeCmd} {#}\` sets how the display messages are updated.\n` +
+                        `\`${storedPrefix}${Base.getCmdConfig().modeCmd}\` displays the different update modes.`,
                   },
                   {
                      name: "Command Cleanup",
                      value:
-                        `\`${storedPrefix}${Base.getConfig().cleanupCmd} {on|off}\` ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().cleanupCmd} {on|off}\` ` +
                         `toggles the cleanup of user-sent Queue Bot commands.`,
                   },
                ],
@@ -467,7 +451,7 @@ export class Commands {
          } else {
             SchedulingUtils.scheduleResponseToMessage(
                `No queue channels set.\n` +
-                  `Set a new queue channel using \`${queueGuild.prefix}${Base.getConfig().queueCmd} {channel name}\`\n`,
+                  `Set a new queue channel using \`${queueGuild.prefix}${Base.getCmdConfig().queueCmd} {channel name}\`\n`,
                // 	+ `Channels: ${channels.map(channel => ` \`${channel.name}\``)}`
                message
             );
@@ -729,7 +713,7 @@ export class Commands {
       if (queueChannel.type !== "voice") {
          const channel = message.channel as TextChannel | NewsChannel;
          MessagingUtils.sendTempMessage(
-            `\`${queueGuild.prefix}${Base.getConfig().autofillCmd}\` can only be used on voice channels.`,
+            `\`${queueGuild.prefix}${Base.getCmdConfig().autofillCmd}\` can only be used on voice channels.`,
             channel,
             10
          );
@@ -755,7 +739,7 @@ export class Commands {
             SchedulingUtils.scheduleResponseToMessage(
                `Set autofill for \`${queueChannel.name}\` to \`OFF\`.\n` +
                   `Queue Bot will pull \`${storedQueueChannel.pull_num}\` at a time. ` +
-                  `You can set this amount \`${queueGuild.prefix}${Base.getConfig().pullNumCmd} {queue name} {#}\`.`,
+                  `You can set this amount \`${queueGuild.prefix}${Base.getCmdConfig().pullNumCmd} {queue name} {#}\`.`,
                message
             );
             SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
@@ -768,7 +752,7 @@ export class Commands {
          } else {
             const channel = message.channel as TextChannel | NewsChannel;
             MessagingUtils.sendTempMessage(
-               `\`${queueGuild.prefix}${Base.getConfig().autofillCmd}\` argument must be \`ON\` or \`OFF\`.`,
+               `\`${queueGuild.prefix}${Base.getCmdConfig().autofillCmd}\` argument must be \`ON\` or \`OFF\`.`,
                channel,
                10
             );
@@ -822,11 +806,15 @@ export class Commands {
 
    // Map commands to database columns and display strings
    private static serverSettingVariables = {
-      [Base.getConfig().gracePeriodCmd]: { dbVariable: "grace_period", label: "Grace period", options: "grace period" },
-      [Base.getConfig().prefixCmd]: { dbVariable: "prefix", label: "Prefix", options: "prefix" },
-      [Base.getConfig().colorCmd]: { dbVariable: "color", label: "Color", options: "color" },
-      [Base.getConfig().cleanupCmd]: { dbVariable: "cleanup_commands", label: "Cleanup", options: "on|off" },
-      [Base.getConfig().modeCmd]: { dbVariable: "msg_mode", label: "Message mode", options: "message mode" },
+      [Base.getCmdConfig().gracePeriodCmd]: {
+         dbVariable: "grace_period",
+         label: "Grace period",
+         options: "grace period",
+      },
+      [Base.getCmdConfig().prefixCmd]: { dbVariable: "prefix", label: "Prefix", options: "prefix" },
+      [Base.getCmdConfig().colorCmd]: { dbVariable: "color", label: "Color", options: "color" },
+      [Base.getCmdConfig().cleanupCmd]: { dbVariable: "cleanup_commands", label: "Cleanup", options: "on|off" },
+      [Base.getCmdConfig().modeCmd]: { dbVariable: "msg_mode", label: "Message mode", options: "message mode" },
    };
 
    /**
