@@ -38,7 +38,7 @@ All commands except `Join` are restricted to the server owner, administrators, a
 | Autofill | `!autofill {queue name} {on\|off}` | `on` | Turns autofill on or off. |
 | Pull Amount | `!pullnum {queue name} {#}` | `1` | Sets the default number of people to pull. |
 | Set Display Message Header | `!header {queue name} {message}` | | Sets a header for display messaged. Leave `{header}` blank to remove. |
-| Mention Queue | `!mention {queue name} {message}` | | Mentions everyone in a queue. You can add a message too. |
+| Mention Queue | `!mention {queue name} {OPTIONAL: message}` | | Mentions everyone in a queue. You can add a message too. |
 |||||
 |**Server Settings**|||
 | Set the Command Prefix | `!prefix {new prefix}` | in config | Set the prefix for Queue Bot commands. |
