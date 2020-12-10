@@ -65,42 +65,44 @@ All commands except `Join` are restricted to the server owner, administrators, a
 5. Modify `config/config.json`:  
 	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.  
   
-| REQUIRED Config Fields | Description                                                                                                                       |
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| prefix                 | Command prefix (Default: `!`)                                                                                                     |
-| token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. |
-| databasePassword       | Database login password                                                                                                           |
+| REQUIRED Config Fields | Description                                                                                                                       | Default      |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|
+| prefix                 | Command prefix                                                                                                                    | `!` |
+| token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. | |
+| databasePassword       | Database login password                                                                                                           | |
   
-| Optional Config Fields | Description                                                                                                                       |
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| color                  | The color of bot messages.                                                                                                        |
-| databaseUsername		 | Database login username (Default: `postgres`)	                                                                                  |
-| databaseName           | Database name (Default: `queue`)																				                                        |
-| databaseHost           | Database host url (Default: `localhost`)																	                                        |
-| databaseType           | Type of database for queue storage. (Default: `postgresql`)                                                                       |
-| gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                |
-| permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         |
-| topGgToken             | Token for updating top.gg server count. This should be left blank.                                                                |
+| Optional Config Fields | Description                                                                                                                       | |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|
+| color                  | The color of bot messages.                                                                                                        | |
+| databaseUsername		 | Database login username                                                                                                           | `postgres` |
+| databaseName           | Database name                                                                                                                     | `queue` |
+| databaseHost           | Database host url                                                                                                                 | `localhost` |
+| databaseType           | Type of database for queue storage.                                                                                               | `postgresql` |
+| gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                | `0` |
+| permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         | `\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b` |
+| topGgToken             | Token for updating top.gg server count. This should be left blank.                                                                | |
 
-| Config Command Fields  | Description                                                                                                                       |
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| autofillCmd            | Command to toggle autofill.                                                                                                       |
-| cleanupCmd             | Command to toggle command cleanup.                                                                                                |
-| clearCmd               | Command to clear the queue.                                                                                                       |
-| colorCmd               | Command to change the color.                                                                                                      |
-| displayCmd             | Command to display a queue in a text channel.                                                                                     |
-| gracePeriodCmd         | Command to change the grace period.                                                                                               |
-| helpCmd                | Command to display the help information.                                                                                          |
-| joinCmd                | Command to join a text channel queue.                                                                                             |
-| kickCmd                | Command to kick users from a queue.                                                                                               |
-| limitCmd               | Command to change queue size limit.                                                                                               |
-| modeCmd                | Command to change the display messaging mode.                                                                                     |
-| nextCmd                | Command to pull the next user from a text channel.                                                                                |
-| prefixCmd              | Command to change the command prefix.                                                                                             |
-| pullNumCmd             | Command to change the number of people pulled at once.                                                                            |
-| queueCmd               | Command to change queues.                                                                                                         |
-| shuffleCmd             | Command to shuffle the queue.                                                                                                     |
-| startCmd               | Command to make the bot join a voice channel.                                                                                     |
+| Config Command Fields  | Description                                                                                                                       | |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|
+| autofillCmd            | Command to toggle autofill.                                                                                                       | `autofill` |
+| cleanupCmd             | Command to toggle command cleanup.                                                                                                | `cleanup` |
+| clearCmd               | Command to clear the queue.                                                                                                       | `clear` |
+| colorCmd               | Command to set the color.                                                                                                         | `color` |
+| displayCmd             | Command to display a queue in a text channel.                                                                                     | `d` |
+| gracePeriodCmd         | Command to set the grace period.                                                                                                  | `grace` |
+| headerCmd              | Command to set the header of a queue.                                                                                             | `header` |
+| helpCmd                | Command to display the help information.                                                                                          | `h` |
+| joinCmd                | Command to join a text channel queue.                                                                                             | `j` |
+| kickCmd                | Command to kick users from a queue.                                                                                               | `k` |
+| limitCmd               | Command to set queue size limit.                                                                                                  | `limit` |
+| mentionCmd             | Command to mention all users in a queue.                                                                                          | `mention` |
+| modeCmd                | Command to set the display messaging mode.                                                                                        | `mode` |
+| nextCmd                | Command to pull the next user from a text channel.                                                                                | `n` |
+| prefixCmd              | Command to set the command prefix.                                                                                                | `prefix` |
+| pullNumCmd             | Command to set the number of people pulled at once.                                                                               | `pullnum` |
+| queueCmd               | Command to set queues.                                                                                                            | `q` |
+| shuffleCmd             | Command to shuffle the queue.                                                                                                     | `shuffle` |
+| startCmd               | Command to make the bot join a voice channel.                                                                                     | `s` |
 
 ![Token Location](docs/token_location.PNG)  
 
