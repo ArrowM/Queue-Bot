@@ -19,6 +19,7 @@ export class QueueChannelTable {
                      table.text("guild_id");
                      table.text("max_members");
                      table.text("target_channel_id");
+                     table.text("header");
                      table.integer("auto_fill");
                      table.integer("pull_num");
                   })
@@ -129,6 +130,10 @@ export class QueueChannelTable {
       if (!(await Base.getKnex().schema.hasColumn("queue_channels", "pull_num"))) {
          await Base.getKnex().schema.table("queue_channels", (table) => table.integer("pull_num"));
          await Base.getKnex()<QueueChannel>("queue_channels").update("pull_num", 1);
+      }
+      // Add header
+      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "header"))) {
+         await Base.getKnex().schema.table("queue_channels", (table) => table.text("header"));
       }
    }
 }

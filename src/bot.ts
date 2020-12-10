@@ -152,6 +152,12 @@ client.on("message", async (message) => {
                   +parsed.arguments >= 0 && +parsed.arguments <= 6000,
                   "Grace period must be between `0` and `6000` seconds."
                );
+            } else if (parsed.command === cmdConfig.headerCmd) {
+               // Code
+               Commands.setHeader(queueGuild, parsed, message);
+            } else if (parsed.command === cmdConfig.mentionCmd) {
+               // Mention
+               Commands.mention(queueGuild, parsed, message);
             } else if (parsed.command === cmdConfig.prefixCmd) {
                // Prefix
                Commands.setServerSetting(queueGuild, parsed, message, true);

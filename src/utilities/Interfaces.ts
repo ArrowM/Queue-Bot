@@ -9,6 +9,7 @@ export interface QueueChannel {
    max_members: string;
    queue_channel_id: string;
    target_channel_id: string;
+   header: string;
    auto_fill: number; // 0 off. 1 on.
    pull_num: number;
 }
@@ -61,11 +62,13 @@ export interface CommandConfigJson {
    colorCmd: string;
    displayCmd: string;
    gracePeriodCmd: string;
+   headerCmd: string;
    helpCmd: string;
    joinCmd: string;
    kickCmd: string;
    limitCmd: string;
    modeCmd: string;
+   mentionCmd: string;
    nextCmd: string;
    prefixCmd: string;
    pullNumCmd: string;

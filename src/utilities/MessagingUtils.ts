@@ -143,6 +143,10 @@ export class MessagingUtils {
             `React with ${Base.getConfig().joinEmoji} or type \`${queueGuild.prefix}${Base.getCmdConfig().joinCmd} ` +
             `${queueChannel.name}\` to join or leave this queue.`;
       }
+      if (storedQueueChannel.header) {
+         description += `\n\n${storedQueueChannel.header}`;
+      }
+
       let _queueMembers = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
 
       const embeds: MessageOptions[] = [];
@@ -151,7 +155,7 @@ export class MessagingUtils {
          _embed.setTitle(title);
          _embed.setColor(queueGuild.color);
          _embed.setDescription(description);
-         if (_queueMembers && _queueMembers.length > 0) {
+         if (_queueMembers?.length > 0) {
             // Handle non-empty
             const maxFieldCount = 25;
             for (let i = 0; i < _queueMembers.length / maxFieldCount; i++) {
@@ -166,7 +170,7 @@ export class MessagingUtils {
                            "\n"),
                      ""
                   );
-               _embed.addField("\u200b", userList);
+               _embed.addField("\u200b", userList, true);
             }
          } else {
             // Handle empty queue
@@ -223,5 +227,13 @@ export class MessagingUtils {
             _response.delete().catch(() => null);
          }, duration * 1000);
       }
+   }
+
+   public static removeMentions(str: string, channel: TextChannel | NewsChannel | VoiceChannel): string {
+      return str
+         .replaceAll(/(<(@!?|#)\w+>)/gi, "")
+         .replaceAll(channel.name, "")
+         .substring(0, 128)
+         .trim();
    }
 }

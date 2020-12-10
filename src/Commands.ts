@@ -74,9 +74,13 @@ export class Commands {
                   {
                      name: "1. Create a Queue",
                      value:
-                        `*Privileged* users can create queues with \`${storedPrefix}${Base.getCmdConfig().queueCmd} {channel name}\` ` +
+                        `*Privileged* users can create queues with \`${storedPrefix}${
+                           Base.getCmdConfig().queueCmd
+                        } {channel name}\` ` +
                         `where \`{channel name}\` is the name of a text or voice channels. For example, ` +
-                        `\`${storedPrefix}${Base.getCmdConfig().queueCmd} Waiting Room\` turns the Waiting Room voice channel into a queue.`,
+                        `\`${storedPrefix}${
+                           Base.getCmdConfig().queueCmd
+                        } Waiting Room\` turns the Waiting Room voice channel into a queue.`,
                   },
                   {
                      name: "2. Join a Queue",
@@ -91,7 +95,9 @@ export class Commands {
                         `**TEXT**: *Privileged* users can be pulled from a text queue with ` +
                         `\`${storedPrefix}${Base.getCmdConfig().nextCmd} {queue name}\`.\n` +
                         `**VOICE**: Pulling users from voice queues requires 2 steps:\n` +
-                        `1. \`${storedPrefix}${Base.getCmdConfig().startCmd} {queue name}\` makes the bot join the voice channel.\n` +
+                        `1. \`${storedPrefix}${
+                           Base.getCmdConfig().startCmd
+                        } {queue name}\` makes the bot join the voice channel.\n` +
                         `2. Move the bot to a new (non-queue) channel to set a "target".\n` +
                         `If the target channel has a user limit, ` +
                         `(\`${storedPrefix}${Base.getCmdConfig().limitCmd} {queue name} {#}\`), ` +
@@ -127,7 +133,9 @@ export class Commands {
                   {
                      name: "Join Text Queue",
                      value:
-                        `\`${storedPrefix}${Base.getCmdConfig().joinCmd} {queue name} {OPTIONAL: message to display next to your name}\` ` +
+                        `\`${storedPrefix}${
+                           Base.getCmdConfig().joinCmd
+                        } {queue name} {OPTIONAL: message to display next to your name}\` ` +
                         `joins or leaves a text queue.`,
                   },
                ],
@@ -156,7 +164,9 @@ export class Commands {
                   {
                      name: "Pull from Voice Queue",
                      value:
-                        `\`${storedPrefix}${Base.getCmdConfig().startCmd} {queue name}\` adds the bot to a voice queue. ` +
+                        `\`${storedPrefix}${
+                           Base.getCmdConfig().startCmd
+                        } {queue name}\` adds the bot to a voice queue. ` +
                         `Then the bot can dragged to a (non-queue) channel to set a "target". ` +
                         `If the target channel has a user limit, ` +
                         `(\`${storedPrefix}${Base.getCmdConfig().limitCmd} {queue name} {#}\`), ` +
@@ -176,7 +186,9 @@ export class Commands {
                   {
                      name: "Kick",
                      value:
-                        `\`${storedPrefix}${Base.getCmdConfig().kickCmd} {OPTIONAL: queue name} @{user 1} @{user 2} ...\` ` +
+                        `\`${storedPrefix}${
+                           Base.getCmdConfig().kickCmd
+                        } {OPTIONAL: queue name} @{user 1} @{user 2} ...\` ` +
                         `kicks one or more people. If a queue name is given, it will kick from a single queue. ` +
                         `Otherwise, it will kick people from every queue.`,
                   },
@@ -190,11 +202,15 @@ export class Commands {
                   },
                   {
                      name: "Set Size Limit",
-                     value: `\`${storedPrefix}${Base.getCmdConfig().limitCmd} {queue name} {#}\` sets queue size limit.`,
+                     value: `\`${storedPrefix}${
+                        Base.getCmdConfig().limitCmd
+                     } {queue name} {#}\` sets queue size limit.`,
                   },
                   {
                      name: "Autofill Voice Channels",
-                     value: `\`${storedPrefix}${Base.getCmdConfig().autofillCmd} {queue name} {on|off}\`.`,
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().autofillCmd} {queue name} {on|off}\` ` +
+                        `turns autofill on or off for a channel.`,
                   },
                   {
                      name: "Set # of People to Pull at a time",
@@ -202,6 +218,18 @@ export class Commands {
                         `\`${storedPrefix}${Base.getCmdConfig().pullNumCmd} {queue name} {#}\` ` +
                         `sets the default number of people to pull when Autofill is off or when using ` +
                         `\`${storedPrefix}${Base.getCmdConfig().nextCmd}\`.`,
+                  },
+                  {
+                     name: "Set Display Message Header",
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().headerCmd} {queue name} {message}\` ` +
+                        `sets a header for display messaged. Leave \`{header}\` blank to remove.`,
+                  },
+                  {
+                     name: "Mention Queue",
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().mentionCmd} {queue name} {OPTIONAL: message}\` ` +
+                        `mentions everyone in a queue. You can add a message too.`,
                   },
                   // Server settings
                   {
@@ -212,16 +240,22 @@ export class Commands {
                   },
                   {
                      name: "Set Command Prefix",
-                     value: `\`${storedPrefix}${Base.getCmdConfig().prefixCmd} {new prefix}\` sets the prefix for commands.`,
+                     value: `\`${storedPrefix}${
+                        Base.getCmdConfig().prefixCmd
+                     } {new prefix}\` sets the prefix for commands.`,
                   },
                   {
                      name: "Set Color",
-                     value: `\`${storedPrefix}${Base.getCmdConfig().colorCmd} {new color}\` sets the color of bot messages.`,
+                     value: `\`${storedPrefix}${
+                        Base.getCmdConfig().colorCmd
+                     } {new color}\` sets the color of bot messages.`,
                   },
                   {
                      name: "Set Display Mode",
                      value:
-                        `\`${storedPrefix}${Base.getCmdConfig().modeCmd} {#}\` sets how the display messages are updated.\n` +
+                        `\`${storedPrefix}${
+                           Base.getCmdConfig().modeCmd
+                        } {#}\` sets how the display messages are updated.\n` +
                         `\`${storedPrefix}${Base.getCmdConfig().modeCmd}\` displays the different update modes.`,
                   },
                   {
@@ -263,7 +297,7 @@ export class Commands {
     */
    public static async kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
       // remove user mentions from text
-      parsed.arguments = parsed.arguments.replace(/<@!?\d+>/gi, "").trim();
+      parsed.arguments = parsed.arguments.replaceAll(/<@!?\d+>/gi, "").trim();
       // Parse members id
       const memberIdsToKick = message.mentions.members.array().map((member) => member.id);
       if (!memberIdsToKick || memberIdsToKick.length === 0) return;
@@ -451,7 +485,9 @@ export class Commands {
          } else {
             SchedulingUtils.scheduleResponseToMessage(
                `No queue channels set.\n` +
-                  `Set a new queue channel using \`${queueGuild.prefix}${Base.getCmdConfig().queueCmd} {channel name}\`\n`,
+                  `Set a new queue channel using \`${queueGuild.prefix}${
+                     Base.getCmdConfig().queueCmd
+                  } {channel name}\`\n`,
                // 	+ `Channels: ${channels.map(channel => ` \`${channel.name}\``)}`
                message
             );
@@ -529,11 +565,7 @@ export class Commands {
       }
       if (memberIdsToAdd.length > 0) {
          // Parse message
-         const personalMessage = parsed.arguments
-            .replace(/(<(@!?|#)\w+>)/gi, "")
-            .replace(queueChannel.name, "")
-            .substring(0, 128)
-            .trim();
+         const personalMessage = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
          // Add to queue
          await QueueMemberTable.storeQueueMembers(queueChannel.id, memberIdsToAdd, personalMessage);
          response +=
@@ -720,11 +752,7 @@ export class Commands {
          return;
       }
 
-      const statusString = parsed.arguments
-         .replace(/(<(@!?|#)\w+>)/gi, "")
-         .replace(queueChannel.name, "")
-         .toLowerCase()
-         .trim();
+      const statusString = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
          .where("queue_channel_id", queueChannel.id)
          .first();
@@ -801,6 +829,51 @@ export class Commands {
                `Queue Bot will pull \`${storedQueueChannel.pull_num}\` at a time.`,
             message
          );
+      }
+   }
+
+   /**
+    *
+    * @param queueGuild
+    * @param parsed
+    * @param message
+    */
+   public static async setHeader(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+      // Get queue channel
+      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+      if (!queueChannel) return;
+      const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
+      await Base.getKnex()<QueueChannel>("queue_channels")
+         .where("queue_channel_id", queueChannel.id)
+         .update("header", msg);
+      const channel = message.channel as TextChannel | NewsChannel;
+      MessagingUtils.sendTempMessage(`Updated **${queueChannel.name}** header.`, channel, 10);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   }
+
+   /**
+    *
+    * @param queueGuild
+    * @param parsed
+    * @param message
+    */
+   public static async mention(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+      // Get queue channel
+      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+      if (!queueChannel) return;
+      const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
+      const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
+         .where("queue_channel_id", queueChannel.id)
+         .pluck("queue_member_id");
+      if (storedQueueMemberIds?.length > 0) {
+         SchedulingUtils.scheduleResponseToMessage(
+            `**${message.author.username}** mentioned **${queueChannel.name}**` +
+               (msg ? `: \`${msg}\`\n` : `.\n`) +
+               storedQueueMemberIds.map((id) => `<@${id}>`).join(", "),
+            message
+         );
+      } else {
+         SchedulingUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` is empty.`, message);
       }
    }
 
