@@ -417,7 +417,9 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       const storedQueueChannel = storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
       if (storedQueueChannel && storedQueueChannel.auto_fill) {
          const queueChannel = member.guild.channels.cache.get(storedQueueChannel.queue_channel_id) as VoiceChannel;
-         await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
+         if (queueChannel) {
+            await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
+         }
       }
    }
 });
