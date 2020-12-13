@@ -202,7 +202,7 @@ client.on("message", async (message) => {
       } else if (parsed.command == cmdConfig.joinCmd) {
          // Join Text Queue
          Commands.joinTextChannel(parsed, hasPermission);
-      } else if (parsed.command == cmdConfig.helpCmd) {
+      } else if (parsed.command == cmdConfig.myQueuesCmd) {
          // My Queues
          Commands.myQueues(parsed);
       }
