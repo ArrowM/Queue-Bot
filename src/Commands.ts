@@ -300,7 +300,9 @@ export class Commands {
       let queueChannelsToCheck: GuildChannel[] = [];
       if (parsed.arguments) {
          const queueChannel = await ParsingUtils.fetchChannel(parsed, message.mentions.members.size > 0);
-         queueChannelsToCheck.push(queueChannel);
+         if (queueChannel) {
+            queueChannelsToCheck.push(queueChannel);
+         }
       } else {
          const storedQueueChannelIds = await Base.getKnex()<QueueChannel>("queue_channels")
             .where("guild_id", parsed.queueGuild.guild_id)
