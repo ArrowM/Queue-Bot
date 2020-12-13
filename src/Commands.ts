@@ -388,7 +388,7 @@ export class Commands {
          SchedulingUtils.scheduleResponseToMessage(
             {
                content:
-                  `${setting.label} is \`${queueGuild[setting.dbVariable]}\`.\n` +
+                  `${setting.label} is \`${queueGuild[setting.dbVariable] || "off"}\`.\n` +
                   `Set using \`${queueGuild.prefix}${parsed.command} {${setting.options}}\`.\n` +
                   (extraErrorLine ? extraErrorLine : ""),
                embed,
