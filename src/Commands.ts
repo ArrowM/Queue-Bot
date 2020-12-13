@@ -845,7 +845,7 @@ export class Commands {
       const embed = new MessageEmbed();
       embed.setTitle(`${message.member.displayName}'s queues`);
       embed.setColor(parsed.queueGuild.color);
-      for (const myStoredMember of myStoredMembers) {
+      for (const myStoredMember of myStoredMembers.slice(0, 25)) {
          const allMemberIds = await Base.getKnex()<QueueMember>("queue_members")
             .where("queue_channel_id", myStoredMember.queue_channel_id)
             .orderBy("created_at")
