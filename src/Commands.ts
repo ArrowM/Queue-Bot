@@ -1,6 +1,6 @@
 import {
    GuildChannel,
-   Message,
+   MessageEmbed,
    MessageEmbedOptions,
    MessageOptions,
    NewsChannel,
@@ -19,30 +19,24 @@ import { SchedulingUtils } from "./utilities/SchedulingUtils";
 export class Commands {
    /**
     * Create an embed message to display a channel's queue
-    * @param queueGuild
-    * @param parsed Parsed message - prefix, command, argument.
-    * @param message Discord message object.
-    * @param queueChannel
     */
    public static async displayQueue(
-      queueGuild: QueueGuild,
       parsed: ParsedArguments,
-      message: Message,
       queueChannel?: VoiceChannel | TextChannel | NewsChannel
    ): Promise<void> {
-      queueChannel = queueChannel || (await ParsingUtils.fetchChannel(queueGuild, parsed, message));
+      queueChannel = queueChannel || (await ParsingUtils.fetchChannel(parsed));
       if (!queueChannel) return;
 
-      const displayChannel = message.channel as TextChannel | NewsChannel;
+      const displayChannel = parsed.message.channel as TextChannel | NewsChannel;
       const displayPermissions = displayChannel.permissionsFor(displayChannel.guild.me);
       if (displayPermissions.has("SEND_MESSAGES") && displayPermissions.has("EMBED_LINKS")) {
-         const embeds = await MessagingUtils.generateEmbed(queueGuild, queueChannel);
+         const embeds = await MessagingUtils.generateEmbed(parsed.queueGuild, queueChannel);
          // Remove old display
          await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id);
          // Create new display
          await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, embeds);
       } else {
-         message.author
+         parsed.message.author
             .send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`)
             .catch(() => null);
       }
@@ -50,13 +44,10 @@ export class Commands {
 
    /**
     * Send a help embed
-    * @param queueGuild
-    * @param parsed
-    * @param message Discord message object.
     */
-   public static async help(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const storedPrefix = queueGuild.prefix;
-      const storedColor = queueGuild.color;
+   public static async help(parsed: ParsedArguments): Promise<void> {
+      const storedPrefix = parsed.queueGuild.prefix;
+      const storedColor = parsed.queueGuild.color;
 
       const responses: MessageOptions[] = [
          {
@@ -137,6 +128,12 @@ export class Commands {
                            Base.getCmdConfig().joinCmd
                         } {queue name} {OPTIONAL: message to display next to your name}\` ` +
                         `joins or leaves a text queue.`,
+                  },
+                  {
+                     name: "My Queues",
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().myQueuesCmd}\` ` +
+                        `display a member's position in each of the queue they have joined.`,
                   },
                ],
                title: "Commands Available to Everyone",
@@ -273,29 +270,27 @@ export class Commands {
          },
       ];
 
-      const channels = message.guild.channels.cache.filter((channel) => channel.type === "text").array() as (
+      const channels = parsed.message.guild.channels.cache.filter((channel) => channel.type === "text").array() as (
          | TextChannel
          | NewsChannel
       )[];
-      const displayChannel = ParsingUtils.extractChannel(channels, parsed, message) as TextChannel | NewsChannel;
+      const displayChannel = ParsingUtils.extractChannel(channels, parsed) as TextChannel | NewsChannel;
 
       if (parsed.arguments && displayChannel) {
          responses.forEach((response) => SchedulingUtils.scheduleResponseToChannel(response, displayChannel));
       } else {
          // No channel provided. Send help to user.
-         responses.forEach((response) => message.author.send(response).catch(() => null));
-         const channel = message.channel as TextChannel | NewsChannel;
+         responses.forEach((response) => parsed.message.author.send(response).catch(() => null));
+         const channel = parsed.message.channel as TextChannel | NewsChannel;
          MessagingUtils.sendTempMessage("I have sent help to your PMs.", channel, 10);
       }
    }
 
    /**
     * Kick a member from a queue
-    * @param queueGuild
-    * @param parsed
-    * @param message Discord message object.
     */
-   public static async kickMember(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
+   public static async kickMember(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
       // remove user mentions from text
       parsed.arguments = parsed.arguments.replaceAll(/<@!?\d+>/gi, "").trim();
       // Parse members id
@@ -304,16 +299,11 @@ export class Commands {
       // Get channels to check - if user provides queue channel, use it. Otherwise check all stored queue channels.
       let queueChannelsToCheck: GuildChannel[] = [];
       if (parsed.arguments) {
-         const queueChannel = await ParsingUtils.fetchChannel(
-            queueGuild,
-            parsed,
-            message,
-            message.mentions.members.size > 0
-         );
+         const queueChannel = await ParsingUtils.fetchChannel(parsed, message.mentions.members.size > 0);
          queueChannelsToCheck.push(queueChannel);
       } else {
          const storedQueueChannelIds = await Base.getKnex()<QueueChannel>("queue_channels")
-            .where("guild_id", queueGuild.guild_id)
+            .where("guild_id", parsed.queueGuild.guild_id)
             .pluck("queue_channel_id");
          for (const storedQueueChannelId of storedQueueChannelIds) {
             const queueChannel = message.guild.channels.cache.get(storedQueueChannelId);
@@ -346,7 +336,10 @@ export class Commands {
                .whereIn("queue_member_id", memberIdsToKick)
                .where("queue_channel_id", queueChannel.id)
                .del();
-            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel as TextChannel | NewsChannel | VoiceChannel);
+            SchedulingUtils.scheduleDisplayUpdate(
+               parsed.queueGuild,
+               queueChannel as TextChannel | NewsChannel | VoiceChannel
+            );
          }
          SchedulingUtils.scheduleResponseToMessage(
             "Kicked " +
@@ -359,22 +352,19 @@ export class Commands {
 
    /**
     * Set a server setting
-    * @param queueGuild
-    * @param parsed
-    * @param message Discord message object.
     * @param passesValueRestrictions Test to determine whether the user input is valid.
     * @param extraErrorLine Extra hint to display if the user gives invalid input.
     * @param embed Embed to display with extra error line.
     */
    public static async setServerSetting(
-      queueGuild: QueueGuild,
       parsed: ParsedArguments,
-      message: Message,
       passesValueRestrictions: boolean,
       extraErrorLine?: string,
       embed?: Partial<MessageEmbedOptions>
    ): Promise<void> {
       // Setup common variables
+      const message = parsed.message;
+      const queueGuild = parsed.queueGuild;
       const setting = this.serverSettingVariables[parsed.command];
       const channels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
 
@@ -408,15 +398,10 @@ export class Commands {
 
    /**
     * Toggle a channel's queue status. Display existing queues if no argument is provided.
-    * @param queueGuild
-    * @param parsed Parsed message - prefix, command, argument.
-    * @param message Discord message object.
     */
-   public static async setQueueChannel(
-      queueGuild: QueueGuild,
-      parsed: ParsedArguments,
-      message: Message
-   ): Promise<void> {
+   public static async setQueueChannel(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const queueGuild = parsed.queueGuild;
       // Get stored queue channel list from database
       const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
       // Channel argument provided. Toggle it
@@ -426,7 +411,7 @@ export class Commands {
             | TextChannel
             | NewsChannel
          )[];
-         const queueChannel = ParsingUtils.extractChannel(channels, parsed, message);
+         const queueChannel = ParsingUtils.extractChannel(channels, parsed);
          if (!queueChannel) {
             ParsingUtils.reportChannelNotFound(queueGuild, parsed, channels, message, false, false);
             return;
@@ -473,7 +458,7 @@ export class Commands {
             }
             // It's not in the list, add it
             await QueueChannelTable.storeQueueChannel(queueChannel, maxMembersInQueue);
-            await this.displayQueue(queueGuild, parsed, message, queueChannel);
+            await this.displayQueue(parsed, queueChannel);
          }
       } else {
          // No argument. Display current queues
@@ -497,24 +482,14 @@ export class Commands {
 
    /**
     * Add a member into a text queue
-    * @param queueGuild
-    * @param parsed Parsed message - prefix, command, argument.
-    * @param message Discord message object.
     * @param authorHasPermissionToQueueOthers whether the message author can queue others using mentions.
     */
    public static async joinTextChannel(
-      queueGuild: QueueGuild,
       parsed: ParsedArguments,
-      message: Message,
       authorHasPermissionToQueueOthers: boolean
    ): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(
-         queueGuild,
-         parsed,
-         message,
-         message.mentions.members.size > 0,
-         "text"
-      );
+      const message = parsed.message;
+      const queueChannel = await ParsingUtils.fetchChannel(parsed, message.mentions.members.size > 0, "text");
       if (!queueChannel) return;
 
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
@@ -572,17 +547,15 @@ export class Commands {
             "Added " + memberIdsToAdd.map((id) => `<@!${id}>`).join(", ") + ` to the \`${queueChannel.name}\` queue.`;
       }
       SchedulingUtils.scheduleResponseToMessage(response, message);
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 
    /**
     * Pop a member from a text channel queue
-    * @param queueGuild
-    * @param parsed
-    * @param message Discord message object.
     */
-   public static async popTextQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, false);
+   public static async popTextQueue(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const queueChannel = await ParsingUtils.fetchChannel(parsed, false);
       if (!queueChannel) return;
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
          .where("queue_channel_id", queueChannel.id)
@@ -611,7 +584,7 @@ export class Commands {
             queueChannel.id,
             nextQueueMembers.map((member) => member.queue_member_id)
          );
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
       } else {
          SchedulingUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` is empty.`, message);
       }
@@ -619,12 +592,9 @@ export class Commands {
 
    /**
     * Shuffles a queue
-    * @param queueGuild
-    * @param parsed
-    * @param message Discord message object.
     */
-   public static async shuffleQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+   public static async shuffleQueue(parsed: ParsedArguments): Promise<void> {
+      const queueChannel = await ParsingUtils.fetchChannel(parsed);
       if (!queueChannel) return;
 
       const queueMembers = await Base.getKnex()<QueueMember>("queue_members").where(
@@ -638,34 +608,29 @@ export class Commands {
             .where("id", queueMembers[i].id)
             .update("created_at", queueMemberTimeStamps[i]);
       }
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-      const channel = message.channel as TextChannel | NewsChannel;
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      const channel = parsed.message.channel as TextChannel | NewsChannel;
       MessagingUtils.sendTempMessage(`\`${queueChannel.name}\` queue shuffled.`, channel, 10);
    }
 
    /**
     * Pop a member from a text channel queue
-    * @param queueGuild
-    * @param parsed
-    * @param message Discord message object.
     */
-   public static async clearQueue(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+   public static async clearQueue(parsed: ParsedArguments): Promise<void> {
+      const queueChannel = await ParsingUtils.fetchChannel(parsed);
       if (!queueChannel) return;
 
       await QueueMemberTable.unstoreQueueMembers(queueChannel.id);
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-      SchedulingUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` queue cleared.`, message);
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      SchedulingUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` queue cleared.`, parsed.message);
    }
 
    /**
     * Add bot to a voice channel for swapping
-    * @param queueGuild
-    * @param parsed
-    * @param message Discord message object.
     */
-   public static async start(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message, false, "voice");
+   public static async start(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const queueChannel = await ParsingUtils.fetchChannel(parsed, false, "voice");
       if (!queueChannel) return;
 
       if (queueChannel.type === "voice") {
@@ -700,12 +665,10 @@ export class Commands {
 
    /**
     * Set voice channel limits command
-    * @param queueGuild
-    * @param parsed Parsed message - prefix, command, argument.
-    * @param message Discord message object.
     */
-   public static async setSizeLimit(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+   public static async setSizeLimit(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const queueChannel = await ParsingUtils.fetchChannel(parsed);
       if (!queueChannel) return;
 
       let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
@@ -726,7 +689,7 @@ export class Commands {
                );
             }
          }
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
          await Base.getKnex()<QueueChannel>("queue_channels")
             .where("queue_channel_id", queueChannel.id)
             .update("max_members", maxMembersInQueue);
@@ -735,12 +698,11 @@ export class Commands {
 
    /**
     *
-    * @param queueGuild
-    * @param parsed
-    * @param message
     */
-   public static async setAutoFill(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      const queueChannel = (await ParsingUtils.fetchChannel(queueGuild, parsed, message)) as VoiceChannel;
+   public static async setAutoFill(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const queueGuild = parsed.queueGuild;
+      const queueChannel = (await ParsingUtils.fetchChannel(parsed)) as VoiceChannel;
       if (!queueChannel) return;
       if (queueChannel.type !== "voice") {
          const channel = message.channel as TextChannel | NewsChannel;
@@ -798,13 +760,10 @@ export class Commands {
 
    /**
     *
-    * @param queueGuild
-    * @param parsed
-    * @param message
     */
-   public static async setPullNum(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      // Get queue channel
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+   public static async setPullNum(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const queueChannel = await ParsingUtils.fetchChannel(parsed);
       if (!queueChannel) return;
 
       let pullNum = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
@@ -834,32 +793,10 @@ export class Commands {
 
    /**
     *
-    * @param queueGuild
-    * @param parsed
-    * @param message
     */
-   public static async setHeader(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      // Get queue channel
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
-      if (!queueChannel) return;
-      const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
-      await Base.getKnex()<QueueChannel>("queue_channels")
-         .where("queue_channel_id", queueChannel.id)
-         .update("header", msg);
-      const channel = message.channel as TextChannel | NewsChannel;
-      MessagingUtils.sendTempMessage(`Updated **${queueChannel.name}** header.`, channel, 10);
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-   }
-
-   /**
-    *
-    * @param queueGuild
-    * @param parsed
-    * @param message
-    */
-   public static async mention(queueGuild: QueueGuild, parsed: ParsedArguments, message: Message): Promise<void> {
-      // Get queue channel
-      const queueChannel = await ParsingUtils.fetchChannel(queueGuild, parsed, message);
+   public static async mention(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const queueChannel = await ParsingUtils.fetchChannel(parsed);
       if (!queueChannel) return;
       const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
       const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
@@ -875,6 +812,49 @@ export class Commands {
       } else {
          SchedulingUtils.scheduleResponseToMessage(`\`${queueChannel.name}\` is empty.`, message);
       }
+   }
+
+   /**
+    *
+    */
+   public static async setHeader(parsed: ParsedArguments): Promise<void> {
+      const queueChannel = await ParsingUtils.fetchChannel(parsed);
+      if (!queueChannel) return;
+      const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
+      await Base.getKnex()<QueueChannel>("queue_channels")
+         .where("queue_channel_id", queueChannel.id)
+         .update("header", msg);
+      const channel = parsed.message.channel as TextChannel | NewsChannel;
+      MessagingUtils.sendTempMessage(`Updated **${queueChannel.name}** header.`, channel, 10);
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+   }
+
+   /**
+    *
+    */
+   public static async myQueues(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
+      const myMemberId = message.member.id;
+      const myStoredMembers = await Base.getKnex()<QueueMember>("queue_members").where("queue_member_id", myMemberId);
+      if (myStoredMembers?.length < 1) {
+         SchedulingUtils.scheduleResponseToMessage(`<@!${myMemberId}> is in no queues.`, message);
+         return;
+      }
+      const embed = new MessageEmbed();
+      embed.setTitle(`${message.member.displayName}'s queues`);
+      embed.setColor(parsed.queueGuild.color);
+      for (const myStoredMember of myStoredMembers) {
+         const allMemberIds = await Base.getKnex()<QueueMember>("queue_members")
+            .where("queue_channel_id", myStoredMember.queue_channel_id)
+            .orderBy("created_at")
+            .pluck("queue_member_id");
+         embed.addField(
+            message.guild.channels.cache.get(myStoredMember.queue_channel_id).name,
+            `${allMemberIds.indexOf(myMemberId.toString()) + 1} <@${myMemberId}>` +
+               (myStoredMember.personal_message ? ` -- ${myStoredMember.personal_message}` : "")
+         );
+      }
+      SchedulingUtils.scheduleResponseToMessage({ embed: embed }, message);
    }
 
    // Map commands to database columns and display strings

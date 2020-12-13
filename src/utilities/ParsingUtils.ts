@@ -36,10 +36,9 @@ export class ParsingUtils {
     */
    public static extractChannel(
       availableChannels: (VoiceChannel | TextChannel | NewsChannel)[],
-      parsed: ParsedArguments,
-      message: Message
+      parsed: ParsedArguments
    ): VoiceChannel | TextChannel | NewsChannel {
-      let channel = availableChannels.find((ch) => ch.id === message.mentions.channels.array()[0]?.id);
+      let channel = availableChannels.find((ch) => ch.id === parsed.message.mentions.channels.array()[0]?.id);
       if (!channel && parsed.arguments) {
          const splitArgs = parsed.arguments.split(" ");
          for (let i = splitArgs.length; i > 0; i--) {
@@ -113,14 +112,12 @@ export class ParsingUtils {
     * @param type? Type of channels to fetch ('voice' or 'text')
     */
    public static async fetchChannel(
-      queueGuild: QueueGuild,
       parsed: ParsedArguments,
-      message: Message,
       includeMention?: boolean,
       type?: string
    ): Promise<VoiceChannel | TextChannel | NewsChannel> {
-      const guild = message.guild;
-      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(guild);
+      const message = parsed.message;
+      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
 
       if (storedChannels.length > 0) {
          // Extract channel name from message
@@ -129,17 +126,17 @@ export class ParsingUtils {
          if (availableChannels.length === 1) {
             return availableChannels[0];
          } else {
-            const channel = this.extractChannel(availableChannels, parsed, message);
+            const channel = this.extractChannel(availableChannels, parsed);
             if (channel) {
                return channel;
             } else {
-               this.reportChannelNotFound(queueGuild, parsed, availableChannels, message, includeMention, true, type);
+               this.reportChannelNotFound(parsed.queueGuild, parsed, availableChannels, message, includeMention, true, type);
             }
          }
       } else {
          SchedulingUtils.scheduleResponseToMessage(
             `No queue channels set.\n` +
-            `Set a queue first using \`${queueGuild.prefix}${Base.getCmdConfig().queueCmd} {channel name}\`.`,
+            `Set a queue first using \`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueCmd} {channel name}\`.`,
             message
          );
       }

@@ -76,8 +76,12 @@ client.on("message", async (message) => {
    const queueGuild =
       (await knex<QueueGuild>("queue_guilds").where("guild_id", guild.id).first()) ||
       (await QueueGuildTable.storeQueueGuild(guild));
-
-   const parsed: ParsedArguments = { command: null, arguments: null };
+   const parsed: ParsedArguments = {
+      queueGuild: queueGuild,
+      message: message,
+      command: null,
+      arguments: null,
+   };
    if (message.content.startsWith(queueGuild.prefix)) {
       // Parse the message
       // Note: prefix can contain spaces. Command can not contains spaces. parsedArgs can contain spaces.
@@ -115,77 +119,66 @@ client.on("message", async (message) => {
          if (hasPermission) {
             if (parsed.command === cmdConfig.startCmd) {
                // Start
-               Commands.start(queueGuild, parsed, message);
+               Commands.start(parsed);
             } else if (parsed.command === cmdConfig.displayCmd) {
                // Display
-               Commands.displayQueue(queueGuild, parsed, message);
+               Commands.displayQueue(parsed);
             } else if (parsed.command === cmdConfig.queueCmd) {
                // Set Queue
-               Commands.setQueueChannel(queueGuild, parsed, message);
+               Commands.setQueueChannel(parsed);
             } else if (parsed.command === cmdConfig.nextCmd) {
                // Pop next user
-               Commands.popTextQueue(queueGuild, parsed, message);
+               Commands.popTextQueue(parsed);
             } else if (parsed.command === cmdConfig.kickCmd) {
                // Pop next user
-               Commands.kickMember(queueGuild, parsed, message);
+               Commands.kickMember(parsed);
             } else if (parsed.command === cmdConfig.clearCmd) {
                // Clear queue
-               Commands.clearQueue(queueGuild, parsed, message);
+               Commands.clearQueue(parsed);
             } else if (parsed.command === cmdConfig.shuffleCmd) {
                // Shuffle queue
-               Commands.shuffleQueue(queueGuild, parsed, message);
+               Commands.shuffleQueue(parsed);
             } else if (parsed.command === cmdConfig.limitCmd) {
                // Limit queue size
-               Commands.setSizeLimit(queueGuild, parsed, message);
+               Commands.setSizeLimit(parsed);
             } else if (parsed.command === cmdConfig.autofillCmd) {
                // Auto pull
-               Commands.setAutoFill(queueGuild, parsed, message);
+               Commands.setAutoFill(parsed);
             } else if (parsed.command === cmdConfig.pullNumCmd) {
                // Pull num
-               Commands.setPullNum(queueGuild, parsed, message);
+               Commands.setPullNum(parsed);
             } else if (parsed.command === cmdConfig.gracePeriodCmd) {
                // Grace period
                Commands.setServerSetting(
-                  queueGuild,
                   parsed,
-                  message,
                   +parsed.arguments >= 0 && +parsed.arguments <= 6000,
                   "Grace period must be between `0` and `6000` seconds."
                );
             } else if (parsed.command === cmdConfig.headerCmd) {
-               // Code
-               Commands.setHeader(queueGuild, parsed, message);
+               // Header
+               Commands.setHeader(parsed);
             } else if (parsed.command === cmdConfig.mentionCmd) {
                // Mention
-               Commands.mention(queueGuild, parsed, message);
+               Commands.mention(parsed);
             } else if (parsed.command === cmdConfig.prefixCmd) {
                // Prefix
-               Commands.setServerSetting(queueGuild, parsed, message, true);
+               Commands.setServerSetting(parsed, true);
                guild.me.setNickname(`(${parsed.arguments}) Queue Bot`).catch(() => null);
             } else if (parsed.command === cmdConfig.colorCmd) {
                // Color
-               Commands.setServerSetting(
-                  queueGuild,
-                  parsed,
-                  message,
-                  /^#?[0-9A-F]{6}$/i.test(parsed.arguments),
-                  "Use HEX color:",
-                  {
-                     color: queueGuild.color,
-                     title: "Hex color picker",
-                     url: "https://htmlcolorcodes.com/color-picker/",
-                  }
-               );
+               Commands.setServerSetting(parsed, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), "Use HEX color:", {
+                  color: queueGuild.color,
+                  title: "Hex color picker",
+                  url: "https://htmlcolorcodes.com/color-picker/",
+               });
             } else if (parsed.command === cmdConfig.cleanupCmd) {
                // Command Cleanup
                parsed.arguments = parsed.arguments.toLowerCase();
-               Commands.setServerSetting(queueGuild, parsed, message, ["on", "off"].includes(parsed.arguments));
+               Commands.setServerSetting(parsed, ["on", "off"].includes(parsed.arguments));
             } else if (parsed.command === cmdConfig.modeCmd) {
                // Toggle new message on update
                Commands.setServerSetting(
-                  queueGuild,
                   parsed,
-                  message,
                   +parsed.arguments >= 1 && +parsed.arguments <= 3,
                   "When the queue changes: \n" +
                      "`1`: (default) Update old display message \n" +
@@ -203,19 +196,19 @@ client.on("message", async (message) => {
          }
       }
       // Commands open to everyone
-      switch (parsed.command) {
+      if (parsed.command == cmdConfig.helpCmd) {
          // Help
-         case cmdConfig.helpCmd:
-            Commands.help(queueGuild, parsed, message);
-            break;
+         Commands.help(parsed);
+      } else if (parsed.command == cmdConfig.joinCmd) {
          // Join Text Queue
-         case cmdConfig.joinCmd:
-            Commands.joinTextChannel(queueGuild, parsed, message, hasPermission);
-            break;
+         Commands.joinTextChannel(parsed, hasPermission);
+      } else if (parsed.command == cmdConfig.helpCmd) {
+         // My Queues
+         Commands.myQueues(parsed);
       }
    } else if (message.content === config.prefix + cmdConfig.helpCmd) {
       // Default help command
-      Commands.help(queueGuild, parsed, message);
+      Commands.help(parsed);
    }
 });
 

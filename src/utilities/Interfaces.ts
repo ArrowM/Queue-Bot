@@ -1,4 +1,8 @@
+import { Message } from "discord.js";
+
 export interface ParsedArguments {
+   queueGuild: QueueGuild;
+   message: Message;
    command: string;
    arguments: string;
 }
@@ -67,8 +71,9 @@ export interface CommandConfigJson {
    joinCmd: string;
    kickCmd: string;
    limitCmd: string;
-   modeCmd: string;
    mentionCmd: string;
+   modeCmd: string;
+   myQueuesCmd: string;
    nextCmd: string;
    prefixCmd: string;
    pullNumCmd: string;
