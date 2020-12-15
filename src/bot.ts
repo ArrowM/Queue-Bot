@@ -220,9 +220,6 @@ async function resumeAfterOffline(): Promise<void> {
       try {
          const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id); // do not catch here
          if (!guild) continue;
-         if (guild.me.nickname === "() Queue Bot") { // TEMP
-            guild.me.setNickname(`(${storedQueueGuild.prefix}) Queue Bot`);
-         }
          // Clean queue channels
          const queueChannels = await QueueChannelTable.fetchStoredQueueChannels(guild);
          for (const queueChannel of queueChannels) {
