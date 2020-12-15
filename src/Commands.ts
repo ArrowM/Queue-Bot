@@ -415,32 +415,33 @@ export class Commands {
             | NewsChannel
             | VoiceChannel
          )[];
-         const queueChannel = ParsingUtils.getChannel(parsed, channels);
+         const channel = ParsingUtils.getChannel(parsed, channels);
+         if (!channel) return;
 
-         if (storedChannels.some((storedChannel) => storedChannel.id === queueChannel.id)) {
+         if (storedChannels.some((storedChannel) => storedChannel.id === channel.id)) {
             // Channel is already stored, remove it
-            await QueueChannelTable.unstoreQueueChannel(message.guild.id, queueChannel.id);
-            if (queueChannel.type === "voice") {
-               if (queueChannel.userLimit > 0) {
-                  (queueChannel as VoiceChannel).setUserLimit(0).catch(() => null);
+            await QueueChannelTable.unstoreQueueChannel(message.guild.id, channel.id);
+            if (channel.type === "voice") {
+               if (channel.userLimit > 0) {
+                  (channel as VoiceChannel).setUserLimit(0).catch(() => null);
                }
             }
-            SchedulingUtils.scheduleResponseToMessage(`Deleted queue for \`${queueChannel.name}\`.`, message);
+            SchedulingUtils.scheduleResponseToMessage(`Deleted queue for \`${channel.name}\`.`, message);
          } else {
             // Get number of users to pop
             let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
-            if (!maxMembersInQueue && queueChannel["userLimit"]) {
-               maxMembersInQueue = queueChannel["userLimit"];
+            if (!maxMembersInQueue && channel["userLimit"]) {
+               maxMembersInQueue = channel["userLimit"];
             }
-            if (queueChannel.type === "voice") {
-               if (queueChannel.permissionsFor(message.guild.me).has("CONNECT")) {
+            if (channel.type === "voice") {
+               if (channel.permissionsFor(message.guild.me).has("CONNECT")) {
                   if (maxMembersInQueue) {
                      if (maxMembersInQueue > 99) {
                         SchedulingUtils.scheduleResponseToMessage(`Max \`amount\` is 99. Using 99.`, message);
                         maxMembersInQueue = 99;
                      }
-                     if (queueChannel.permissionsFor(message.guild.me).has("MANAGE_CHANNELS")) {
-                        (queueChannel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
+                     if (channel.permissionsFor(message.guild.me).has("MANAGE_CHANNELS")) {
+                        (channel as VoiceChannel).setUserLimit(maxMembersInQueue).catch(() => null);
                      } else {
                         SchedulingUtils.scheduleResponseToMessage(
                            "I can automatically set voice channel user limits, but I need a new permission.\n" +
@@ -451,14 +452,14 @@ export class Commands {
                   }
                } else {
                   SchedulingUtils.scheduleResponseToMessage(
-                     `I need the **CONNECT** permission in the \`${queueChannel.name}\` voice channel to pull in queue members.`,
+                     `I need the **CONNECT** permission in the \`${channel.name}\` voice channel to pull in queue members.`,
                      message
                   );
                }
             }
             // It's not in the list, add it
-            await QueueChannelTable.storeQueueChannel(queueChannel, maxMembersInQueue);
-            await this.displayQueue(parsed, queueChannel);
+            await QueueChannelTable.storeQueueChannel(channel, maxMembersInQueue);
+            await this.displayQueue(parsed, channel);
          }
       } else {
          // No argument. Display current queues
@@ -848,11 +849,16 @@ export class Commands {
             .where("queue_channel_id", myStoredMember.queue_channel_id)
             .orderBy("created_at")
             .pluck("queue_member_id");
-         embed.addField(
-            message.guild.channels.cache.get(myStoredMember.queue_channel_id).name,
-            `${allMemberIds.indexOf(myMemberId.toString()) + 1} <@${myMemberId}>` +
-               (myStoredMember.personal_message ? ` -- ${myStoredMember.personal_message}` : "")
-         );
+         const channel = message.guild.channels.cache.get(myStoredMember.queue_channel_id);
+         if (channel) {
+            embed.addField(
+               channel.name,
+               `${allMemberIds.indexOf(myMemberId.toString()) + 1} <@${myMemberId}>` +
+                  (myStoredMember.personal_message ? ` -- ${myStoredMember.personal_message}` : "")
+            );
+         } else {
+            QueueChannelTable.unstoreQueueChannel(message.guild.id, myStoredMember.queue_channel_id);
+         }
       }
       SchedulingUtils.scheduleResponseToMessage({ embed: embed }, message);
    }
