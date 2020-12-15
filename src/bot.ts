@@ -163,7 +163,9 @@ client.on("message", async (message) => {
             } else if (parsed.command === cmdConfig.prefixCmd) {
                // Prefix
                Commands.setServerSetting(parsed, true);
-               guild.me.setNickname(`(${parsed.arguments}) Queue Bot`).catch(() => null);
+               if (parsed.arguments) {
+                  guild.me.setNickname(`(${parsed.arguments}) Queue Bot`).catch(() => null);
+               }
             } else if (parsed.command === cmdConfig.colorCmd) {
                // Color
                Commands.setServerSetting(parsed, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), "Use HEX color:", {
@@ -218,6 +220,9 @@ async function resumeAfterOffline(): Promise<void> {
       try {
          const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id); // do not catch here
          if (!guild) continue;
+         if (guild.me.nickname === "() Queue Bot") { // TEMP
+            guild.me.setNickname(`(${storedQueueGuild.prefix}) Queue Bot`);
+         }
          // Clean queue channels
          const queueChannels = await QueueChannelTable.fetchStoredQueueChannels(guild);
          for (const queueChannel of queueChannels) {
