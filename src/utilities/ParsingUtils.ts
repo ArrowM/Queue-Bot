@@ -1,6 +1,6 @@
 import { Message, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
-import { ParsedArguments, QueueGuild } from "./Interfaces";
+import { ParsedArguments } from "./Interfaces";
 import { MessagingUtils } from "./MessagingUtils";
 import { SchedulingUtils } from "./SchedulingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
@@ -35,11 +35,13 @@ export class ParsingUtils {
     * @param message
     */
    public static extractChannel(
-      availableChannels: (VoiceChannel | TextChannel | NewsChannel)[],
-      parsed: ParsedArguments
+      parsed: ParsedArguments,
+      availableChannels: (VoiceChannel | TextChannel | NewsChannel)[]
    ): VoiceChannel | TextChannel | NewsChannel {
       let channel = availableChannels.find((ch) => ch.id === parsed.message.mentions.channels.array()[0]?.id);
-      if (!channel && parsed.arguments) {
+      if (!channel && !parsed.arguments) {
+         channel = parsed.message.channel as TextChannel;
+      } else if (!channel && parsed.arguments) {
          const splitArgs = parsed.arguments.split(" ");
          for (let i = splitArgs.length; i > 0; i--) {
             if (channel) {
@@ -61,18 +63,14 @@ export class ParsingUtils {
 
    /**
     * Send a message detailing that a channel was not found.
-    * @param queueGuild
     * @param parsed
     * @param channels
-    * @param message
     * @param includeMention
     * @param type
     */
    public static async reportChannelNotFound(
-      queueGuild: QueueGuild,
       parsed: ParsedArguments,
       channels: (VoiceChannel | TextChannel | NewsChannel)[],
-      message: Message,
       includeMention: boolean,
       isAQueue: boolean,
       type?: string
@@ -84,9 +82,12 @@ export class ParsingUtils {
 
          response =
             "No " + (type ? `**${type}** ` : "") + `queue ${target}s set.\n` +
-            "Set a " + (type ? `${type} ` : "") + `queue first using \`${queueGuild.prefix}${Base.getCmdConfig().queueCmd} {${target} name}\`.`;
+            "Set a " + (type ? `${type} ` : "") + "queue first using " +
+            `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueCmd} {${target} name}\`.`;
       } else {
-         response = "Invalid " + (type ? `**${type}** ` : "") + `${target} name. Try \`${queueGuild.prefix}${parsed.command} `;
+         response =
+            "Invalid " + (type ? `**${type}** ` : "") + `${target} name. ` +
+            `Try \`${parsed.queueGuild.prefix}${parsed.command} `;
          if (channels.length === 1) {
             // Single channel, recommend the single channel
             response += channels[0].name + (includeMention ? " @{user}" : "") + "`.";
@@ -99,47 +100,59 @@ export class ParsingUtils {
             }
          }
       }
-      const channel = message.channel as TextChannel | NewsChannel;
+      const channel = parsed.message.channel as TextChannel | NewsChannel;
       MessagingUtils.sendTempMessage(response, channel, 10);
    }
 
    /**
     * Get a channel using user argument
-    * @param queueGuild
     * @param parsed
-    * @param message
+    * @param availableChannels
     * @param includeMention? Include mention in error message
     * @param type? Type of channels to fetch ('voice' or 'text')
     */
-   public static async fetchChannel(
+   public static getChannel(
       parsed: ParsedArguments,
+      availableChannels: (TextChannel | NewsChannel | VoiceChannel)[],
       includeMention?: boolean,
       type?: string
-   ): Promise<VoiceChannel | TextChannel | NewsChannel> {
-      const message = parsed.message;
-      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
-
-      if (storedChannels.length > 0) {
+   ): VoiceChannel | TextChannel | NewsChannel {
+      if (availableChannels.length > 0) {
          // Extract channel name from message
-         const availableChannels = type ? storedChannels.filter((channel) => channel.type === type) : storedChannels;
+         const channels = type ? availableChannels.filter((channel) => channel.type === type) : availableChannels;
 
-         if (availableChannels.length === 1) {
-            return availableChannels[0];
+         if (channels.length === 1) {
+            return channels[0];
          } else {
-            const channel = this.extractChannel(availableChannels, parsed);
+            const channel = this.extractChannel(parsed, channels);
             if (channel) {
                return channel;
             } else {
-               this.reportChannelNotFound(parsed.queueGuild, parsed, availableChannels, message, includeMention, true, type);
+               this.reportChannelNotFound(parsed, channels, includeMention, true, type);
             }
          }
       } else {
          SchedulingUtils.scheduleResponseToMessage(
             `No queue channels set.\n` +
             `Set a queue first using \`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueCmd} {channel name}\`.`,
-            message
+            parsed.message
          );
       }
       return null;
+   }
+
+   /**
+    * Get a channel using user argument
+    * @param parsed
+    * @param includeMention? Include mention in error message
+    * @param type? Type of channels to fetch ('voice' or 'text')
+    */
+   public static async getStoredChannel(
+      parsed: ParsedArguments,
+      includeMention?: boolean,
+      type?: string
+   ): Promise<VoiceChannel | TextChannel | NewsChannel> {
+      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(parsed.message.guild);
+      return this.getChannel(parsed, storedChannels, includeMention, type);
    }
 }

@@ -24,7 +24,7 @@ export class Commands {
       parsed: ParsedArguments,
       queueChannel?: VoiceChannel | TextChannel | NewsChannel
    ): Promise<void> {
-      queueChannel = queueChannel || (await ParsingUtils.fetchChannel(parsed));
+      queueChannel = queueChannel || (await ParsingUtils.getStoredChannel(parsed));
       if (!queueChannel) return;
 
       const displayChannel = parsed.message.channel as TextChannel | NewsChannel;
@@ -59,8 +59,8 @@ export class Commands {
                },
                color: storedColor,
                description:
-                  "*Privileged* users are the server owner, administrators, and users with any of the following roles:" +
-                  "`mod`, `moderator`, `admin`, `administrator`.",
+                  "*Privileged* users are the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.\n" +
+                  "If a command that expects a channel name is not given one, the current text channel will be used.",
                fields: [
                   {
                      name: "1. Create a Queue",
@@ -120,6 +120,8 @@ export class Commands {
          {
             embed: {
                color: storedColor,
+               description:
+                  "If a command that expects a channel name is not given one, the current text channel will be used.",
                fields: [
                   {
                      name: "Join Text Queue",
@@ -143,7 +145,8 @@ export class Commands {
             embed: {
                color: storedColor,
                description:
-                  "Commands are available to the server owner, administrators, and users with any of the following roles: `queue mod`, `mod` or `admin`.",
+                  "Commands available to the server owner, administrators, and users with any of the following roles: `queue mod`, `mod` or `admin`.\n" +
+                  "If a command that expects a channel name is not given one, the current text channel will be used.",
                fields: [
                   {
                      name: "Create / Delete / View Queues",
@@ -274,8 +277,7 @@ export class Commands {
          | TextChannel
          | NewsChannel
       )[];
-      const displayChannel = ParsingUtils.extractChannel(channels, parsed) as TextChannel | NewsChannel;
-
+      const displayChannel = ParsingUtils.getChannel(parsed, channels) as TextChannel | NewsChannel;
       if (parsed.arguments && displayChannel) {
          responses.forEach((response) => SchedulingUtils.scheduleResponseToChannel(response, displayChannel));
       } else {
@@ -299,7 +301,7 @@ export class Commands {
       // Get channels to check - if user provides queue channel, use it. Otherwise check all stored queue channels.
       let queueChannelsToCheck: GuildChannel[] = [];
       if (parsed.arguments) {
-         const queueChannel = await ParsingUtils.fetchChannel(parsed, message.mentions.members.size > 0);
+         const queueChannel = await ParsingUtils.getStoredChannel(parsed, message.mentions.members.size > 0);
          if (queueChannel) {
             queueChannelsToCheck.push(queueChannel);
          }
@@ -409,15 +411,11 @@ export class Commands {
       // Channel argument provided. Toggle it
       if (parsed.arguments) {
          const channels = message.guild.channels.cache.filter((channel) => channel.type !== "category").array() as (
-            | VoiceChannel
             | TextChannel
             | NewsChannel
+            | VoiceChannel
          )[];
-         const queueChannel = ParsingUtils.extractChannel(channels, parsed);
-         if (!queueChannel) {
-            ParsingUtils.reportChannelNotFound(queueGuild, parsed, channels, message, false, false);
-            return;
-         }
+         const queueChannel = ParsingUtils.getChannel(parsed, channels);
 
          if (storedChannels.some((storedChannel) => storedChannel.id === queueChannel.id)) {
             // Channel is already stored, remove it
@@ -491,7 +489,7 @@ export class Commands {
       authorHasPermissionToQueueOthers: boolean
    ): Promise<void> {
       const message = parsed.message;
-      const queueChannel = await ParsingUtils.fetchChannel(parsed, message.mentions.members.size > 0, "text");
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed, message.mentions.members.size > 0, "text");
       if (!queueChannel) return;
 
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
@@ -557,7 +555,7 @@ export class Commands {
     */
    public static async popTextQueue(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
-      const queueChannel = await ParsingUtils.fetchChannel(parsed, false);
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed, false);
       if (!queueChannel) return;
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
          .where("queue_channel_id", queueChannel.id)
@@ -596,7 +594,7 @@ export class Commands {
     * Shuffles a queue
     */
    public static async shuffleQueue(parsed: ParsedArguments): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(parsed);
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
 
       const queueMembers = await Base.getKnex()<QueueMember>("queue_members").where(
@@ -619,7 +617,7 @@ export class Commands {
     * Pop a member from a text channel queue
     */
    public static async clearQueue(parsed: ParsedArguments): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(parsed);
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
 
       await QueueMemberTable.unstoreQueueMembers(queueChannel.id);
@@ -632,7 +630,7 @@ export class Commands {
     */
    public static async start(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
-      const queueChannel = await ParsingUtils.fetchChannel(parsed, false, "voice");
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed, false, "voice");
       if (!queueChannel) return;
 
       if (queueChannel.type === "voice") {
@@ -670,7 +668,7 @@ export class Commands {
     */
    public static async setSizeLimit(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
-      const queueChannel = await ParsingUtils.fetchChannel(parsed);
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
 
       let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
@@ -704,7 +702,7 @@ export class Commands {
    public static async setAutoFill(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
       const queueGuild = parsed.queueGuild;
-      const queueChannel = (await ParsingUtils.fetchChannel(parsed)) as VoiceChannel;
+      const queueChannel = (await ParsingUtils.getStoredChannel(parsed)) as VoiceChannel;
       if (!queueChannel) return;
       if (queueChannel.type !== "voice") {
          const channel = message.channel as TextChannel | NewsChannel;
@@ -765,7 +763,7 @@ export class Commands {
     */
    public static async setPullNum(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
-      const queueChannel = await ParsingUtils.fetchChannel(parsed);
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
 
       let pullNum = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
@@ -798,7 +796,7 @@ export class Commands {
     */
    public static async mention(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
-      const queueChannel = await ParsingUtils.fetchChannel(parsed);
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
       const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
       const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
@@ -820,7 +818,7 @@ export class Commands {
     *
     */
    public static async setHeader(parsed: ParsedArguments): Promise<void> {
-      const queueChannel = await ParsingUtils.fetchChannel(parsed);
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
       const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
       await Base.getKnex()<QueueChannel>("queue_channels")

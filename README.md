@@ -20,7 +20,8 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 ## Commands
 Note: If you only have 1 queue, you can skip the channel name argument.
 ### Priviledged Commands
-Priviliged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Roles containing these words will also grant priviledge, for example: `mod boys`. These keywords can have an `s` attached to the end and have any capitalization, for example: `MODS`. 
+Priviliged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.  
+If a command that expects a channel name is not given one, the current text channel will be used.  
 
 | Function | Command | Default | Description |
 |-|-|-|-|

@@ -121,6 +121,7 @@ export class MessagingUtils {
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
          .where("queue_channel_id", queueChannel.id)
          .first();
+      if (!storedQueueChannel) return;
       let queueMembers = await Base.getKnex()<QueueMember>("queue_members")
          .where("queue_channel_id", queueChannel.id)
          .orderBy("created_at");
