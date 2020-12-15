@@ -306,6 +306,14 @@ client.on("guildDelete", async (guild) => {
    await QueueGuildTable.unstoreQueueGuild(guild.id);
 });
 
+client.on("channelDelete", async (channel) => {
+   const deletedQueueChannels = await knex<QueueChannel>("queue_channels").where("queue_channel_id", channel.id);
+   for (const ch of deletedQueueChannels) {
+      await QueueChannelTable.unstoreQueueChannel(ch.guild_id, ch.queue_channel_id);
+   }
+   await knex<DisplayChannel>("display_channels").where("queue_channel_id", channel.id).delete();
+});
+
 /**
  * Store members who leave queues, time stamp them
  * @param queueGuild
@@ -367,7 +375,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
             await knex<QueueChannel>("queue_channels")
                .where("guild_id", member.guild.id)
                .first()
-               .update("target_channel_id", Base.getKnex().raw("DEFAULT"));
+               .update("target_channel_id", knex.raw("DEFAULT"));
          }
       }
       const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);

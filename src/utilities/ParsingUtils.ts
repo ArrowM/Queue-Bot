@@ -36,10 +36,11 @@ export class ParsingUtils {
     */
    public static extractChannel(
       parsed: ParsedArguments,
-      availableChannels: (VoiceChannel | TextChannel | NewsChannel)[]
+      availableChannels: (VoiceChannel | TextChannel | NewsChannel)[],
+      type?: string
    ): VoiceChannel | TextChannel | NewsChannel {
       let channel = availableChannels.find((ch) => ch.id === parsed.message.mentions.channels.array()[0]?.id);
-      if (!channel && !parsed.arguments) {
+      if (!channel && !parsed.arguments && type !== "voice") {
          channel = parsed.message.channel as TextChannel;
       } else if (!channel && parsed.arguments) {
          const splitArgs = parsed.arguments.split(" ");
@@ -124,7 +125,7 @@ export class ParsingUtils {
          if (channels.length === 1) {
             return channels[0];
          } else {
-            const channel = this.extractChannel(parsed, channels);
+            const channel = this.extractChannel(parsed, channels, type);
             if (channel) {
                return channel;
             } else {
