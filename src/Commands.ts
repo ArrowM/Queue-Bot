@@ -703,17 +703,8 @@ export class Commands {
    public static async setAutoFill(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
       const queueGuild = parsed.queueGuild;
-      const queueChannel = (await ParsingUtils.getStoredChannel(parsed)) as VoiceChannel;
+      const queueChannel = (await ParsingUtils.getStoredChannel(parsed, false, "voice")) as VoiceChannel;
       if (!queueChannel) return;
-      if (queueChannel.type !== "voice") {
-         const channel = message.channel as TextChannel | NewsChannel;
-         MessagingUtils.sendTempMessage(
-            `\`${queueGuild.prefix}${Base.getCmdConfig().autofillCmd}\` can only be used on voice channels.`,
-            channel,
-            10
-         );
-         return;
-      }
 
       const statusString = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
       const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
@@ -733,13 +724,13 @@ export class Commands {
                   `You can set this amount \`${queueGuild.prefix}${Base.getCmdConfig().pullNumCmd} {queue name} {#}\`.`,
                message
             );
-            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
             await Base.getKnex()<QueueChannel>("queue_channels")
                .where("queue_channel_id", queueChannel.id)
                .update("auto_fill", 0);
             await Base.getKnex()<QueueChannel>("queue_channels")
                .where("queue_channel_id", queueChannel.id)
                .update("target_channel_id", Base.getKnex().raw("DEFAULT"));
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
          } else {
             const channel = message.channel as TextChannel | NewsChannel;
             MessagingUtils.sendTempMessage(
