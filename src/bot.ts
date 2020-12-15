@@ -355,28 +355,32 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    }
    if (storedNewQueueChannel && !Base.isMe(member)) {
       // Joined queue channel
-      const targetChannel = member.guild.channels.cache.get(storedNewQueueChannel.target_channel_id) as VoiceChannel;
-      if (
-         targetChannel &&
-         targetChannel.members.array.length < targetChannel.userLimit &&
-         storedNewQueueChannel.auto_fill
-      ) {
-         SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
-      } else {
-         const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
-         returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
-
-         const withinGracePeriod = recentMember
-            ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000
-            : false;
-
-         if (withinGracePeriod) {
-            await knex<QueueMember>("queue_members").insert(recentMember.member);
+      if (storedNewQueueChannel.target_channel_id) {
+         const targetChannel = member.guild.channels.cache.get(storedNewQueueChannel.target_channel_id) as VoiceChannel;
+         if (targetChannel) {
+            if (targetChannel.members.array.length < targetChannel.userLimit && storedNewQueueChannel.auto_fill) {
+               SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+               return;
+            }
          } else {
-            await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
+            // Target has been deleted - clean it up
+            await knex<QueueChannel>("queue_channels")
+               .where("guild_id", member.guild.id)
+               .first()
+               .update("target_channel_id", Base.getKnex().raw("DEFAULT"));
          }
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
       }
+      const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
+      returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
+
+      const withinGracePeriod = recentMember ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000 : false;
+
+      if (withinGracePeriod) {
+         await knex<QueueMember>("queue_members").insert(recentMember.member);
+      } else {
+         await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
+      }
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
    }
    if (storedOldQueueChannel) {
       // Left queue channel

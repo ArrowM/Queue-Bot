@@ -131,7 +131,15 @@ export class MessagingUtils {
       let title = queueChannel.name;
       if (storedQueueChannel.target_channel_id) {
          const targetChannel = queueChannel.guild.channels.cache.get(storedQueueChannel.target_channel_id);
-         title += `  ->  ${targetChannel.name}`;
+         if (targetChannel) {
+            title += `  ->  ${targetChannel.name}`;
+         } else {
+            // Target has been deleted - clean it up
+            await Base.getKnex()<QueueChannel>("queue_channels")
+               .where("guild_id", queueChannel.guild.id)
+               .first()
+               .update("target_channel_id", Base.getKnex().raw("DEFAULT"));
+         }
       }
       let position = 0;
       let description: string;
