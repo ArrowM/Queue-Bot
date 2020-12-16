@@ -1,5 +1,6 @@
 {
    "autofillCmd": "autofill",
+   "blacklistCmd":  "blacklist",
    "cleanupCmd": "cleanup",
    "clearCmd": "clear",
    "colorCmd": "color",
@@ -18,5 +19,6 @@
    "pullNumCmd": "pullnum",
    "queueCmd": "q",
    "shuffleCmd": "shuffle",
-   "startCmd": "s"
+   "startCmd": "s",
+   "whitelistCmd": "whitelist"
 }
