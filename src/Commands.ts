@@ -7,7 +7,7 @@ import {
    TextChannel,
    VoiceChannel,
 } from "discord.js";
-import { ParsedArguments, QueueChannel, QueueGuild, QueueMember } from "./utilities/Interfaces";
+import { MemberPerm, ParsedArguments, QueueMember } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { ParsingUtils } from "./utilities/ParsingUtils";
@@ -15,6 +15,8 @@ import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
+import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
+import { MemberPermsTable } from "./utilities/tables/MemberPermsTable";
 
 export class Commands {
    /**
@@ -231,6 +233,14 @@ export class Commands {
                         `\`${storedPrefix}${Base.getCmdConfig().mentionCmd} {queue name} {OPTIONAL: message}\` ` +
                         `mentions everyone in a queue. You can add a message too.`,
                   },
+                  {
+                     name: "Blacklist",
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().blacklistCmd} {queue name} @{user 1} @{user 2} ...\` ` +
+                        `blacklists users from a queue. Use again to remove them from a blacklist.\n` +
+                        `\`${storedPrefix}${Base.getCmdConfig().blacklistCmd} {queue name}\` ` +
+                        `displays a queue's blacklist.`,
+                  },
                   // Server settings
                   {
                      name: "Set Grace Period",
@@ -297,49 +307,29 @@ export class Commands {
       parsed.arguments = parsed.arguments.replaceAll(/<@!?\d+>/gi, "").trim();
       // Parse members id
       const memberIdsToKick = message.mentions.members.array().map((member) => member.id);
-      if (!memberIdsToKick || memberIdsToKick.length === 0) return;
+      if (memberIdsToKick.length === 0) return;
       // Get channels to check - if user provides queue channel, use it. Otherwise check all stored queue channels.
       let queueChannelsToCheck: GuildChannel[] = [];
       if (parsed.arguments) {
          const queueChannel = await ParsingUtils.getStoredChannel(parsed, message.mentions.members.size > 0);
-         if (queueChannel) {
-            queueChannelsToCheck.push(queueChannel);
-         }
+         if (queueChannel) queueChannelsToCheck.push(queueChannel);
       } else {
-         const storedQueueChannelIds = await Base.getKnex()<QueueChannel>("queue_channels")
-            .where("guild_id", parsed.queueGuild.guild_id)
-            .pluck("queue_channel_id");
-         for (const storedQueueChannelId of storedQueueChannelIds) {
-            const queueChannel = message.guild.channels.cache.get(storedQueueChannelId);
-            if (queueChannel) {
-               queueChannelsToCheck.push(queueChannel);
-            }
-         }
+         queueChannelsToCheck = await QueueChannelTable.getFromGuild(message.guild);
       }
       // Queue channel found - kick from 1 queue
       for (const queueChannel of queueChannelsToCheck) {
-         const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
-            .where("queue_channel_id", queueChannel.id)
-            .whereIn("queue_member_id", memberIdsToKick)
-            .pluck("queue_member_id");
+         const storedQueueMemberIds = await QueueMemberTable.getMany(queueChannel.id, memberIdsToKick).pluck(
+            "queue_member_id"
+         );
          if (!storedQueueMemberIds || storedQueueMemberIds.length === 0) continue;
          // Remove from queue
          if (queueChannel.type === "voice") {
-            const members = [];
             for (const id of storedQueueMemberIds) {
                const member = queueChannel.members.get(id);
-               if (member) {
-                  members.push(member);
-               }
-            }
-            for (const member of members) {
                member?.voice?.kick().catch(() => null);
             }
          } else {
-            await Base.getKnex()<QueueMember>("queue_members")
-               .whereIn("queue_member_id", memberIdsToKick)
-               .where("queue_channel_id", queueChannel.id)
-               .del();
+            await QueueMemberTable.getMany(queueChannel.id, memberIdsToKick).del();
             SchedulingUtils.scheduleDisplayUpdate(
                parsed.queueGuild,
                queueChannel as TextChannel | NewsChannel | VoiceChannel
@@ -370,14 +360,11 @@ export class Commands {
       const message = parsed.message;
       const queueGuild = parsed.queueGuild;
       const setting = this.serverSettingVariables[parsed.command];
-      const channels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
+      const channels = await QueueChannelTable.getFromGuild(message.guild);
 
       if (parsed.arguments && passesValueRestrictions) {
          // Store channel to database
-         await Base.getKnex()<QueueGuild>("queue_guilds")
-            .where("guild_id", message.guild.id)
-            .first()
-            .update(setting.dbVariable, parsed.arguments);
+         await QueueGuildTable.get(message.guild.id).update(setting.dbVariable, parsed.arguments);
          queueGuild[setting.dbVariable] = parsed.arguments;
          SchedulingUtils.scheduleResponseToMessage(
             `Set \`${setting.label.toLowerCase()}\` to \`${parsed.arguments}\`.`,
@@ -407,7 +394,7 @@ export class Commands {
       const message = parsed.message;
       const queueGuild = parsed.queueGuild;
       // Get stored queue channel list from database
-      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(message.guild);
+      const storedChannels = await QueueChannelTable.getFromGuild(message.guild);
       // Channel argument provided. Toggle it
       if (parsed.arguments) {
          const channels = message.guild.channels.cache.filter((channel) => channel.type !== "category").array() as (
@@ -493,13 +480,8 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredChannel(parsed, message.mentions.members.size > 0, "text");
       if (!queueChannel) return;
 
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
-         .where("queue_channel_id", queueChannel.id)
-         .first();
-      const storedQueueMembers = await Base.getKnex()<QueueMember>("queue_members").where(
-         "queue_channel_id",
-         queueChannel.id
-      );
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel.id);
 
       // Parse members
       let memberIdsToToggle = [message.member.id];
@@ -510,7 +492,10 @@ export class Commands {
       const memberIdsToAdd: string[] = [];
       const memberIdsToRemove: string[] = [];
       for (const memberId of memberIdsToToggle) {
-         if (storedQueueMembers.some((storedMember) => storedMember.queue_member_id === memberId)) {
+         if (
+            storedQueueMembers.some((storedMember) => storedMember.queue_member_id === memberId) &&
+            !(await MemberPermsTable.isBlacklisted(queueChannel.id, memberId))
+         ) {
             // Already in queue, set to remove
             memberIdsToRemove.push(memberId);
          } else {
@@ -558,9 +543,7 @@ export class Commands {
       const message = parsed.message;
       const queueChannel = await ParsingUtils.getStoredChannel(parsed, false);
       if (!queueChannel) return;
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
-         .where("queue_channel_id", queueChannel.id)
-         .first();
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel) return;
 
       // Get number of users to pop
@@ -568,9 +551,7 @@ export class Commands {
          ParsingUtils.getTailingNumberFromString(message, parsed.arguments) || storedQueueChannel.pull_num;
 
       // Get the oldest member entry for the queue
-      let nextQueueMembers = await Base.getKnex()<QueueMember>("queue_members")
-         .where("queue_channel_id", queueChannel.id)
-         .orderBy("created_at");
+      let nextQueueMembers = await QueueMemberTable.getFromQueue(queueChannel.id).orderBy("created_at");
       nextQueueMembers = nextQueueMembers.slice(0, numToPop);
 
       if (nextQueueMembers.length > 0) {
@@ -598,10 +579,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
 
-      const queueMembers = await Base.getKnex()<QueueMember>("queue_members").where(
-         "queue_channel_id",
-         queueChannel.id
-      );
+      const queueMembers = await QueueMemberTable.getFromQueue(queueChannel.id);
       const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
       this.shuffleArray(queueMemberTimeStamps);
       for (let i = 0; i < queueMembers.length; i++) {
@@ -691,9 +669,7 @@ export class Commands {
             }
          }
          SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
-         await Base.getKnex()<QueueChannel>("queue_channels")
-            .where("queue_channel_id", queueChannel.id)
-            .update("max_members", maxMembersInQueue);
+         await QueueChannelTable.get(queueChannel.id).update("max_members", maxMembersInQueue);
       }
    }
 
@@ -707,16 +683,12 @@ export class Commands {
       if (!queueChannel) return;
 
       const statusString = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
-         .where("queue_channel_id", queueChannel.id)
-         .first();
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (statusString) {
          if (statusString === "on") {
             SchedulingUtils.scheduleResponseToMessage(`Set autofill for \`${queueChannel.name}\` to \`ON\`.`, message);
             SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-            await Base.getKnex()<QueueChannel>("queue_channels")
-               .where("queue_channel_id", queueChannel.id)
-               .update("auto_fill", 1);
+            await QueueChannelTable.get(queueChannel.id).update("auto_fill", 1);
          } else if (statusString === "off") {
             SchedulingUtils.scheduleResponseToMessage(
                `Set autofill for \`${queueChannel.name}\` to \`OFF\`.\n` +
@@ -724,12 +696,8 @@ export class Commands {
                   `You can set this amount \`${queueGuild.prefix}${Base.getCmdConfig().pullNumCmd} {queue name} {#}\`.`,
                message
             );
-            await Base.getKnex()<QueueChannel>("queue_channels")
-               .where("queue_channel_id", queueChannel.id)
-               .update("auto_fill", 0);
-            await Base.getKnex()<QueueChannel>("queue_channels")
-               .where("queue_channel_id", queueChannel.id)
-               .update("target_channel_id", Base.getKnex().raw("DEFAULT"));
+            await QueueChannelTable.get(queueChannel.id).update("auto_fill", 0);
+            await QueueChannelTable.get(queueChannel.id).update("target_channel_id", Base.getKnex().raw("DEFAULT"));
             SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
          } else {
             const channel = message.channel as TextChannel | NewsChannel;
@@ -763,18 +731,14 @@ export class Commands {
          if (pullNum > 99) {
             SchedulingUtils.scheduleResponseToMessage(`\`amount\` must be between 1 and 99`, message);
          } else {
-            await Base.getKnex()<QueueChannel>("queue_channels")
-               .where("queue_channel_id", queueChannel.id)
-               .update("pull_num", pullNum);
+            await QueueChannelTable.get(queueChannel.id).update("pull_num", pullNum);
             SchedulingUtils.scheduleResponseToMessage(
                `Set pull number for \`${queueChannel.name}\` to \`${pullNum}\``,
                message
             );
          }
       } else if (pullNum != undefined) {
-         const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
-            .where("queue_channel_id", queueChannel.id)
-            .first();
+         const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
          SchedulingUtils.scheduleResponseToMessage(
             `Autofill for \`${queueChannel.name}\` is ${storedQueueChannel.auto_fill ? "`ON`" : "`OFF`"}.\n` +
                `Queue Bot will pull \`${storedQueueChannel.pull_num}\` at a time.`,
@@ -791,9 +755,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
       const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
-      const storedQueueMemberIds = await Base.getKnex()<QueueMember>("queue_members")
-         .where("queue_channel_id", queueChannel.id)
-         .pluck("queue_member_id");
+      const storedQueueMemberIds = await QueueMemberTable.getFromQueue(queueChannel.id).pluck("queue_member_id");
       if (storedQueueMemberIds?.length > 0) {
          SchedulingUtils.scheduleResponseToMessage(
             `**${message.author.username}** mentioned **${queueChannel.name}**` +
@@ -813,9 +775,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
       const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
-      await Base.getKnex()<QueueChannel>("queue_channels")
-         .where("queue_channel_id", queueChannel.id)
-         .update("header", msg);
+      await QueueChannelTable.get(queueChannel.id).update("header", msg);
       const channel = parsed.message.channel as TextChannel | NewsChannel;
       MessagingUtils.sendTempMessage(`Updated **${queueChannel.name}** header.`, channel, 10);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -827,7 +787,7 @@ export class Commands {
    public static async myQueues(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
       const myMemberId = message.member.id;
-      const myStoredMembers = await Base.getKnex()<QueueMember>("queue_members").where("queue_member_id", myMemberId);
+      const myStoredMembers = await QueueMemberTable.getFromMember(myMemberId);
       if (myStoredMembers?.length < 1) {
          SchedulingUtils.scheduleResponseToMessage(`<@!${myMemberId}> is in no queues.`, message);
          return;
@@ -836,8 +796,7 @@ export class Commands {
       embed.setTitle(`${message.member.displayName}'s queues`);
       embed.setColor(parsed.queueGuild.color);
       for (const myStoredMember of myStoredMembers.slice(0, 25)) {
-         const allMemberIds = await Base.getKnex()<QueueMember>("queue_members")
-            .where("queue_channel_id", myStoredMember.queue_channel_id)
+         const allMemberIds = await QueueMemberTable.getFromQueue(myStoredMember.queue_channel_id)
             .orderBy("created_at")
             .pluck("queue_member_id");
          const channel = message.guild.channels.cache.get(myStoredMember.queue_channel_id);
@@ -852,6 +811,83 @@ export class Commands {
          }
       }
       SchedulingUtils.scheduleResponseToMessage({ embed: embed }, message);
+   }
+
+   /**
+    *
+    */
+   public static async whitelist(parsed: ParsedArguments): Promise<void> {
+      this.changePerm(parsed, 0);
+   }
+
+   /**
+    *
+    */
+   public static async blacklist(parsed: ParsedArguments): Promise<void> {
+      this.changePerm(parsed, 0);
+   }
+
+   /**
+    *
+    */
+   private static async changePerm(parsed: ParsedArguments, perm: number): Promise<void> {
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed, true);
+      if (!queueChannel) return;
+      const memberIdsToToggle = parsed.message.mentions.members.array().map((member) => member.id);
+      const storedMemberPerms = await MemberPermsTable.getFromQueue(queueChannel.id, perm);
+
+      if (memberIdsToToggle.length === 0) {
+         SchedulingUtils.scheduleResponseToMessage(
+            `Current **${perm ? "White" : "Black"}list** for ${queueChannel.name}:\n` +
+               storedMemberPerms.map((member) => `<@!${member.member_id}>`).join(", "),
+            parsed.message
+         );
+         return;
+      }
+
+      const memberIdsToAdd: string[] = [];
+      const memberIdsToRemove: string[] = [];
+      for (const memberId of memberIdsToToggle) {
+         if (storedMemberPerms.some((storedMember) => storedMember.member_id === memberId)) {
+            // Already in list, set to remove
+            memberIdsToRemove.push(memberId);
+         } else {
+            // Not in list, set to add
+            memberIdsToAdd.push(memberId);
+         }
+      }
+
+      let response = "";
+      if (memberIdsToRemove.length > 0) {
+         // Remove from queue
+         await Base.getKnex()<MemberPerm>("member_perms")
+            .where("queue_channel_id", queueChannel.id)
+            .whereIn("member_id", memberIdsToRemove)
+            .del();
+         response +=
+            `Removed from ${queueChannel.name}'s **${perm ? "White" : "Black"}list**:\n` +
+            memberIdsToRemove.map((id) => `<@!${id}>`).join(", ");
+      }
+      if (memberIdsToAdd.length > 0) {
+         // Add to queue
+         for (const memberId of memberIdsToAdd) {
+            await Base.getKnex()<MemberPerm>("member_perms").insert({
+               queue_channel_id: queueChannel.id,
+               member_id: memberId,
+               perm: perm,
+            });
+         }
+         response +=
+            `Added to ${queueChannel.name}'s **${perm ? "White" : "Black"}list**:\n` +
+            memberIdsToAdd.map((id) => `<@!${id}>`).join(", ");
+
+         // Kick blacklisted
+         if (perm === 0) {
+            await QueueMemberTable.unstoreQueueMembers(queueChannel.id, memberIdsToAdd);
+            SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+         }
+      }
+      SchedulingUtils.scheduleResponseToMessage(response, parsed.message);
    }
 
    // Map commands to database columns and display strings

@@ -26,7 +26,41 @@ export class QueueMemberTable {
    }
 
    /**
-    *
+    * @param queueChannelId
+    * @param queueMemberId
+    */
+   public static get(queueChannelId: string, queueMemberId: string) {
+      return Base.getKnex()<QueueMember>("queue_members")
+         .where("queue_channel_id", queueChannelId)
+         .where("queue_member_id", queueMemberId)
+         .first();
+   }
+
+   /**
+    * @param queueChannelId
+    * @param queueMemberIds
+    */
+   public static getMany(queueChannelId: string, queueMemberIds: string[]) {
+      return Base.getKnex()<QueueMember>("queue_members")
+         .where("queue_channel_id", queueChannelId)
+         .whereIn("queue_member_id", queueMemberIds);
+   }
+
+   /**
+    * @param queueMemberId
+    */
+   public static getFromMember(queueMemberId: string) {
+      return Base.getKnex()<QueueMember>("queue_members").where("queue_member_id", queueMemberId);
+   }
+
+   /**
+    * @param queueChannelId
+    */
+   public static getFromQueue(queueChannelId: string) {
+      return Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannelId);
+   }
+
+   /**
     * @param queueChannelId
     * @param memberIdsToAdd
     * @param personalMessage
@@ -46,7 +80,6 @@ export class QueueMemberTable {
    }
 
    /**
-    *
     * @param queueChannelId
     * @param memberIdsToRemove
     */
@@ -59,14 +92,12 @@ export class QueueMemberTable {
             .first()
             .del();
       } else {
-         await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannelId).first().del();
+         await this.getFromQueue(queueChannelId).del();
       }
    }
 
    /**
-    *
+    * Modify the database structure for code patches
     */
-   protected static updateTableStructure(): void {
-      // Empty
-   }
+   protected static updateTableStructure(): void {}
 }

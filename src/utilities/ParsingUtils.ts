@@ -36,13 +36,10 @@ export class ParsingUtils {
     */
    public static extractChannel(
       parsed: ParsedArguments,
-      availableChannels: (VoiceChannel | TextChannel | NewsChannel)[],
-      type?: string
+      availableChannels: (VoiceChannel | TextChannel | NewsChannel)[]
    ): VoiceChannel | TextChannel | NewsChannel {
       let channel = availableChannels.find((ch) => ch.id === parsed.message.mentions.channels.array()[0]?.id);
-      if (!channel && !parsed.arguments && type !== "voice") {
-         channel = parsed.message.channel as TextChannel;
-      } else if (!channel && parsed.arguments) {
+      if (!channel && parsed.arguments) {
          const splitArgs = parsed.arguments.split(" ");
          for (let i = splitArgs.length; i > 0; i--) {
             if (channel) {
@@ -125,11 +122,15 @@ export class ParsingUtils {
          if (channels.length === 1) {
             return channels[0];
          } else {
-            const channel = this.extractChannel(parsed, channels, type);
+            const channel = this.extractChannel(parsed, channels);
             if (channel) {
                return channel;
             } else {
-               this.reportChannelNotFound(parsed, channels, includeMention, true, type);
+               if (channels.map((ch) => ch.id).includes(parsed.message.channel.id) && type !== "voice") {
+                  return parsed.message.channel as TextChannel;
+               } else {
+                  this.reportChannelNotFound(parsed, channels, includeMention, true, type);
+               }
             }
          }
       } else {
@@ -153,7 +154,7 @@ export class ParsingUtils {
       includeMention?: boolean,
       type?: string
    ): Promise<VoiceChannel | TextChannel | NewsChannel> {
-      const storedChannels = await QueueChannelTable.fetchStoredQueueChannels(parsed.message.guild);
+      const storedChannels = await QueueChannelTable.getFromGuild(parsed.message.guild);
       return this.getChannel(parsed, storedChannels, includeMention, type);
    }
 }

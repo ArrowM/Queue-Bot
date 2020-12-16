@@ -1,8 +1,10 @@
 import { Message, MessageEmbed, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
-import { DisplayChannel, QueueChannel, QueueGuild, QueueMember } from "./Interfaces";
+import { QueueGuild, QueueMember } from "./Interfaces";
 import { Base } from "./Base";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { SchedulingUtils } from "./SchedulingUtils";
+import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { QueueMemberTable } from "./tables/QueueMemberTable";
 
 export interface QueueUpdateRequest {
    queueGuild: QueueGuild;
@@ -15,17 +17,13 @@ export class MessagingUtils {
 
    /**
     * Update a server's display messages
-    * @param queueGuild
-    * @param queueChannels Channels to update
+    * @param updateRequest
     */
    public static async updateQueueDisplays(updateRequest: QueueUpdateRequest): Promise<void> {
       const queueGuild = updateRequest.queueGuild;
       const queueChannel = updateRequest.queueChannel;
 
-      const storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where(
-         "queue_channel_id",
-         queueChannel.id
-      );
+      const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);
       if (!storedDisplayChannels || storedDisplayChannels.length === 0) {
          return;
       }
@@ -118,13 +116,9 @@ export class MessagingUtils {
       queueGuild: QueueGuild,
       queueChannel: TextChannel | NewsChannel | VoiceChannel
    ): Promise<MessageOptions[]> {
-      const storedQueueChannel = await Base.getKnex()<QueueChannel>("queue_channels")
-         .where("queue_channel_id", queueChannel.id)
-         .first();
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel) return [];
-      let queueMembers = await Base.getKnex()<QueueMember>("queue_members")
-         .where("queue_channel_id", queueChannel.id)
-         .orderBy("created_at");
+      let queueMembers = await QueueMemberTable.getFromQueue(queueChannel.id).orderBy("created_at");
       if (storedQueueChannel.max_members) queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
 
       // Setup embed variables
@@ -135,10 +129,7 @@ export class MessagingUtils {
             title += `  ->  ${targetChannel.name}`;
          } else {
             // Target has been deleted - clean it up
-            await Base.getKnex()<QueueChannel>("queue_channels")
-               .where("guild_id", queueChannel.guild.id)
-               .first()
-               .update("target_channel_id", Base.getKnex().raw("DEFAULT"));
+            await QueueChannelTable.get(queueChannel.id).update("target_channel_id", Base.getKnex().raw("DEFAULT"));
          }
       }
       let position = 0;

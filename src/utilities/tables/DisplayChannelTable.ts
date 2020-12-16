@@ -23,12 +23,24 @@ export class DisplayChannelTable {
                   .catch((e) => console.error(e));
             }
          });
-
       await this.updateTableStructure();
    }
 
    /**
-    *
+    * @param displayChannelId
+    */
+   public static get(displayChannelId: string) {
+      return Base.getKnex()<DisplayChannel>("display_channels").where("display_channel_id", displayChannelId);
+   }
+
+   /**
+    * @param queueChannelId
+    */
+   public static getFromQueue(queueChannelId: string) {
+      return Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
+   }
+
+   /**
     * @param queueChannel
     * @param displayChannel
     * @param msgEmbed
@@ -60,7 +72,6 @@ export class DisplayChannelTable {
    }
 
    /**
-    *
     * @param queueChannelId
     * @param displayChannelIdToRemove
     * @param deleteOldDisplayMsg

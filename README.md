@@ -35,12 +35,14 @@ If a command that expects a channel name is not given one, the current text chan
 | Clear | `!clear {channel name}` | | Clear a queue. |
 | Shuffle | `!shuffle {channel name}` | | Shuffle a queue. |
 | Set Queue Size Limit | `!limit {channel name} {#}` | | Set queue size limit. |
+| Mention Queue | `!mention {queue name} {OPTIONAL: message}` | | Mention everyone in a queue. You can add a message too. |
+| Blacklist | `!blacklist {queue name} @{user 1} @{user 2}...` | | Blacklist people from a queue. Use again to remove from blacklist. |
+| List Blacklist | `!blacklist {queue name}` | | Display the blacklist for a queue. |
 |||||
 |**Channel Settings**|||
 | Autofill | `!autofill {queue name} {on\|off}` | `on` | Turn autofill on or off. |
 | Pull Amount | `!pullnum {queue name} {#}` | `1` | Set the default number of people to pull. |
 | Set Display Message Header | `!header {queue name} {message}` | | Set a header for display messaged. Leave `{header}` blank to remove. |
-| Mention Queue | `!mention {queue name} {OPTIONAL: message}` | | Mention everyone in a queue. You can add a message too. |
 |||||
 |**Server Settings**|||
 | Set the Command Prefix | `!prefix {new prefix}` | in config | Set the prefix for Queue Bot commands. |
@@ -96,6 +98,7 @@ If a command that expects a channel name is not given one, the current text chan
 | Config Command Fields  | Description                                                                                                                       | |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|
 | autofillCmd            | Command to toggle autofill.                                                                                                       | `autofill` |
+| blacklistCmd           | Command to set and display blacklist.                                                                                             | `blacklist` |
 | cleanupCmd             | Command to toggle command cleanup.                                                                                                | `cleanup` |
 | clearCmd               | Command to clear the queue.                                                                                                       | `clear` |
 | colorCmd               | Command to set the color.                                                                                                         | `color` |

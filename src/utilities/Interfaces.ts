@@ -43,6 +43,13 @@ export interface QueueMember {
    queue_member_id: string;
 }
 
+export interface MemberPerm {
+   id: number;
+   queue_channel_id: string;
+   member_id: string;
+   perm: number; // 0 - blacklisted, 1 - whitelisted
+}
+
 export interface ConfigJson {
    token: string;
    topGgToken: string;
@@ -61,6 +68,7 @@ export interface ConfigJson {
 
 export interface CommandConfigJson {
    autofillCmd: string;
+   blacklistCmd: string;
    cleanupCmd: string;
    clearCmd: string;
    colorCmd: string;
@@ -80,4 +88,5 @@ export interface CommandConfigJson {
    queueCmd: string;
    shuffleCmd: string;
    startCmd: string;
+   whitelistCmd: string;
 }

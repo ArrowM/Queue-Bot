@@ -24,15 +24,27 @@ export class QueueGuildTable {
                   .catch((e) => console.error(e));
             }
          });
-
       await this.updateTableStructure();
    }
 
    /**
+    * @param guildId
+    */
+   public static get(guildId: string) {
+      return Base.getKnex()<QueueGuild>("queue_guilds").where("guild_id", guildId).first();
+   }
+
+   /**
     *
+    */
+   public static getAll() {
+      return Base.getKnex()<QueueGuild>("queue_guilds");
+   }
+
+   /**
     * @param guild
     */
-   public static async storeQueueGuild(guild: Guild): Promise<QueueGuild> {
+   public static async storeQueueGuild(guild: Guild): Promise<void> {
       await Base.getKnex()<QueueGuild>("queue_guilds")
          .insert({
             color: "#51ff7e",
@@ -43,11 +55,9 @@ export class QueueGuildTable {
          })
          .catch(() => null);
       guild.me.setNickname(`(${Base.getConfig().prefix}) Queue Bot`).catch(() => null);
-      return await Base.getKnex()<QueueGuild>("queue_guilds").where("guild_id", guild.id).first();
    }
 
    /**
-    *
     * @param guild
     */
    public static async unstoreQueueGuild(guildId: string): Promise<void> {
