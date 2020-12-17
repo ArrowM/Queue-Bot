@@ -111,7 +111,6 @@ export class QueueChannelTable {
     * @param channelIdToRemove
     */
    public static async unstoreQueueChannel(guildId: string, channelIdToRemove?: string): Promise<void> {
-      const guild = await Base.getClient().guilds.fetch(guildId);
       if (channelIdToRemove) {
          await Base.getKnex()<QueueChannel>("queue_channels")
             .where("queue_channel_id", channelIdToRemove)
@@ -120,10 +119,15 @@ export class QueueChannelTable {
          await QueueMemberTable.unstoreQueueMembers(channelIdToRemove);
          await DisplayChannelTable.unstoreDisplayChannel(channelIdToRemove);
       } else {
-         const storedQueueChannels = await this.getFromGuild(guild);
-         for (const storedQueueChannel of storedQueueChannels) {
-            await QueueMemberTable.unstoreQueueMembers(storedQueueChannel.id);
-            await DisplayChannelTable.unstoreDisplayChannel(storedQueueChannel.id);
+         const guild = (await Base.getClient()
+            .guilds.fetch(guildId)
+            .catch(() => null)) as Guild;
+         if (guild) {
+            const storedQueueChannels = await this.getFromGuild(guild);
+            for (const storedQueueChannel of storedQueueChannels) {
+               await QueueMemberTable.unstoreQueueMembers(storedQueueChannel.id);
+               await DisplayChannelTable.unstoreDisplayChannel(storedQueueChannel.id);
+            }
          }
          await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId).del();
       }

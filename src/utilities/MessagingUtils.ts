@@ -33,9 +33,9 @@ export class MessagingUtils {
       for (const storedDisplayChannel of storedDisplayChannels) {
          // For each embed list of the queue
          try {
-            const displayChannel: TextChannel | NewsChannel = await Base.getClient()
+            const displayChannel = (await Base.getClient()
                .channels.fetch(storedDisplayChannel.display_channel_id)
-               .catch(() => null);
+               .catch(() => null)) as TextChannel | NewsChannel;
 
             if (displayChannel) {
                if (

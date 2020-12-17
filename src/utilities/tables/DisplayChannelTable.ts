@@ -108,7 +108,10 @@ export class DisplayChannelTable {
                | TextChannel
                | NewsChannel;
             for (let displayEmbed of storedDisplayChannel.embed_ids) {
-               const displayMessage = await displayChannel.messages.fetch(displayEmbed, false);
+               const displayMessage = (await displayChannel.messages
+                  .fetch(displayEmbed, false)
+                  .catch(() => null)) as Message;
+               if (!displayMessage) return;
                if (deleteOldDisplayMsg) {
                   await displayMessage.delete().catch(() => null);
                } else {
