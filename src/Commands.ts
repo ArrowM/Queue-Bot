@@ -810,7 +810,7 @@ export class Commands {
             QueueChannelTable.unstoreQueueChannel(message.guild.id, myStoredMember.queue_channel_id);
          }
       }
-      SchedulingUtils.scheduleResponseToMessage({ embed: embed }, message);
+      parsed.message.author.send({ embed: embed });
    }
 
    /**
