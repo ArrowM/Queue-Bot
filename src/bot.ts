@@ -77,7 +77,7 @@ client.on("message", async (message) => {
    const guild = message.guild;
    let queueGuild = await QueueGuildTable.get(guild.id);
    if (!queueGuild) {
-      QueueGuildTable.storeQueueGuild(message.guild);
+      await QueueGuildTable.storeQueueGuild(message.guild);
       queueGuild = await QueueGuildTable.get(guild.id);
    }
 
