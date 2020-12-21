@@ -8,11 +8,11 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 
 ## How to use
 **Privileged users are the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.**  
-1. **Create a Queue.** *Privileged users* can create queues with `!q {channel name}` where `{channel name}` is the name of a text or voice channels. For example, `!q Waiting Room` turns the Waiting Room voice channel into a queue.  
-2. **Join a Queue.** Any user can join text queues by clicking the queue reaction or with `!j {channel name}`. Any user can join voice queues by joining the matching voice channel.  
+1. **Create a Queue.** *Privileged users* can create queues with `!queue {channel name}` where `{channel name}` is the name of a text or voice channels. For example, `!queue Waiting Room` turns the Waiting Room voice channel into a queue.  
+2. **Join a Queue.** Any user can join text queues by clicking the queue reaction or with `!join {channel name}`. Any user can join voice queues by joining the matching voice channel.  
 3. **Pull Users From a Queue.**  
-	**TEXT**: *Privileged* users can be pulled from a text queue with `!n {queue name}`.  
-    **VOICE**: 1. `!s {queue name}` makes the bot join the voice channel. 2. Move the bot to a new (non-queue) channel to set a "target".  
+	**TEXT**: *Privileged* users can be pulled from a text queue with `!next {queue name}`.  
+    **VOICE**: 1. `!start {queue name}` makes the bot join the voice channel. 2. Move the bot to a new (non-queue) channel to set a "target".  
    If the target channel has a user limit, (`!limit {queue name} {#}`), the bot will automatically move people from the queue to keep the target channel full. You can disconnect the bot from the voice channel.  
 	If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever you want to pull people from the queue (the bot will swap with them). You can customize how many people the bot will pull each time using `!pullnum {queue name} {#}`.    
 4. **Customization.** *Privileged* users can customize the command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot with the commands below.There are also additional commands to do things like shuffling and clearing queues.  
@@ -25,14 +25,14 @@ If a command that expects a channel name is not given one, the current text chan
 
 | Function | Command | Default | Description |
 |-|-|-|-|
-| Create a Queue | `!q {channel name} {OPTIONAL: size}` | | Create q queue. |
-| List Queues | `!q` | | List the names of the existing queues. | 
-| Delete a Queue | `!qd {queue name}` | | Delete a queue. |
-| Display a Queue | `!d {queue name}` | | Display the members in a queue. These messages stay updated. | 
-| Pull from Voice | `!s {queue name}` | | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
-| Pull from Text | `!n {queue name} {OPTIONAL: amount}` | |  Remove people from the text queue and displays their name. |
-| Join | `!j {queue name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | | Add one or more people to a queue. |
-| Kick | `!k {OPTIONAL: queue name} @{user 1} @{user 2} ...` | | Kick one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
+| Create a Queue | `!queue {channel name} {OPTIONAL: size}` | | Create a queue. |
+| List Queues | `!queue` | | List the names of the existing queues. | 
+| Delete a Queue | `!delete {queue name}` | | Delete a queue. |
+| Display a Queue | `!display {queue name}` | | Display the members in a queue. These messages stay updated. | 
+| Pull from Voice | `!start {queue name}` | | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
+| Pull from Text | `!next {queue name} {OPTIONAL: amount}` | |  Remove people from the text queue and displays their name. |
+| Join | `!join {queue name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | | Add one or more people to a queue. |
+| Kick | `!kick {OPTIONAL: queue name} @{user 1} @{user 2} ...` | | Kick one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
 | Clear | `!clear {queue name}` | | Clear a queue. |
 | Shuffle | `!shuffle {queue name}` | | Shuffle a queue. |
 | Set Queue Size Limit | `!limit {queue name} {#}` | | Set queue size limit. |
@@ -41,7 +41,7 @@ If a command that expects a channel name is not given one, the current text chan
 | List Blacklist | `!blacklist {queue name}` | | Display the blacklist for a queue. |
 |||||
 |**Channel Settings**|||
-| Autofill | `!autofill {queue name} {on\|off}` | `on` | Turn autofill on or off. |
+| Autofill | `!autofill {queue name} {on\off}` | `on` | Turn autofill on or off. |
 | Pull Amount | `!pullnum {queue name} {#}` | `1` | Set the default number of people to pull. |
 | Set Display Message Header | `!header {queue name} {message}` | | Set a header for display messaged. Leave `{header}` blank to remove. |
 |||||
@@ -50,14 +50,14 @@ If a command that expects a channel name is not given one, the current text chan
 | Set the Color | `!color {new color}` | in config | Set the color of bot messages. |
 | Set the Grace Period | `!grace {# seconds}` | `0` | Set how long a person can leave a queue before losing their spot. |
 | Set the Display Mode | `!mode {#}` | `1` | Set how the display messages are updated. Use `!mode` to see the different update modes. |
-| Command Cleanup | `!cleanup {on\|off}` | `on` | Toggle the cleanup of user-sent Queue Bot commands. |
+| Command Cleanup | `!cleanup {on\off}` | `on` | Toggle the cleanup of user-sent Queue Bot commands. |
 
 ### Commands for Everyone
 
 | Function | Command | Description |
 |-|-|-|-|
-| Join | `!j {queue name} {OPTIONAL: custom message}` | Join a queue a queue. |
-| Help | `!h` | Get a help message. |
+| Join | `!join {queue name} {OPTIONAL: custom message}` | Join a queue a queue. |
+| Help | `!help` | Get a help message. |
 | My Queues | `!myqueues` | Display a member's position in of the each queue they have joined. |
 
 
@@ -103,23 +103,23 @@ If a command that expects a channel name is not given one, the current text chan
 | cleanupCmd             | Command to toggle command cleanup.                                                                                                | `cleanup` |
 | clearCmd               | Command to clear the queue.                                                                                                       | `clear` |
 | colorCmd               | Command to set the color.                                                                                                         | `color` |
-| displayCmd             | Command to display a queue in a text channel.                                                                                     | `d` |
+| displayCmd             | Command to display a queue in a text channel.                                                                                     | `display` |
 | gracePeriodCmd         | Command to set the grace period.                                                                                                  | `grace` |
 | headerCmd              | Command to set the header of a queue.                                                                                             | `header` |
-| helpCmd                | Command to display the help information.                                                                                          | `h` |
-| joinCmd                | Command to join a text channel queue.                                                                                             | `j` |
-| kickCmd                | Command to kick users from a queue.                                                                                               | `k` |
+| helpCmd                | Command to display the help information.                                                                                          | `help` |
+| joinCmd                | Command to join a text channel queue.                                                                                             | `join` |
+| kickCmd                | Command to kick users from a queue.                                                                                               | `kick` |
 | limitCmd               | Command to set queue size limit.                                                                                                  | `limit` |
 | mentionCmd             | Command to mention all users in a queue.                                                                                          | `mention` |
 | modeCmd                | Command to set the display messaging mode.                                                                                        | `mode` |
 | myQueuesCmd            | Command to display a member's position in each queue they have joined.                                                            | `mode` |
-| nextCmd                | Command to pull the next user from a text channel.                                                                                | `n` |
+| nextCmd                | Command to pull the next user from a text channel.                                                                                | `next` |
 | prefixCmd              | Command to set the command prefix.                                                                                                | `prefix` |
 | pullNumCmd             | Command to set the number of people pulled at once.                                                                               | `pullnum` |
-| queueCmd               | Command to create / list queues.                                                                                                  | `q` |
-| queueDeleteCmd         | Command to delete a queues.                                                                                                       | `qd` |
+| queueCmd               | Command to create / list queues.                                                                                                  | `queue` |
+| queueDeleteCmd         | Command to delete a queues.                                                                                                       | `delete` |
 | shuffleCmd             | Command to shuffle the queue.                                                                                                     | `shuffle` |
-| startCmd               | Command to make the bot join a voice channel.                                                                                     | `s` |
+| startCmd               | Command to make the bot join a voice channel.                                                                                     | `start` |
 
 ![Token Location](docs/token_location.PNG)  
 

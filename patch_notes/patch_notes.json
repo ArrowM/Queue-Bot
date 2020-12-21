@@ -1,7 +1,66 @@
 [
    {
       "sent": false,
-      "date": "2020-12-06T00:00:00.000Z",
+      "date": "2020-12-21",
+      "message": {
+         "embed": {
+            "title": "Patch Notes for Dec 21, 2020",
+            "description": "Some core commands have been renamed and a few commands have been added.",
+            "color": 16727808,
+            "footer": {
+               "text": "Thanks for using Queue Bot :)"
+            },
+            "fields": [
+               {
+                  "name": "Renamed Commands",
+                  "value": "`!d` > `!display`\n`!q` > `!queue`\n`!s` > `!start`",
+                  "inline": true
+               },
+               {
+                  "name": "​",
+                  "value": "`!j` > `!join`\n`!k` > `!kick`\n`!n` > `!next`",
+                  "inline": true
+               },
+               {
+                  "name": "​",
+                  "value": "`!h` > `!help`",
+                  "inline": true
+               },
+               {
+                  "name": "+Delete a Queue",
+                  "value": "`!delete {queue name}` deletes a queue. Before, you could delete queues using `!q`. This has been moved to its own command."
+               },
+               {
+                  "name": "+Header",
+                  "value": "`!header {queue name} {message}` adds a message to the top of the queue displays. This is intended for displaying game codes.\nFor example, `!header #Waiting-Room join code: 7GAVD3` for displaying an Among Us game code."
+               },
+               {
+                  "name": "+Mention Queue",
+                  "value": "`!mention {queue name} {OPTIONAL: message}` mentions everyone in a queue. You can add an optional message."
+               },
+               {
+                  "name": "+My Queues",
+                  "value": "`!myqueues` displays your position in each queue they have joined. It is available to everyone. (These messages aren't automatically updated)."
+               },
+               {
+                  "name": "+Blacklist",
+                  "value": "`!blacklist {queue name} @{user 1} @{user 2} ...` blacklists users from a queue. Use again to remove them from a blacklist.\n`!blacklist {queue name}` displays a queue's blacklist."
+               },
+               {
+                  "name": "General Changes",
+                  "value": "Commands will now use the current channel if a channel is not specified. For example, sending `!display` and `!display general` in the `general` channel will do the same thing."
+               },
+               {
+                  "name": "Support the Bot :heart:",
+                  "value": "1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+               }
+            ]
+         }
+      }
+   },
+   {
+      "sent": true,
+      "date": "2020-12-06",
       "message": {
          "embed": {
             "title": "Patch Notes for Dec 5, 2020",

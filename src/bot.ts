@@ -499,7 +499,6 @@ interface PatchNote {
 }
 
 async function checkPatchNotes() {
-   const today = new Date().getDate();
    const displayChannels = new Map<TextChannel | NewsChannel, string>();
    exists("../patch_notes/patch_notes.json", async (exists) => {
       if (!exists) return;
@@ -522,7 +521,7 @@ async function checkPatchNotes() {
       }
       // Send notes
       for (const _patchNote of patchNotes) {
-         if (today === new Date(_patchNote.date).getDate() && !_patchNote.sent) {
+         if (!_patchNote.sent) {
             for (const [displayChannel, prefix] of displayChannels) {
                const patchNote: PatchNote = JSON.parse(JSON.stringify(_patchNote));
                patchNote.message.embed.fields.forEach((field) => {
