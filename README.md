@@ -17,8 +17,6 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 	If the target channel doesnt't have a user limit, you can move the bot to the target channel whenever you want to pull people from the queue (the bot will swap with them). You can customize how many people the bot will pull each time using `!pullnum {queue name} {#}`.    
 4. **Customization.** *Privileged* users can customize the command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot with the commands below.There are also additional commands to do things like shuffling and clearing queues.  
 
-## Commands
-Note: If you only have 1 queue, you can skip the channel name argument.
 ### Priviledged Commands
 Priviliged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.  
 If a command that expects a channel name is not given one, the current text channel will be used.  
