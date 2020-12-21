@@ -67,13 +67,11 @@ export class Commands {
                   {
                      name: "1. Create a Queue",
                      value:
-                        `*Privileged* users can create queues with \`${storedPrefix}${
-                           Base.getCmdConfig().queueCmd
-                        } {channel name}\` ` +
+                        `*Privileged* users can create queues with ` +
+                        `\`${storedPrefix}${Base.getCmdConfig().queueCmd} {channel name}\` ` +
                         `where \`{channel name}\` is the name of a text or voice channels. For example, ` +
-                        `\`${storedPrefix}${
-                           Base.getCmdConfig().queueCmd
-                        } Waiting Room\` turns the Waiting Room voice channel into a queue.`,
+                        `\`${storedPrefix}${Base.getCmdConfig().queueCmd} Waiting Room\` ` +
+                        `turns the Waiting Room voice channel into a queue.`,
                   },
                   {
                      name: "2. Join a Queue",
@@ -88,9 +86,8 @@ export class Commands {
                         `**TEXT**: *Privileged* users can be pulled from a text queue with ` +
                         `\`${storedPrefix}${Base.getCmdConfig().nextCmd} {queue name}\`.\n` +
                         `**VOICE**: Pulling users from voice queues requires 2 steps:\n` +
-                        `1. \`${storedPrefix}${
-                           Base.getCmdConfig().startCmd
-                        } {queue name}\` makes the bot join the voice channel.\n` +
+                        `1. \`${storedPrefix}${Base.getCmdConfig().startCmd} {queue name}\` ` +
+                        `makes the bot join the voice channel.\n` +
                         `2. Move the bot to a new (non-queue) channel to set a "target".\n` +
                         `If the target channel has a user limit, ` +
                         `(\`${storedPrefix}${Base.getCmdConfig().limitCmd} {queue name} {#}\`), ` +
@@ -151,11 +148,17 @@ export class Commands {
                   "If a command that expects a channel name is not given one, the current text channel will be used.",
                fields: [
                   {
-                     name: "Create / Delete / View Queues",
+                     name: "Create / View Queues",
                      value:
                         `\`${storedPrefix}${Base.getCmdConfig().queueCmd} {channel name} {OPTIONAL: size}\` ` +
-                        `creates a new queue or deletes an existing queue.\n` +
+                        `creates a new queue.\n` +
                         `\`${storedPrefix}${Base.getCmdConfig().queueCmd}\` shows the existing queues.`,
+                  },
+                  {
+                     name: "Delete Queues",
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().queueDeleteCmd} {queue name}\` ` +
+                        `deletes an existing queue.\n`,
                   },
                   {
                      name: "Display Queue",
@@ -390,7 +393,7 @@ export class Commands {
    /**
     * Toggle a channel's queue status. Display existing queues if no argument is provided.
     */
-   public static async setQueueChannel(parsed: ParsedArguments): Promise<void> {
+   public static async setQueue(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
       const queueGuild = parsed.queueGuild;
       // Get stored queue channel list from database
@@ -407,13 +410,7 @@ export class Commands {
 
          if (storedChannels.some((storedChannel) => storedChannel.id === channel.id)) {
             // Channel is already stored, remove it
-            await QueueChannelTable.unstoreQueueChannel(message.guild.id, channel.id);
-            if (channel.type === "voice") {
-               if (channel.userLimit > 0) {
-                  (channel as VoiceChannel).setUserLimit(0).catch(() => null);
-               }
-            }
-            SchedulingUtils.scheduleResponseToMessage(`Deleted queue for \`${channel.name}\`.`, message);
+            SchedulingUtils.scheduleResponseToMessage(`\`${channel.name}\` is already a queue.`, message);
          } else {
             // Get number of users to pop
             let maxMembersInQueue = ParsingUtils.getTailingNumberFromString(message, parsed.arguments);
@@ -458,14 +455,38 @@ export class Commands {
          } else {
             SchedulingUtils.scheduleResponseToMessage(
                `No queue channels set.\n` +
-                  `Set a new queue channel using \`${queueGuild.prefix}${
-                     Base.getCmdConfig().queueCmd
-                  } {channel name}\`\n`,
-               // 	+ `Channels: ${channels.map(channel => ` \`${channel.name}\``)}`
+                  `Set a new queue channel using ` +
+                  `\`${queueGuild.prefix}${Base.getCmdConfig().queueCmd} {channel name}\``,
                message
             );
          }
       }
+   }
+
+   /**
+    *
+    */
+   public static async queueDelete(parsed: ParsedArguments) {
+      if (!parsed.arguments) {
+         SchedulingUtils.scheduleResponseToMessage(
+            `Must provide queue name. ` +
+               `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueDeleteCmd} {queue name}\`.`,
+            parsed.message
+         );
+         return;
+      }
+
+      const queueChannel = await ParsingUtils.getStoredChannel(parsed);
+      if (!queueChannel) return;
+
+      // Channel is already stored, remove it
+      await QueueChannelTable.unstoreQueueChannel(parsed.message.guild.id, queueChannel.id);
+      if (queueChannel.type === "voice") {
+         if (queueChannel.userLimit > 0) {
+            (queueChannel as VoiceChannel).setUserLimit(0).catch(() => null);
+         }
+      }
+      SchedulingUtils.scheduleResponseToMessage(`Deleted queue for \`${queueChannel.name}\`.`, parsed.message);
    }
 
    /**
@@ -503,10 +524,8 @@ export class Commands {
             if (storedQueueChannel?.max_members && storedQueueMembers.length >= +storedQueueChannel.max_members) {
                const channel = message.channel as TextChannel | NewsChannel;
                MessagingUtils.sendTempMessage(
-                  `Failed to join. ` +
-                     `\`${
-                        queueChannel.name
-                     }\` queue is full (${+storedQueueChannel.max_members}/${+storedQueueChannel.max_members}).`,
+                  `Failed to join. \`${queueChannel.name}\` ` +
+                     `queue is full (${+storedQueueChannel.max_members} /${+storedQueueChannel.max_members}).`,
                   channel,
                   10
                );

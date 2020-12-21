@@ -108,7 +108,10 @@ client.on("message", async (message) => {
                Commands.displayQueue(parsed);
 // Set Queue
             } else if (parsed.command === cmdConfig.queueCmd) {
-               Commands.setQueueChannel(parsed);
+               Commands.setQueue(parsed);
+// Queue Delete
+            } else if (parsed.command === cmdConfig.queueDeleteCmd) {
+               Commands.queueDelete(parsed);
 // Pop next user
             } else if (parsed.command === cmdConfig.nextCmd) {
                Commands.popTextQueue(parsed);
@@ -243,7 +246,7 @@ async function resumeAfterOffline(): Promise<void> {
             }
          }
       } catch (e) {
-         if (e?.code === 50001) {
+         if (e.code === 50001) {
             await QueueGuildTable.unstoreQueueGuild(storedQueueGuild.guild_id);
          } else {
             console.error(e);

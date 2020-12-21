@@ -73,6 +73,7 @@ export class ParsingUtils {
       isAQueue: boolean,
       type?: string
    ): Promise<void> {
+      console.log("reportChannelNotFound");
       /* eslint-disable prettier/prettier */
       const target = isAQueue ? "queue" : "channel";
       let response;
@@ -126,7 +127,10 @@ export class ParsingUtils {
             if (channel) {
                return channel;
             } else {
-               if (channels.map((ch) => ch.id).includes(parsed.message.channel.id) && type !== "voice") {
+               if (channels.map((ch) => ch.id).includes(parsed.message.channel.id) &&
+                  type !== "voice" &&
+                  !parsed.arguments
+               ) {
                   return parsed.message.channel as TextChannel;
                } else {
                   this.reportChannelNotFound(parsed, channels, includeMention, true, type);

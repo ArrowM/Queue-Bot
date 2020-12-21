@@ -86,6 +86,7 @@ export interface CommandConfigJson {
    prefixCmd: string;
    pullNumCmd: string;
    queueCmd: string;
+   queueDeleteCmd: string;
    shuffleCmd: string;
    startCmd: string;
    whitelistCmd: string;
