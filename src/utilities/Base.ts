@@ -45,7 +45,8 @@ export class Base {
       partials: ["MESSAGE", "REACTION", "USER"],
       presence: {
          activity: {
-            name: `${Base.config.prefix}${Base.cmdConfig.helpCmd} for help`,
+            type: `LISTENING`,
+            name: `${Base.config.prefix}${Base.cmdConfig.helpCmd}`,
          },
          status: "online",
       },
