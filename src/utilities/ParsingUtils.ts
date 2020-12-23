@@ -73,7 +73,6 @@ export class ParsingUtils {
       isAQueue: boolean,
       type?: string
    ): Promise<void> {
-      console.log("reportChannelNotFound");
       /* eslint-disable prettier/prettier */
       const target = isAQueue ? "queue" : "channel";
       let response;
