@@ -358,7 +358,6 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
          if (targetChannel) {
             if (targetChannel.members.array.length < targetChannel.userLimit && storedNewQueueChannel.auto_fill) {
                SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
-               return;
             }
          } else {
             // Target has been deleted - clean it up
@@ -381,10 +380,9 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       // Left queue channel
       if (Base.isMe(member) && newVoiceChannel) {
          await QueueChannelTable.updateTarget(oldVoiceChannel.id, newVoiceChannel.id);
-
-         await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel);
          // move bot back
          SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
+         await setTimeout(async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel), 1000);
       } else {
          if (blockNextCache.delete(member.id)) {
             // Getting pulled using bot, do not cache

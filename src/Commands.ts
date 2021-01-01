@@ -649,7 +649,7 @@ export class Commands {
                   .catch(() => null);
             } else {
                SchedulingUtils.scheduleResponseToMessage(
-                  `I can't join ${queueChannel.name} because it is full`,
+                  `I can't join \`${queueChannel.name}\` because it is full`,
                   message
                );
             }
