@@ -354,10 +354,14 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    if (storedNewQueueChannel && !Base.isMe(member)) {
       // Joined queue channel
       if (storedNewQueueChannel.target_channel_id) {
-         const targetChannel = member.guild.channels.cache.get(storedNewQueueChannel.target_channel_id) as VoiceChannel;
+         const targetChannel = await member.guild.channels.cache.get(storedNewQueueChannel.target_channel_id) as VoiceChannel;
          if (targetChannel) {
-            if (targetChannel.members.array.length < targetChannel.userLimit && storedNewQueueChannel.auto_fill) {
+            if (
+               storedNewQueueChannel.auto_fill &&
+               (!targetChannel.userLimit || targetChannel.members.size < targetChannel.userLimit)
+            ) {
                SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+               return;
             }
          } else {
             // Target has been deleted - clean it up
