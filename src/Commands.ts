@@ -558,7 +558,7 @@ export class Commands {
    /**
     * Pop a member from queue
     */
-   public static async popTextQueue(parsed: ParsedArguments): Promise<void> {
+   public static async next(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
       const queueChannel = await ParsingUtils.getStoredChannel(parsed, false);
       if (!queueChannel) return;
@@ -590,6 +590,7 @@ export class Commands {
                         `then dragging the bot to the target channel.`,
                      message
                   );
+                  return;
                }
             }
          } else {

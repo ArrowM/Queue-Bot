@@ -114,7 +114,7 @@ client.on("message", async (message) => {
                Commands.queueDelete(parsed);
 // Pop next user
             } else if (parsed.command === cmdConfig.nextCmd) {
-               Commands.popTextQueue(parsed);
+               Commands.next(parsed);
 // Pop next user
             } else if (parsed.command === cmdConfig.kickCmd) {
                Commands.kickMember(parsed);
