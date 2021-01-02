@@ -428,7 +428,7 @@ export async function fillTargetChannel(
             storedQueueMembers = storedQueueMembers.slice(0, storedSrcChannel.pull_num);
          }
          if (dstChannel.userLimit) {
-            storedQueueMembers = storedQueueMembers.slice(0, dstChannel.userLimit);
+            storedQueueMembers = storedQueueMembers.slice(0, dstChannel.userLimit - dstChannel.members.size);
          }
          const queueMembers: GuildMember[] = [];
          for (const storedQueueMember of storedQueueMembers) {
