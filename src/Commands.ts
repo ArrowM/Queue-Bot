@@ -556,7 +556,7 @@ export class Commands {
    }
 
    /**
-    * Pop a member from a text channel queue
+    * Pop a member from queue
     */
    public static async popTextQueue(parsed: ParsedArguments): Promise<void> {
       const message = parsed.message;
@@ -575,12 +575,31 @@ export class Commands {
 
       if (nextQueueMembers.length > 0) {
          // Display and remove member from the the queue
-         SchedulingUtils.scheduleResponseToMessage(
-            `Pulled ` +
-               nextQueueMembers.map((member) => `<@!${member.queue_member_id}>`).join(", ") +
-               ` from \`${queueChannel.name}\`.`,
-            message
-         );
+         if (queueChannel.type === "voice") {
+            for (const nextMember of nextQueueMembers) {
+               const member = message.guild.members.cache.get(nextMember.queue_member_id);
+               const targetChannel = message.guild.channels.cache.get(
+                  storedQueueChannel.target_channel_id
+               ) as VoiceChannel;
+               if (targetChannel) {
+                  SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+                  await parsed.message.react("✅").catch(() => null);
+               } else {
+                  SchedulingUtils.scheduleResponseToMessage(
+                     `Set a target channel by sending \`${parsed.queueGuild.prefix}${Base.getCmdConfig().startCmd}\` ` +
+                        `then dragging the bot to the target channel.`,
+                     message
+                  );
+               }
+            }
+         } else {
+            SchedulingUtils.scheduleResponseToMessage(
+               `Pulled ` +
+                  nextQueueMembers.map((member) => `<@!${member.queue_member_id}>`).join(", ") +
+                  ` from \`${queueChannel.name}\`.`,
+               message
+            );
+         }
          await QueueMemberTable.unstoreQueueMembers(
             queueChannel.id,
             nextQueueMembers.map((member) => member.queue_member_id)
