@@ -53,7 +53,7 @@ If a command that expects a channel name is not given one, the current text chan
 ### Commands for Everyone
 
 | Function | Command | Description |
-|-|-|-|-|
+|-|-|-|
 | Join | `!join {queue name} {OPTIONAL: custom message}` | Join a queue a queue. |
 | Help | `!help` | Get a help message. |
 | My Queues | `!myqueues` | Display a member's position in of the each queue they have joined. |
@@ -77,13 +77,13 @@ If a command that expects a channel name is not given one, the current text chan
 5. Modify `config/config.json`:  
 	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.  
   
-| REQUIRED Config Fields | Description                                                                                                                       | Default      |
+| REQUIRED Config Fields | Description                                                                                                                       | Default |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|
 | prefix                 | Command prefix                                                                                                                    | `!` |
 | token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. | |
 | databasePassword       | Database login password                                                                                                           | |
   
-| Optional Config Fields | Description                                                                                                                       | |
+| Optional Config Fields | Description                                                                                                                       | Default |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|
 | color                  | The color of bot messages.                                                                                                        | |
 | databaseUsername		 | Database login username                                                                                                           | `postgres` |
@@ -94,7 +94,7 @@ If a command that expects a channel name is not given one, the current text chan
 | permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         | `\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b` |
 | topGgToken             | Token for updating top.gg server count. This should be left blank.                                                                | |
 
-| Config Command Fields  | Description                                                                                                                       | |
+| Config Command Fields  | Description                                                                                                                       | Default |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|
 | autofillCmd            | Command to toggle autofill.                                                                                                       | `autofill` |
 | blacklistCmd           | Command to set and display blacklist.                                                                                             | `blacklist` |
