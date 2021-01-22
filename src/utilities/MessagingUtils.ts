@@ -233,7 +233,6 @@ export class MessagingUtils {
       return str
          .replaceAll(/(<(@!?|#)\w+>)/gi, "")
          .replaceAll(channel.name, "")
-         .substring(0, 128)
          .trim();
    }
 }

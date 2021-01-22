@@ -545,7 +545,7 @@ export class Commands {
       }
       if (memberIdsToAdd.length > 0) {
          // Parse message
-         const personalMessage = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
+         const personalMessage = MessagingUtils.removeMentions(parsed.arguments, queueChannel).substring(0, 128);
          // Add to queue
          await QueueMemberTable.storeQueueMembers(queueChannel.id, memberIdsToAdd, personalMessage);
          response +=
