@@ -513,13 +513,10 @@ export class Commands {
       const memberIdsToAdd: string[] = [];
       const memberIdsToRemove: string[] = [];
       for (const memberId of memberIdsToToggle) {
-         if (
-            storedQueueMembers.some((storedMember) => storedMember.queue_member_id === memberId) &&
-            !(await MemberPermsTable.isBlacklisted(queueChannel.id, memberId))
-         ) {
+         if (storedQueueMembers.some((storedMember) => storedMember.queue_member_id === memberId)) {
             // Already in queue, set to remove
             memberIdsToRemove.push(memberId);
-         } else {
+         } else if (!(await MemberPermsTable.isBlacklisted(queueChannel.id, memberId))) {
             // Not in queue, set to add
             if (storedQueueChannel?.max_members && storedQueueMembers.length >= +storedQueueChannel.max_members) {
                const channel = message.channel as TextChannel | NewsChannel;
