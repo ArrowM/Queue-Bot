@@ -200,9 +200,6 @@ client.on("message", async (message) => {
       } else if (parsed.command == cmdConfig.myQueuesCmd) {
          Commands.myQueues(parsed);
       }
-   } else if (message.content === config.prefix + cmdConfig.helpCmd) {
-      // Default help command
-      Commands.help(parsed);
    }
 });
 
