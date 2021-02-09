@@ -481,7 +481,7 @@ async function reactionToggle(reaction: MessageReaction, user: User | PartialUse
    const storedQueueMember = await QueueMemberTable.get(storedDisplayChannel.queue_channel_id, user.id);
    if (storedQueueMember) {
       await QueueMemberTable.unstoreQueueMembers(storedDisplayChannel.queue_channel_id, [user.id]);
-   } else {
+   } else if (!(await MemberPermsTable.isBlacklisted(storedDisplayChannel.queue_channel_id, user.id))) {
       await QueueMemberTable.storeQueueMembers(storedDisplayChannel.queue_channel_id, [user.id]);
    }
    const queueGuild = await QueueGuildTable.get(reaction.message.guild.id);
