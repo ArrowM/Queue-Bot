@@ -355,8 +355,8 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
          if (targetChannel) {
             if (
                storedNewQueueChannel.auto_fill &&
-               newVoiceChannel.members.size === 1 &&
-               (!targetChannel.userLimit || targetChannel.members.size < targetChannel.userLimit)
+               newVoiceChannel.members.filter(member => !member.user.bot).size === 1 &&
+               (!targetChannel.userLimit || targetChannel.members.filter(member => !member.user.bot).size < targetChannel.userLimit)
             ) {
                SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
                return;
@@ -425,7 +425,7 @@ export async function fillTargetChannel(
             storedQueueMembers = storedQueueMembers.slice(0, storedSrcChannel.pull_num);
          }
          if (dstChannel.userLimit) {
-            storedQueueMembers = storedQueueMembers.slice(0, dstChannel.userLimit - dstChannel.members.size);
+            storedQueueMembers = storedQueueMembers.slice(0, dstChannel.userLimit - dstChannel.members.filter(member => !member.user.bot).size);
          }
          const queueMembers: GuildMember[] = [];
          for (const storedQueueMember of storedQueueMembers) {
