@@ -62,10 +62,7 @@ function checkPermission(message: Message): boolean {
       const channel = message.channel as TextChannel | NewsChannel;
       const authorPerms = channel.permissionsFor(message.author);
       const authorRoles = message.member.roles.cache;
-      return (
-         authorPerms.has("ADMINISTRATOR") ||
-         authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name))
-      );
+      return authorPerms.has("ADMINISTRATOR") || authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name));
    } catch (e) {
       return false;
    }

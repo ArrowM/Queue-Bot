@@ -44,10 +44,7 @@ export class MemberPermsTable {
     * @param memberId
     */
    public static get(queueChannelId: string, memberId: string) {
-      return Base.getKnex()<MemberPerm>("member_perms")
-         .where("queue_channel_id", queueChannelId)
-         .where("member_id", memberId)
-         .first();
+      return Base.getKnex()<MemberPerm>("member_perms").where("queue_channel_id", queueChannelId).where("member_id", memberId).first();
    }
 
    /**
@@ -76,10 +73,7 @@ export class MemberPermsTable {
     */
    public static async unstoreMemberPerm(queueChannelId: string, memberId?: string): Promise<void> {
       if (memberId) {
-         await Base.getKnex()<MemberPerm>("member_perms")
-            .where("queue_channel_id", queueChannelId)
-            .where("member_id", memberId)
-            .delete();
+         await Base.getKnex()<MemberPerm>("member_perms").where("queue_channel_id", queueChannelId).where("member_id", memberId).delete();
       } else {
          await Base.getKnex()<MemberPerm>("member_perms").where("queue_channel_id", queueChannelId).del();
       }

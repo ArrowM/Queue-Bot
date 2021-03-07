@@ -65,11 +65,7 @@ export class QueueMemberTable {
     * @param memberIdsToAdd
     * @param personalMessage
     */
-   public static async storeQueueMembers(
-      queueChannelId: string,
-      memberIdsToAdd: string[],
-      personalMessage?: string
-   ): Promise<void> {
+   public static async storeQueueMembers(queueChannelId: string, memberIdsToAdd: string[], personalMessage?: string): Promise<void> {
       for (const memberId of memberIdsToAdd) {
          await Base.getKnex()<QueueMember>("queue_members").insert({
             personal_message: personalMessage,

@@ -62,19 +62,12 @@ export class MessagingUtils {
                      // Else, fall through and delete the old and store the new.
                   }
                   /* Replace */
-                  await DisplayChannelTable.unstoreDisplayChannel(
-                     queueChannel.id,
-                     displayChannel.id,
-                     queueGuild.msg_mode !== 3
-                  );
+                  await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
                   await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, embeds);
                }
             } else {
                // Handled deleted display channels
-               await DisplayChannelTable.unstoreDisplayChannel(
-                  queueChannel.id,
-                  storedDisplayChannel.display_channel_id
-               );
+               await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, storedDisplayChannel.display_channel_id);
             }
          } catch (e) {
             // Skip
@@ -177,9 +170,7 @@ export class MessagingUtils {
             _embed.addField("\u200b", "\u200b");
          }
          if (storedQueueChannel.max_members) {
-            _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0} of ${
-               storedQueueChannel.max_members
-            }`;
+            _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0} of ${storedQueueChannel.max_members}`;
          } else {
             _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0}`;
          }
@@ -216,11 +207,7 @@ export class MessagingUtils {
     * @param channel
     * @param duration
     */
-   public static async sendTempMessage(
-      response: string,
-      channel: TextChannel | NewsChannel,
-      duration: number
-   ): Promise<void> {
+   public static async sendTempMessage(response: string, channel: TextChannel | NewsChannel, duration: number): Promise<void> {
       const _response = (await channel.send(response).catch(() => null)) as Message;
       if (_response) {
          setTimeout(() => {

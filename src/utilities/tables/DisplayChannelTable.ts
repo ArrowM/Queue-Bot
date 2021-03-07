@@ -93,10 +93,7 @@ export class DisplayChannelTable {
             .where("display_channel_id", displayChannelIdToRemove)
             .del();
       } else {
-         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where(
-            "queue_channel_id",
-            queueChannelId
-         );
+         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
          await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).del();
       }
       if (!storedDisplayChannels) return;
@@ -108,9 +105,7 @@ export class DisplayChannelTable {
                | TextChannel
                | NewsChannel;
             for (let displayEmbed of storedDisplayChannel.embed_ids) {
-               const displayMessage = (await displayChannel.messages
-                  .fetch(displayEmbed, false)
-                  .catch(() => null)) as Message;
+               const displayMessage = (await displayChannel.messages.fetch(displayEmbed, false).catch(() => null)) as Message;
                if (!displayMessage) return;
                if (deleteOldDisplayMsg) {
                   await displayMessage.delete().catch(() => null);
@@ -138,9 +133,7 @@ export class DisplayChannelTable {
    protected static async updateTableStructure(): Promise<void> {
       // Migration of embed_id to embed_ids
       if (await Base.getKnex().schema.hasColumn("display_channels", "embed_id")) {
-         await Base.getKnex().schema.table("display_channels", (table) =>
-            table.specificType("embed_ids", "text ARRAY")
-         );
+         await Base.getKnex().schema.table("display_channels", (table) => table.specificType("embed_ids", "text ARRAY"));
          (await Base.getKnex()<DisplayChannel>("display_channels")).forEach(async (displayChannel) => {
             await Base.getKnex()<DisplayChannel>("display_channels")
                .where("queue_channel_id", displayChannel.queue_channel_id)

@@ -83,10 +83,7 @@ export class QueueChannelTable {
    /**
     * @param channelToAdd
     */
-   public static async storeQueueChannel(
-      channelToAdd: VoiceChannel | TextChannel | NewsChannel,
-      maxMembers?: number
-   ): Promise<void> {
+   public static async storeQueueChannel(channelToAdd: VoiceChannel | TextChannel | NewsChannel, maxMembers?: number): Promise<void> {
       // Fetch old channels
       await Base.getKnex()<QueueChannel>("queue_channels")
          .insert({
@@ -112,10 +109,7 @@ export class QueueChannelTable {
     */
    public static async unstoreQueueChannel(guildId: string, channelIdToRemove?: string): Promise<void> {
       if (channelIdToRemove) {
-         await Base.getKnex()<QueueChannel>("queue_channels")
-            .where("queue_channel_id", channelIdToRemove)
-            .first()
-            .del();
+         await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", channelIdToRemove).first().del();
          await QueueMemberTable.unstoreQueueMembers(channelIdToRemove);
          await DisplayChannelTable.unstoreDisplayChannel(channelIdToRemove);
       } else {
