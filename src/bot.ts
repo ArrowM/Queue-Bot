@@ -240,7 +240,7 @@ async function resumeAfterOffline(): Promise<void> {
             }
          }
       } catch (e) {
-         if (e.code === 50001) {
+         if (e.code == 50001 || e.httpStatus == 403) {
             await QueueGuildTable.unstoreQueueGuild(storedQueueGuild.guild_id);
          } else {
             console.error(e);
