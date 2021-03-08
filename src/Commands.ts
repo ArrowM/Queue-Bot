@@ -298,7 +298,7 @@ export class Commands {
          // Remove from queue
          if (queueChannel.type === "voice") {
             for (const id of storedQueueMemberIds) {
-               const member = queueChannel.members.get(id);
+               const member = await queueChannel.guild.members.fetch(id);
                member?.voice?.kick().catch(() => null);
             }
          } else {
@@ -544,9 +544,9 @@ export class Commands {
                message
             );
             for (const member of nextQueueMembers) {
-               const user = queueChannel.members.get(member.queue_member_id);
+               const user = await queueChannel.guild.members.fetch(member.queue_member_id);
                user
-                  .send(
+                  ?.send(
                      `Hey <@${user.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
                         `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
                   )
