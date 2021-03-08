@@ -1,6 +1,6 @@
 import { Client, GuildMember } from "discord.js";
 import { readFileSync } from "fs";
-import { knex, Knex } from 'knex';
+import { knex, Knex } from "knex";
 import { CommandConfigJson, ConfigJson } from "./Interfaces";
 
 export class Base {

@@ -543,13 +543,15 @@ export class Commands {
                `Pulled ` + nextQueueMembers.map((member) => `<@!${member.queue_member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`,
                message
             );
-            const author = parsed.message.author;
-            author
-               .send(
-                  `Hey <@${author.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
-                     `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
-               )
-               .catch(() => null);
+            for (const member of nextQueueMembers) {
+               const user = queueChannel.members.get(member.queue_member_id);
+               user
+                  .send(
+                     `Hey <@${user.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
+                        `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
+                  )
+                  .catch(() => null);
+            }
          }
          await QueueMemberTable.unstoreQueueMembers(
             queueChannel.id,
