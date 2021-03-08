@@ -363,13 +363,13 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
             await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
          }
       }
-      const recentMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
+      const returningMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
       returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
 
-      const withinGracePeriod = recentMember ? Date.now() - recentMember.time < +queueGuild.grace_period * 1000 : false;
+      const withinGracePeriod = returningMember ? Date.now() - returningMember.time < +queueGuild.grace_period * 1000 : false;
 
-      if (withinGracePeriod) {
-         await knex<QueueMember>("queue_members").insert(recentMember.member);
+      if (withinGracePeriod && returningMember.member) {
+         await knex<QueueMember>("queue_members").insert(returningMember.member);
       } else {
          await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
       }

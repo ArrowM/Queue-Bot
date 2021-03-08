@@ -85,7 +85,7 @@ export class MessagingUtils {
          if (gracePeriod === "0") {
             result = "";
          } else {
-            const graceMinutes = Math.round(+gracePeriod / 60);
+            const graceMinutes = Math.floor(+gracePeriod / 60);
             const graceSeconds = +gracePeriod % 60;
             const timeString =
                (graceMinutes > 0 ? graceMinutes + " minute" : "") +
