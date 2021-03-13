@@ -444,6 +444,10 @@ export class Commands {
             (queueChannel as VoiceChannel).setUserLimit(0).catch(() => null);
          }
       }
+      const botVoice = queueChannel.guild.me.voice;
+      if (botVoice?.channel?.id == queueChannel.id) {
+         botVoice.connection.disconnect();
+      }
       SchedulingUtils.scheduleResponseToMessage(`Deleted queue for \`${queueChannel.name}\`.`, parsed.message);
    }
 
