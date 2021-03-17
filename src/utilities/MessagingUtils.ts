@@ -42,24 +42,22 @@ export class MessagingUtils {
                   displayChannel.permissionsFor(displayChannel.guild.me).has("SEND_MESSAGES") &&
                   displayChannel.permissionsFor(displayChannel.guild.me).has("EMBED_LINKS")
                ) {
-                  if (queueGuild.msg_mode === 1) {
+                  // Retrieved display embed
+                  const storedEmbeds: Message[] = [];
+                  for (const id of storedDisplayChannel.embed_ids) {
+                     const storedEmbed = await displayChannel.messages.fetch(id).catch(() => null);
+                     if (storedEmbed) {
+                        storedEmbeds.push(storedEmbed);
+                     }
+                  }
+                  if (storedEmbeds.length === 0) continue;
+                  // If the # of new embeds is the same, edit and replace the old ones, else send new messages
+                  if (queueGuild.msg_mode === 1 && storedEmbeds.length === embeds.length) {
                      /* Edit */
-                     // Retrieved display embed
-                     const storedEmbeds: Message[] = [];
-                     for (const id of storedDisplayChannel.embed_ids) {
-                        const storedEmbed = await displayChannel.messages.fetch(id).catch(() => null);
-                        if (storedEmbed) {
-                           storedEmbeds.push(storedEmbed);
-                        }
+                     for (let i = 0; i < embeds.length; i++) {
+                        await storedEmbeds[i].edit(embeds[i]).catch(() => null);
                      }
-
-                     if (storedEmbeds.length === embeds.length) {
-                        for (let i = 0; i < embeds.length; i++) {
-                           await storedEmbeds[i].edit(embeds[i]).catch(() => null);
-                        }
-                        continue;
-                     }
-                     // Else, fall through and delete the old and store the new.
+                     continue;
                   }
                   /* Replace */
                   await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
