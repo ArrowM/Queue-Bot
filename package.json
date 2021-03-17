@@ -17,7 +17,7 @@
       "bufferutil": "^4.0.3",
       "dblapi.js": "^2.4.1",
       "discord.js": "12.5.0",
-      "knex": "^0.95.2",
+      "knex": "^0.21.19",
       "libsodium-wrappers": "^0.7.9",
       "node-gyp": "^7.1.2",
       "pg": "^8.5.1",

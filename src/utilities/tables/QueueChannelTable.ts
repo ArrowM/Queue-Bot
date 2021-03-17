@@ -3,7 +3,7 @@ import { QueueChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
-import { Knex } from "knex";
+import { Raw } from "knex";
 
 export class QueueChannelTable {
    /**
@@ -48,7 +48,7 @@ export class QueueChannelTable {
     * @param queueChannelId
     * @param targetChannelId
     */
-   public static updateTarget(queueChannelId: string, targetChannelId: string | Knex.Raw<any>) {
+   public static updateTarget(queueChannelId: string, targetChannelId: string | Raw<any>) {
       return this.get(queueChannelId).update("target_channel_id", targetChannelId);
    }
 
