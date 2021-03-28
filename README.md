@@ -127,6 +127,6 @@ If a command that expects a channel name is not given one, the current text chan
 8. Build the bot. In the same command prompt, enter `npm run build`.  
 9. Start the Bot. Enter `npm start` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
 10. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
-	9a. In command prompt, enter `npm install pm2`  
+	9a. In command prompt, enter `npm install pm2 -g`  
 	9b. To start the bot, enter `pm2 start bot.js --time`  
 	9c. To stop the bot, enter `pm2 stop bot.js`  
