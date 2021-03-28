@@ -266,10 +266,21 @@ export class Commands {
       if (parsed.arguments && displayChannel) {
          responses.forEach((response) => SchedulingUtils.scheduleResponseToChannel(response, displayChannel));
       } else {
-         // No channel provided. Send help to user.
-         responses.forEach((response) => parsed.message.author.send(response).catch(() => null));
+         // No channel provided. Send help to user
          const channel = parsed.message.channel as TextChannel | NewsChannel;
-         MessagingUtils.sendTempMessage("I have sent help to your PMs.", channel, 10);
+         try {
+            responses.forEach((response) => parsed.message.author.send(response));
+            MessagingUtils.sendTempMessage("I have sent help to your PMs.", channel, 10);
+         } catch (e) {
+            if (e.code === 403) {
+               MessagingUtils.sendTempMessage(
+                  `I can't DM <@!${parsed.message.author.id}>. ` +
+                     `Check your Server DM settings (Click the server name in the top left, then Privacy Settings)`,
+                  channel,
+                  10
+               );
+            }
+         }
       }
    }
 
@@ -793,15 +804,27 @@ export class Commands {
             QueueChannelTable.unstoreQueueChannel(message.guild.id, myStoredMember.queue_channel_id);
          }
       }
-      parsed.message.author.send({ embed: embed });
+      const channel = message.channel as TextChannel | NewsChannel;
+      try {
+         parsed.message.author.send({ embed: embed });
+      } catch (e) {
+         if (e.code === 403) {
+            MessagingUtils.sendTempMessage(
+               `I can't DM <@!${message.author.id}>. ` +
+                  `Check your Server DM settings (Click the server name in the top left, then Privacy Settings)`,
+               channel,
+               10
+            );
+         }
+      }
    }
 
-   /**
-    *
-    */
-   public static async whitelist(parsed: ParsedArguments): Promise<void> {
-      this.changePerm(parsed, 0);
-   }
+   ///**
+   // *
+   // */
+   //public static async whitelist(parsed: ParsedArguments): Promise<void> {
+   //   this.changePerm(parsed, 1);
+   //}
 
    /**
     *

@@ -90,7 +90,18 @@ export class SchedulingUtils {
    public static scheduleResponseToMessage(response: MessageOptions | string, message: Message): void {
       const channel = message.channel as TextChannel | NewsChannel;
       if (!this.scheduleResponseToChannel(response, channel)) {
-         message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => null);
+         try {
+            message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
+         } catch (e) {
+            if (e.code === 403) {
+               MessagingUtils.sendTempMessage(
+                  `I can't DM <@!${message.author.id}>. ` +
+                     `Check your Server DM settings (Click the server name in the top left, then Privacy Settings)`,
+                  channel,
+                  10
+               );
+            }
+         }
       }
    }
 
