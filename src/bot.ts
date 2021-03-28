@@ -213,8 +213,7 @@ async function resumeAfterOffline(): Promise<void> {
             let updateDisplay = false;
 
             // Fetch stored and live members
-            const storedQueueMemberIds = await QueueMemberTable.getFromQueue(queueChannel.id)
-               .pluck("queue_member_id");
+            const storedQueueMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.queue_member_id);
             const queueMemberIds = queueChannel.members.filter((member) => !Base.isMe(member)).keyArray();
 
             // Update member lists
@@ -416,7 +415,7 @@ export async function fillTargetChannel(
    // Check to see if I have perms to drag other users into this channel.
    if (dstChannel.permissionsFor(me).has("CONNECT")) {
       // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit.
-      let storedQueueMembers = await QueueMemberTable.getFromQueue(srcChannel.id).orderBy("created_at");
+      let storedQueueMembers = await QueueMemberTable.getFromQueue(srcChannel, "created_at");
       if (storedQueueMembers.length > 0) {
          if (!storedSrcChannel.auto_fill) {
             storedQueueMembers = storedQueueMembers.slice(0, storedSrcChannel.pull_num);
@@ -424,13 +423,7 @@ export async function fillTargetChannel(
          if (dstChannel.userLimit) {
             storedQueueMembers = storedQueueMembers.slice(0, dstChannel.userLimit - dstChannel.members.filter(member => !member.user.bot).size);
          }
-         const queueMembers: GuildMember[] = [];
-         for (const storedQueueMember of storedQueueMembers) {
-            const queueMember = (await me.guild.members
-               .fetch(storedQueueMember.queue_member_id)
-               .catch(() => null)) as GuildMember;
-            if (queueMember) queueMembers.push(queueMember);
-         }
+         const queueMembers = storedQueueMembers.map((member) => member.member);
          if (queueMembers.length > 0) {
             queueMembers.forEach((member) => {
                // Block recentMember caching when the bot is used to pull someone

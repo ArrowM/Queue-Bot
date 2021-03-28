@@ -57,11 +57,11 @@ export class MessagingUtils {
                      for (let i = 0; i < embeds.length; i++) {
                         await storedEmbeds[i].edit(embeds[i]).catch(() => null);
                      }
-                     continue;
+                  } else {
+                     /* Replace */
+                     await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
+                     await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, embeds);
                   }
-                  /* Replace */
-                  await DisplayChannelTable.unstoreDisplayChannel(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
-                  await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, embeds);
                }
             } else {
                // Handled deleted display channels
@@ -109,7 +109,7 @@ export class MessagingUtils {
    ): Promise<MessageOptions[]> {
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel) return [];
-      let queueMembers = await QueueMemberTable.getFromQueue(queueChannel.id).orderBy("created_at");
+      let queueMembers = await QueueMemberTable.getFromQueue(queueChannel, "created_at");
       if (storedQueueChannel.max_members) queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
 
       // Setup embed variables

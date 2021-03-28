@@ -461,7 +461,7 @@ export class Commands {
       if (!queueChannel) return;
 
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
-      const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel.id);
+      const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel);
 
       // Parse members
       let memberIdsToToggle = [message.member.id];
@@ -521,17 +521,16 @@ export class Commands {
       const numToPop = ParsingUtils.getTailingNumberFromString(message, parsed.arguments) || storedQueueChannel.pull_num;
 
       // Get the oldest member entry for the queue
-      let nextQueueMembers = await QueueMemberTable.getFromQueue(queueChannel.id).orderBy("created_at");
+      let nextQueueMembers = await QueueMemberTable.getFromQueue(queueChannel, "created_at");
       nextQueueMembers = nextQueueMembers.slice(0, numToPop);
 
       if (nextQueueMembers.length > 0) {
          // Display and remove member from the the queue
          if (queueChannel.type === "voice") {
             for (const nextMember of nextQueueMembers) {
-               const member = message.guild.members.cache.get(nextMember.queue_member_id);
                const targetChannel = message.guild.channels.cache.get(storedQueueChannel.target_channel_id) as VoiceChannel;
                if (targetChannel) {
-                  SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+                  SchedulingUtils.scheduleMoveMember(nextMember.member.voice, targetChannel);
                   await parsed.message.react("✅").catch(() => null);
                } else {
                   SchedulingUtils.scheduleResponseToMessage(
@@ -547,14 +546,15 @@ export class Commands {
                `Pulled ` + nextQueueMembers.map((member) => `<@!${member.queue_member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`,
                message
             );
-            for (const member of nextQueueMembers) {
-               const user = await queueChannel.guild.members.fetch(member.queue_member_id);
-               user
-                  ?.send(
-                     `Hey <@${user.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
+            for (const nextMember of nextQueueMembers) {
+               try {
+                  nextMember.member.send(
+                     `Hey <@${nextMember.member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
                         `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
-                  )
-                  .catch(() => null);
+                  );
+               } catch (e) {
+                  // DO NOTHING
+               }
             }
          }
          await QueueMemberTable.unstoreQueueMembers(
@@ -574,7 +574,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
 
-      const queueMembers = await QueueMemberTable.getFromQueue(queueChannel.id);
+      const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
       const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
       this.shuffleArray(queueMemberTimeStamps);
       for (let i = 0; i < queueMembers.length; i++) {
@@ -740,7 +740,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredChannel(parsed);
       if (!queueChannel) return;
       const msg = MessagingUtils.removeMentions(parsed.arguments, queueChannel);
-      const storedQueueMemberIds = await QueueMemberTable.getFromQueue(queueChannel.id).pluck("queue_member_id");
+      const storedQueueMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.queue_member_id);
       if (storedQueueMemberIds?.length > 0) {
          SchedulingUtils.scheduleResponseToMessage(
             `**${message.author.username}** mentioned **${queueChannel.name}**` +
@@ -781,14 +781,12 @@ export class Commands {
       embed.setTitle(`${message.member.displayName}'s queues`);
       embed.setColor(parsed.queueGuild.color);
       for (const myStoredMember of myStoredMembers.slice(0, 25)) {
-         const allMemberIds = await QueueMemberTable.getFromQueue(myStoredMember.queue_channel_id)
-            .orderBy("created_at")
-            .pluck("queue_member_id");
-         const channel = message.guild.channels.cache.get(myStoredMember.queue_channel_id);
-         if (channel) {
+         const queueChannel = message.guild.channels.cache.get(myStoredMember.queue_channel_id);
+         const memberIds = (await QueueMemberTable.getFromQueue(queueChannel, "created_at")).map((member) => member.queue_member_id);
+         if (queueChannel) {
             embed.addField(
-               channel.name,
-               `${allMemberIds.indexOf(myMemberId.toString()) + 1} <@${myMemberId}>` +
+               queueChannel.name,
+               `${memberIds.indexOf(myMemberId.toString()) + 1} <@${myMemberId}>` +
                   (myStoredMember.personal_message ? ` -- ${myStoredMember.personal_message}` : "")
             );
          } else {

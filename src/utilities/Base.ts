@@ -1,6 +1,6 @@
 import { Client, GuildMember } from "discord.js";
 import { readFileSync } from "fs";
-import Knex from "knex";
+import { knex, Knex } from "knex";
 import { CommandConfigJson, ConfigJson } from "./Interfaces";
 
 export class Base {
@@ -27,7 +27,7 @@ export class Base {
    protected static config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
    protected static cmdConfig: CommandConfigJson = JSON.parse(readFileSync("../config/command-config.json", "utf8"));
 
-   protected static knex = Knex({
+   protected static knex = knex({
       client: Base.config.databaseType,
       connection: {
          database: Base.config.databaseName,

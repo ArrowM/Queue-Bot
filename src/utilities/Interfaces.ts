@@ -1,4 +1,4 @@
-import { Message } from "discord.js";
+import { GuildMember, Message } from "discord.js";
 
 export interface ParsedArguments {
    queueGuild: QueueGuild;
@@ -41,6 +41,7 @@ export interface QueueMember {
    personal_message: string;
    queue_channel_id: string;
    queue_member_id: string;
+   member?: GuildMember;
 }
 
 export interface MemberPerm {

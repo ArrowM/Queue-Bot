@@ -1,5 +1,6 @@
 import { QueueMember } from "../Interfaces";
 import { Base } from "../Base";
+import { GuildChannel } from "discord.js";
 
 export class QueueMemberTable {
    /**
@@ -54,10 +55,23 @@ export class QueueMemberTable {
    }
 
    /**
-    * @param queueChannelId
+    * @param queueChannel
+    * @param order - optional
+    * Fetch members for channel, filter out users who have left the guild.
     */
-   public static getFromQueue(queueChannelId: string) {
-      return Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannelId);
+   public static async getFromQueue(queueChannel: GuildChannel, order?: string) {
+      const storedMembers = order
+         ? await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy(order)
+         : await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
+      storedMembers.filter(async (storedMember) => {
+         try {
+            storedMember.member = await queueChannel.guild.members.fetch(storedMember.queue_member_id);
+            return true;
+         } catch (e) {
+            return false;
+         }
+      });
+      return storedMembers;
    }
 
    /**
@@ -88,7 +102,7 @@ export class QueueMemberTable {
             .first()
             .del();
       } else {
-         await this.getFromQueue(queueChannelId).del();
+         await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannelId).first().del();
       }
    }
 
