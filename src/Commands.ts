@@ -18,7 +18,8 @@ export class Commands {
       queueChannel = queueChannel || (await ParsingUtils.getStoredChannel(parsed));
       if (!queueChannel) return;
 
-      const displayChannel = parsed.message.channel as TextChannel | NewsChannel;
+      const message = parsed.message;
+      const displayChannel = message.channel as TextChannel | NewsChannel;
       const displayPermissions = displayChannel.permissionsFor(displayChannel.guild.me);
       if (displayPermissions.has("SEND_MESSAGES") && displayPermissions.has("EMBED_LINKS")) {
          const embeds = await MessagingUtils.generateEmbed(parsed.queueGuild, queueChannel);
@@ -27,9 +28,7 @@ export class Commands {
          // Create new display
          await DisplayChannelTable.storeDisplayChannel(queueChannel, displayChannel, embeds);
       } else {
-         parsed.message.author
-            .send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`)
-            .catch(() => null);
+         message.author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`).catch(() => null);
       }
    }
 
@@ -37,6 +36,7 @@ export class Commands {
     * Send a help embed
     */
    public static async help(parsed: ParsedArguments): Promise<void> {
+      const message = parsed.message;
       const storedPrefix = parsed.queueGuild.prefix;
       const storedColor = parsed.queueGuild.color;
 
@@ -258,28 +258,20 @@ export class Commands {
          },
       ];
 
-      const channels = parsed.message.guild.channels.cache.filter((channel) => channel.type === "text").array() as (
-         | TextChannel
-         | NewsChannel
-      )[];
+      const channels = message.guild.channels.cache.filter((channel) => channel.type === "text").array() as (TextChannel | NewsChannel)[];
       const displayChannel = ParsingUtils.getChannel(parsed, channels) as TextChannel | NewsChannel;
       if (parsed.arguments && displayChannel) {
          responses.forEach((response) => SchedulingUtils.scheduleResponseToChannel(response, displayChannel));
       } else {
          // No channel provided. Send help to user
-         const channel = parsed.message.channel as TextChannel | NewsChannel;
+         const channel = message.channel as TextChannel | NewsChannel;
          try {
-            responses.forEach((response) => parsed.message.author.send(response));
-            MessagingUtils.sendTempMessage("I have sent help to your PMs.", channel, 10);
-         } catch (e) {
-            if (e.code === 403) {
-               MessagingUtils.sendTempMessage(
-                  `I can't DM <@!${parsed.message.author.id}>. ` +
-                     `Check your Server DM settings (Click the server name in the top left, then Privacy Settings)`,
-                  channel,
-                  10
-               );
+            for (const response of responses) {
+               await message.author.send(response);
             }
+            MessagingUtils.sendTempMessage("I have sent help to your DMs.", channel, 10);
+         } catch (e) {
+            MessagingUtils.sendTempMessage(`There was an error DMing <@!${message.author.id}>.`, channel, 10);
          }
       }
    }
@@ -558,14 +550,12 @@ export class Commands {
                message
             );
             for (const nextMember of nextQueueMembers) {
-               try {
-                  nextMember.member.send(
+               nextMember.member
+                  .send(
                      `Hey <@${nextMember.member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
                         `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
-                  );
-               } catch (e) {
-                  // DO NOTHING
-               }
+                  )
+                  .catch(() => null);
             }
          }
          await QueueMemberTable.unstoreQueueMembers(
@@ -804,19 +794,13 @@ export class Commands {
             QueueChannelTable.unstoreQueueChannel(message.guild.id, myStoredMember.queue_channel_id);
          }
       }
-      const channel = message.channel as TextChannel | NewsChannel;
-      try {
-         parsed.message.author.send({ embed: embed });
-      } catch (e) {
-         if (e.code === 403) {
-            MessagingUtils.sendTempMessage(
-               `I can't DM <@!${message.author.id}>. ` +
-                  `Check your Server DM settings (Click the server name in the top left, then Privacy Settings)`,
-               channel,
-               10
-            );
-         }
-      }
+      parsed.message.author.send({ embed: embed }).catch(() => {
+         MessagingUtils.sendTempMessage(
+            `There was an error DMing <@!${message.author.id}>.`,
+            message.channel as TextChannel | NewsChannel,
+            10
+         );
+      });
    }
 
    ///**

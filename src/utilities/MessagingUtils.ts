@@ -138,20 +138,20 @@ export class MessagingUtils {
          description += `\n\n${storedQueueChannel.header}`;
       }
 
-      let _queueMembers = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
+      let queueMembersSlice = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
 
       const embeds: MessageOptions[] = [];
       for (;;) {
-         const _embed = new MessageEmbed();
-         _embed.setTitle(title);
-         _embed.setColor(queueGuild.color);
-         _embed.setDescription(description);
-         if (_queueMembers?.length > 0) {
+         const embed = new MessageEmbed();
+         embed.setTitle(title);
+         embed.setColor(queueGuild.color);
+         embed.setDescription(description);
+         if (queueMembersSlice?.length > 0) {
             // Handle non-empty
             const maxFieldCount = 25;
-            for (let i = 0; i < _queueMembers.length / maxFieldCount; i++) {
+            for (let i = 0; i < queueMembersSlice.length / maxFieldCount; i++) {
                const pos = position % this.MAX_MEMBERS_PER_EMBED;
-               const userList = _queueMembers
+               const userList = queueMembersSlice
                   .slice(pos, pos + maxFieldCount)
                   .reduce(
                      (accumlator: string, queueMember: QueueMember) =>
@@ -161,21 +161,21 @@ export class MessagingUtils {
                            "\n"),
                      ""
                   );
-               _embed.addField("\u200b", userList, true);
+               embed.addField("\u200b", userList, true);
             }
          } else {
             // Handle empty queue
-            _embed.addField("\u200b", "\u200b");
+            embed.addField("\u200b", "\u200b");
          }
          if (storedQueueChannel.max_members) {
-            _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0} of ${storedQueueChannel.max_members}`;
+            embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0} of ${storedQueueChannel.max_members}`;
          } else {
-            _embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0}`;
+            embed.fields[0].name = `Length: ${queueMembers ? queueMembers.length : 0}`;
          }
-         embeds.push({ embed: _embed });
+         embeds.push({ embed: embed });
          // Setup for next 200 members (Keep at the bottom of loop. We want to generate 1 embed for empty queues).
-         _queueMembers = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
-         if (_queueMembers.length === 0) break;
+         queueMembersSlice = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
+         if (queueMembersSlice.length === 0) break;
       }
       return embeds;
    }
@@ -206,10 +206,10 @@ export class MessagingUtils {
     * @param duration
     */
    public static async sendTempMessage(response: string, channel: TextChannel | NewsChannel, duration: number): Promise<void> {
-      const _response = (await channel.send(response).catch(() => null)) as Message;
-      if (_response) {
+      const tempMessage = (await channel.send(response).catch(() => null)) as Message;
+      if (tempMessage) {
          setTimeout(() => {
-            _response.delete().catch(() => null);
+            tempMessage.delete().catch(() => null);
          }, duration * 1000);
       }
    }

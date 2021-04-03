@@ -172,7 +172,7 @@ client.on("message", async (message) => {
                   parsed,
                   +parsed.arguments >= 1 && +parsed.arguments <= 3,
                   "When the queue changes: \n" +
-                     "`1`: (default) Update old display message \n" +
+                     "`1`: (default) Update old display message. \n" +
                      "`2`: Send a new display message and delete the old one. \n" +
                      "`3`: Send a new display message."
                );
@@ -180,8 +180,8 @@ client.on("message", async (message) => {
          } else {
             message.author
                .send(
-                  `You don't have permission to use bot commands in \`${message.guild.name}\`.` +
-                     `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role on the server to use bot Commands.`
+                  `You don't have permission to use my commands in \`${message.guild.name}\`. ` +
+                     `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role.`
                )
                .catch(() => null);
          }
@@ -447,7 +447,7 @@ export async function fillTargetChannel(
       } else {
          me.guild.owner.send(
             `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
-         );
+         ).catch(() => null);
       }
    }
 }
@@ -510,16 +510,16 @@ async function checkPatchNotes() {
          }
       }
       // Send notes
-      for (const _patchNote of patchNotes) {
-         if (!_patchNote.sent) {
+      for (const patchNote of patchNotes) {
+         if (!patchNote.sent) {
             for (const [displayChannel, prefix] of displayChannels) {
-               const patchNote: PatchNote = JSON.parse(JSON.stringify(_patchNote));
-               patchNote.message.embed.fields.forEach((field) => {
+               const parsedPatchNote: PatchNote = JSON.parse(JSON.stringify(patchNote));
+               parsedPatchNote.message.embed.fields.forEach((field) => {
                   field.value = (field.value as string).replaceAll(config.prefix, prefix);
                });
-               displayChannel.send(patchNote.message).catch(() => null);
+               displayChannel.send(parsedPatchNote.message).catch(() => null);
             }
-            _patchNote.sent = true;
+            patchNote.sent = true;
          }
       }
       writeFileSync("../patch_notes/patch_notes.json", JSON.stringify(patchNotes, null, 3));

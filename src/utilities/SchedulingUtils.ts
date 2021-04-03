@@ -59,8 +59,8 @@ export class SchedulingUtils {
       // Send new sessages
       setInterval(() => {
          if (this.pendingResponses) {
-            for (const [key, value] of this.pendingResponses) {
-               key.send(value).catch(() => null);
+            for (const [channel, msg] of this.pendingResponses) {
+               channel.send(msg).catch(() => null);
             }
             this.pendingResponses.clear();
          }
@@ -69,15 +69,14 @@ export class SchedulingUtils {
 
    /**
     * Schedule a queue channel to have it's displays updated
-    * @param _queueGuild
-    * @param _queueChannels
-    * @param _silentUpdate
+    * @param queueGuild
+    * @param queueChannels
     */
-   public static scheduleDisplayUpdate(_queueGuild: QueueGuild, _queueChannel: VoiceChannel | TextChannel | NewsChannel): void {
-      if (_queueChannel) {
-         this.pendingQueueUpdates.set(_queueChannel.id, {
-            queueGuild: _queueGuild,
-            queueChannel: _queueChannel,
+   public static scheduleDisplayUpdate(queueGuild: QueueGuild, queueChannel: VoiceChannel | TextChannel | NewsChannel): void {
+      if (queueChannel) {
+         this.pendingQueueUpdates.set(queueChannel.id, {
+            queueGuild: queueGuild,
+            queueChannel: queueChannel,
          });
       }
    }
@@ -90,18 +89,9 @@ export class SchedulingUtils {
    public static scheduleResponseToMessage(response: MessageOptions | string, message: Message): void {
       const channel = message.channel as TextChannel | NewsChannel;
       if (!this.scheduleResponseToChannel(response, channel)) {
-         try {
-            message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``);
-         } catch (e) {
-            if (e.code === 403) {
-               MessagingUtils.sendTempMessage(
-                  `I can't DM <@!${message.author.id}>. ` +
-                     `Check your Server DM settings (Click the server name in the top left, then Privacy Settings)`,
-                  channel,
-                  10
-               );
-            }
-         }
+         message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => {
+            MessagingUtils.sendTempMessage(`There was an error DMing <@!${message.author.id}>.`, channel, 10);
+         });
       }
    }
 
