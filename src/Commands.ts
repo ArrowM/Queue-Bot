@@ -551,7 +551,7 @@ export class Commands {
             );
             for (const nextMember of nextQueueMembers) {
                nextMember.member
-                  .send(
+                  ?.send(
                      `Hey <@${nextMember.member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
                         `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
                   )
