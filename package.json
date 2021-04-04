@@ -17,7 +17,6 @@
       "bufferutil": "^4.0.3",
       "dblapi.js": "^2.4.1",
       "discord.js": "12.5.0",
-      "erlpack": "github:discord/erlpack",
       "knex": "^0.95.4",
       "libsodium-wrappers": "^0.7.9",
       "node-gyp": "^8.0.0",
