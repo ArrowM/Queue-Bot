@@ -29,11 +29,18 @@ import { MemberPermsTable } from "./utilities/tables/MemberPermsTable";
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
 SchedulingUtils.startScheduler();
 
+const PORT = process.env.PORT || 3000;
+const app = express();
+app.listen(PORT, () => {
+   console.log(`Our app is running on port ${PORT}`);
+});
+app.get('/',(req,res) => {return res.send('Hello');});
+
 const config = Base.getConfig();
 const cmdConfig = Base.getCmdConfig();
 const client = Base.getClient();
 const knex = Base.getKnex();
-client.login(config.token);
+client.login(process.env.DISCORD_TOKEN);
 client.on("error", console.error);
 client.on("shardError", console.error);
 client.on("uncaughtException", (err, origin) => {
