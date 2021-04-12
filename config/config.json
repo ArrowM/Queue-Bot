@@ -1,15 +1,10 @@
 {
-   "token": "YOUR_TOKEN_HERE",
    "topGgToken": "",
 
    "color": "#478E81",
-   "databaseType": "postgresql",
-   "databaseHost": "localhost",
-   "databaseName": "queue",
-   "databaseUsername": "postgres",
-   "databasePassword": " ",
    "gracePeriod": "0",
    "joinEmoji": "⤴",
    "permissionsRegexp": "\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b",
    "prefix": "!"
 }
+

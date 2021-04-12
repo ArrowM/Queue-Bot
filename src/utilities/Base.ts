@@ -28,12 +28,15 @@ export class Base {
    protected static cmdConfig: CommandConfigJson = JSON.parse(readFileSync("../config/command-config.json", "utf8"));
 
    protected static knex = knex({
-      client: Base.config.databaseType,
+      client: process.env.DB_TYPE,
       connection: {
-         database: Base.config.databaseName,
-         host: Base.config.databaseHost,
-         password: Base.config.databasePassword,
-         user: Base.config.databaseUsername,
+         database: process.env.DB_SCHEMA,
+         host: process.env.DB_HOST,
+         password: process.env.DB_PASS,
+         user: process.env.DB_USER,
+         ssl: {
+            rejectUnauthorized: false,
+         },
       },
    });
 
