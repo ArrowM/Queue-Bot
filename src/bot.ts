@@ -36,6 +36,7 @@ app.listen(PORT, () => {
    console.log(`Our app is running on port ${PORT}`);
 });
 app.get('/',(req,res) => {return res.send('Hello');});
+
 const config = Base.getConfig();
 const cmdConfig = Base.getCmdConfig();
 const client = Base.getClient();
