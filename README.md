@@ -66,8 +66,9 @@ If a command that expects a channel name is not given one, the current text chan
 
 ## How to setup your own Queue Bot hosting
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
+    1a. The required scopes for this bot are currently ```bot```.
 2. Clone/download this repository  
-3. Create a database for storing queues. Here's a the steps for Windows:  
+3. Create a database for storing queues. Look [here for local development instructions using Docker](#local-development-automation) otherwise here are the steps for Windows:  
 	3a. [Download Postgresql](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)  
 	3b. Run the installer. Use the default port. Skip Stack Builder. Remember the password you set, you will need it later.  
 	3c. Open Windows start menu, search for and open SQL Shell (psql).  
@@ -133,3 +134,23 @@ If a command that expects a channel name is not given one, the current text chan
 	9a. In command prompt, enter `npm install pm2 -g`  
 	9b. To start the bot, enter `pm2 start bot.js --time`  
 	9c. To stop the bot, enter `pm2 stop bot.js`  
+
+### Local Development Automation
+
+A [docker-compose definition file](docker-compose.yml) is provided in the root directory which will prepare a postgresql instance for bot development. 
+
+To create a postgres instance open a terminal instance to the root directory of this repository and run 
+```
+docker-compose up
+```
+
+To configure this bot for the docker-composed instance of postgres simply alter [config.json](config/config.json) values for ```databaseUsername``` and ```databasePassword``` to ```docker``` while keeping the repository defaults for the other database configuration values.
+
+Note - The ```token``` configuration must still be set based on your own discord bot token obtained through [the setup instructions](#how-to-setup-your-own-queue-bot-hosting).
+
+#### Cleanup
+
+To clean up the docker-composed postgres instance open a terminal instance to the root directory of this repository and run
+```
+docker-compose down
+```
