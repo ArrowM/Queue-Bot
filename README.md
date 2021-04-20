@@ -122,7 +122,7 @@ If a command that expects a channel name is not given one, the current text chan
 | pullNumCmd             | Command to set the number of people pulled at once.                                                                               | `pullnum` |
 | queueCmd               | Command to create / list queues.                                                                                                  | `queue` |
 | queueDeleteCmd         | Command to delete a queues.                                                                                                       | `delete`|
-| roleAddCmd			    | Command to add permissions for queue management to a role.                                                                        | `addrole`|
+| roleAddCmd             | Command to add permissions for queue management to a role.                                                                        | `addrole`|
 | roleDeleteCmd          | Command to revoke permissions to a role for queue management.                                                                     | `deleterole` |
 | shuffleCmd             | Command to shuffle the queue.                                                                                                     | `shuffle` |
 | startCmd               | Command to make the bot join a voice channel.                                                                                     | `start` |
