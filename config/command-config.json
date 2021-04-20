@@ -21,5 +21,7 @@
    "queueDeleteCmd": "delete",
    "shuffleCmd": "shuffle",
    "startCmd": "start",
-   "whitelistCmd": "whitelist"
+   "whitelistCmd": "whitelist",
+   "queueRoleCmd": "addrole",
+   "queueRoleDeleteCmd": "deleterole"
 }

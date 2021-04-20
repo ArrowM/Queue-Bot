@@ -24,6 +24,7 @@ import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import util from "util";
 import { readFileSync, writeFileSync, exists } from "fs";
 import { MemberPermsTable } from "./utilities/tables/MemberPermsTable";
+import { QueueManagerRolesTable } from "./utilities/tables/QueueManagerRolesTable";
 
 // Setup client
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
@@ -57,12 +58,17 @@ if (config.topGgToken) {
  * Determine whether user has permission to interact with bot
  * @param message Discord message object.
  */
-function checkPermission(message: Message): boolean {
+async function checkPermission(message: Message): Promise<boolean> {
    try {
+      const guild = message.guild;
+      let roles = await QueueManagerRolesTable.getAll(guild.id);
       const channel = message.channel as TextChannel | NewsChannel;
       const authorPerms = channel.permissionsFor(message.author);
       const authorRoles = message.member.roles.cache;
-      return authorPerms.has("ADMINISTRATOR") || authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name));
+
+      return authorPerms.has("ADMINISTRATOR") || 
+               authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name)) ||
+               authorRoles.some((role) => roles?.some(item => item.role_name == role.name));
    } catch (e) {
       return false;
    }
@@ -89,7 +95,7 @@ client.on("message", async (message) => {
       // Note: prefix can contain spaces. Command can not contains spaces. parsedArgs can contain spaces.
       parsed.command = message.content.substring(queueGuild.prefix.length).split(" ")[0];
       parsed.arguments = message.content.substring(queueGuild.prefix.length + parsed.command.length + 1).trim();
-      const hasPermission = checkPermission(message);
+      const hasPermission = await checkPermission(message);
 
       // Restricted commands
       if (Object.values(cmdConfig).includes(parsed.command) && !EVERYONE_COMMANDS.includes(parsed.command)) {
@@ -106,6 +112,12 @@ client.on("message", async (message) => {
 // Set Queue
             } else if (parsed.command === cmdConfig.queueCmd) {
                Commands.setQueue(parsed);
+// Queue Role Add
+            } else if (parsed.command === cmdConfig.queueRoleCmd) {
+               Commands.queueRole(parsed);
+// Queue Role Delete
+            } else if (parsed.command === cmdConfig.queueRoleDeleteCmd) {
+               Commands.queueRoleDelete(parsed);
 // Queue Delete
             } else if (parsed.command === cmdConfig.queueDeleteCmd) {
                Commands.queueDelete(parsed);
@@ -272,6 +284,7 @@ client.once("ready", async () => {
    await DisplayChannelTable.initTable();
    await QueueMemberTable.initTable();
    await MemberPermsTable.initTable();
+   await QueueManagerRolesTable.initTable();
    await resumeAfterOffline();
    checkPatchNotes();
    console.log("Ready!");

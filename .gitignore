@@ -11,3 +11,7 @@
 # Documentation
 !/README.md
 !/docs
+
+# Development Automation
+!/docker-compose.yml
+!/sql

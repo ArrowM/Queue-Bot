@@ -20,14 +20,16 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 4. **Customization.**  
 	*Privileged users* can customize the command prefix, message color, messaging mode, and how long people can leave a queue without losing their spot with the commands below.There are also additional commands to do things like shuffling and clearing queues.  
 
-### Priviledged Commands
-Priviliged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.  
+### Privileged Commands
+Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.  
 If a command that expects a channel name is not given one, the current text channel will be used.  
 
 | Function | Command | Default | Description |
 |-|-|-|-|
 | Create a Queue | `!queue {channel name} {OPTIONAL: size}` | | Create a queue. |
-| List Queues | `!queue` | | List the names of the existing queues. | 
+| List Queues | `!queue` | | List the names of the existing queues. |
+| Add Queue Management Role | `!addrole {role name}` | | Adds permissions for queue management to a role. |
+| Revoke Queue Management to Role | `!deleterole {role name}` | | Revokes permissions for queue management to a role. | 
 | Delete a Queue | `!delete {queue name}` | | Delete a queue. |
 | Display a Queue | `!display {queue name}` | | Display the members in a queue. These messages stay updated. | 
 | Pull from Voice | `!start {queue name}` | | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
@@ -66,8 +68,9 @@ If a command that expects a channel name is not given one, the current text chan
 
 ## How to setup your own Queue Bot hosting
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
+    1a. The required scopes for this bot are currently ```bot```.
 2. Clone/download this repository  
-3. Create a database for storing queues. Here's a the steps for Windows:  
+3. Create a database for storing queues. If doing local development [here are instructions for using Docker to create a viable database](#local-development-automation), otherwise here are the steps for establishing a Postgres instance on Windows:  
 	3a. [Download Postgresql](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)  
 	3b. Run the installer. Use the default port. Skip Stack Builder. Remember the password you set, you will need it later.  
 	3c. Open Windows start menu, search for and open SQL Shell (psql).  
@@ -118,7 +121,9 @@ If a command that expects a channel name is not given one, the current text chan
 | prefixCmd              | Command to set the command prefix.                                                                                                | `prefix` |
 | pullNumCmd             | Command to set the number of people pulled at once.                                                                               | `pullnum` |
 | queueCmd               | Command to create / list queues.                                                                                                  | `queue` |
-| queueDeleteCmd         | Command to delete a queues.                                                                                                       | `delete` |
+| queueDeleteCmd         | Command to delete a queues.                                                                                                       | `delete`|
+| queueRoleCmd         | Command to add permissions for queue management to a role.                                                                                                       | `addrole`|
+| queueRoleDeleteCmd         | Command to revoke permissions to a role for queue management.                                                                                                       | `deleterole` |
 | shuffleCmd             | Command to shuffle the queue.                                                                                                     | `shuffle` |
 | startCmd               | Command to make the bot join a voice channel.                                                                                     | `start` |
 
@@ -129,7 +134,27 @@ If a command that expects a channel name is not given one, the current text chan
 7. Install Dependencies. Open commmand prompt in project directory (If you have the project open in file explorer, click on the directory bar, enter `cmd`, and hit enter). Enter `npm i` into command prompt. Keep the command prompt open.  
 8. Build the bot. In the same command prompt, enter `npm run build`.  
 9. Start the Bot. Enter `npm start` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
-10. **Optional**. Make the bot run in the background, so you don't need command prompt open.  
+10.  **Optional**. Make the bot run in the background, so you don't need command prompt open.  
 	9a. In command prompt, enter `npm install pm2 -g`  
 	9b. To start the bot, enter `pm2 start bot.js --time`  
 	9c. To stop the bot, enter `pm2 stop bot.js`  
+
+### Local Development Automation
+
+A [docker-compose definition file](docker-compose.yml) is provided in the root directory which will prepare a postgresql instance for bot development. 
+
+To create a postgres instance open a terminal instance to the root directory of this repository and run 
+```
+docker-compose up
+```
+
+To configure this bot for the docker-composed instance of postgres simply alter [config.json](config/config.json) values for ```databaseUsername``` and ```databasePassword``` to ```docker``` while keeping the repository defaults for the other database configuration values.
+
+Note - The ```token``` configuration must still be set based on your own discord bot token obtained through [the setup instructions](#how-to-setup-your-own-queue-bot-hosting).
+
+#### Cleanup
+
+To clean up the docker-composed postgres instance open a terminal instance to the root directory of this repository and run
+```
+docker-compose down
+```
