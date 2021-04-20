@@ -92,3 +92,9 @@ export interface CommandConfigJson {
    startCmd: string;
    whitelistCmd: string;
 }
+
+export interface QueueManagerRole {
+   id: number;
+   guild_id: string;
+   role_id: string;
+}
