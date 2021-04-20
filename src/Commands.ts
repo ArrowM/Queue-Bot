@@ -9,6 +9,7 @@ import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { MemberPermsTable } from "./utilities/tables/MemberPermsTable";
+import { QueueManagerRolesTable } from "./utilities/tables/QueueManagerRolesTable";
 
 export class Commands {
    /**
@@ -143,6 +144,14 @@ export class Commands {
                   {
                      name: "Delete Queues",
                      value: `\`${storedPrefix}${Base.getCmdConfig().queueDeleteCmd} {queue name}\` ` + `deletes an existing queue.\n`,
+                  },
+                  {
+                     name: "Add Queue Manager Role",
+                     value: `\`${storedPrefix}${Base.getCmdConfig().queueRoleCmd} {role name}\` ` + `adds a role to the queue managers.\n`,
+                  },
+                  {
+                     name: "Delete Role From Queue Managers",
+                     value: `\`${storedPrefix}${Base.getCmdConfig().queueRoleDeleteCmd} {role name}\` ` + `revokes an existing queue manager role.\n`,
                   },
                   {
                      name: "Display Queue",
@@ -428,7 +437,7 @@ export class Commands {
    /**
     *
     */
-   public static async queueDelete(parsed: ParsedArguments) {
+    public static async queueDelete(parsed: ParsedArguments) {
       if (!parsed.arguments) {
          SchedulingUtils.scheduleResponseToMessage(
             `Must provide queue name. ` + `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueDeleteCmd} {queue name}\`.`,
@@ -452,6 +461,40 @@ export class Commands {
          botVoice.connection.disconnect();
       }
       SchedulingUtils.scheduleResponseToMessage(`Deleted queue for \`${queueChannel.name}\`.`, parsed.message);
+   }
+
+   /**
+    *
+    */
+    public static async queueRoleDelete(parsed: ParsedArguments) {
+      if (!parsed.arguments) {
+         SchedulingUtils.scheduleResponseToMessage(
+            `Must provide role name. ` + `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueRoleDeleteCmd} {role name}\`.`,
+            parsed.message
+         );
+         return;
+      }
+
+      await QueueManagerRolesTable.unstoreQueueManagerRole(parsed.message.guild.id, parsed.arguments);
+
+      SchedulingUtils.scheduleResponseToMessage(`Deleted role for \`${parsed.arguments}\`.`, parsed.message);
+   }
+
+   /**
+    *
+    */
+    public static async queueRole(parsed: ParsedArguments) {
+      if (!parsed.arguments) {
+         SchedulingUtils.scheduleResponseToMessage(
+            `Must provide role name. ` + `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueRoleDeleteCmd} {role name}\`.`,
+            parsed.message
+         );
+         return;
+      }
+
+      await QueueManagerRolesTable.storeQueueManagerRole(parsed.message.guild, parsed.arguments);
+
+      SchedulingUtils.scheduleResponseToMessage(`Added role for \`${parsed.arguments}\`.`, parsed.message);
    }
 
    /**

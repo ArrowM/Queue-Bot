@@ -91,10 +91,12 @@ export interface CommandConfigJson {
    shuffleCmd: string;
    startCmd: string;
    whitelistCmd: string;
+   queueRoleCmd: string;
+   queueRoleDeleteCmd: string;
 }
 
 export interface QueueManagerRole {
    id: number;
    guild_id: string;
-   role_id: string;
+   role_name: string;
 }

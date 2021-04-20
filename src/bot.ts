@@ -65,10 +65,10 @@ async function checkPermission(message: Message): Promise<boolean> {
       const channel = message.channel as TextChannel | NewsChannel;
       const authorPerms = channel.permissionsFor(message.author);
       const authorRoles = message.member.roles.cache;
-      
+
       return authorPerms.has("ADMINISTRATOR") || 
                authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name)) ||
-               authorRoles.some((role) => roles.some(item => item.role_id == role.id));
+               authorRoles.some((role) => roles?.some(item => item.role_name == role.name));
    } catch (e) {
       return false;
    }
@@ -112,6 +112,12 @@ client.on("message", async (message) => {
 // Set Queue
             } else if (parsed.command === cmdConfig.queueCmd) {
                Commands.setQueue(parsed);
+// Queue Role Add
+            } else if (parsed.command === cmdConfig.queueRoleCmd) {
+               Commands.queueRole(parsed);
+// Queue Role Delete
+            } else if (parsed.command === cmdConfig.queueRoleDeleteCmd) {
+               Commands.queueRoleDelete(parsed);
 // Queue Delete
             } else if (parsed.command === cmdConfig.queueDeleteCmd) {
                Commands.queueDelete(parsed);
@@ -278,6 +284,7 @@ client.once("ready", async () => {
    await DisplayChannelTable.initTable();
    await QueueMemberTable.initTable();
    await MemberPermsTable.initTable();
+   await QueueManagerRolesTable.initTable();
    await resumeAfterOffline();
    checkPatchNotes();
    console.log("Ready!");

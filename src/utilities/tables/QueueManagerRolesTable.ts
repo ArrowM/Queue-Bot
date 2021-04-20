@@ -14,7 +14,7 @@ export class QueueManagerRolesTable {
                await Base.getKnex()
                   .schema.createTable("queue_manager_roles", (table) => {
                      table.text("guild_id").primary();
-                     table.text("role_id");
+                     table.text("role_name");
                   })
                   .catch((e) => console.error(e));
             }
@@ -25,19 +25,20 @@ export class QueueManagerRolesTable {
    /**
     * @param guildId
     */
-   public static getAll(guildId: string) {
-      return Base.getKnex()<QueueManagerRole>("queue_manager_roles").where("guild_id", guildId);
+   public static getAll(guildId: string) : Promise<QueueManagerRole[]> {
+      return Base.getKnex()<QueueManagerRole>("queue_manager_roles").where("guild_id", guildId)
+                                                                    .catch(() => null);
    }
 
    /**
     * @param guild
-    * @param roleId
+    * @param role
     */
-   public static async storeQueueManagerRole(guild: Guild, roleId: string): Promise<void> {
+   public static async storeQueueManagerRole(guild: Guild, role: string): Promise<void> {
       await Base.getKnex()<QueueManagerRole>("queue_manager_roles")
          .insert({
             guild_id: guild.id,
-            role_id: roleId
+            role_name: role
          })
          .catch(() => null);
    }
@@ -46,7 +47,7 @@ export class QueueManagerRolesTable {
     * @param guild
     */
    public static async unstoreQueueManagerRole(guildId: string, roleId: string): Promise<void> {
-      await Base.getKnex()<QueueManagerRole>("queue_manager_roles").where("guild_id", guildId).where("role_id", roleId).del();
+      await Base.getKnex()<QueueManagerRole>("queue_manager_roles").where("guild_id", guildId).where("role_name", roleId).del();
    }
 
    /**
