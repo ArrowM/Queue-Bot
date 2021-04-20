@@ -51,6 +51,12 @@ export interface MemberPerm {
    perm: number; // 0 - blacklisted, 1 - whitelisted
 }
 
+export interface QueueManagerRole {
+   id: number;
+   guild_id: string;
+   role_name: string;
+}
+
 export interface ConfigJson {
    token: string;
    topGgToken: string;
@@ -88,15 +94,9 @@ export interface CommandConfigJson {
    pullNumCmd: string;
    queueCmd: string;
    queueDeleteCmd: string;
+   roleAddCmd: string;
+   roleDeleteCmd: string;
    shuffleCmd: string;
    startCmd: string;
    whitelistCmd: string;
-   queueRoleCmd: string;
-   queueRoleDeleteCmd: string;
-}
-
-export interface QueueManagerRole {
-   id: number;
-   guild_id: string;
-   role_name: string;
 }

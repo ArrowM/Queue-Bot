@@ -60,15 +60,14 @@ if (config.topGgToken) {
  */
 async function checkPermission(message: Message): Promise<boolean> {
    try {
-      const guild = message.guild;
-      let roles = await QueueManagerRolesTable.getAll(guild.id);
       const channel = message.channel as TextChannel | NewsChannel;
       const authorPerms = channel.permissionsFor(message.author);
-      const authorRoles = message.member.roles.cache;
+      if (authorPerms.has("ADMINISTRATOR")) return true;
 
-      return authorPerms.has("ADMINISTRATOR") || 
-               authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role.name)) ||
-               authorRoles.some((role) => roles?.some(item => item.role_name == role.name));
+      const storedRoles = (await QueueManagerRolesTable.getAll(message.guild.id)).map((role) => role.role_name);
+      const authorRoles = message.member.roles.cache.map((role) => role.name);
+
+      return authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role) || storedRoles?.includes(role));
    } catch (e) {
       return false;
    }
@@ -112,12 +111,12 @@ client.on("message", async (message) => {
 // Set Queue
             } else if (parsed.command === cmdConfig.queueCmd) {
                Commands.setQueue(parsed);
-// Queue Role Add
-            } else if (parsed.command === cmdConfig.queueRoleCmd) {
-               Commands.queueRole(parsed);
-// Queue Role Delete
-            } else if (parsed.command === cmdConfig.queueRoleDeleteCmd) {
-               Commands.queueRoleDelete(parsed);
+// Role Add
+            } else if (parsed.command === cmdConfig.roleAddCmd) {
+               Commands.roleAdd(parsed);
+// Role Delete
+            } else if (parsed.command === cmdConfig.roleDeleteCmd) {
+               Commands.roleDelete(parsed);
 // Queue Delete
             } else if (parsed.command === cmdConfig.queueDeleteCmd) {
                Commands.queueDelete(parsed);
@@ -513,7 +512,7 @@ async function checkPatchNotes() {
             const prefix = (await QueueGuildTable.get(guild.id))?.prefix;
             const queueChannelId = (await QueueChannelTable.getFromGuild(guild))[0]?.id;
             if (!queueChannelId) continue;
-            const displayChannelId = (await DisplayChannelTable.get(queueChannelId).first())?.display_channel_id;
+            const displayChannelId = (await DisplayChannelTable.getFromQueue(queueChannelId).first())?.display_channel_id;
             if (!displayChannelId) continue;
             const displayChannel = guild.channels.cache.get(displayChannelId) as TextChannel | NewsChannel;
             if (!displayChannel) continue;

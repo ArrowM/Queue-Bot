@@ -68,7 +68,7 @@ If a command that expects a channel name is not given one, the current text chan
 
 ## How to setup your own Queue Bot hosting
 1. [Create your Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
-    1a. The required scopes for this bot are currently ```bot```.
+    1a. The required scopes for this bot are currently `bot`.
 2. Clone/download this repository  
 3. Create a database for storing queues. If doing local development [here are instructions for using Docker to create a viable database](#local-development-automation), otherwise here are the steps for establishing a Postgres instance on Windows:  
 	3a. [Download Postgresql](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)  
@@ -122,8 +122,8 @@ If a command that expects a channel name is not given one, the current text chan
 | pullNumCmd             | Command to set the number of people pulled at once.                                                                               | `pullnum` |
 | queueCmd               | Command to create / list queues.                                                                                                  | `queue` |
 | queueDeleteCmd         | Command to delete a queues.                                                                                                       | `delete`|
-| queueRoleCmd         | Command to add permissions for queue management to a role.                                                                                                       | `addrole`|
-| queueRoleDeleteCmd         | Command to revoke permissions to a role for queue management.                                                                                                       | `deleterole` |
+| roleAddCmd			    | Command to add permissions for queue management to a role.                                                                        | `addrole`|
+| roleDeleteCmd          | Command to revoke permissions to a role for queue management.                                                                     | `deleterole` |
 | shuffleCmd             | Command to shuffle the queue.                                                                                                     | `shuffle` |
 | startCmd               | Command to make the bot join a voice channel.                                                                                     | `start` |
 

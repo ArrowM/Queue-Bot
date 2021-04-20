@@ -1,6 +1,5 @@
 import { QueueManagerRole } from "../Interfaces";
 import { Base } from "../Base";
-import { Guild } from "discord.js";
 
 export class QueueManagerRolesTable {
    /**
@@ -13,7 +12,8 @@ export class QueueManagerRolesTable {
             if (!exists) {
                await Base.getKnex()
                   .schema.createTable("queue_manager_roles", (table) => {
-                     table.text("guild_id").primary();
+                     table.increments("id").primary();
+                     table.text("guild_id");
                      table.text("role_name");
                   })
                   .catch((e) => console.error(e));
@@ -25,20 +25,19 @@ export class QueueManagerRolesTable {
    /**
     * @param guildId
     */
-   public static getAll(guildId: string) : Promise<QueueManagerRole[]> {
-      return Base.getKnex()<QueueManagerRole>("queue_manager_roles").where("guild_id", guildId)
-                                                                    .catch(() => null);
+   public static getAll(guildId: string) {
+      return Base.getKnex()<QueueManagerRole>("queue_manager_roles").where("guild_id", guildId);
    }
 
    /**
-    * @param guild
+    * @param guildId
     * @param role
     */
-   public static async storeQueueManagerRole(guild: Guild, role: string): Promise<void> {
+   public static async storeQueueManagerRole(guildId: string, role: string): Promise<void> {
       await Base.getKnex()<QueueManagerRole>("queue_manager_roles")
          .insert({
-            guild_id: guild.id,
-            role_name: role
+            guild_id: guildId,
+            role_name: role,
          })
          .catch(() => null);
    }
@@ -53,5 +52,5 @@ export class QueueManagerRolesTable {
    /**
     * Modify the database structure for code patches
     */
-   protected static async updateTableStructure(): Promise<void> { }
+   protected static async updateTableStructure(): Promise<void> {}
 }

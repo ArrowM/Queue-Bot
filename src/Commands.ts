@@ -143,15 +143,19 @@ export class Commands {
                   },
                   {
                      name: "Delete Queues",
-                     value: `\`${storedPrefix}${Base.getCmdConfig().queueDeleteCmd} {queue name}\` ` + `deletes an existing queue.\n`,
+                     value: `\`${storedPrefix}${Base.getCmdConfig().queueDeleteCmd} {queue name}\` deletes an existing queue.\n`,
                   },
                   {
                      name: "Add Queue Manager Role",
-                     value: `\`${storedPrefix}${Base.getCmdConfig().queueRoleCmd} {role name}\` ` + `adds a role to the queue managers.\n`,
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().roleAddCmd} {role name}\` adds a role to the queue managers.\n` +
+                        `\`${storedPrefix}${Base.getCmdConfig().roleAddCmd}\` lists existing roles.`,
                   },
                   {
                      name: "Delete Role From Queue Managers",
-                     value: `\`${storedPrefix}${Base.getCmdConfig().queueRoleDeleteCmd} {role name}\` ` + `revokes an existing queue manager role.\n`,
+                     value:
+                        `\`${storedPrefix}${Base.getCmdConfig().roleDeleteCmd} {role name}\` revokes an existing queue manager role.\n` +
+                        `\`${storedPrefix}${Base.getCmdConfig().roleDeleteCmd}\` lists existing roles.`,
                   },
                   {
                      name: "Display Queue",
@@ -437,7 +441,7 @@ export class Commands {
    /**
     *
     */
-    public static async queueDelete(parsed: ParsedArguments) {
+   public static async queueDelete(parsed: ParsedArguments) {
       if (!parsed.arguments) {
          SchedulingUtils.scheduleResponseToMessage(
             `Must provide queue name. ` + `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueDeleteCmd} {queue name}\`.`,
@@ -466,35 +470,41 @@ export class Commands {
    /**
     *
     */
-    public static async queueRoleDelete(parsed: ParsedArguments) {
-      if (!parsed.arguments) {
-         SchedulingUtils.scheduleResponseToMessage(
-            `Must provide role name. ` + `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueRoleDeleteCmd} {role name}\`.`,
-            parsed.message
-         );
-         return;
+   public static async roleAdd(parsed: ParsedArguments) {
+      const guild = parsed.message.guild;
+      const storedRoles = (await QueueManagerRolesTable.getAll(guild.id)).map((role) => role.role_name);
+      if (parsed.arguments) {
+         if (storedRoles.includes(parsed.arguments)) {
+            SchedulingUtils.scheduleResponseToMessage(`Role \`${parsed.arguments}\` is already added.`, parsed.message);
+         } else {
+            await QueueManagerRolesTable.storeQueueManagerRole(guild.id, parsed.arguments);
+            SchedulingUtils.scheduleResponseToMessage(`Added role for \`${parsed.arguments}\`.`, parsed.message);
+         }
+      } else {
+         let response = storedRoles.length > 0 ? `Your custom roles: ${storedRoles.map((role) => `\`${role}\``).join(", ")}\n` : "";
+         response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleAddCmd} {role name}\` to add custom roles.`;
+         SchedulingUtils.scheduleResponseToMessage(response, parsed.message);
       }
-
-      await QueueManagerRolesTable.unstoreQueueManagerRole(parsed.message.guild.id, parsed.arguments);
-
-      SchedulingUtils.scheduleResponseToMessage(`Deleted role for \`${parsed.arguments}\`.`, parsed.message);
    }
 
    /**
     *
     */
-    public static async queueRole(parsed: ParsedArguments) {
-      if (!parsed.arguments) {
-         SchedulingUtils.scheduleResponseToMessage(
-            `Must provide role name. ` + `\`${parsed.queueGuild.prefix}${Base.getCmdConfig().queueRoleDeleteCmd} {role name}\`.`,
-            parsed.message
-         );
-         return;
+   public static async roleDelete(parsed: ParsedArguments) {
+      const guild = parsed.message.guild;
+      const storedRoles = (await QueueManagerRolesTable.getAll(guild.id)).map((role) => role.role_name);
+      if (parsed.arguments) {
+         if (storedRoles.includes(parsed.arguments)) {
+            await QueueManagerRolesTable.unstoreQueueManagerRole(parsed.message.guild.id, parsed.arguments);
+            SchedulingUtils.scheduleResponseToMessage(`Deleted role for \`${parsed.arguments}\`.`, parsed.message);
+         } else {
+            SchedulingUtils.scheduleResponseToMessage(`Role \`${parsed.arguments}\` not found.`, parsed.message);
+         }
+      } else {
+         let response = storedRoles.length > 0 ? `Your custom roles: ${storedRoles.map((role) => `\`${role}\``).join(", ")}\n` : "";
+         response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleDeleteCmd} {role name}\` to delete custom roles.`;
+         SchedulingUtils.scheduleResponseToMessage(response, parsed.message);
       }
-
-      await QueueManagerRolesTable.storeQueueManagerRole(parsed.message.guild, parsed.arguments);
-
-      SchedulingUtils.scheduleResponseToMessage(`Added role for \`${parsed.arguments}\`.`, parsed.message);
    }
 
    /**

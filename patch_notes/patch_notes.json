@@ -1,10 +1,10 @@
 [
    {
-      "sent": true,
-      "date": "2021-04-19",
+      "sent": false,
+      "date": "2021-04-20",
       "message": {
          "embed": {
-            "title": "Patch Notes for Apr 19, 2021",
+            "title": "Patch Notes for Apr 20, 2021",
             "description": "Two queue management role commands have been added.",
             "color": 16727808,
             "footer": {
@@ -26,7 +26,7 @@
             ]
          }
       }
-   },   
+   },
    {
       "sent": true,
       "date": "2020-12-21",

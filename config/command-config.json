@@ -19,9 +19,9 @@
    "pullNumCmd": "pullnum",
    "queueCmd": "queue",
    "queueDeleteCmd": "delete",
+   "roleAddCmd": "addrole",
+   "roleDeleteCmd": "deleterole",
    "shuffleCmd": "shuffle",
    "startCmd": "start",
-   "whitelistCmd": "whitelist",
-   "queueRoleCmd": "addrole",
-   "queueRoleDeleteCmd": "deleterole"
+   "whitelistCmd": "whitelist"
 }
