@@ -58,6 +58,7 @@ if (config.topGgToken) {
  * Determine whether user has permission to interact with bot
  * @param message Discord message object.
  */
+const regEx = RegExp(config.permissionsRegexp, "i");
 async function checkPermission(message: Message): Promise<boolean> {
    try {
       const channel = message.channel as TextChannel | NewsChannel;
@@ -65,9 +66,13 @@ async function checkPermission(message: Message): Promise<boolean> {
       if (authorPerms.has("ADMINISTRATOR")) return true;
 
       const storedRoles = (await QueueManagerRolesTable.getAll(message.guild.id)).map((role) => role.role_name);
+      const storedIds = storedRoles.map((role) => role.replace(/[^0-9]/g, ""));
       const authorRoles = message.member.roles.cache.map((role) => role.name);
 
-      return authorRoles.some((role) => RegExp(config.permissionsRegexp, "i").test(role) || storedRoles?.includes(role));
+      // Check if user id is approved or user has approved role.
+      const hasPermission =
+         authorRoles.some((role) => regEx.test(role) || storedRoles?.includes(role)) || storedIds.includes(message.author.id);
+      return hasPermission;
    } catch (e) {
       return false;
    }

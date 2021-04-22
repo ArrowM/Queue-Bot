@@ -472,16 +472,22 @@ export class Commands {
     */
    public static async roleAdd(parsed: ParsedArguments) {
       const guild = parsed.message.guild;
+      const role = parsed.arguments;
+
       const storedRoles = (await QueueManagerRolesTable.getAll(guild.id)).map((role) => role.role_name);
-      if (parsed.arguments) {
-         if (storedRoles.includes(parsed.arguments)) {
-            SchedulingUtils.scheduleResponseToMessage(`Role \`${parsed.arguments}\` is already added.`, parsed.message);
+      if (role) {
+         // Wrap role in `` if it isn't a user id.
+         const printRole = role.startsWith("<@") ? role : "`" + role + "`";
+
+         if (storedRoles.includes(role)) {
+            SchedulingUtils.scheduleResponseToMessage(`Role ${printRole} is already added.`, parsed.message);
          } else {
-            await QueueManagerRolesTable.storeQueueManagerRole(guild.id, parsed.arguments);
-            SchedulingUtils.scheduleResponseToMessage(`Added role for \`${parsed.arguments}\`.`, parsed.message);
+            await QueueManagerRolesTable.storeQueueManagerRole(guild.id, role);
+            SchedulingUtils.scheduleResponseToMessage(`Added role for ${printRole}.`, parsed.message);
          }
       } else {
-         let response = storedRoles.length > 0 ? `Your custom roles: ${storedRoles.map((role) => `\`${role}\``).join(", ")}\n` : "";
+         const customRoles = storedRoles.map((role) => (role.startsWith("<@") ? role : "`" + role + "`")).join(", ");
+         let response = storedRoles.length > 0 ? `Your custom roles: ${customRoles}\n` : "";
          response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleAddCmd} {role name}\` to add custom roles.`;
          SchedulingUtils.scheduleResponseToMessage(response, parsed.message);
       }
@@ -492,16 +498,22 @@ export class Commands {
     */
    public static async roleDelete(parsed: ParsedArguments) {
       const guild = parsed.message.guild;
+      const role = parsed.arguments;
+
       const storedRoles = (await QueueManagerRolesTable.getAll(guild.id)).map((role) => role.role_name);
-      if (parsed.arguments) {
-         if (storedRoles.includes(parsed.arguments)) {
-            await QueueManagerRolesTable.unstoreQueueManagerRole(parsed.message.guild.id, parsed.arguments);
-            SchedulingUtils.scheduleResponseToMessage(`Deleted role for \`${parsed.arguments}\`.`, parsed.message);
+      if (role) {
+         // Wrap role in `` if it isn't a user id.
+         const printRole = role.startsWith("<@") ? role : "`" + role + "`";
+
+         if (storedRoles.includes(role)) {
+            await QueueManagerRolesTable.unstoreQueueManagerRole(parsed.message.guild.id, role);
+            SchedulingUtils.scheduleResponseToMessage(`Deleted role for ${printRole}.`, parsed.message);
          } else {
-            SchedulingUtils.scheduleResponseToMessage(`Role \`${parsed.arguments}\` not found.`, parsed.message);
+            SchedulingUtils.scheduleResponseToMessage(`Role ${printRole} not found.`, parsed.message);
          }
       } else {
-         let response = storedRoles.length > 0 ? `Your custom roles: ${storedRoles.map((role) => `\`${role}\``).join(", ")}\n` : "";
+         const customRoles = storedRoles.map((role) => (role.startsWith("<@") ? role : "`" + role + "`")).join(", ");
+         let response = storedRoles.length > 0 ? `Your custom roles: ${customRoles}\n` : "";
          response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleDeleteCmd} {role name}\` to delete custom roles.`;
          SchedulingUtils.scheduleResponseToMessage(response, parsed.message);
       }
