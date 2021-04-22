@@ -24,12 +24,15 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.  
 If a command that expects a channel name is not given one, the current text channel will be used.  
 
+{server role | @user}\` ` +
+                        `grants permissions to use bot commands.
+
 | Function | Command | Default | Description |
 |-|-|-|-|
 | Create a Queue | `!queue {channel name} {OPTIONAL: size}` | | Create a queue. |
 | List Queues | `!queue` | | List the names of the existing queues. |
-| Add Queue Management Role | `!addrole {role name}` | | Adds permissions for queue management to a role. |
-| Revoke Queue Management to Role | `!deleterole {role name}` | | Revokes permissions for queue management to a role. | 
+| Add Queue Manager Role | `!addrole {server role | @user}` | | Grants permissions to use bot commands. |
+| Delete Queue Manager Role | `!deleterole {server role | @user}` | | Revokes permissions to use bot commands. | 
 | Delete a Queue | `!delete {queue name}` | | Delete a queue. |
 | Display a Queue | `!display {queue name}` | | Display the members in a queue. These messages stay updated. | 
 | Pull from Voice | `!start {queue name}` | | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
@@ -122,8 +125,8 @@ If a command that expects a channel name is not given one, the current text chan
 | pullNumCmd             | Command to set the number of people pulled at once.                                                                               | `pullnum` |
 | queueCmd               | Command to create / list queues.                                                                                                  | `queue` |
 | queueDeleteCmd         | Command to delete a queues.                                                                                                       | `delete`|
-| roleAddCmd             | Command to add permissions for queue management to a role.                                                                        | `addrole`|
-| roleDeleteCmd          | Command to revoke permissions to a role for queue management.                                                                     | `deleterole` |
+| roleAddCmd             | Command to grant permissions to use bot commands.                                                                                 | `addrole`|
+| roleDeleteCmd          | Command to revoke permissions to use bot commands.                                                                                | `deleterole` |
 | shuffleCmd             | Command to shuffle the queue.                                                                                                     | `shuffle` |
 | startCmd               | Command to make the bot join a voice channel.                                                                                     | `start` |
 

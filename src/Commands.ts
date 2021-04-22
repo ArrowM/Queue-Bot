@@ -148,13 +148,15 @@ export class Commands {
                   {
                      name: "Add Queue Manager Role",
                      value:
-                        `\`${storedPrefix}${Base.getCmdConfig().roleAddCmd} {role name}\` adds a role to the queue managers.\n` +
+                        `\`${storedPrefix}${Base.getCmdConfig().roleAddCmd} {server role | @user}\` ` +
+                        `grants permissions to use bot commands.\n` +
                         `\`${storedPrefix}${Base.getCmdConfig().roleAddCmd}\` lists existing roles.`,
                   },
                   {
-                     name: "Delete Role From Queue Managers",
+                     name: "Delete Queue Manager Role",
                      value:
-                        `\`${storedPrefix}${Base.getCmdConfig().roleDeleteCmd} {role name}\` revokes an existing queue manager role.\n` +
+                        `\`${storedPrefix}${Base.getCmdConfig().roleDeleteCmd} {server role | @user}\` ` +
+                        `revokes permissions to use bot commands.\n` +
                         `\`${storedPrefix}${Base.getCmdConfig().roleDeleteCmd}\` lists existing roles.`,
                   },
                   {
@@ -488,7 +490,7 @@ export class Commands {
       } else {
          const customRoles = storedRoles.map((role) => (role.startsWith("<@") ? role : "`" + role + "`")).join(", ");
          let response = storedRoles.length > 0 ? `Your custom roles: ${customRoles}\n` : "";
-         response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleAddCmd} {role name}\` to add custom roles.`;
+         response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleAddCmd} {server role | @user}\` to add custom roles.`;
          SchedulingUtils.scheduleResponseToMessage(response, parsed.message);
       }
    }
@@ -514,7 +516,7 @@ export class Commands {
       } else {
          const customRoles = storedRoles.map((role) => (role.startsWith("<@") ? role : "`" + role + "`")).join(", ");
          let response = storedRoles.length > 0 ? `Your custom roles: ${customRoles}\n` : "";
-         response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleDeleteCmd} {role name}\` to delete custom roles.`;
+         response += `Use \`${parsed.queueGuild.prefix}${Base.getCmdConfig().roleDeleteCmd} {server role | user}\` to delete custom roles.`;
          SchedulingUtils.scheduleResponseToMessage(response, parsed.message);
       }
    }
