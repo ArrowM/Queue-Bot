@@ -24,9 +24,6 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.  
 If a command that expects a channel name is not given one, the current text channel will be used.  
 
-{server role | @user}\` ` +
-                        `grants permissions to use bot commands.
-
 | Function | Command | Default | Description |
 |-|-|-|-|
 | Create a Queue | `!queue {channel name} {OPTIONAL: size}` | | Create a queue. |
