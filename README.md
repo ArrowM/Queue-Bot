@@ -24,45 +24,44 @@ Created to manage voice channel waiting rooms. This bot allows you to display th
 Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`.  
 If a command that expects a channel name is not given one, the current text channel will be used.  
 
-| Function | Command | Default | Description |
-|-|-|-|-|
-| Create a Queue | `!queue {channel name} {OPTIONAL: size}` | | Create a queue. |
-| List Queues | `!queue` | | List the names of the existing queues. |
-| Add Queue Manager Role | `!addrole {server role | @user}` | | Grants permissions to use bot commands. |
-| Delete Queue Manager Role | `!deleterole {server role | @user}` | | Revokes permissions to use bot commands. | 
-| Delete a Queue | `!delete {queue name}` | | Delete a queue. |
-| Display a Queue | `!display {queue name}` | | Display the members in a queue. These messages stay updated. | 
-| Pull from Voice | `!start {queue name}` | | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
-| Pull from Text | `!next {queue name} {OPTIONAL: amount}` | |  Remove people from the text queue and displays their name. |
-| Join | `!join {queue name} @{user 1} @{user 2}... {OPTIONAL: custom message}` | | Add one or more people to a queue. |
-| Kick | `!kick {OPTIONAL: queue name} @{user 1} @{user 2} ...` | | Kick one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
-| Clear | `!clear {queue name}` | | Clear a queue. |
-| Shuffle | `!shuffle {queue name}` | | Shuffle a queue. |
-| Set Queue Size Limit | `!limit {queue name} {#}` | | Set queue size limit. |
-| Mention Queue | `!mention {queue name} {OPTIONAL: message}` | | Mention everyone in a queue. You can add a message too. |
-| Blacklist | `!blacklist {queue name} @{user 1} @{user 2}...` | | Blacklist people from a queue. Use again to remove from blacklist. |
-| List Blacklist | `!blacklist {queue name}` | | Display the blacklist for a queue. |
-|||||
-|**Channel Settings**|||
-| Autofill | `!autofill {queue name} {on\off}` | `on` | Turn autofill on or off. |
-| Pull Amount | `!pullnum {queue name} {#}` | `1` | Set the default number of people to pull. |
-| Set Display Message Header | `!header {queue name} {message}` | | Set a header for display messaged. Leave `{header}` blank to remove. |
-|||||
-|**Server Settings**|||
-| Set the Command Prefix | `!prefix {new prefix}` | in config | Set the prefix for Queue Bot commands. |
-| Set the Color | `!color {new color}` | in config | Set the color of bot messages. |
-| Set the Grace Period | `!grace {# seconds}` | `0` | Set how long a person can leave a queue before losing their spot. |
-| Set the Display Mode | `!mode {#}` | `1` | Set how the display messages are updated. Use `!mode` to see the different update modes. |
-| Command Cleanup | `!cleanup {on\off}` | `on` | Toggle the cleanup of user-sent Queue Bot commands. |
+| Function                   | Command                                                                | Default   | Description | 
+|-                           |-                                                                       |-          |-| 
+| Create a Queue             | `!queue {channel name} {OPTIONAL: size}`                               |           | Create a queue. | 
+| List Queues                | `!queue`                                                               |           | List the names of the existing queues. | 
+| Add Queue Manager Role     | `!addrole {server role | @user}`                                       |           | Grants permissions to use bot commands. |
+| Delete Queue Manager Role  | `!deleterole {server role | @user}`                                    |           | Revokes permissions to use bot commands. | 
+| Delete a Queue             | `!delete {queue name}`                                                 |           | Delete a queue. |
+| Display a Queue            | `!display {queue name}`                                                |           | Display the members in a queue. These messages stay updated. | 
+| Pull from Voice            | `!start {queue name}`                                                  |           | Add the bot to a voice queue. Then the bot can be dragged into another channel to automatically pull the person(s) at the front of the queue. If the destination queue has a size limit, the bot will pull people until the limit is met. | 
+| Pull from Text             | `!next {queue name} {OPTIONAL: amount}`                                |           |  Remove people from the text queue and displays their name. |
+| Join                       | `!join {queue name} @{user 1} @{user 2}... {OPTIONAL: custom message}` |           | Add one or more people to a queue. |
+| Kick                       | `!kick {OPTIONAL: queue name} @{user 1} @{user 2} ...`                 |           | Kick one or more people. If a queue name is given, it will kick from a single queue. Otherwise, it will kick people from every queue. |
+| Clear                      | `!clear {queue name}`                                                  |           | Clear a queue. |
+| Shuffle                    | `!shuffle {queue name}`                                                |           | Shuffle a queue. |
+| Set Queue Size Limit       | `!limit {queue name} {#}`                                              |           | Set queue size limit. |
+| Mention Queue              | `!mention {queue name} {OPTIONAL: message}`                            |           | Mention everyone in a queue. You can add a message too. |
+| Blacklist                  | `!blacklist {queue name} @{user 1} @{user 2}...`                       |           | Blacklist people from a queue. Use again to remove from blacklist. |
+| List Blacklist             | `!blacklist {queue name}`                                              |           | Display the blacklist for a queue. |
+|                            |                                                                        |           ||
+|**Channel Settings**        |                                                                        |           ||
+| Autofill                   | `!autofill {queue name} {on | off}`                                    | `on`      | Turn autofill on or off. |
+| Pull Amount                | `!pullnum {queue name} {#}`                                            | `1`       | Set the default number of people to pull. |
+| Set Display Message Header | `!header {queue name} {message}`                                       |           | Set a header for display messaged. Leave `{header}` blank to remove. |
+|                            |                                                                        |           ||
+|**Server Settings**         |                                                                        |           ||
+| Set the Command Prefix     | `!prefix {new prefix}`                                                 | in config | Set the prefix for Queue Bot commands. |
+| Set the Color              | `!color {new color}`                                                   | in config | Set the color of bot messages. |
+| Set the Grace Period       | `!grace {# seconds}`                                                   | `0`       | Set how long a person can leave a queue before losing their spot. |
+| Set the Display Mode       | `!mode {#}`                                                            | `1`       | Set how the display messages are updated. Use `!mode` to see the different update modes. |
+| Command Cleanup            | `!cleanup {on | off}`                                                  | `on`      | Toggle the cleanup of user-sent Queue Bot commands. |
 
 ### Commands for Everyone
 
-| Function | Command | Description |
-|-|-|-|
-| Join | `!join {queue name} {OPTIONAL: custom message}` | Join a queue a queue. |
-| Help | `!help` | Get a help message. |
-| My Queues | `!myqueues` | Display a member's position in of the each queue they have joined. |
-
+| Function  | Command                                         | Description |
+|-          |-                                                |-|
+| Join      | `!join {queue name} {OPTIONAL: custom message}` | Join a queue a queue. |
+| Help      | `!help`                                         | Get a help message. |
+| My Queues | `!myqueues`                                     | Display a member's position in of the each queue they have joined. |
 
 ![Example of `!s`](docs/example.gif)  
 
@@ -97,7 +96,7 @@ If a command that expects a channel name is not given one, the current text chan
 | databaseHost           | Database host url                                                                                                                 | `localhost` |
 | databaseType           | Type of database for queue storage.                                                                                               | `postgresql` |
 | gracePeriod            | Number of seconds a user can leave the queue without being removed                                                                | `0` |
-| permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         | `\\bmod(erator)?s?\\b\|\\badmin(istrator)?s?\\b` |
+| permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default.                                         | `\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b` |
 | topGgToken             | Token for updating top.gg server count. This should be left blank.                                                                | |
 
 | Config Command Fields  | Description                                                                                                                       | Default |
