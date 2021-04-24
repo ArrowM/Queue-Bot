@@ -74,6 +74,8 @@ export class QueueMemberTable {
       return storedMembers;
    }
 
+   private static unstoredMembersCache = new Map<string, string>();
+
    /**
     * @param queueChannelId
     * @param memberIdsToAdd
@@ -90,8 +92,6 @@ export class QueueMemberTable {
          this.unstoredMembersCache.delete(memberId);
       }
    }
-
-   private static unstoredMembersCache = new Map<string, string>();
 
    /**
     * @param queueChannelId
