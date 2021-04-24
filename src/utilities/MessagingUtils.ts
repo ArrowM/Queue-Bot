@@ -126,14 +126,13 @@ export class MessagingUtils {
       let position = 0;
       let description: string;
       if (queueChannel.type === "voice") {
-         description =
-            `Join the **${queueChannel.name}** voice channel to join this queue.` +
-            (await this.getGracePeriodString(queueGuild.grace_period));
+         description = `Join the **${queueChannel.name}** voice channel to join this queue.`;
       } else {
          description =
             `React with ${Base.getConfig().joinEmoji} or type \`${queueGuild.prefix}${Base.getCmdConfig().joinCmd} ` +
             `${queueChannel.name}\` to join or leave this queue.`;
       }
+      description += await this.getGracePeriodString(queueGuild.grace_period);
       if (storedQueueChannel.header) {
          description += `\n\n${storedQueueChannel.header}`;
       }

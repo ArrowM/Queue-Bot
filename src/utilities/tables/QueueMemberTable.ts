@@ -85,21 +85,36 @@ export class QueueMemberTable {
             personal_message: personalMessage,
             queue_channel_id: queueChannelId,
             queue_member_id: memberId,
+            created_at: this.unstoredMembersCache.get(memberId),
          });
+         this.unstoredMembersCache.delete(memberId);
       }
    }
+
+   private static unstoredMembersCache = new Map<string, string>();
 
    /**
     * @param queueChannelId
     * @param memberIdsToRemove
     */
-   public static async unstoreQueueMembers(queueChannelId: string, memberIdsToRemove?: string[]): Promise<void> {
+   public static async unstoreQueueMembers(queueChannelId: string, memberIdsToRemove?: string[], gracePeriod?: string): Promise<void> {
       // Retreive list of stored embeds for display channel
       if (memberIdsToRemove) {
+         if (gracePeriod) {
+            // Cache members
+            const queueMembers = await Base.getKnex()<QueueMember>("queue_members")
+               .where("queue_channel_id", queueChannelId)
+               .whereIn("queue_member_id", memberIdsToRemove);
+            for (const queueMember of queueMembers) {
+               this.unstoredMembersCache.set(queueMember.queue_member_id, queueMember.created_at);
+               // Schedule cleanup of cached member
+               setTimeout(() => this.unstoredMembersCache.delete(queueMember.queue_member_id), +gracePeriod * 1000);
+            }
+         }
+         // Unstore
          await Base.getKnex()<QueueMember>("queue_members")
             .where("queue_channel_id", queueChannelId)
             .whereIn("queue_member_id", memberIdsToRemove)
-            .first()
             .del();
       } else {
          await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannelId).first().del();

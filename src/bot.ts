@@ -1,16 +1,5 @@
 import DBL from "dblapi.js";
-import {
-   Guild,
-   GuildMember,
-   Message,
-   MessageOptions,
-   MessageReaction,
-   NewsChannel,
-   PartialUser,
-   TextChannel,
-   User,
-   VoiceChannel,
-} from "discord.js";
+import { Guild, Message, MessageOptions, MessageReaction, NewsChannel, PartialUser, TextChannel, User, VoiceChannel } from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import { ParsedArguments, QueueChannel, QueueMember } from "./utilities/Interfaces";
@@ -194,12 +183,11 @@ client.on("message", async (message) => {
                );
             }
          } else {
-            message.author
-               .send(
-                  `You don't have permission to use my commands in \`${message.guild.name}\`. ` +
-                     `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role.`
-               )
-               .catch(() => null);
+            const reply = await message.reply(
+               `You don't have permission to use my commands in \`${message.guild.name}\`. ` +
+               `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role.`
+            ).catch(() => null) as Message;
+            setTimeout(() => reply.delete().catch(() => null), 5000);
          }
       }
       // Commands open to everyone
@@ -315,23 +303,6 @@ client.on("channelDelete", async (channel) => {
    await DisplayChannelTable.getFromQueue(channel.id).del();
 });
 
-/**
- * Store members who leave queues, time stamp them
- * @param member
- * @param oldVoiceChannel Queue channel being left
- */
-const blockNextCache = new Set<string>();
-const returningMembersCache = new Map<string, { member: QueueMember; time: number }>();
-async function markLeavingMember(member: GuildMember, oldVoiceChannel: VoiceChannel): Promise<void> {
-   // Fetch Member
-   const storedQueueMember = await QueueMemberTable.get(oldVoiceChannel.id, member.id);
-   await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id]);
-   returningMembersCache.set(oldVoiceChannel.id + "." + member.id, {
-      member: storedQueueMember,
-      time: Date.now(),
-   });
-}
-
 // Monitor for users joining voice channels
 client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    const oldVoiceChannel = oldVoiceState?.channel;
@@ -379,16 +350,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
             await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
          }
       }
-      const returningMember = returningMembersCache.get(newVoiceChannel.id + "." + member.id);
-      returningMembersCache.delete(newVoiceChannel.id + "." + member.id);
-
-      const withinGracePeriod = returningMember ? Date.now() - returningMember.time < +queueGuild.grace_period * 1000 : false;
-
-      if (withinGracePeriod && returningMember.member) {
-         await knex<QueueMember>("queue_members").insert(returningMember.member);
-      } else {
-         await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
-      }
+      await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
       SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
    }
    if (storedOldQueueChannel) {
@@ -399,13 +361,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
          SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
          await setTimeout(async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel), 1000);
       } else {
-         if (blockNextCache.delete(member.id)) {
-            // Getting pulled using bot, do not cache
-            await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id]);
-         } else {
-            // Otherwise, cache it
-            await markLeavingMember(member, oldVoiceChannel);
-         }
+         await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id], queueGuild.grace_period);
       }
       SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
    }
@@ -443,8 +399,6 @@ export async function fillTargetChannel(
          const queueMembers = storedQueueMembers.map((member) => member.member);
          if (queueMembers.length > 0) {
             queueMembers.forEach((member) => {
-               // Block recentMember caching when the bot is used to pull someone
-               blockNextCache.add(member.id);
                SchedulingUtils.scheduleMoveMember(member.voice, dstChannel);
             });
          }
@@ -486,12 +440,12 @@ async function reactionToggle(reaction: MessageReaction, user: User | PartialUse
    ).find((channel) => channel.embed_ids.includes(reaction.message.id));
    if (!storedDisplayChannel) return;
    const storedQueueMember = await QueueMemberTable.get(storedDisplayChannel.queue_channel_id, user.id);
+   const queueGuild = await QueueGuildTable.get(reaction.message.guild.id);
    if (storedQueueMember) {
-      await QueueMemberTable.unstoreQueueMembers(storedDisplayChannel.queue_channel_id, [user.id]);
+      await QueueMemberTable.unstoreQueueMembers(storedDisplayChannel.queue_channel_id, [user.id], queueGuild.grace_period);
    } else if (!(await MemberPermsTable.isBlacklisted(storedDisplayChannel.queue_channel_id, user.id))) {
       await QueueMemberTable.storeQueueMembers(storedDisplayChannel.queue_channel_id, [user.id]);
    }
-   const queueGuild = await QueueGuildTable.get(reaction.message.guild.id);
    const queueChannel = reaction.message.guild.channels.cache.get(storedDisplayChannel.queue_channel_id) as
       | TextChannel
       | NewsChannel

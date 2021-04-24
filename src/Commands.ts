@@ -563,7 +563,7 @@ export class Commands {
       let response = "";
       if (memberIdsToRemove.length > 0) {
          // Remove from queue
-         await QueueMemberTable.unstoreQueueMembers(queueChannel.id, memberIdsToRemove);
+         await QueueMemberTable.unstoreQueueMembers(queueChannel.id, memberIdsToRemove, parsed.queueGuild.grace_period);
          response += "Removed " + memberIdsToRemove.map((id) => `<@!${id}>`).join(", ") + ` from the \`${queueChannel.name}\` queue.\n`;
       }
       if (memberIdsToAdd.length > 0) {
