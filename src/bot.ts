@@ -396,7 +396,7 @@ export async function fillTargetChannel(
          if (dstChannel.userLimit) {
             storedQueueMembers = storedQueueMembers.slice(0, dstChannel.userLimit - dstChannel.members.filter(member => !member.user.bot).size);
          }
-         const queueMembers = storedQueueMembers.map((member) => member.member);
+         const queueMembers = storedQueueMembers.map((member) => member.member).filter((member) => member);
          if (queueMembers.length > 0) {
             queueMembers.forEach((member) => {
                SchedulingUtils.scheduleMoveMember(member.voice, dstChannel);
