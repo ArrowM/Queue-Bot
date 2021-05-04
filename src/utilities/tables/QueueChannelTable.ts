@@ -113,9 +113,7 @@ export class QueueChannelTable {
          await QueueMemberTable.unstoreQueueMembers(channelIdToRemove);
          await DisplayChannelTable.unstoreDisplayChannel(channelIdToRemove);
       } else {
-         const guild = (await Base.getClient()
-            .guilds.fetch(guildId)
-            .catch(() => null)) as Guild;
+         const guild = (await Base.getClient().guilds.fetch(guildId).catch(() => null)) as Guild;
          if (guild) {
             const storedQueueChannels = await this.getFromGuild(guild);
             for (const storedQueueChannel of storedQueueChannels) {

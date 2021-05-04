@@ -91,7 +91,7 @@ export class MessagingUtils {
                (graceMinutes > 0 && graceSeconds > 0 ? " and " : "") +
                (graceSeconds > 0 ? graceSeconds + " second" : "") +
                (graceSeconds > 1 ? "s" : "");
-            result = ` If you leave, you have ${timeString} to rejoin to reclaim your spot.`;
+            result = ` If you leave, you have **${timeString}** to rejoin to reclaim your spot.`;
          }
          this.gracePeriodCache.set(gracePeriod, result);
       }

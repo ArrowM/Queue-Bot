@@ -33,9 +33,9 @@ client.on("uncaughtException", (err, origin) => {
       })}`
    );
 });
-//client.on("rateLimit", (rateLimitInfo) => {
-//   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
-//});
+client.on("rateLimit", (rateLimitInfo) => {
+   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
+});
 
 // Top GG integration
 if (config.topGgToken) {
@@ -301,6 +301,15 @@ client.on("channelDelete", async (channel) => {
       await QueueChannelTable.unstoreQueueChannel(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
    }
    await DisplayChannelTable.getFromQueue(channel.id).del();
+});
+
+client.on("channelUpdate", async (_oldChannel, newCh) => {
+   const newChannel = newCh as VoiceChannel | TextChannel | NewsChannel;
+   const changedChannel = await QueueChannelTable.get(newCh.id);
+   if (changedChannel) {
+      const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, newChannel);
+   }
 });
 
 // Monitor for users joining voice channels
