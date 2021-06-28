@@ -1,5 +1,6 @@
 {
    "token": "YOUR_TOKEN_HERE",
+   "clientId" "YOUR_CLIENT_ID",
    "topGgToken": "",
 
    "color": "#478E81",
