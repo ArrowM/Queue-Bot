@@ -16,8 +16,6 @@ interface PatchNote {
 }
 
 export class PatchingUtil {
-   private static alter = Base.getKnex().schema.alterTable;
-
    public static async run() {
       await this.tableBlackWhiteList();
       await this.tableQueueMembers();
@@ -68,7 +66,9 @@ export class PatchingUtil {
             const announcementChannel = (await Base.getClient()
                .channels.fetch(Base.getConfig().announcementChannelId)
                .catch(() => null)) as TextChannel;
-            await announcementChannel.send({ embeds: patchNote.embeds }).catch(() => null);
+            if (announcementChannel) {
+               await announcementChannel.send({ embeds: patchNote.embeds }).catch(() => null);
+            }
             patchNote.sent = sentNote = true;
          }
          if (sentNote) {
@@ -113,47 +113,50 @@ export class PatchingUtil {
       if (await Base.getKnex().schema.hasTable("queue_manager_roles")) {
          // RENAME
          await Base.getKnex().schema.renameTable("queue_manager_roles", "admin_permission");
-
-         await this.alter("admin_permission", (table) => {
+         await Base.getKnex().schema.raw("ALTER SEQUENCE queue_manager_roles_id_seq RENAME TO admin_permission_id_seq");
+         await delay(1000);
+         await Base.getKnex().schema.alterTable("admin_permission", (table) => {
             // NEW COLUMNS
             table.renameColumn("role_name", "role_member_id");
             table.boolean("is_role");
-         });
-         await this.alter("admin_permission", (table) => {
-            // MODIFY DATA TYPES
-            table.bigInteger("guild_id").alter();
-            table.bigInteger("role_member_id").alter();
          });
 
          // Update data for new columns
          const entries = await Base.getKnex()<AdminPermission>("admin_permission");
          for await (const entry of entries) {
-            const guild = await Base.getClient()
-               .guilds.fetch(entry.guild_id)
-               .catch(() => null as Guild);
-            if (!guild) continue;
+            try {
+               const guild = await Base.getClient()
+                  .guilds.fetch(entry.guild_id)
+                  .catch(() => null as Guild);
+               if (!guild) throw "GUILD NOT FOUND";
 
-            let newId: Snowflake;
-            let isRole = false;
-            if (entry.role_member_id.startsWith("<@")) {
-               // USER
-               const id = entry.role_member_id.replace(/\D/g, "") as Snowflake;
-               if (guild.members.cache.has(id)) newId = id;
-            } else {
-               // ROLE
-               newId = guild.roles.cache.find((role) => role.name === entry.role_member_id).id;
-               isRole = true;
-            }
-            if (newId) {
+               let newId: Snowflake;
+               let isRole = false;
+               if (entry.role_member_id.startsWith("<@")) {
+                  // USER
+                  const id = entry.role_member_id.replace(/\D/g, "") as Snowflake;
+                  const member = await guild.members.fetch(id).catch(() => null);
+                  if (member) newId = id;
+               } else {
+                  // ROLE
+                  await guild.roles.fetch();
+                  newId = guild.roles.cache.find((role) => role.name === entry.role_member_id)?.id;
+                  isRole = true;
+               }
+               if (!newId) throw "ID NOT FOUND";
                await Base.getKnex()<AdminPermission>("admin_permission")
                   .where("id", entry.id)
-                  .first()
                   .update("role_member_id", newId)
                   .update("is_role", isRole);
-            } else {
+            } catch (e) {
                await Base.getKnex()<AdminPermission>("admin_permission").where("id", entry.id).first().delete();
             }
          }
+         await Base.getKnex().schema.alterTable("admin_permission", (table) => {
+            // MODIFY DATA TYPES
+            table.bigInteger("guild_id").alter();
+            table.bigInteger("role_member_id").alter();
+         });
       }
    }
 
@@ -161,14 +164,15 @@ export class PatchingUtil {
       if (await Base.getKnex().schema.hasTable("member_perms")) {
          // RENAME
          await Base.getKnex().schema.renameTable("member_perms", "black_white_list");
-
-         await this.alter("black_white_list", (table) => {
+         await Base.getKnex().schema.raw("ALTER SEQUENCE member_perms_id_seq RENAME TO black_white_list_id_seq");
+         await delay(1000);
+         await Base.getKnex().schema.alterTable("black_white_list", (table) => {
             // NEW COLUMNS
             table.renameColumn("perm", "type");
-            table.renameColumn("queue_member_id", "role_member_id");
+            table.renameColumn("member_id", "role_member_id");
             table.boolean("is_role");
          });
-         await this.alter("admin_permission", (table) => {
+         await Base.getKnex().schema.alterTable("black_white_list", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("queue_channel_id").alter();
             table.bigInteger("role_member_id").alter();
@@ -182,11 +186,11 @@ export class PatchingUtil {
    private static async tableDisplayChannels(): Promise<void> {
       // Migration of embed_id to embed_ids
       if (await Base.getKnex().schema.hasColumn("display_channels", "embed_id")) {
-         await this.alter("display_channels", (table) => {
+         await Base.getKnex().schema.alterTable("display_channels", (table) => {
             // NEW COLUMNS
             table.specificType("embed_ids", "text ARRAY");
          });
-         await this.alter("display_channels", (table) => {
+         await Base.getKnex().schema.alterTable("display_channels", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("queue_channel_id").alter();
             table.bigInteger("display_channel_id").alter();
@@ -202,7 +206,8 @@ export class PatchingUtil {
       }
       // Migration from embed_ids to message_id
       if (await Base.getKnex().schema.hasColumn("display_channels", "embed_ids")) {
-         await this.alter("display_channels", (table) => table.bigInteger("message_id"));
+         await Base.getKnex().schema.alterTable("display_channels", (table) => table.bigInteger("message_id"));
+         console.log("Display Channel updates");
          for await (const entry of await Base.getKnex()<DisplayChannel>("display_channels")) {
             const displayChannel = (await Base.getClient()
                .channels.fetch(entry.display_channel_id)
@@ -224,103 +229,121 @@ export class PatchingUtil {
                .shift()
                .edit({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
                .catch(() => null as Message);
-            await Base.getKnex()<DisplayChannel>("display_channels")
-               .where("queue_channel_id", entry.queue_channel_id)
-               .where("display_channel_id", entry.display_channel_id)
-               .update("message_id", response.id);
-            // Reset nickname
-            await displayChannel.guild.me.setNickname("Queue Bot").catch(() => null);
-            await delay(1100);
+            if (response) {
+               await Base.getKnex()<DisplayChannel>("display_channels")
+                  .where("id", entry.id)
+                  .update("message_id", response.id);
+            } else {
+               await Base.getKnex()<DisplayChannel>("display_channels")
+                  .where("id", entry.id)
+                  .delete();
+            }
+            await delay(50);
          }
-         await this.alter("display_channels", (table) => table.dropColumn("embed_ids"));
+         await Base.getKnex().schema.alterTable("display_channels", (table) => table.dropColumn("embed_ids"));
       }
    }
 
    private static async tableQueueChannels(): Promise<void> {
-      // Add max_members
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "max_members"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.text("max_members"));
-      }
-      // Add target_channel_id
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "target_channel_id"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.text("target_channel_id"));
-      }
-      // Add auto_fill
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "auto_fill"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.integer("auto_fill"));
-         await Base.getKnex()<QueueChannel>("queue_channels").update("auto_fill", 1);
-      }
-      // Add pull_num
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "pull_num"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.integer("pull_num"));
-         await Base.getKnex()<QueueChannel>("queue_channels").update("pull_num", 1);
-      }
-      // Add header
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "header"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.text("header"));
-      }
+      if (await Base.getKnex().schema.hasTable("queue_channels")) {
+         // Add max_members
+         if (!(await Base.getKnex().schema.hasColumn("queue_channels", "max_members"))) {
+            await Base.getKnex().schema.table("queue_channels", (table) => table.text("max_members"));
+         }
+         // Add target_channel_id
+         if (!(await Base.getKnex().schema.hasColumn("queue_channels", "target_channel_id"))) {
+            await Base.getKnex().schema.table("queue_channels", (table) => table.text("target_channel_id"));
+         }
+         // Add auto_fill
+         if (!(await Base.getKnex().schema.hasColumn("queue_channels", "auto_fill"))) {
+            await Base.getKnex().schema.table("queue_channels", (table) => table.integer("auto_fill"));
+            await Base.getKnex()<QueueChannel>("queue_channels").update("auto_fill", 1);
+         }
+         // Add pull_num
+         if (!(await Base.getKnex().schema.hasColumn("queue_channels", "pull_num"))) {
+            await Base.getKnex().schema.table("queue_channels", (table) => table.integer("pull_num"));
+            await Base.getKnex()<QueueChannel>("queue_channels").update("pull_num", 1);
+         }
+         // Add header
+         if (!(await Base.getKnex().schema.hasColumn("queue_channels", "header"))) {
+            await Base.getKnex().schema.table("queue_channels", (table) => table.text("header"));
+         }
 
-      const inspector = schemaInspector(Base.getKnex());
-      if ((await inspector.columnInfo("queue_channels", "queue_channel_id")).data_type === "GUILD_TEXT") {
-         await this.alter("queue_channels", (table) => {
-            // MODIFY DATA TYPES
-            table.bigInteger("guild_id").alter();
-            table.integer("max_members").alter();
-            table.bigInteger("target_channel_id").alter();
-         });
+         const inspector = schemaInspector(Base.getKnex());
+         if ((await inspector.columnInfo("queue_channels", "queue_channel_id")).data_type === "GUILD_TEXT") {
+            await Base.getKnex().schema.alterTable("queue_channels", (table) => {
+               // MODIFY DATA TYPES
+               table.bigInteger("guild_id").alter();
+               table.integer("max_members").alter();
+               table.bigInteger("target_channel_id").alter();
+            });
+         }
       }
    }
 
    private static async tableQueueGuilds(): Promise<void> {
-      // Migration of msg_on_update to msg_mode
-      if (await Base.getKnex().schema.hasColumn("queue_guilds", "msg_on_update")) {
-         await Base.getKnex().schema.table("queue_guilds", (table) => table.integer("msg_mode"));
-         (await Base.getKnex()<QueueGuild>("queue_guilds")).forEach(async (queueGuild) => {
-            await Base.getKnex()<QueueGuild>("queue_guilds")
-               .where("guild_id", queueGuild.guild_id)
-               .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
-         });
-         await Base.getKnex().schema.table("queue_guilds", (table) => table.dropColumn("msg_on_update"));
-      }
-      // Add cleanup_commands
-      if (!(await Base.getKnex().schema.hasColumn("queue_guilds", "cleanup_commands"))) {
-         await Base.getKnex().schema.table("queue_guilds", (table) => table.text("cleanup_commands"));
-         await Base.getKnex()<QueueGuild>("queue_guilds").update("cleanup_commands", "off");
-      }
-      // Move columns to channel table
-      if (await Base.getKnex().schema.hasColumn("queue_guilds", "color")) {
-         if (!(await Base.getKnex().schema.hasColumn("queue_channels", "color"))) {
-            await Base.getKnex().schema.table("queue_channels", (table) => table.text("color"));
+      if (await Base.getKnex().schema.hasTable("queue_guilds")) {
+         // Migration of msg_on_update to msg_mode
+         if (await Base.getKnex().schema.hasColumn("queue_guilds", "msg_on_update")) {
+            await Base.getKnex().schema.table("queue_guilds", (table) => table.integer("msg_mode"));
+            (await Base.getKnex()<QueueGuild>("queue_guilds")).forEach(async (queueGuild) => {
+               await Base.getKnex()<QueueGuild>("queue_guilds")
+                  .where("guild_id", queueGuild.guild_id)
+                  .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
+            });
+            await Base.getKnex().schema.table("queue_guilds", (table) => table.dropColumn("msg_on_update"));
          }
-         if (!(await Base.getKnex().schema.hasColumn("queue_channels", "grace_period"))) {
-            await Base.getKnex().schema.table("queue_channels", (table) => table.integer("grace_period"));
+         // Add cleanup_commands
+         if (!(await Base.getKnex().schema.hasColumn("queue_guilds", "cleanup_commands"))) {
+            await Base.getKnex().schema.table("queue_guilds", (table) => table.text("cleanup_commands"));
+            await Base.getKnex()<QueueGuild>("queue_guilds").update("cleanup_commands", "off");
          }
+         // Move columns to channel table
+         if (await Base.getKnex().schema.hasColumn("queue_guilds", "color")) {
+            if (!(await Base.getKnex().schema.hasColumn("queue_channels", "color"))) {
+               await Base.getKnex().schema.table("queue_channels", (table) => table.text("color"));
+            }
+            if (!(await Base.getKnex().schema.hasColumn("queue_channels", "grace_period"))) {
+               await Base.getKnex().schema.table("queue_channels", (table) => table.integer("grace_period"));
+            }
 
-         const entries = await Base.getKnex()<QueueGuild & { color: string; grace_period: number }>("queue_guilds");
-         for await (const entry of entries) {
-            await Base.getKnex()<QueueChannel>("queue_channels")
-               .where("guild_id", entry.guild_id)
-               .update("color", entry.color)
-               .update("grace_period", entry.grace_period);
-         }
+            const entries = await Base.getKnex()<QueueGuild & { color: string; grace_period: number }>("queue_guilds");
+            console.log("Migrate QueueGuilds to QueueChannels");
+            for await (const entry of entries) {
+               await Base.getKnex()<QueueChannel>("queue_channels")
+                  .where("guild_id", entry.guild_id)
+                  .update("color", entry.color)
+                  .update("grace_period", entry.grace_period);
 
-         await this.alter("queue_guilds", (table) => {
-            // DROP TABLES
-            table.dropColumn("grace_period");
-            table.dropColumn("color");
-            table.dropColumn("cleanup_commands");
-         });
+
+               const guild = await Base.getClient().guilds.fetch(entry.guild_id).catch(() => null as Guild);
+               if (guild) {
+                  // Reset nickname
+                  await guild.me.setNickname("Queue Bot").catch(() => null);
+               } else {
+                  await Base.getKnex()<QueueGuild>("queue_guilds").where("id", entry.id).first().delete();
+               }
+               await delay(50);
+            }
+
+            await Base.getKnex().schema.alterTable("queue_guilds", (table) => {
+               // DROP TABLES
+               table.dropColumn("grace_period");
+               table.dropColumn("color");
+               table.dropColumn("cleanup_commands");
+            });
+         }
       }
    }
 
    private static async tableQueueMembers(): Promise<void> {
       if (await Base.getKnex().schema.hasColumn("queue_members", "queue_channel_id")) {
-         await this.alter("queue_members", (table) => {
+         await Base.getKnex().schema.alterTable("queue_members", (table) => {
             // NEW COLUMNS
             table.renameColumn("queue_channel_id", "channel_id");
             table.renameColumn("queue_member_id", "member_id");
          });
-         await this.alter("queue_members", (table) => {
+         await Base.getKnex().schema.alterTable("queue_members", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("channel_id").alter();
             table.bigInteger("member_id").alter();
