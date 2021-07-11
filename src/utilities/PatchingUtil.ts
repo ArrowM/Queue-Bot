@@ -17,8 +17,8 @@ interface PatchNote {
 
 export class PatchingUtil {
    public static async run() {
-      await this.tableAdminPermission();
       await this.tableBlackWhiteList();
+      await this.tableAdminPermission();
       await this.tableDisplayChannels();
       await this.tableQueueChannels();
       await this.tableQueueGuilds();
