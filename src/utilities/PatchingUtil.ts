@@ -16,6 +16,8 @@ interface PatchNote {
 }
 
 export class PatchingUtil {
+   private static alter = Base.getKnex().schema.alterTable;
+
    public static async run() {
       await this.tableQueueMembers();
       await this.tableQueueChannels();
@@ -112,10 +114,12 @@ export class PatchingUtil {
          // RENAME
          await Base.getKnex().schema.renameTable("queue_manager_roles", "admin_permission");
 
-         await Base.getKnex().schema.alterTable("admin_permission", (table) => {
+         await this.alter("admin_permission", (table) => {
             // NEW COLUMNS
             table.renameColumn("role_name", "role_member_id");
             table.boolean("is_role");
+         });
+         await this.alter("admin_permission", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("guild_id").alter();
             table.bigInteger("role_member_id").alter();
@@ -158,11 +162,13 @@ export class PatchingUtil {
          // RENAME
          await Base.getKnex().schema.renameTable("member_perms", "black_white_list");
 
-         await Base.getKnex().schema.alterTable("black_white_list", (table) => {
+         await this.alter("black_white_list", (table) => {
             // NEW COLUMNS
             table.renameColumn("perm", "type");
-            table.renameColumn("role_member_id", "role_member_id");
+            table.renameColumn("queue_member_id", "role_member_id");
             table.boolean("is_role");
+         });
+         await this.alter("admin_permission", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("queue_channel_id").alter();
             table.bigInteger("role_member_id").alter();
@@ -176,9 +182,11 @@ export class PatchingUtil {
    private static async tableDisplayChannels(): Promise<void> {
       // Migration of embed_id to embed_ids
       if (await Base.getKnex().schema.hasColumn("display_channels", "embed_id")) {
-         await Base.getKnex().schema.alterTable("display_channels", (table) => {
+         await this.alter("display_channels", (table) => {
             // NEW COLUMNS
             table.specificType("embed_ids", "text ARRAY");
+         });
+         await this.alter("display_channels", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("queue_channel_id").alter();
             table.bigInteger("display_channel_id").alter();
@@ -194,7 +202,7 @@ export class PatchingUtil {
       }
       // Migration from embed_ids to message_id
       if (await Base.getKnex().schema.hasColumn("display_channels", "embed_ids")) {
-         await Base.getKnex().schema.alterTable("display_channels", (table) => table.bigInteger("message_id"));
+         await this.alter("display_channels", (table) => table.bigInteger("message_id"));
          for await (const entry of await Base.getKnex()<DisplayChannel>("display_channels")) {
             const displayChannel = (await Base.getClient()
                .channels.fetch(entry.display_channel_id)
@@ -224,7 +232,7 @@ export class PatchingUtil {
             await displayChannel.guild.me.setNickname("Queue Bot").catch(() => null);
             await delay(1100);
          }
-         await Base.getKnex().schema.alterTable("display_channels", (table) => table.dropColumn("embed_ids"));
+         await this.alter("display_channels", (table) => table.dropColumn("embed_ids"));
       }
    }
 
@@ -254,7 +262,7 @@ export class PatchingUtil {
 
       const inspector = schemaInspector(Base.getKnex());
       if ((await inspector.columnInfo("queue_channels", "queue_channel_id")).data_type === "GUILD_TEXT") {
-         await Base.getKnex().schema.alterTable("queue_channels", (table) => {
+         await this.alter("queue_channels", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("guild_id").alter();
             table.integer("max_members").alter();
@@ -296,7 +304,7 @@ export class PatchingUtil {
                .update("grace_period", entry.grace_period);
          }
 
-         await Base.getKnex().schema.alterTable("queue_guilds", (table) => {
+         await this.alter("queue_guilds", (table) => {
             // DROP TABLES
             table.dropColumn("grace_period");
             table.dropColumn("color");
@@ -307,9 +315,12 @@ export class PatchingUtil {
 
    private static async tableQueueMembers(): Promise<void> {
       if (await Base.getKnex().schema.hasColumn("queue_members", "queue_channel_id")) {
-         await Base.getKnex().schema.alterTable("queue_members", (table) => {
+         await this.alter("queue_members", (table) => {
+            // NEW COLUMNS
             table.renameColumn("queue_channel_id", "channel_id");
             table.renameColumn("queue_member_id", "member_id");
+         });
+         await this.alter("queue_members", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("channel_id").alter();
             table.bigInteger("member_id").alter();
