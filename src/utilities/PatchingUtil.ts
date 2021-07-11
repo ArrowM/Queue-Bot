@@ -48,6 +48,7 @@ export class PatchingUtil {
             } catch (e) {
                // Empty
             }
+            await delay(40);
          }
          let sentNote = false;
          const failedChannelIds: Snowflake[] = [];
@@ -61,7 +62,7 @@ export class PatchingUtil {
                   failedChannelIds.push(displayChannel.id);
                   console.error(e);
                }
-               await delay(50);
+               await delay(40);
             }
             const announcementChannel = (await Base.getClient()
                .channels.fetch(Base.getConfig().announcementChannelId)
@@ -123,6 +124,7 @@ export class PatchingUtil {
 
          // Update data for new columns
          const entries = await Base.getKnex()<AdminPermission>("admin_permission");
+         console.log("Admin Table updates");
          for await (const entry of entries) {
             try {
                const guild = await Base.getClient()
@@ -151,6 +153,7 @@ export class PatchingUtil {
             } catch (e) {
                await Base.getKnex()<AdminPermission>("admin_permission").where("id", entry.id).first().delete();
             }
+            await delay(40);
          }
          await Base.getKnex().schema.alterTable("admin_permission", (table) => {
             // MODIFY DATA TYPES
@@ -238,7 +241,7 @@ export class PatchingUtil {
                   .where("id", entry.id)
                   .delete();
             }
-            await delay(50);
+            await delay(40);
          }
          await Base.getKnex().schema.alterTable("display_channels", (table) => table.dropColumn("embed_ids"));
       }
@@ -323,7 +326,7 @@ export class PatchingUtil {
                } else {
                   await Base.getKnex()<QueueGuild>("queue_guilds").where("id", entry.id).first().delete();
                }
-               await delay(50);
+               await delay(40);
             }
 
             await Base.getKnex().schema.alterTable("queue_guilds", (table) => {
