@@ -16,6 +16,7 @@ interface PatchNote {
 }
 
 export class PatchingUtil {
+
    public static async run() {
       await this.tableBlackWhiteList();
       await this.tableQueueMembers();
@@ -24,6 +25,17 @@ export class PatchingUtil {
       await this.tableDisplayChannels();
       await this.tableQueueGuilds();
       await this.checkPatchNotes();
+      this.setNickNames();
+   }
+
+   private static async setNickNames() {
+      for await (const entry of await Base.getKnex()<QueueGuild>("queue_guilds")) {
+         const guild = await Base.getClient().guilds.fetch(entry.guild_id).catch(() => null as Guild);
+         if (!guild) continue;
+
+         await guild.me.setNickname("Queue Bot").catch(() => null);
+         await delay(1100);
+      }
    }
 
    private static async checkPatchNotes() {
@@ -224,6 +236,7 @@ export class PatchingUtil {
             const embeds: MessageEmbed[] = [];
             for await (const embedId of embedIds) {
                const message = await displayChannel.messages.fetch(embedId).catch(() => null);
+               await delay(40);
                if (!message) continue;
                messages.push(message);
                embeds.push(message.embeds[0]);
@@ -317,15 +330,6 @@ export class PatchingUtil {
                   .where("guild_id", entry.guild_id)
                   .update("color", entry.color)
                   .update("grace_period", entry.grace_period);
-
-
-               const guild = await Base.getClient().guilds.fetch(entry.guild_id).catch(() => null as Guild);
-               if (guild) {
-                  // Reset nickname
-                  await guild.me.setNickname("Queue Bot").catch(() => null);
-               } else {
-                  await Base.getKnex()<QueueGuild>("queue_guilds").where("id", entry.id).first().delete();
-               }
                await delay(40);
             }
 
