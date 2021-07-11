@@ -1,6 +1,8 @@
 import { QueueMember } from "../Interfaces";
 import { Base } from "../Base";
-import { GuildChannel } from "discord.js";
+import { Guild, GuildMember, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { BlackWhiteListTable } from "./BlackWhiteListTable";
+import { PriorityTable } from "./PriorityTable";
 
 export class QueueMemberTable {
    /**
@@ -14,115 +16,117 @@ export class QueueMemberTable {
                await Base.getKnex()
                   .schema.createTable("queue_members", (table) => {
                      table.increments("id").primary();
-                     table.text("queue_channel_id");
-                     table.text("queue_member_id");
+                     table.bigInteger("channel_id");
+                     table.bigInteger("member_id");
                      table.text("personal_message");
                      table.timestamp("created_at").defaultTo(Base.getKnex().fn.now());
+                     table.boolean("is_priority");
                   })
                   .catch((e) => console.error(e));
             }
          });
-
-      await this.updateTableStructure();
    }
 
    /**
-    * @param queueChannelId
-    * @param queueMemberId
+    * Cleanup deleted Display Channels
+    **/
+   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
+      const entries = await Base.getKnex()<QueueMember>("queue_members").where("channel_id", queueChannel.id);
+      for await (const entry of entries) {
+         const member = await guild.members.fetch(entry.member_id).catch(() => null as GuildMember);
+         if (!member) {
+            this.unstore(queueChannel.id, [entry.member_id]);
+         }
+      }
+   }
+
+   public static get(channelId: Snowflake, queueMemberId: Snowflake) {
+      return Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", queueMemberId).first();
+   }
+
+   public static getFromId(id: Snowflake) {
+      return Base.getKnex()<QueueMember>("queue_members").where("id", id).first();
+   }
+
+   public static getFromMember(queueMemberId: Snowflake) {
+      return Base.getKnex()<QueueMember>("queue_members").where("member_id", queueMemberId);
+   }
+
+   public static async setPriority(channelId: Snowflake, queueMemberId: Snowflake, isPriority: boolean): Promise<void> {
+      await Base.getKnex()<QueueMember>("queue_members")
+         .where("channel_id", channelId)
+         .where("member_id", queueMemberId)
+         .first()
+         .update("is_priority", isPriority);
+   }
+
+   /**
+    * UNORDERED. Fetch members for channel, filter out users who have left the guild.
     */
-   public static get(queueChannelId: string, queueMemberId: string) {
-      return Base.getKnex()<QueueMember>("queue_members")
-         .where("queue_channel_id", queueChannelId)
-         .where("queue_member_id", queueMemberId)
-         .first();
+   public static async getFromQueue(queueChannel: TextChannel | VoiceChannel): Promise<QueueMember[]> {
+      let query = Base.getKnex()<QueueMember>("queue_members").where("channel_id", queueChannel.id);
+
+      const storedMembers = await query;
+      for await (const storedMember of storedMembers) {
+         storedMember.member = await queueChannel.guild.members.fetch(storedMember.member_id).catch(() => null as GuildMember);
+      }
+      return storedMembers.filter((storedMember) => storedMember.member);
    }
 
    /**
-    * @param queueChannelId
-    * @param queueMemberIds
-    */
-   public static getMany(queueChannelId: string, queueMemberIds: string[]) {
-      return Base.getKnex()<QueueMember>("queue_members")
-         .where("queue_channel_id", queueChannelId)
-         .whereIn("queue_member_id", queueMemberIds);
-   }
-
-   /**
-    * @param queueMemberId
-    */
-   public static getFromMember(queueMemberId: string) {
-      return Base.getKnex()<QueueMember>("queue_members").where("queue_member_id", queueMemberId);
-   }
-
-   /**
-    * @param queueChannel
-    * @param order - optional
     * Fetch members for channel, filter out users who have left the guild.
     */
-   public static async getFromQueue(queueChannel: GuildChannel, order?: string) {
-      const storedMembers = order
-         ? await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id).orderBy(order)
-         : await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannel.id);
-      storedMembers.filter(async (storedMember) => {
-         try {
-            storedMember.member = await queueChannel.guild.members.fetch(storedMember.queue_member_id);
-            return true;
-         } catch (e) {
-            return false;
-         }
-      });
-      return storedMembers;
+   public static async getNext(queueChannel: TextChannel | VoiceChannel, amount?: number): Promise<QueueMember[]> {
+      let query = Base.getKnex()<QueueMember>("queue_members")
+         .where("channel_id", queueChannel.id)
+         .orderBy([{ column: "is_priority", order: "desc" }, "created_at"]);
+      if (amount) query = query.limit(amount);
+
+      const storedMembers = await query;
+      for await (const storedMember of storedMembers) {
+         storedMember.member = await queueChannel.guild.members.fetch(storedMember.member_id).catch(() => null as GuildMember);
+      }
+      return storedMembers.filter((storedMember) => storedMember.member);
    }
 
-   private static unstoredMembersCache = new Map<string, string>();
+   private static unstoredMembersCache = new Map<Snowflake, string>();
 
-   /**
-    * @param queueChannelId
-    * @param memberIdsToAdd
-    * @param personalMessage
-    */
-   public static async storeQueueMembers(queueChannelId: string, memberIdsToAdd: string[], personalMessage?: string): Promise<void> {
-      for (const memberId of memberIdsToAdd) {
+   public static async store(
+      queueChannel: VoiceChannel | TextChannel,
+      member: GuildMember,
+      customMessage?: string,
+      force?: boolean
+   ): Promise<boolean> {
+      if ((await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) && !force) {
+         return false;
+      } else {
+         const isPriority = await PriorityTable.isPriority(queueChannel.guild.id, member);
          await Base.getKnex()<QueueMember>("queue_members").insert({
-            personal_message: personalMessage,
-            queue_channel_id: queueChannelId,
-            queue_member_id: memberId,
-            created_at: this.unstoredMembersCache.get(memberId),
+            created_at: this.unstoredMembersCache.get(member.id),
+            is_priority: isPriority,
+            personal_message: customMessage,
+            channel_id: queueChannel.id,
+            member_id: member.id,
          });
-         this.unstoredMembersCache.delete(memberId);
+         this.unstoredMembersCache.delete(member.id);
+         return true;
       }
    }
 
-   /**
-    * @param queueChannelId
-    * @param memberIdsToRemove
-    */
-   public static async unstoreQueueMembers(queueChannelId: string, memberIdsToRemove?: string[], gracePeriod?: string): Promise<void> {
+   public static async unstore(channelId: Snowflake, memberIdsToRemove?: Snowflake[], gracePeriod?: number): Promise<void> {
       // Retreive list of stored embeds for display channel
+      let query = Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId);
       if (memberIdsToRemove) {
+         query = query.whereIn("member_id", memberIdsToRemove);
          if (gracePeriod) {
             // Cache members
-            const queueMembers = await Base.getKnex()<QueueMember>("queue_members")
-               .where("queue_channel_id", queueChannelId)
-               .whereIn("queue_member_id", memberIdsToRemove);
-            for (const queueMember of queueMembers) {
-               this.unstoredMembersCache.set(queueMember.queue_member_id, queueMember.created_at);
+            for (const queueMember of await query) {
+               this.unstoredMembersCache.set(queueMember.member_id, queueMember.created_at);
                // Schedule cleanup of cached member
-               setTimeout(() => this.unstoredMembersCache.delete(queueMember.queue_member_id), +gracePeriod * 1000);
+               setTimeout(() => this.unstoredMembersCache.delete(queueMember.member_id), gracePeriod * 1000);
             }
          }
-         // Unstore
-         await Base.getKnex()<QueueMember>("queue_members")
-            .where("queue_channel_id", queueChannelId)
-            .whereIn("queue_member_id", memberIdsToRemove)
-            .del();
-      } else {
-         await Base.getKnex()<QueueMember>("queue_members").where("queue_channel_id", queueChannelId).first().del();
       }
+      await query.delete();
    }
-
-   /**
-    * Modify the database structure for code patches
-    */
-   protected static updateTableStructure(): void {}
 }

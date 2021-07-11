@@ -1,6 +1,6 @@
 import { QueueGuild } from "../Interfaces";
 import { Base } from "../Base";
-import { Guild } from "discord.js";
+import { Guild, Snowflake } from "discord.js";
 import { QueueChannelTable } from "./QueueChannelTable";
 
 export class QueueGuildTable {
@@ -14,76 +14,51 @@ export class QueueGuildTable {
             if (!exists) {
                await Base.getKnex()
                   .schema.createTable("queue_guilds", (table) => {
-                     table.text("guild_id").primary();
-                     table.text("grace_period");
-                     table.text("prefix");
-                     table.text("color");
+                     table.bigInteger("guild_id").primary();
                      table.integer("msg_mode");
-                     table.text("cleanup_commands");
                   })
                   .catch((e) => console.error(e));
             }
          });
-      await this.updateTableStructure();
    }
 
    /**
-    * @param guildId
-    */
-   public static get(guildId: string) {
+    * Cleanup deleted Guilds
+    **/
+   public static async validateEntries() {
+      const entries = await Base.getKnex()<QueueGuild>("queue_guilds");
+      for await (const entry of entries) {
+         const guild = await Base.getClient()
+            .guilds.fetch(entry.guild_id)
+            .catch(() => null as Guild);
+         if (guild) {
+            QueueChannelTable.validateEntries(guild);
+         } else {
+            this.unstore(entry.guild_id);
+         }
+      }
+   }
+
+   public static get(guildId: Snowflake) {
       return Base.getKnex()<QueueGuild>("queue_guilds").where("guild_id", guildId).first();
    }
 
-   /**
-    *
-    */
    public static getAll() {
       return Base.getKnex()<QueueGuild>("queue_guilds");
    }
 
-   /**
-    * @param guild
-    */
-   public static async storeQueueGuild(guild: Guild): Promise<void> {
+   public static async updateMessageMode(guildId: Snowflake, mode: number) {
+      await this.get(guildId).update("msg_mode", mode);
+   }
+
+   public static async store(guild: Guild): Promise<void> {
       await Base.getKnex()<QueueGuild>("queue_guilds")
-         .insert({
-            color: "#51ff7e",
-            grace_period: "0",
-            guild_id: guild.id,
-            msg_mode: 1,
-            prefix: Base.getConfig().prefix,
-         })
+         .insert({ guild_id: guild.id, msg_mode: 1 })
          .catch(() => null);
-      guild.me.setNickname(`(${Base.getConfig().prefix}) Queue Bot`).catch(() => null);
    }
 
-   /**
-    * @param guild
-    */
-   public static async unstoreQueueGuild(guildId: string): Promise<void> {
-      await QueueChannelTable.unstoreQueueChannel(guildId);
-      await Base.getKnex()<QueueGuild>("queue_guilds").where("guild_id", guildId).del();
-   }
-
-   /**
-    * Modify the database structure for code patches
-    */
-   protected static async updateTableStructure(): Promise<void> {
-      // Migration of msg_on_update to msg_mode
-      if (await Base.getKnex().schema.hasColumn("queue_guilds", "msg_on_update")) {
-         console.log("Migrating message mode");
-         await Base.getKnex().schema.table("queue_guilds", (table) => table.integer("msg_mode"));
-         (await Base.getKnex()<QueueGuild>("queue_guilds")).forEach(async (queueGuild) => {
-            await Base.getKnex()<QueueGuild>("queue_guilds")
-               .where("guild_id", queueGuild.guild_id)
-               .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
-         });
-         await Base.getKnex().schema.table("queue_guilds", (table) => table.dropColumn("msg_on_update"));
-      }
-      // Add cleanup_commands
-      if (!(await Base.getKnex().schema.hasColumn("queue_guilds", "cleanup_commands"))) {
-         await Base.getKnex().schema.table("queue_guilds", (table) => table.text("cleanup_commands"));
-         await Base.getKnex()<QueueGuild>("queue_guilds").update("cleanup_commands", "off");
-      }
+   public static async unstore(guildId: Snowflake): Promise<void> {
+      await QueueChannelTable.unstore(guildId);
+      await Base.getKnex()<QueueGuild>("queue_guilds").where("guild_id", guildId).delete();
    }
 }

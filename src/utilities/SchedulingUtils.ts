@@ -1,4 +1,4 @@
-import { Message, MessageOptions, NewsChannel, TextChannel, VoiceChannel, VoiceState } from "discord.js";
+import { TextChannel, VoiceChannel, VoiceState } from "discord.js";
 import { QueueGuild } from "./Interfaces";
 import { MessagingUtils, QueueUpdateRequest } from "./MessagingUtils";
 
@@ -17,7 +17,6 @@ export class SchedulingUtils {
 
    private static moveMembersTimeStamps = new Map<string, number[]>(); // <guild id, timestamps>
    private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
-   private static pendingResponses: Map<TextChannel | NewsChannel, MessageOptions> = new Map();
 
    public static scheduleMoveMember(voice: VoiceState, channel: VoiceChannel) {
       let timestamps = this.moveMembersTimeStamps.get(channel.guild.id);
@@ -56,15 +55,6 @@ export class SchedulingUtils {
             this.pendingQueueUpdates.clear();
          }
       }, 1100);
-      // Send new sessages
-      setInterval(() => {
-         if (this.pendingResponses) {
-            for (const [channel, msg] of this.pendingResponses) {
-               channel.send(msg).catch(() => null);
-            }
-            this.pendingResponses.clear();
-         }
-      }, 1300);
    }
 
    /**
@@ -72,55 +62,12 @@ export class SchedulingUtils {
     * @param queueGuild
     * @param queueChannels
     */
-   public static scheduleDisplayUpdate(queueGuild: QueueGuild, queueChannel: VoiceChannel | TextChannel | NewsChannel): void {
+   public static scheduleDisplayUpdate(queueGuild: QueueGuild, queueChannel: VoiceChannel | TextChannel): void {
       if (queueChannel) {
          this.pendingQueueUpdates.set(queueChannel.id, {
             queueGuild: queueGuild,
             queueChannel: queueChannel,
          });
-      }
-   }
-
-   /**
-    * Schedule a message to be sent
-    * @param message
-    * @param messageToSend
-    */
-   public static scheduleResponseToMessage(response: MessageOptions | string, message: Message): void {
-      const channel = message.channel as TextChannel | NewsChannel;
-      if (!this.scheduleResponseToChannel(response, channel)) {
-         message.author.send(`I don't have permission to write messages and embeds in \`${channel.name}\``).catch(() => {
-            MessagingUtils.sendTempMessage(`There was an error DMing <@!${message.author.id}>.`, channel, 10);
-         });
-      }
-   }
-
-   /**
-    * Attempt to send a response to channel, return false if bot lacks permissiosn.
-    * @param response
-    * @param channel
-    */
-   public static scheduleResponseToChannel(response: MessageOptions | string, channel: TextChannel | NewsChannel): boolean {
-      if (channel.permissionsFor(channel.guild.me).has("SEND_MESSAGES") && channel.permissionsFor(channel.guild.me).has("EMBED_LINKS")) {
-         // Schedule to response to channel
-         let existingPendingResponse = this.pendingResponses.get(channel) || {};
-         if (typeof response === "string") {
-            if (existingPendingResponse.content) {
-               existingPendingResponse.content += "\n" + response;
-            } else {
-               existingPendingResponse.content = response;
-            }
-         } else {
-            if (existingPendingResponse.embed) {
-               channel.send(existingPendingResponse).catch(() => null);
-            }
-            existingPendingResponse = response;
-         }
-
-         this.pendingResponses.set(channel, existingPendingResponse);
-         return true;
-      } else {
-         return false;
       }
    }
 }

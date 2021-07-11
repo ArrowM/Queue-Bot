@@ -1,8 +1,7 @@
-import { Message, MessageOptions, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, Message, MessageEmbed, Snowflake, TextChannel, VoiceChannel } from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { MessagingUtils } from "../MessagingUtils";
-import { SchedulingUtils } from "../SchedulingUtils";
 
 export class DisplayChannelTable {
    /**
@@ -16,131 +15,81 @@ export class DisplayChannelTable {
                await Base.getKnex()
                   .schema.createTable("display_channels", (table) => {
                      table.increments("id").primary();
-                     table.text("queue_channel_id");
-                     table.text("display_channel_id");
-                     table.specificType("embed_ids", "text ARRAY");
+                     table.bigInteger("queue_channel_id");
+                     table.bigInteger("display_channel_id");
+                     table.bigInteger("message_id");
                   })
                   .catch((e) => console.error(e));
             }
          });
-      await this.updateTableStructure();
    }
 
    /**
-    * @param displayChannelId
-    */
-   public static get(displayChannelId: string) {
+    * Cleanup deleted Display Channels
+    **/
+   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
+      const entries = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
+      for await (const entry of entries) {
+         const displayChannel = (await guild.channels.fetch(entry.display_channel_id).catch(() => null)) as TextChannel;
+         if (!displayChannel) {
+            this.unstore(queueChannel.id, entry.display_channel_id);
+         }
+      }
+   }
+
+   public static get(displayChannelId: Snowflake) {
       return Base.getKnex()<DisplayChannel>("display_channels").where("display_channel_id", displayChannelId);
    }
 
-   /**
-    * @param queueChannelId
-    */
-   public static getFromQueue(queueChannelId: string) {
+   public static getFromQueue(queueChannelId: Snowflake) {
       return Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
    }
 
-   /**
-    * @param queueChannel
-    * @param displayChannel
-    * @param msgEmbed
-    */
-   public static async storeDisplayChannel(
-      queueChannel: VoiceChannel | TextChannel | NewsChannel,
-      displayChannel: TextChannel | NewsChannel,
-      embeds: MessageOptions[]
-   ): Promise<Message[]> {
-      const displayPermissions = displayChannel.permissionsFor(displayChannel.guild.me);
-      if (displayPermissions.has("SEND_MESSAGES") && displayPermissions.has("EMBED_LINKS")) {
-         const responses: Message[] = [];
-         for (const embed of embeds) {
-            const response = (await displayChannel.send(embed).catch(() => null)) as Message;
-            if (response) {
-               responses.push(response);
-               if (queueChannel.type === "text") {
-                  MessagingUtils.sendReaction(response, Base.getConfig().joinEmoji);
-               }
-            }
-         }
+   public static getFromMessage(messageId: Snowflake) {
+      return Base.getKnex()<DisplayChannel>("display_channels").where("message_id", messageId).first();
+   }
+
+   public static async store(queueChannel: VoiceChannel | TextChannel, displayChannel: TextChannel, embeds: MessageEmbed[]): Promise<void> {
+      const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
+      if (displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
+         const response = await displayChannel
+            .send({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
+            .catch(() => null as Message);
+         if (!response) return;
+
          await Base.getKnex()<DisplayChannel>("display_channels").insert({
             display_channel_id: displayChannel.id,
-            embed_ids: responses.map((response) => response.id),
+            message_id: response.id,
             queue_channel_id: queueChannel.id,
          });
-         return responses;
       }
    }
 
-   /**
-    * @param queueChannelId
-    * @param displayChannelIdToRemove
-    * @param deleteOldDisplayMsg
-    */
-   public static async unstoreDisplayChannel(
-      queueChannelId: string,
-      displayChannelIdToRemove?: string,
-      deleteOldDisplayMsg = true
-   ): Promise<void> {
-      let storedDisplayChannels: DisplayChannel[];
-
-      // Retreive list of stored embeds for display channel
-      if (displayChannelIdToRemove) {
-         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels")
-            .where("queue_channel_id", queueChannelId)
-            .where("display_channel_id", displayChannelIdToRemove);
-         await Base.getKnex()<DisplayChannel>("display_channels")
-            .where("queue_channel_id", queueChannelId)
-            .where("display_channel_id", displayChannelIdToRemove)
-            .del();
-      } else {
-         storedDisplayChannels = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
-         await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).del();
-      }
+   public static async unstore(queueChannelId: Snowflake, displayChannelId?: Snowflake, deleteOldDisplays = true): Promise<void> {
+      let query = Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
+      if (displayChannelId) query = query.where("display_channel_id", displayChannelId);
+      const storedDisplayChannels = await query;
+      await query.delete();
       if (!storedDisplayChannels) return;
 
-      // If found, delete them from discord
-      for (const storedDisplayChannel of storedDisplayChannels) {
-         try {
-            const displayChannel = (await Base.getClient().channels.fetch(storedDisplayChannel.display_channel_id)) as
-               | TextChannel
-               | NewsChannel;
-            for (let displayEmbed of storedDisplayChannel.embed_ids) {
-               const displayMessage = (await displayChannel.messages.fetch(displayEmbed, false).catch(() => null)) as Message;
-               if (!displayMessage) return;
-               if (deleteOldDisplayMsg) {
-                  await displayMessage.delete().catch(() => null);
-               } else {
-                  if (displayChannel.permissionsFor(displayChannel.guild.me).has("MANAGE_MESSAGES")) {
-                     setTimeout(() => displayMessage.reactions.removeAll().catch(() => null), 1000); // Timeout to avoid rate limit
-                  } else {
-                     SchedulingUtils.scheduleResponseToChannel(
-                        "I can clean up old queue reactions, but I need a new permission.\n" +
-                           "I can be given permission in `Server Settings` > `Roles` > `Queue Bot` > enable `Manage Messages`.",
-                        displayChannel
-                     );
-                  }
-               }
-            }
-         } catch (e) {
-            // EMPTY
-         }
-      }
-   }
+      for await (const storedDisplayChannel of storedDisplayChannels) {
+         const displayChannel = (await Base.getClient()
+            .channels.fetch(storedDisplayChannel.display_channel_id)
+            .catch(() => null)) as TextChannel;
+         if (!displayChannel) continue;
 
-   /**
-    * Modify the database structure for code patches
-    */
-   protected static async updateTableStructure(): Promise<void> {
-      // Migration of embed_id to embed_ids
-      if (await Base.getKnex().schema.hasColumn("display_channels", "embed_id")) {
-         await Base.getKnex().schema.table("display_channels", (table) => table.specificType("embed_ids", "text ARRAY"));
-         (await Base.getKnex()<DisplayChannel>("display_channels")).forEach(async (displayChannel) => {
-            await Base.getKnex()<DisplayChannel>("display_channels")
-               .where("queue_channel_id", displayChannel.queue_channel_id)
-               .where("display_channel_id", displayChannel.display_channel_id)
-               .update("embed_ids", [displayChannel["embed_id"]]);
-         });
-         await Base.getKnex().schema.table("display_channels", (table) => table.dropColumn("embed_id"));
+         const displayMessage = await displayChannel.messages
+            .fetch(storedDisplayChannel.message_id, { cache: false })
+            .catch(() => null as Message);
+         if (!displayMessage) continue;
+
+         if (deleteOldDisplays) {
+            // Delete
+            await displayMessage.delete().catch(() => null);
+         } else {
+            // Remove button
+            await displayMessage.edit({ embeds: displayMessage.embeds, components: [] }).catch(() => null);
+         }
       }
    }
 }

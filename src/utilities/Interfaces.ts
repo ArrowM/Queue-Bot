@@ -1,4 +1,4 @@
-import { GuildMember, Message } from "discord.js";
+import { GuildMember, HexColorString, Message, Snowflake } from "discord.js";
 
 export interface ParsedArguments {
    queueGuild: QueueGuild;
@@ -8,95 +8,77 @@ export interface ParsedArguments {
 }
 
 export interface QueueChannel {
-   id: number;
-   guild_id: string;
-   max_members: string;
-   queue_channel_id: string;
-   target_channel_id: string;
-   header: string;
+   id: Snowflake;
    auto_fill: number; // 0 off. 1 on.
+   color: HexColorString;
+   guild_id: Snowflake;
+   grace_period: number;
+   header: string;
+   max_members: number;
    pull_num: number;
+   queue_channel_id: Snowflake;
+   target_channel_id: Snowflake;
 }
 
 export interface DisplayChannel {
-   id: number;
-   display_channel_id: string;
-   embed_ids: string[];
-   queue_channel_id: string;
+   id: Snowflake;
+   display_channel_id: Snowflake;
+   message_id: Snowflake;
+   queue_channel_id: Snowflake;
 }
 
 export interface QueueGuild {
-   id: number;
-   color: string;
-   cleanup_commands: string;
-   grace_period: string;
-   guild_id: string;
+   id: Snowflake;
+   guild_id: Snowflake;
    msg_mode: number;
-   prefix: string;
+   prefix?: string;
 }
 
 export interface QueueMember {
-   id: number;
+   id: Snowflake;
    created_at: string; // timestamp
+   is_priority: boolean;
    personal_message: string;
-   queue_channel_id: string;
-   queue_member_id: string;
+   channel_id: Snowflake;
+   member_id: Snowflake;
    member?: GuildMember;
 }
 
-export interface MemberPerm {
-   id: number;
-   queue_channel_id: string;
-   member_id: string;
-   perm: number; // 0 - blacklisted, 1 - whitelisted
+export interface BlackWhiteListEntry {
+   id: Snowflake;
+   queue_channel_id: Snowflake;
+   role_member_id: Snowflake;
+   type: number; // 0 - blacklisted, 1 - whitelisted
+   is_role: boolean;
 }
 
-export interface QueueManagerRole {
-   id: number;
-   guild_id: string;
-   role_name: string;
+export interface AdminPermission {
+   id: Snowflake;
+   guild_id: Snowflake;
+   role_member_id: Snowflake;
+   is_role: boolean;
+}
+
+export interface PriorityEntry {
+   id: Snowflake;
+   guild_id: Snowflake;
+   role_member_id: Snowflake;
+   is_role: boolean;
 }
 
 export interface ConfigJson {
    token: string;
+   clientId: string;
    topGgToken: string;
 
-   color: string;
+   color: HexColorString;
    databaseType: string;
    databaseHost: string;
    databaseName: string;
    databaseUsername: string;
    databasePassword: string;
-   gracePeriod: string;
-   permissionsRegexp: string;
-   prefix: string;
-   joinEmoji: string;
-}
+   gracePeriod: number;
+   permissionRegexp: string;
 
-export interface CommandConfigJson {
-   autofillCmd: string;
-   blacklistCmd: string;
-   cleanupCmd: string;
-   clearCmd: string;
-   colorCmd: string;
-   displayCmd: string;
-   gracePeriodCmd: string;
-   headerCmd: string;
-   helpCmd: string;
-   joinCmd: string;
-   kickCmd: string;
-   limitCmd: string;
-   mentionCmd: string;
-   modeCmd: string;
-   myQueuesCmd: string;
-   nextCmd: string;
-   prefixCmd: string;
-   pullNumCmd: string;
-   queueCmd: string;
-   queueDeleteCmd: string;
-   roleAddCmd: string;
-   roleDeleteCmd: string;
-   shuffleCmd: string;
-   startCmd: string;
-   whitelistCmd: string;
+   announcementChannelId: Snowflake;
 }

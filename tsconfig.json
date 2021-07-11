@@ -1,11 +1,6 @@
 {
   "exclude": [
-    "node-modules",
-    "db-transfer-script",
-
-    //"src/tables/*",
-    //"src/bot.ts"
-    "src/bot-orig.ts"
+    "node_modules"
   ],
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */

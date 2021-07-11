@@ -1,9 +1,12 @@
-import { Guild, NewsChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, Snowflake, TextChannel, VoiceChannel } from "discord.js";
 import { QueueChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
 import { Knex } from "knex";
+import { Parsed } from "../ParsingUtils";
+import { Commands } from "../../Commands";
+import { BlackWhiteListTable } from "./BlackWhiteListTable";
 
 export class QueueChannelTable {
    /**
@@ -16,56 +19,80 @@ export class QueueChannelTable {
             if (!exists) {
                await Base.getKnex()
                   .schema.createTable("queue_channels", (table) => {
-                     table.text("queue_channel_id").primary();
-                     table.text("guild_id");
-                     table.text("max_members");
-                     table.text("target_channel_id");
-                     table.text("header");
+                     table.bigInteger("queue_channel_id").primary();
                      table.integer("auto_fill");
+                     table.text("color");
+                     table.integer("grace_period");
+                     table.bigInteger("guild_id");
+                     table.text("header");
+                     table.integer("max_members");
                      table.integer("pull_num");
+                     table.bigInteger("target_channel_id");
                   })
                   .catch((e) => console.error(e));
             }
          });
-      await this.updateTableStructure();
    }
 
    /**
-    * @param queueChannelId
-    */
-   public static get(queueChannelId: string) {
+    * Cleanup deleted QueueChannels
+    **/
+   public static async validateEntries(guild: Guild) {
+      const entries = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
+      for await (const entry of entries) {
+         const queueChannel = (await guild.channels.fetch(entry.queue_channel_id).catch(() => null)) as VoiceChannel | TextChannel;
+         if (queueChannel) {
+            BlackWhiteListTable.validateEntries(guild, queueChannel);
+            DisplayChannelTable.validateEntries(guild, queueChannel);
+            QueueMemberTable.validateEntries(guild, queueChannel);
+         } else {
+            this.unstore(guild.id, entry.queue_channel_id);
+         }
+      }
+   }
+
+   public static get(queueChannelId: Snowflake) {
       return Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannelId).first();
    }
 
-   /**
-    * @param targetChannelId
-    */
-   public static getFromTarget(targetChannelId: string) {
+   public static getFromGuild(guildId: Snowflake) {
+      return Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
+   }
+
+   public static getFromTarget(targetChannelId: Snowflake) {
       return Base.getKnex()<QueueChannel>("queue_channels").where("target_channel_id", targetChannelId);
    }
 
-   /**
-    * @param queueChannelId
-    * @param targetChannelId
-    */
-   public static updateTarget(queueChannelId: string, targetChannelId: string | Knex.Raw<any>) {
-      return this.get(queueChannelId).update("target_channel_id", targetChannelId);
+   public static async updateTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw<any>) {
+      await this.get(queueChannelId).update("target_channel_id", targetChannelId);
    }
 
-   /**
-    * @param guild
-    */
-   public static async getFromGuild(guild: Guild): Promise<(VoiceChannel | TextChannel | NewsChannel)[]> {
-      const queueChannelIdsToRemove: string[] = [];
+   public static async updateColor(queueChannelId: Snowflake, value: string) {
+      await this.get(queueChannelId).update("color", value);
+   }
+
+   public static async updateGraceperiod(queueChannelId: Snowflake, value: number) {
+      await this.get(queueChannelId).update("grace_period", value);
+   }
+
+   public static async updateAutopull(queueChannelId: Snowflake, value: number) {
+      await this.get(queueChannelId).update("auto_fill", value);
+   }
+
+   public static async updatePullnum(queueChannelId: Snowflake, value: number) {
+      await this.get(queueChannelId).update("pull_num", value);
+   }
+
+   public static async fetchFromGuild(guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
+      const queueChannelIdsToRemove: Snowflake[] = [];
       // Fetch stored channels
       const storedQueueChannels = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
-
-      const queueChannels: (VoiceChannel | TextChannel | NewsChannel)[] = [];
+      const queueChannels: (VoiceChannel | TextChannel)[] = [];
       // Check for deleted channels
       // Going backwards allows the removal of entries while visiting each one
       for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
          const queueChannelId = storedQueueChannels[i].queue_channel_id;
-         const queueChannel = guild.channels.cache.get(queueChannelId) as VoiceChannel | TextChannel | NewsChannel;
+         const queueChannel = (await guild.channels.fetch(queueChannelId).catch(() => null)) as VoiceChannel | TextChannel;
          if (queueChannel) {
             // Still exists, add to return list
             queueChannels.push(queueChannel);
@@ -75,81 +102,48 @@ export class QueueChannelTable {
          }
       }
       for (const queueChannelId of queueChannelIdsToRemove) {
-         await this.unstoreQueueChannel(guild.id, queueChannelId);
+         await this.unstore(guild.id, queueChannelId);
       }
       return queueChannels;
    }
 
-   /**
-    * @param channelToAdd
-    */
-   public static async storeQueueChannel(channelToAdd: VoiceChannel | TextChannel | NewsChannel, maxMembers?: number): Promise<void> {
+   public static async store(parsed: Parsed, channel: VoiceChannel | TextChannel, maxMembers?: number): Promise<void> {
       // Fetch old channels
       await Base.getKnex()<QueueChannel>("queue_channels")
          .insert({
             auto_fill: 1,
-            guild_id: channelToAdd.guild.id,
-            max_members: maxMembers?.toString(),
+            color: Base.getConfig().color,
+            grace_period: Base.getConfig().gracePeriod,
+            guild_id: channel.guild.id,
+            max_members: maxMembers,
             pull_num: 1,
-            queue_channel_id: channelToAdd.id,
+            queue_channel_id: channel.id,
             target_channel_id: null,
          })
          .catch(() => null);
-      if (channelToAdd.type === "voice") {
-         await QueueMemberTable.storeQueueMembers(
-            channelToAdd.id,
-            channelToAdd.members.filter((member) => !member.user.bot).map((member) => member.id)
-         );
-      }
-   }
-
-   /**
-    * @param guild
-    * @param channelIdToRemove
-    */
-   public static async unstoreQueueChannel(guildId: string, channelIdToRemove?: string): Promise<void> {
-      if (channelIdToRemove) {
-         await Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", channelIdToRemove).first().del();
-         await QueueMemberTable.unstoreQueueMembers(channelIdToRemove);
-         await DisplayChannelTable.unstoreDisplayChannel(channelIdToRemove);
-      } else {
-         const guild = (await Base.getClient().guilds.fetch(guildId).catch(() => null)) as Guild;
-         if (guild) {
-            const storedQueueChannels = await this.getFromGuild(guild);
-            for (const storedQueueChannel of storedQueueChannels) {
-               await QueueMemberTable.unstoreQueueMembers(storedQueueChannel.id);
-               await DisplayChannelTable.unstoreDisplayChannel(storedQueueChannel.id);
-            }
+      if (channel.type === "GUILD_VOICE") {
+         for await (const member of channel.members.filter((member) => !member.user.bot).array()) {
+            await QueueMemberTable.store(channel, member);
          }
-         await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId).del();
       }
+      await Commands.display(parsed, channel);
    }
 
-   /**
-    * Modify the database structure for code patches
-    */
-   protected static async updateTableStructure(): Promise<void> {
-      // Add max_members
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "max_members"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.text("max_members"));
+   public static async unstore(guildId: Snowflake, channelId?: Snowflake): Promise<void> {
+      let query = Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
+      const channelIds: Snowflake[] = [];
+      if (channelId) {
+         query = query.where("queue_channel_id", channelId);
+         channelIds.push(channelId);
+      } else {
+         channelIds.push(...(await query).map((entry) => entry.queue_channel_id));
       }
-      // Add target_channel_id
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "target_channel_id"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.text("target_channel_id"));
+
+      for await (const channelId of channelIds) {
+         await BlackWhiteListTable.unstore(2, channelId);
+         await DisplayChannelTable.unstore(channelId);
+         await QueueMemberTable.unstore(channelId);
       }
-      // Add auto_fill
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "auto_fill"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.integer("auto_fill"));
-         await Base.getKnex()<QueueChannel>("queue_channels").update("auto_fill", 1);
-      }
-      // Add pull_num
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "pull_num"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.integer("pull_num"));
-         await Base.getKnex()<QueueChannel>("queue_channels").update("pull_num", 1);
-      }
-      // Add header
-      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "header"))) {
-         await Base.getKnex().schema.table("queue_channels", (table) => table.text("header"));
-      }
+      await query.delete();
    }
 }

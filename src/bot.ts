@@ -1,26 +1,25 @@
 import DBL from "dblapi.js";
-import { Guild, Message, MessageOptions, MessageReaction, NewsChannel, PartialUser, TextChannel, User, VoiceChannel } from "discord.js";
+import { ButtonInteraction, Guild, Interaction, Snowflake, TextChannel, VoiceChannel } from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
-import { ParsedArguments, QueueChannel, QueueMember } from "./utilities/Interfaces";
+import { QueueChannel } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
-import { MessagingUtils } from "./utilities/MessagingUtils";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import util from "util";
-import { readFileSync, writeFileSync, exists } from "fs";
-import { MemberPermsTable } from "./utilities/tables/MemberPermsTable";
-import { QueueManagerRolesTable } from "./utilities/tables/QueueManagerRolesTable";
+import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
+import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
+import { Parsed } from "./utilities/ParsingUtils";
+import { PriorityTable } from "./utilities/tables/PriorityTable";
+import { PatchingUtil } from "./utilities/PatchingUtil";
 
 // Setup client
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
-SchedulingUtils.startScheduler();
 
 const config = Base.getConfig();
-const cmdConfig = Base.getCmdConfig();
 const client = Base.getClient();
 const knex = Base.getKnex();
 client.login(config.token);
@@ -43,243 +42,278 @@ if (config.topGgToken) {
    dbl.on("error", () => null);
 }
 
-/**
- * Determine whether user has permission to interact with bot
- * @param message Discord message object.
- */
-const regEx = RegExp(config.permissionsRegexp, "i");
-async function checkPermission(message: Message): Promise<boolean> {
-   try {
-      const channel = message.channel as TextChannel | NewsChannel;
-      const authorPerms = channel.permissionsFor(message.author);
-      if (authorPerms.has("ADMINISTRATOR")) return true;
-
-      const storedRoles = (await QueueManagerRolesTable.getAll(message.guild.id)).map((role) => role.role_name);
-      const storedIds = storedRoles.map((role) => role.replace(/[^0-9]/g, ""));
-      const authorRoles = message.member.roles.cache.map((role) => role.name);
-
-      // Check if user id is approved or user has approved role.
-      const hasPermission =
-         authorRoles.some((role) => regEx.test(role) || storedRoles?.includes(role)) || storedIds.includes(message.author.id);
-      return hasPermission;
-   } catch (e) {
-      return false;
-   }
-}
-
-const EVERYONE_COMMANDS = [cmdConfig.joinCmd, cmdConfig.helpCmd, cmdConfig.myQueuesCmd];
-client.on("message", async (message) => {
-   if (message.author.bot) return;
-   const guild = message.guild;
-   let queueGuild = await QueueGuildTable.get(guild.id);
-   if (!queueGuild) {
-      await QueueGuildTable.storeQueueGuild(message.guild);
-      queueGuild = await QueueGuildTable.get(guild.id);
-   }
-
-   const parsed: ParsedArguments = {
-      queueGuild: queueGuild,
-      message: message,
-      command: null,
-      arguments: null,
-   };
-   if (message.content.startsWith(queueGuild.prefix)) {
-      // Parse the message
-      // Note: prefix can contain spaces. Command can not contains spaces. parsedArgs can contain spaces.
-      parsed.command = message.content.substring(queueGuild.prefix.length).split(" ")[0];
-      parsed.arguments = message.content.substring(queueGuild.prefix.length + parsed.command.length + 1).trim();
-      const hasPermission = await checkPermission(message);
-
-      // Restricted commands
-      if (Object.values(cmdConfig).includes(parsed.command) && !EVERYONE_COMMANDS.includes(parsed.command)) {
-         if (queueGuild.cleanup_commands == "on") {
-            setTimeout(() => message.delete().catch(() => null), 3000);
-         }
-         if (hasPermission) {
-            /* eslint-disable prettier/prettier */
-            if (parsed.command === cmdConfig.startCmd) {
-               Commands.start(parsed);
-// Display
-            } else if (parsed.command === cmdConfig.displayCmd) {
-               Commands.displayQueue(parsed);
-// Set Queue
-            } else if (parsed.command === cmdConfig.queueCmd) {
-               Commands.setQueue(parsed);
-// Role Add
-            } else if (parsed.command === cmdConfig.roleAddCmd) {
-               Commands.roleAdd(parsed);
-// Role Delete
-            } else if (parsed.command === cmdConfig.roleDeleteCmd) {
-               Commands.roleDelete(parsed);
-// Queue Delete
-            } else if (parsed.command === cmdConfig.queueDeleteCmd) {
-               Commands.queueDelete(parsed);
-// Pop next user
-            } else if (parsed.command === cmdConfig.nextCmd) {
-               Commands.next(parsed);
-// Pop next user
-            } else if (parsed.command === cmdConfig.kickCmd) {
-               Commands.kickMember(parsed);
-// Clear queue
-            } else if (parsed.command === cmdConfig.clearCmd) {
-               Commands.clearQueue(parsed);
-// Shuffle queue
-            } else if (parsed.command === cmdConfig.shuffleCmd) {
-               Commands.shuffleQueue(parsed);
-// Limit queue size
-            } else if (parsed.command === cmdConfig.limitCmd) {
-               Commands.setSizeLimit(parsed);
-// Auto pull
-            } else if (parsed.command === cmdConfig.autofillCmd) {
-               Commands.setAutoFill(parsed);
-// Pull num
-            } else if (parsed.command === cmdConfig.pullNumCmd) {
-               Commands.setPullNum(parsed);
-// Grace period
-            } else if (parsed.command === cmdConfig.gracePeriodCmd) {
-               Commands.setServerSetting(
-                  parsed,
-                  +parsed.arguments >= 0 && +parsed.arguments <= 6000,
-                  "Grace period must be between `0` and `6000` seconds."
-               );
-// Header
-            } else if (parsed.command === cmdConfig.headerCmd) {
-               Commands.setHeader(parsed);
-// Mention
-            } else if (parsed.command === cmdConfig.mentionCmd) {
-               Commands.mention(parsed);
-//// Whitelist
-//            } else if (parsed.command === cmdConfig.whitelistCmd) {
-//               Commands.whitelist(parsed);
-// Blacklist
-            } else if (parsed.command === cmdConfig.blacklistCmd) {
-               Commands.blacklist(parsed);
-// Prefix
-            } else if (parsed.command === cmdConfig.prefixCmd) {
-               Commands.setServerSetting(parsed, true);
-               if (parsed.arguments) {
-                  guild.me.setNickname(`(${parsed.arguments}) Queue Bot`).catch(() => null);
-               }
-// Color
-            } else if (parsed.command === cmdConfig.colorCmd) {
-               Commands.setServerSetting(parsed, /^#?[0-9A-F]{6}$/i.test(parsed.arguments), "Use HEX color:", {
-                  color: queueGuild.color,
-                  title: "Hex color picker",
-                  url: "https://htmlcolorcodes.com/color-picker/",
-               });
-// Command Cleanup
-            } else if (parsed.command === cmdConfig.cleanupCmd) {
-               parsed.arguments = parsed.arguments.toLowerCase();
-               Commands.setServerSetting(parsed, ["on", "off"].includes(parsed.arguments));
-// Toggle new message on update
-            } else if (parsed.command === cmdConfig.modeCmd) {
-               Commands.setServerSetting(
-                  parsed,
-                  +parsed.arguments >= 1 && +parsed.arguments <= 3,
-                  "When the queue changes: \n" +
-                     "`1`: (default) Update old display message. \n" +
-                     "`2`: Send a new display message and delete the old one. \n" +
-                     "`3`: Send a new display message."
-               );
-            }
-         } else {
-            const reply = await message.reply(
-               `You don't have permission to use my commands in \`${message.guild.name}\`. ` +
-               `You must be assigned a \`queue mod\`, \`mod\`, or \`admin\` role.`
-            ).catch(() => null) as Message;
-            setTimeout(() => reply.delete().catch(() => null), 5000);
-         }
+client.on("interactionCreate", async (interaction: Interaction) => {
+   if (interaction.isButton()) {
+      switch (interaction?.customId) {
+         case "joinLeave":
+            joinLeaveButton(interaction);
+            break;
       }
-      // Commands open to everyone
-// Help
-      if (parsed.command == cmdConfig.helpCmd) {
-         Commands.help(parsed);
-// Join Text Queue
-      } else if (parsed.command == cmdConfig.joinCmd) {
-         Commands.joinTextChannel(parsed, hasPermission);
-// My Queues
-      } else if (parsed.command == cmdConfig.myQueuesCmd) {
-         Commands.myQueues(parsed);
+   } else if (interaction.isCommand()) {
+      const parsed = new Parsed(interaction);
+      await parsed.setup();
+      // -- EVERYONE --
+      switch (interaction.commandName) {
+         case "help":
+            switch (parsed.command.options.first()?.value) {
+               case undefined:
+                  Commands.help(parsed);
+                  break;
+               case "setup":
+                  Commands.helpSetup(parsed);
+                  break;
+               case "queues":
+                  Commands.helpQueue(parsed);
+                  break;
+               case "bot":
+                  Commands.helpBot(parsed);
+                  break;
+            }
+            break;
+         case "join":
+            Commands.join(parsed);
+            break;
+         case "myqueues":
+            Commands.myqueues(parsed);
+            break;
+      }
+      if (!parsed.hasPermission) {
+         parsed.command.reply({ content: "ERROR: Missing permission to use that command", ephemeral: true });
+         return;
+      }
+      // -- RESTRICTED --
+      switch (interaction.commandName) {
+         case "autopull":
+            switch (parsed.command.options.firstKey()) {
+               case "get":
+                  Commands.autopullGet(parsed);
+                  break;
+               case "set":
+                  Commands.autopullSet(parsed);
+                  break;
+            }
+            break;
+         case "blacklist":
+            switch (parsed.command.options.firstKey()) {
+               case "add":
+                  Commands.blacklistAdd(parsed);
+                  break;
+               case "delete":
+                  Commands.blacklistDelete(parsed);
+                  break;
+               case "list":
+                  Commands.blacklistList(parsed);
+                  break;
+            }
+            break;
+         case "clear":
+            Commands.clear(parsed);
+            break;
+         case "color":
+            switch (parsed.command.options.firstKey()) {
+               case "get":
+                  Commands.colorGet(parsed);
+                  break;
+               case "set":
+                  Commands.colorSet(parsed);
+                  break;
+            }
+            break;
+         case "display":
+            Commands.display(parsed);
+            break;
+         case "enqueue":
+            Commands.enqueue(parsed);
+            break;
+         case "graceperiod":
+            switch (parsed.command.options.firstKey()) {
+               case "get":
+                  Commands.graceperiodGet(parsed);
+                  break;
+               case "set":
+                  Commands.graceperiodSet(parsed);
+                  break;
+            }
+            break;
+         case "header":
+            switch (parsed.command.options.firstKey()) {
+               case "get":
+                  Commands.headerGet(parsed);
+                  break;
+               case "set":
+                  Commands.headerSet(parsed);
+                  break;
+            }
+            break;
+         case "kick":
+            Commands.kick(parsed);
+            break;
+         case "kickall":
+            Commands.kickAll(parsed);
+            break;
+         case "leave":
+            Commands.leave(parsed);
+            break;
+         case "mention":
+            Commands.mention(parsed);
+            break;
+         case "mode":
+            switch (parsed.command.options.firstKey()) {
+               case "get":
+                  Commands.modeGet(parsed);
+                  break;
+               case "set":
+                  Commands.modeSet(parsed);
+                  break;
+            }
+            break;
+         case "next":
+            Commands.next(parsed);
+            break;
+         case "permission":
+            switch (parsed.command.options.firstKey()) {
+               case "add":
+                  Commands.permissionAdd(parsed);
+                  break;
+               case "delete":
+                  Commands.permissionDelete(parsed);
+                  break;
+               case "list":
+                  Commands.permissionList(parsed);
+                  break;
+            }
+            break;
+         case "priority":
+            switch (parsed.command.options.firstKey()) {
+               case "add":
+                  Commands.priorityAdd(parsed);
+                  break;
+               case "delete":
+                  Commands.priorityDelete(parsed);
+                  break;
+               case "list":
+                  Commands.priorityList(parsed);
+                  break;
+            }
+            break;
+         case "pullnum":
+            switch (parsed.command.options.firstKey()) {
+               case "get":
+                  Commands.pullnumGet(parsed);
+                  break;
+               case "set":
+                  Commands.pullnumSet(parsed);
+                  break;
+            }
+            break;
+         case "queues":
+            switch (parsed.command.options.firstKey()) {
+               case "add":
+                  Commands.queuesAdd(parsed);
+                  break;
+               case "delete":
+                  Commands.queuesDelete(parsed);
+                  break;
+               case "list":
+                  Commands.queuesList(parsed);
+                  break;
+            }
+            break;
+         case "shuffle":
+            Commands.shuffle(parsed);
+            break;
+         case "size":
+            switch (parsed.command.options.firstKey()) {
+               case "get":
+                  Commands.sizeGet(parsed);
+                  break;
+               case "set":
+                  Commands.sizeSet(parsed);
+                  break;
+            }
+            break;
+         case "start":
+            Commands.start(parsed);
+            break;
+      }
+   }
+});
+
+const prefixCache = new Map<Snowflake, string>();
+let hasPrefix: boolean;
+client.on("messageCreate", async (message) => {
+   if (hasPrefix === undefined) {
+      hasPrefix = await Base.getKnex().schema.hasColumn("queue_guilds", "prefix");
+   } else if (hasPrefix === false) {
+      return;
+   } else {
+      let prefix = prefixCache.get(message.guild.id);
+      if (prefix === undefined) {
+         let prefix = (await QueueGuildTable.get(message.guild.id))?.prefix;
+         prefixCache.set(message.guild.id, prefix);
+      } else if (prefix === null) {
+         return;
+      } else if (message.content === prefix + "help") {
+         await message.reply(`I no longer respond to your old prefix (\`${prefix}\`). Try using the new slash commands! Like \`/help\`.`);
       }
    }
 });
 
 async function resumeAfterOffline(): Promise<void> {
+   // VALIDATE ENTRIES
+   await QueueGuildTable.validateEntries();
+   await AdminPermissionTable.validateEntries();
+   await PriorityTable.validateEntries();
+
+   // Update Queues
    const storedQueueGuilds = await QueueGuildTable.getAll();
-   for (const storedQueueGuild of storedQueueGuilds) {
-      try {
-         const guild: Guild = await client.guilds.fetch(storedQueueGuild.guild_id); // do not catch here
-         if (!guild) continue;
-         // Clean queue channels
-         const queueChannels = await QueueChannelTable.getFromGuild(guild);
-         for (const queueChannel of queueChannels) {
-            if (queueChannel.type !== "voice") continue;
-            let updateDisplay = false;
+   for await (const storedQueueGuild of storedQueueGuilds) {
+      const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null as Guild);
+      if (!guild) continue;
+      // Clean queue channels
+      const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
+      for await (const queueChannel of queueChannels) {
+         if (queueChannel.type !== "GUILD_VOICE") continue;
+         let updateDisplay = false;
 
-            // Fetch stored and live members
-            const storedQueueMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.queue_member_id);
-            const queueMemberIds = queueChannel.members.filter((member) => !Base.isMe(member)).keyArray();
+         // Fetch stored and live members
+         const storedQueueMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.member_id);
+         const queueMembers = queueChannel.members.filter((member) => !Base.isMe(member)).array();
 
-            // Update member lists
-            for (const storedQueueMemberId of storedQueueMemberIds) {
-               if (!queueMemberIds.includes(storedQueueMemberId)) {
-                  updateDisplay = true;
-                  await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).del();
-               }
-            }
-
-            for (const queueMemberId of queueMemberIds) {
-               if (!storedQueueMemberIds.includes(queueMemberId)) {
-                  updateDisplay = true;
-                  await knex<QueueMember>("queue_members").insert({
-                     queue_channel_id: queueChannel.id,
-                     queue_member_id: queueMemberId,
-                  });
-               }
-            }
-            if (updateDisplay) {
-               // Update displays
-               SchedulingUtils.scheduleDisplayUpdate(storedQueueGuild, queueChannel);
+         // Update member lists
+         for await (const storedQueueMemberId of storedQueueMemberIds) {
+            if (!queueMembers.some((queueMember) => queueMember.id === storedQueueMemberId)) {
+               updateDisplay = true;
+               await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).delete();
             }
          }
-      } catch (e) {
-         if (e.code == 50001 || e.httpStatus == 403) {
-            await QueueGuildTable.unstoreQueueGuild(storedQueueGuild.guild_id);
-         } else {
-            console.error(e);
+         for await (const queueMember of queueMembers) {
+            if (!storedQueueMemberIds.includes(queueMember.id)) {
+               updateDisplay = true;
+               await QueueMemberTable.store(queueChannel, queueMember);
+            }
+         }
+         if (updateDisplay) {
+            SchedulingUtils.scheduleDisplayUpdate(storedQueueGuild, queueChannel);
          }
       }
    }
-   //// Cleanup displays db duplicates
-   //const storedDisplayChannels = await knex<DisplayChannel>("display_channels")
-   //   .orderBy("queue_channel_id")
-   //   .orderBy("id", "desc");
-   //const queueChannelIds = new Map<string, Set<string>>();
-   //for (const storedDisplayChannel of storedDisplayChannels) {
-   //   const displaySet = queueChannelIds.get(storedDisplayChannel.queue_channel_id);
-   //   if (displaySet) {
-   //      if (displaySet.has(storedDisplayChannel.display_channel_id)) {
-   //         await knex<DisplayChannel>("display_channels").where("id", storedDisplayChannel.id).del();
-   //      } else {
-   //         displaySet.add(storedDisplayChannel.display_channel_id);
-   //      }
-   //   } else {
-   //      queueChannelIds.set(storedDisplayChannel.queue_channel_id, new Set([storedDisplayChannel.display_channel_id]));
-   //   }
-   //}
 }
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once("ready", async () => {
+   console.time("READY. Bot started in");
+   await PatchingUtil.run();
    await QueueGuildTable.initTable();
    await QueueChannelTable.initTable();
    await DisplayChannelTable.initTable();
    await QueueMemberTable.initTable();
-   await MemberPermsTable.initTable();
-   await QueueManagerRolesTable.initTable();
+   await BlackWhiteListTable.initTable();
+   await AdminPermissionTable.initTable();
+   await PriorityTable.initTable();
+   await SchedulingUtils.startScheduler();
    await resumeAfterOffline();
-   checkPatchNotes();
-   console.log("Ready!");
+   console.timeEnd("READY. Bot started in");
 });
 
 client.on("shardResume", async () => {
@@ -288,23 +322,41 @@ client.on("shardResume", async () => {
 });
 
 client.on("guildCreate", async (guild) => {
-   await QueueGuildTable.storeQueueGuild(guild);
+   await QueueGuildTable.store(guild);
+});
+
+client.on("roleDelete", async (role) => {
+   await PriorityTable.unstore(role.guild.id, role.id);
+   const queueGuild = await QueueGuildTable.get(role.guild.id);
+   const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
+   for (const queueChannel of queueChannels) {
+      await SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   }
+});
+
+client.on("guildMemberRemove", async (guildMember) => {
+   const queueGuild = await QueueGuildTable.get(guildMember.guild.id);
+   const queueChannels = await QueueChannelTable.fetchFromGuild(guildMember.guild);
+   for (const queueChannel of queueChannels) {
+      await QueueMemberTable.unstore(queueChannel.id, [guildMember.id]);
+      await SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   }
 });
 
 client.on("guildDelete", async (guild) => {
-   await QueueGuildTable.unstoreQueueGuild(guild.id);
+   await QueueGuildTable.unstore(guild.id);
 });
 
 client.on("channelDelete", async (channel) => {
    const deletedQueueChannel = await QueueChannelTable.get(channel.id);
    if (deletedQueueChannel) {
-      await QueueChannelTable.unstoreQueueChannel(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
+      await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
    }
-   await DisplayChannelTable.getFromQueue(channel.id).del();
+   await DisplayChannelTable.getFromQueue(channel.id).delete();
 });
 
 client.on("channelUpdate", async (_oldChannel, newCh) => {
-   const newChannel = newCh as VoiceChannel | TextChannel | NewsChannel;
+   const newChannel = newCh as VoiceChannel | TextChannel;
    const changedChannel = await QueueChannelTable.get(newCh.id);
    if (changedChannel) {
       const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
@@ -314,42 +366,32 @@ client.on("channelUpdate", async (_oldChannel, newCh) => {
 
 // Monitor for users joining voice channels
 client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
-   const oldVoiceChannel = oldVoiceState?.channel;
-   const newVoiceChannel = newVoiceState?.channel;
+   const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel;
+   const newVoiceChannel = newVoiceState?.channel as VoiceChannel;
 
    const member = newVoiceState.member;
-   if (
-      oldVoiceChannel === newVoiceChannel ||
-      (newVoiceChannel && await MemberPermsTable.isBlacklisted(newVoiceChannel.id, member.id))
-   ) {
-      // Ignore mutes and deafens
-      return;
-   }
+   // Ignore mutes and deafens
+   if (oldVoiceChannel === newVoiceChannel) return;
 
    const queueGuild = await QueueGuildTable.get(member.guild.id);
-   const storedOldQueueChannel = oldVoiceChannel
-      ? await QueueChannelTable.get(oldVoiceChannel.id)
-      : undefined;
-   const storedNewQueueChannel = newVoiceChannel
-      ? await QueueChannelTable.get(newVoiceChannel.id)
-      : undefined;
+   const storedOldQueueChannel = oldVoiceChannel ? await QueueChannelTable.get(oldVoiceChannel.id) : undefined;
+   const storedNewQueueChannel = newVoiceChannel ? await QueueChannelTable.get(newVoiceChannel.id) : undefined;
 
-   if (
-      Base.isMe(member) &&
-      ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)
-   ) {
+   if (Base.isMe(member) && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
       // Ignore when the bot moves between queues or when it starts and stops
       return;
    }
    if (storedNewQueueChannel && !Base.isMe(member)) {
       // Joined queue channel
       if (storedNewQueueChannel.target_channel_id) {
-         const targetChannel = member.guild.channels.cache.get(storedNewQueueChannel.target_channel_id) as VoiceChannel;
+         const targetChannel = (await member.guild.channels
+            .fetch(storedNewQueueChannel.target_channel_id)
+            .catch(() => null)) as VoiceChannel;
          if (targetChannel) {
             if (
                storedNewQueueChannel.auto_fill &&
-               newVoiceChannel.members.filter(member => !member.user.bot).size === 1 &&
-               (!targetChannel.userLimit || targetChannel.members.filter(member => !member.user.bot).size < targetChannel.userLimit)
+               newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
+               (!targetChannel.userLimit || targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
             ) {
                SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
                return;
@@ -359,7 +401,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
             await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
          }
       }
-      await QueueMemberTable.storeQueueMembers(newVoiceChannel.id, [member.id]);
+      await QueueMemberTable.store(newVoiceChannel, member);
       SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
    }
    if (storedOldQueueChannel) {
@@ -370,7 +412,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
          SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
          await setTimeout(async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel), 1000);
       } else {
-         await QueueMemberTable.unstoreQueueMembers(oldVoiceChannel.id, [member.id], queueGuild.grace_period);
+         await QueueMemberTable.unstore(oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
       }
       SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
    }
@@ -380,7 +422,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       // Randomly pick a queue to pull from
       const storedQueueChannel = storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
       if (storedQueueChannel && storedQueueChannel.auto_fill) {
-         const queueChannel = member.guild.channels.cache.get(storedQueueChannel.queue_channel_id) as VoiceChannel;
+         const queueChannel = (await member.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as VoiceChannel;
          if (queueChannel) {
             await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
          }
@@ -388,22 +430,21 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    }
 });
 
-export async function fillTargetChannel(
-   storedSrcChannel: QueueChannel,
-   srcChannel: VoiceChannel,
-   dstChannel: VoiceChannel
-): Promise<void> {
-   const me = srcChannel.guild.me;
+export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChannel: VoiceChannel, dstChannel: VoiceChannel): Promise<void> {
+   const guild = srcChannel.guild;
    // Check to see if I have perms to drag other users into this channel.
-   if (dstChannel.permissionsFor(me).has("CONNECT")) {
+   if (dstChannel.permissionsFor(guild.me).has("CONNECT")) {
       // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit.
-      let storedQueueMembers = await QueueMemberTable.getFromQueue(srcChannel, "created_at");
+      let storedQueueMembers = await QueueMemberTable.getNext(srcChannel);
       if (storedQueueMembers.length > 0) {
          if (!storedSrcChannel.auto_fill) {
             storedQueueMembers = storedQueueMembers.slice(0, storedSrcChannel.pull_num);
          }
          if (dstChannel.userLimit) {
-            storedQueueMembers = storedQueueMembers.slice(0, dstChannel.userLimit - dstChannel.members.filter(member => !member.user.bot).size);
+            storedQueueMembers = storedQueueMembers.slice(
+               0,
+               dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size
+            );
          }
          const queueMembers = storedQueueMembers.map((member) => member.member).filter((member) => member);
          if (queueMembers.length > 0) {
@@ -416,92 +457,40 @@ export async function fillTargetChannel(
       // Request perms in display channel chat
       const storedDisplayChannel = await DisplayChannelTable.getFromQueue(srcChannel.id).first();
       if (storedDisplayChannel) {
-         const displayChannel = me.guild.channels.cache.get(storedDisplayChannel.display_channel_id) as
-            | TextChannel
-            | NewsChannel;
-         MessagingUtils.sendTempMessage(
-            `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`,
-            displayChannel,
-            20
-         );
+         const displayChannel = (await guild.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null)) as TextChannel;
+         displayChannel.send(`I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`);
       } else {
-         me.guild.owner.send(
-            `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
-         ).catch(() => null);
+         const owner = await guild.fetchOwner();
+         owner
+            .send(`I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`)
+            .catch(() => null);
       }
    }
 }
 
-client.on("messageReactionAdd", async (reaction, user) => {
-   await reactionToggle(reaction, user);
-});
-
-client.on("messageReactionRemove", async (reaction, user) => {
-   await reactionToggle(reaction, user);
-});
-
-async function reactionToggle(reaction: MessageReaction, user: User | PartialUser): Promise<void> {
-   if (reaction.partial) await reaction.fetch().catch(() => null);
-   reaction = reaction.message.reactions.cache.find((r) => r.emoji.name === config.joinEmoji); // Handles a library bug
-   if (!reaction || !reaction.me || user.bot) return;
-   const storedDisplayChannel = (
-      await DisplayChannelTable.get(reaction.message.channel.id)
-   ).find((channel) => channel.embed_ids.includes(reaction.message.id));
-   if (!storedDisplayChannel) return;
-   const storedQueueMember = await QueueMemberTable.get(storedDisplayChannel.queue_channel_id, user.id);
-   const queueGuild = await QueueGuildTable.get(reaction.message.guild.id);
-   if (storedQueueMember) {
-      await QueueMemberTable.unstoreQueueMembers(storedDisplayChannel.queue_channel_id, [user.id], queueGuild.grace_period);
-   } else if (!(await MemberPermsTable.isBlacklisted(storedDisplayChannel.queue_channel_id, user.id))) {
-      await QueueMemberTable.storeQueueMembers(storedDisplayChannel.queue_channel_id, [user.id]);
+async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
+   try {
+      const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
+      const queueChannel = (await interaction.guild.channels.fetch(storedDisplayChannel.queue_channel_id).catch(() => null)) as
+         | TextChannel
+         | VoiceChannel;
+      const member = await queueChannel.guild.members.fetch(interaction.user.id);
+      const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      if (storedQueueMember) {
+         await QueueMemberTable.unstore(queueChannel.id, [member.id], storedQueueChannel.grace_period);
+         interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true });
+      } else {
+         if (await QueueMemberTable.store(queueChannel, member)) {
+            interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true });
+         } else {
+            interaction.reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true });
+         }
+      }
+      const queueGuild = await QueueGuildTable.get(interaction.guild.id);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   } catch (e) {
+      console.error(e);
+      await interaction.reply("An error has occured").catch(() => null);
    }
-   const queueChannel = reaction.message.guild.channels.cache.get(storedDisplayChannel.queue_channel_id) as
-      | TextChannel
-      | NewsChannel
-      | VoiceChannel;
-   SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-}
-
-interface PatchNote {
-   sent: boolean;
-   date: Date;
-   message: MessageOptions;
-}
-
-async function checkPatchNotes() {
-   const displayChannels = new Map<TextChannel | NewsChannel, string>();
-   exists("../patch_notes/patch_notes.json", async (exists) => {
-      if (!exists) return;
-      // Collect notes
-      const patchNotes: PatchNote[] = JSON.parse(readFileSync("../patch_notes/patch_notes.json", "utf8"));
-      // Collect channel destinations and prefix
-      for (const guild of client.guilds.cache.array()) {
-         try {
-            const prefix = (await QueueGuildTable.get(guild.id))?.prefix;
-            const queueChannelId = (await QueueChannelTable.getFromGuild(guild))[0]?.id;
-            if (!queueChannelId) continue;
-            const displayChannelId = (await DisplayChannelTable.getFromQueue(queueChannelId).first())?.display_channel_id;
-            if (!displayChannelId) continue;
-            const displayChannel = guild.channels.cache.get(displayChannelId) as TextChannel | NewsChannel;
-            if (!displayChannel) continue;
-            displayChannels.set(displayChannel, prefix);
-         } catch (e) {
-            // Empty
-         }
-      }
-      // Send notes
-      for (const patchNote of patchNotes) {
-         if (!patchNote.sent) {
-            for (const [displayChannel, prefix] of displayChannels) {
-               const parsedPatchNote: PatchNote = JSON.parse(JSON.stringify(patchNote));
-               parsedPatchNote.message.embed.fields.forEach((field) => {
-                  field.value = (field.value as string).replaceAll(config.prefix, prefix);
-               });
-               displayChannel.send(parsedPatchNote.message).catch(() => null);
-            }
-            patchNote.sent = true;
-         }
-      }
-      writeFileSync("../patch_notes/patch_notes.json", JSON.stringify(patchNotes, null, 3));
-   });
 }
