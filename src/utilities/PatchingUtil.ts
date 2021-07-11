@@ -214,7 +214,7 @@ export class PatchingUtil {
             const embedIds = entry["embed_ids"] as Snowflake[];
             const messages: Message[] = [];
             const embeds: MessageEmbed[] = [];
-            for (const embedId of embedIds) {
+            for await (const embedId of embedIds) {
                const message = await displayChannel.messages.fetch(embedId).catch(() => null);
                if (!message) continue;
                messages.push(message);

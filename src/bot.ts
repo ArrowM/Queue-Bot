@@ -19,6 +19,7 @@ import { PatchingUtil } from "./utilities/PatchingUtil";
 // Setup client
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
 
+let isReady = false;
 const config = Base.getConfig();
 const client = Base.getClient();
 const knex = Base.getKnex();
@@ -43,6 +44,7 @@ if (config.topGgToken) {
 }
 
 client.on("interactionCreate", async (interaction: Interaction) => {
+   if (!isReady) return;
    if (interaction.isButton()) {
       switch (interaction?.customId) {
          case "joinLeave":
@@ -242,6 +244,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 const prefixCache = new Map<Snowflake, string>();
 let hasPrefix: boolean;
 client.on("messageCreate", async (message) => {
+   if (!isReady) return;
    if (hasPrefix === undefined) {
       hasPrefix = await Base.getKnex().schema.hasColumn("queue_guilds", "prefix");
    } else if (hasPrefix === false) {
@@ -314,6 +317,7 @@ client.once("ready", async () => {
    await SchedulingUtils.startScheduler();
    await resumeAfterOffline();
    console.timeEnd("READY. Bot started in");
+   isReady = true;
 });
 
 client.on("shardResume", async () => {
@@ -322,10 +326,12 @@ client.on("shardResume", async () => {
 });
 
 client.on("guildCreate", async (guild) => {
+   if (!isReady) return;
    await QueueGuildTable.store(guild);
 });
 
 client.on("roleDelete", async (role) => {
+   if (!isReady) return;
    await PriorityTable.unstore(role.guild.id, role.id);
    const queueGuild = await QueueGuildTable.get(role.guild.id);
    const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
@@ -335,6 +341,7 @@ client.on("roleDelete", async (role) => {
 });
 
 client.on("guildMemberRemove", async (guildMember) => {
+   if (!isReady) return;
    const queueGuild = await QueueGuildTable.get(guildMember.guild.id);
    const queueChannels = await QueueChannelTable.fetchFromGuild(guildMember.guild);
    for (const queueChannel of queueChannels) {
@@ -344,10 +351,12 @@ client.on("guildMemberRemove", async (guildMember) => {
 });
 
 client.on("guildDelete", async (guild) => {
+   if (!isReady) return;
    await QueueGuildTable.unstore(guild.id);
 });
 
 client.on("channelDelete", async (channel) => {
+   if (!isReady) return;
    const deletedQueueChannel = await QueueChannelTable.get(channel.id);
    if (deletedQueueChannel) {
       await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
@@ -356,6 +365,7 @@ client.on("channelDelete", async (channel) => {
 });
 
 client.on("channelUpdate", async (_oldChannel, newCh) => {
+   if (!isReady) return;
    const newChannel = newCh as VoiceChannel | TextChannel;
    const changedChannel = await QueueChannelTable.get(newCh.id);
    if (changedChannel) {
@@ -366,6 +376,7 @@ client.on("channelUpdate", async (_oldChannel, newCh) => {
 
 // Monitor for users joining voice channels
 client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
+   if (!isReady) return;
    const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel;
    const newVoiceChannel = newVoiceState?.channel as VoiceChannel;
 
