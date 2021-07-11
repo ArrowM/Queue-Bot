@@ -1,12 +1,16 @@
 # General
 /*
+!/.eslintignore
+!/.eslint.json
 !/.gitignore
 !/package.json
 !/tsconfig.json
-!/patch_notes
 !/update-node.sh
-!/src
+
 !/config
+!/patch_notes
+!/src
+
 
 # Documentation
 !/README.md
