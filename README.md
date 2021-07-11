@@ -74,7 +74,7 @@ If a command that expects a channel name is not given one, the current text chan
   
 | REQUIRED Config Fields | Description                                                                                                                       | Default |  
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|  
-| prefix                 | Command prefix                                                                                                                    | `!` |  
+| clientId               | Bot clientId. Found in the Discord Developer Portal for the bot you created in Step 1.                                            | |
 | token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. | |  
 | databasePassword       | Database login password                                                                                                           | |  
   
