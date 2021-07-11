@@ -19,9 +19,9 @@ export class PatchingUtil {
    private static alter = Base.getKnex().schema.alterTable;
 
    public static async run() {
+      await this.tableBlackWhiteList();
       await this.tableQueueMembers();
       await this.tableQueueChannels();
-      await this.tableBlackWhiteList();
       await this.tableAdminPermission();
       await this.tableDisplayChannels();
       await this.tableQueueGuilds();
