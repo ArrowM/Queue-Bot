@@ -227,7 +227,7 @@ export class PatchingUtil {
             }
             const response = await messages
                .shift()
-               .edit({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
+               ?.edit({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
                .catch(() => null as Message);
             if (response) {
                await Base.getKnex()<DisplayChannel>("display_channels")
