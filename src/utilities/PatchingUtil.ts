@@ -17,12 +17,12 @@ interface PatchNote {
 
 export class PatchingUtil {
    public static async run() {
+      await this.tableQueueMembers();
+      await this.tableQueueChannels();
       await this.tableBlackWhiteList();
       await this.tableAdminPermission();
       await this.tableDisplayChannels();
-      await this.tableQueueChannels();
       await this.tableQueueGuilds();
-      await this.tableQueueMembers();
       await this.checkPatchNotes();
    }
 
@@ -306,8 +306,7 @@ export class PatchingUtil {
    }
 
    private static async tableQueueMembers(): Promise<void> {
-      const inspector = schemaInspector(Base.getKnex());
-      if ((await inspector.columnInfo("queue_members", "channel_id")).data_type === "GUILD_TEXT") {
+      if (await Base.getKnex().schema.hasColumn("queue_members", "queue_channel_id")) {
          await Base.getKnex().schema.alterTable("queue_members", (table) => {
             table.renameColumn("queue_channel_id", "channel_id");
             table.renameColumn("queue_member_id", "member_id");
