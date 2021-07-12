@@ -80,7 +80,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             break;
       }
       if (!parsed.hasPermission) {
-         parsed.command.reply({ content: "ERROR: Missing permission to use that command", ephemeral: true });
+         await parsed.command.reply({ content: "ERROR: Missing permission to use that command", ephemeral: true }).catch(() => null);
          return;
       }
       // -- RESTRICTED --
@@ -244,20 +244,21 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 const prefixCache = new Map<Snowflake, string>();
 let hasPrefix: boolean;
 client.on("messageCreate", async (message) => {
-   if (!isReady) return;
+   const guildId = message?.guild?.id;
+   if (!isReady || !guildId) return;
    if (hasPrefix === undefined) {
       hasPrefix = await Base.getKnex().schema.hasColumn("queue_guilds", "prefix");
    } else if (hasPrefix === false) {
       return;
    } else {
-      let prefix = prefixCache.get(message.guild.id);
+      let prefix = prefixCache.get(guildId);
       if (prefix === undefined) {
-         let prefix = (await QueueGuildTable.get(message.guild.id))?.prefix;
-         prefixCache.set(message.guild.id, prefix);
+         let prefix = (await QueueGuildTable.get(guildId))?.prefix;
+         prefixCache.set(guildId, prefix);
       } else if (prefix === null) {
          return;
       } else if (message.content === prefix + "help") {
-         await message.reply(`I no longer respond to your old prefix (\`${prefix}\`). Try using the new slash commands! Like \`/help\`.`);
+         await message.reply(`I no longer respond to your old prefix (\`${prefix}\`). Try using the new slash commands! Like \`/help\`.`).catch(() => null);
       }
    }
 });
@@ -308,6 +309,7 @@ async function resumeAfterOffline(): Promise<void> {
          }
       }
    }
+   console.log("Done resuming...")
 }
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
@@ -324,11 +326,11 @@ client.once("ready", async () => {
    await SchedulingUtils.startScheduler();
    console.timeEnd("READY. Bot started in");
    isReady = true;
-   await resumeAfterOffline();
+   //await resumeAfterOffline();
 });
 
 client.on("shardResume", async () => {
-   await resumeAfterOffline();
+   //await resumeAfterOffline();
    console.log("Reconnected!");
 });
 
@@ -501,12 +503,12 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (storedQueueMember) {
          await QueueMemberTable.unstore(queueChannel.id, [member.id], storedQueueChannel.grace_period);
-         interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true });
+         await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } else {
          if (await QueueMemberTable.store(queueChannel, member)) {
-            interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true });
+            await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
          } else {
-            interaction.reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true });
+            await interaction.reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true }).catch(() => null);
          }
       }
       const queueGuild = await QueueGuildTable.get(interaction.guild.id);

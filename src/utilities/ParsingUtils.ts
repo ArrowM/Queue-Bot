@@ -38,7 +38,7 @@ export class ParsingUtils {
    /**
     * Get a queue using user argument
     * @param command
-    * @param type? Type of channels to fetch ('voice' or 'text')
+    * @param type? Type of channels to fetch ('GUILD_TEXT' or 'GUILD_VOICE')
     */
    public static async getStoredQueue(parsed: Parsed, type?: "GUILD_TEXT" | "GUILD_VOICE"): Promise<VoiceChannel | TextChannel> {
       const storedChannels = await QueueChannelTable.fetchFromGuild(parsed.command.guild);
@@ -48,19 +48,19 @@ export class ParsingUtils {
       let result = storedChannels.find((storedChannel) => storedChannel.id === channelParam.id);
       if (result) {
          if (type && type !== result.type) {
-            parsed.command.reply({
+            await parsed.command.reply({
                content: `**ERROR**: Expected a ${type} channel. \`${channelParam.name}\` is a ${channelParam.type} channel.`,
                ephemeral: true,
-            });
+            }).catch(() => null);
             result = null;
          }
       } else {
-         parsed.command.reply({
+         await parsed.command.reply({
             content:
                `**ERROR**: \`${channelParam.name}\` is not a queue. ` +
                (parsed.hasPermission ? `Use \`/queues add ${channelParam.name}\` to make it a queue.` : ""),
             ephemeral: true,
-         });
+         }).catch(() => null);
       }
       return result;
    }
@@ -98,7 +98,7 @@ export class Parsed {
    public getChannelParam(): TextChannel | VoiceChannel {
       const channel = this.findOption(this.command.options, "CHANNEL")?.channel as GuildChannel;
       if (channel?.type === "GUILD_CATEGORY") {
-         this.command.reply({ content: `**ERROR**: \`${channel.name}\` is an invalid channel`, ephemeral: true });
+         this.command.reply({ content: `**ERROR**: \`${channel.name}\` is an invalid channel`, ephemeral: true }).catch(() => null);
       } else {
          return channel as TextChannel | VoiceChannel;
       }

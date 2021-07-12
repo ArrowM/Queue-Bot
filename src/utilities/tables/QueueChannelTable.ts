@@ -69,6 +69,14 @@ export class QueueChannelTable {
       return Base.getKnex()<QueueChannel>("queue_channels").where("target_channel_id", targetChannelId);
    }
 
+   public static async updateMaxMembers(queueChannelId: Snowflake, max: number) {
+      await this.get(queueChannelId).update("max_members", max);
+   }
+
+   public static async updateHeader(queueChannelId: Snowflake, message: string) {
+      await this.get(queueChannelId).update("header", message);
+   }
+
    public static async updateTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw<any>) {
       await this.get(queueChannelId).update("target_channel_id", targetChannelId);
    }

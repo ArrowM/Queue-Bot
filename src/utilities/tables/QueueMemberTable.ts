@@ -56,6 +56,10 @@ export class QueueMemberTable {
       return Base.getKnex()<QueueMember>("queue_members").where("member_id", queueMemberId);
    }
 
+   public static async setCreatedAt(memberId: Snowflake, time: string): Promise<void> {
+      await this.getFromId(memberId).update("created_at", time);
+   }
+
    public static async setPriority(channelId: Snowflake, queueMemberId: Snowflake, isPriority: boolean): Promise<void> {
       await Base.getKnex()<QueueMember>("queue_members")
          .where("channel_id", channelId)

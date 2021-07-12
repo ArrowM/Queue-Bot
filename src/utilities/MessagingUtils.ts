@@ -109,7 +109,7 @@ export class MessagingUtils {
             title += `  ->  ${targetChannel.name}`;
          } else {
             // Target has been deleted - clean it up
-            await QueueChannelTable.get(queueChannel.id).update("target_channel_id", Base.getKnex().raw("DEFAULT"));
+            await QueueChannelTable.updateTarget(queueChannel.id, Base.getKnex().raw("DEFAULT"));
          }
       }
       let position = 0;

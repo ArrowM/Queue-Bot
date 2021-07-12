@@ -2,6 +2,7 @@ import { QueueGuild } from "../Interfaces";
 import { Base } from "../Base";
 import { Guild, Snowflake } from "discord.js";
 import { QueueChannelTable } from "./QueueChannelTable";
+import delay from "delay";
 
 export class QueueGuildTable {
    /**
@@ -29,7 +30,7 @@ export class QueueGuildTable {
       const entries = await Base.getKnex()<QueueGuild>("queue_guilds");
       for await (const entry of entries) {
          try {
-            await 1000;
+            await delay(1000);
             const guild = await Base.getClient().guilds.fetch(entry.guild_id);
             if (guild) {
                await guild.channels.fetch().catch(() => null);
