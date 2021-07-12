@@ -1,6 +1,7 @@
 import { AdminPermission } from "../Interfaces";
 import { Base } from "../Base";
 import { Guild, GuildMember, Role, Snowflake } from "discord.js";
+import delay from "delay";
 
 export class AdminPermissionTable {
    /**
@@ -29,6 +30,7 @@ export class AdminPermissionTable {
    public static async validateEntries() {
       const entries = await Base.getKnex()<AdminPermission>("admin_permission");
       for await (const entry of entries) {
+         await delay(80);
          const guild = await Base.getClient()
             .guilds.fetch(entry.guild_id)
             .catch(() => null as Guild);

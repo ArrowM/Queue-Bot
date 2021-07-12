@@ -15,6 +15,7 @@ import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { Parsed } from "./utilities/ParsingUtils";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtil } from "./utilities/PatchingUtil";
+import delay from "delay";
 
 // Setup client
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
@@ -267,7 +268,7 @@ async function resumeAfterOffline(): Promise<void> {
    console.log("Validating Queue Guilds...");
    await QueueGuildTable.validateEntries();
    console.log("Validated Queue Guilds.");
-   console.log("Validating dmin Permissions...");
+   console.log("Validating Admin Permissions...");
    await AdminPermissionTable.validateEntries();
    console.log("Validated Admin Permissions.");
    console.log("Validating Priority entries...");
@@ -277,12 +278,14 @@ async function resumeAfterOffline(): Promise<void> {
    // Update Queues
    const storedQueueGuilds = await QueueGuildTable.getAll();
    for await (const storedQueueGuild of storedQueueGuilds) {
+      await delay(40);
       const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null as Guild);
       if (!guild) continue;
       // Clean queue channels
       console.log("Updating Queues for Guild: " + guild.name);
       const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
       for await (const queueChannel of queueChannels) {
+         await delay(40);
          if (queueChannel.type !== "GUILD_VOICE") continue;
          let updateDisplay = false;
 
@@ -292,12 +295,14 @@ async function resumeAfterOffline(): Promise<void> {
 
          // Update member lists
          for await (const storedQueueMemberId of storedQueueMemberIds) {
+            await delay(40);
             if (!queueMembers.some((queueMember) => queueMember.id === storedQueueMemberId)) {
                updateDisplay = true;
                await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).delete();
             }
          }
          for await (const queueMember of queueMembers) {
+            await delay(40);
             if (!storedQueueMemberIds.includes(queueMember.id)) {
                updateDisplay = true;
                await QueueMemberTable.store(queueChannel, queueMember);
