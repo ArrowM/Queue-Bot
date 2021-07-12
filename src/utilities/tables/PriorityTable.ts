@@ -30,7 +30,7 @@ export class PriorityTable {
    public static async validateEntries() {
       const entries = await Base.getKnex()<PriorityEntry>("priority");
       for await (const entry of entries) {
-         await delay(300);
+         await delay(1000);
          const guild = await Base.getClient()
             .guilds.fetch(entry.guild_id)
             .catch(() => null as Guild);

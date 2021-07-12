@@ -278,14 +278,14 @@ async function resumeAfterOffline(): Promise<void> {
    // Update Queues
    const storedQueueGuilds = await QueueGuildTable.getAll();
    for await (const storedQueueGuild of storedQueueGuilds) {
-      await delay(100);
+      await delay(1000);
       const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null as Guild);
       if (!guild) continue;
       // Clean queue channels
       console.log("Updating Queues for Guild: " + guild.name);
       const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
       for await (const queueChannel of queueChannels) {
-         await delay(100);
+         await delay(1000);
          if (queueChannel.type !== "GUILD_VOICE") continue;
          let updateDisplay = false;
 
@@ -295,14 +295,14 @@ async function resumeAfterOffline(): Promise<void> {
 
          // Update member lists
          for await (const storedQueueMemberId of storedQueueMemberIds) {
-            await delay(100);
+            await delay(1000);
             if (!queueMembers.some((queueMember) => queueMember.id === storedQueueMemberId)) {
                updateDisplay = true;
                await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).delete();
             }
          }
          for await (const queueMember of queueMembers) {
-            await delay(100);
+            await delay(1000);
             if (!storedQueueMemberIds.includes(queueMember.id)) {
                updateDisplay = true;
                await QueueMemberTable.store(queueChannel, queueMember);

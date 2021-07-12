@@ -349,12 +349,12 @@ export class PatchingUtil {
             // NEW COLUMNS
             table.renameColumn("queue_channel_id", "channel_id");
             table.renameColumn("queue_member_id", "member_id");
+            table.boolean("is_priority");
          });
          await Base.getKnex().schema.alterTable("queue_members", (table) => {
             // MODIFY DATA TYPES
             table.bigInteger("channel_id").alter();
             table.bigInteger("member_id").alter();
-            table.boolean("priority");
          });
       }
    }
