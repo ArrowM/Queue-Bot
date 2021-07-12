@@ -28,17 +28,20 @@ export class QueueGuildTable {
    public static async validateEntries() {
       const entries = await Base.getKnex()<QueueGuild>("queue_guilds");
       for await (const entry of entries) {
-         await 100;
-         const guild = await Base.getClient()
-            .guilds.fetch(entry.guild_id)
-            .catch(() => null as Guild);
-         if (guild) {
-            await guild.channels.fetch().catch(() => null);
-            await guild.members.fetch().catch(() => null);
-            await guild.roles.fetch().catch(() => null);
-            QueueChannelTable.validateEntries(guild);
-         } else {
-            this.unstore(entry.guild_id);
+         try {
+            await (1000);
+            const guild = await Base.getClient()
+               .guilds.fetch(entry.guild_id);
+            if (guild) {
+               await guild.channels.fetch().catch(() => null);
+               await guild.members.fetch().catch(() => null);
+               await guild.roles.fetch().catch(() => null);
+               QueueChannelTable.validateEntries(guild);
+            } else {
+               this.unstore(entry.guild_id);
+            }
+         } catch (e) {
+            // SKIP
          }
       }
    }

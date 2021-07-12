@@ -128,7 +128,7 @@ export class PatchingUtil {
          // RENAME
          await Base.getKnex().schema.renameTable("queue_manager_roles", "admin_permission");
          await Base.getKnex().schema.raw("ALTER SEQUENCE queue_manager_roles_id_seq RENAME TO admin_permission_id_seq");
-         await delay(100);
+         await delay(1000);
          await Base.getKnex().schema.alterTable("admin_permission", (table) => {
             // NEW COLUMNS
             table.renameColumn("role_name", "role_member_id");

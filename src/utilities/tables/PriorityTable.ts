@@ -29,16 +29,19 @@ export class PriorityTable {
    public static async validateEntries() {
       const entries = await Base.getKnex()<PriorityEntry>("priority");
       for await (const entry of entries) {
-         const guild = await Base.getClient()
-            .guilds.fetch(entry.guild_id)
-            .catch(() => null as Guild);
-         if (guild) {
-            const roleMember =
-               (await guild.roles.fetch(entry.role_member_id).catch(() => null as Role)) ||
-               (await guild.members.fetch(entry.role_member_id).catch(() => null as GuildMember));
-            if (roleMember) continue;
+         try {
+            const guild = await Base.getClient()
+               .guilds.fetch(entry.guild_id);
+            if (guild) {
+               const roleMember =
+                  (await guild.roles.fetch(entry.role_member_id)) ||
+                  (await guild.members.fetch(entry.role_member_id));
+               if (roleMember) continue;
+            }
+            await this.unstore(entry.guild_id, entry.role_member_id);
+         } catch (e) {
+            // SKIP
          }
-         await this.unstore(entry.guild_id, entry.role_member_id);
       }
    }
 

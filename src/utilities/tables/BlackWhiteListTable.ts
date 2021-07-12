@@ -30,11 +30,15 @@ export class BlackWhiteListTable {
    public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
       const entries = await Base.getKnex()<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannel.id);
       for await (const entry of entries) {
-         const roleMember =
-            (await guild.roles.fetch(entry.role_member_id).catch(() => null as Role)) ||
-            (await guild.members.fetch(entry.role_member_id).catch(() => null as GuildMember));
-         if (!roleMember) {
-            this.unstore(2, queueChannel.id, entry.role_member_id);
+         try {
+            const roleMember =
+               (await guild.roles.fetch(entry.role_member_id)) ||
+               (await guild.members.fetch(entry.role_member_id));
+            if (!roleMember) {
+               this.unstore(2, queueChannel.id, entry.role_member_id);
+            }
+         } catch (e) {
+            // SKIP
          }
       }
    }

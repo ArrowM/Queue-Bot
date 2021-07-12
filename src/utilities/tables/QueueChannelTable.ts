@@ -41,14 +41,18 @@ export class QueueChannelTable {
    public static async validateEntries(guild: Guild) {
       const entries = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
       for await (const entry of entries) {
-         await delay(100);
-         const queueChannel = (await guild.channels.fetch(entry.queue_channel_id).catch(() => null)) as VoiceChannel | TextChannel;
-         if (queueChannel) {
-            BlackWhiteListTable.validateEntries(guild, queueChannel);
-            DisplayChannelTable.validateEntries(guild, queueChannel);
-            QueueMemberTable.validateEntries(guild, queueChannel);
-         } else {
-            this.unstore(guild.id, entry.queue_channel_id);
+         try {
+            await delay(1000);
+            const queueChannel = (await guild.channels.fetch(entry.queue_channel_id)) as VoiceChannel | TextChannel;
+            if (queueChannel) {
+               BlackWhiteListTable.validateEntries(guild, queueChannel);
+               DisplayChannelTable.validateEntries(guild, queueChannel);
+               QueueMemberTable.validateEntries(guild, queueChannel);
+            } else {
+               this.unstore(guild.id, entry.queue_channel_id);
+            }
+         } catch (e) {
+            // SKIP
          }
       }
    }

@@ -31,10 +31,14 @@ export class DisplayChannelTable {
    public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
       const entries = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
       for await (const entry of entries) {
-         await delay(100);
-         const displayChannel = (await guild.channels.fetch(entry.display_channel_id).catch(() => null)) as TextChannel;
-         if (!displayChannel) {
-            this.unstore(queueChannel.id, entry.display_channel_id);
+         try {
+            await delay(100);
+            const displayChannel = (await guild.channels.fetch(entry.display_channel_id)) as TextChannel;
+            if (!displayChannel) {
+               this.unstore(queueChannel.id, entry.display_channel_id);
+            }
+         } catch (e) {
+            // SKIP
          }
       }
    }

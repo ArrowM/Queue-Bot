@@ -33,9 +33,13 @@ export class QueueMemberTable {
    public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
       const entries = await Base.getKnex()<QueueMember>("queue_members").where("channel_id", queueChannel.id);
       for await (const entry of entries) {
-         const member = await guild.members.fetch(entry.member_id).catch(() => null as GuildMember);
-         if (!member) {
-            this.unstore(queueChannel.id, [entry.member_id]);
+         try {
+            const member = await guild.members.fetch(entry.member_id);
+            if (!member) {
+               this.unstore(queueChannel.id, [entry.member_id]);
+            }
+         } catch (e) {
+            // SKIP
          }
       }
    }
