@@ -275,7 +275,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredQueue(parsed);
       if (!queueChannel) return;
 
-      const value = parsed.getNumberParam(0, 6000);
+      const value = parsed.getNumberParam(0, 6000, null);
       await QueueChannelTable.updateGraceperiod(queueChannel.id, value);
       await parsed.command.reply(`Set grace period of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -688,7 +688,7 @@ export class Commands {
     * Toggle automatic pull of users from a queue
     */
    public static async modeSet(parsed: Parsed) {
-      const value = await parsed.getNumberParam(1, 3);
+      const value = await parsed.getNumberParam(1, 3, 1);
 
       await QueueGuildTable.updateMessageMode(parsed.command.guild.id, value);
       await parsed.command.reply(`Set messaging mode to \`${value}\`.`).catch(() => null)
@@ -734,7 +734,7 @@ export class Commands {
       if (!storedQueueChannel) return;
 
       // Get the oldest member entries for the queue
-      const amount = parsed.getNumberParam(1, 99);
+      const amount = parsed.getNumberParam(1, 99, 1);
       let queueMembers = await QueueMemberTable.getNext(queueChannel, amount);
 
       if (queueMembers.length > 0) {
@@ -867,7 +867,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredQueue(parsed);
       if (!queueChannel) return;
 
-      const value = parsed.getNumberParam(1, 99);
+      const value = parsed.getNumberParam(1, 99, 1);
       await QueueChannelTable.updatePullnum(queueChannel.id, value);
       await parsed.command.reply(`Set pull number of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -1002,7 +1002,7 @@ export class Commands {
          const response = `\`${channel.name}\` is already a queue.`;
          await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
       } else {
-         const size = parsed.getNumberParam(1, 99) || (channel as VoiceChannel).userLimit;
+         const size = parsed.getNumberParam(1, 99, null) || (channel as VoiceChannel).userLimit;
          if (channel.type === "GUILD_VOICE") {
             if (channel.permissionsFor(parsed.command.guild.me).has("CONNECT")) {
                await QueueChannelTable.store(parsed, channel, size);
@@ -1114,7 +1114,7 @@ export class Commands {
    public static async sizeSet(parsed: Parsed): Promise<void> {
       const queueChannel = await ParsingUtils.getStoredQueue(parsed);
       if (!queueChannel) return;
-      let max = parsed.getNumberParam(1, 99);
+      let max = parsed.getNumberParam(1, 99, 99);
 
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
       await QueueChannelTable.updateMaxMembers(queueChannel.id, max);

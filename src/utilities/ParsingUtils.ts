@@ -119,7 +119,12 @@ export class Parsed {
       return this.findOption(this.command.options, "STRING")?.value as string;
    }
 
-   public getNumberParam(min: number, max: number): number {
-      return Math.max(Math.min(this.findOption(this.command.options, "INTEGER")?.value as number, max), min);
+   public getNumberParam(min: number, max: number, defaultValue: number): number {
+      const arg = this.findOption(this.command.options, "INTEGER")?.value;
+      if (arg) {
+         return Math.max(Math.min(arg as number, max), min);
+      } else {
+         return defaultValue;
+      }
    }
 }
