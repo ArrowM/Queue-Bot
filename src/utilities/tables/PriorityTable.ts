@@ -1,3 +1,4 @@
+import delay from "delay";
 import { Guild, GuildMember, Role, Snowflake } from "discord.js";
 import { Base } from "../Base";
 import { PriorityEntry } from "../Interfaces";
