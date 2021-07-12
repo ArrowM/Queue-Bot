@@ -278,14 +278,14 @@ async function resumeAfterOffline(): Promise<void> {
    // Update Queues
    const storedQueueGuilds = await QueueGuildTable.getAll();
    for await (const storedQueueGuild of storedQueueGuilds) {
-      await delay(40);
+      await delay(100);
       const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null as Guild);
       if (!guild) continue;
       // Clean queue channels
       console.log("Updating Queues for Guild: " + guild.name);
       const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
       for await (const queueChannel of queueChannels) {
-         await delay(40);
+         await delay(100);
          if (queueChannel.type !== "GUILD_VOICE") continue;
          let updateDisplay = false;
 
@@ -295,14 +295,14 @@ async function resumeAfterOffline(): Promise<void> {
 
          // Update member lists
          for await (const storedQueueMemberId of storedQueueMemberIds) {
-            await delay(40);
+            await delay(100);
             if (!queueMembers.some((queueMember) => queueMember.id === storedQueueMemberId)) {
                updateDisplay = true;
                await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).delete();
             }
          }
          for await (const queueMember of queueMembers) {
-            await delay(40);
+            await delay(100);
             if (!storedQueueMemberIds.includes(queueMember.id)) {
                updateDisplay = true;
                await QueueMemberTable.store(queueChannel, queueMember);
@@ -388,68 +388,72 @@ client.on("channelUpdate", async (_oldChannel, newCh) => {
 
 // Monitor for users joining voice channels
 client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
-   if (!isReady) return;
-   const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel;
-   const newVoiceChannel = newVoiceState?.channel as VoiceChannel;
+   try {
+      if (!isReady) return;
+      const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel;
+      const newVoiceChannel = newVoiceState?.channel as VoiceChannel;
 
-   const member = newVoiceState.member;
-   // Ignore mutes and deafens
-   if (oldVoiceChannel === newVoiceChannel) return;
+      const member = newVoiceState.member;
+      // Ignore mutes and deafens
+      if (oldVoiceChannel === newVoiceChannel) return;
 
-   const queueGuild = await QueueGuildTable.get(member.guild.id);
-   const storedOldQueueChannel = oldVoiceChannel ? await QueueChannelTable.get(oldVoiceChannel.id) : undefined;
-   const storedNewQueueChannel = newVoiceChannel ? await QueueChannelTable.get(newVoiceChannel.id) : undefined;
+      const queueGuild = await QueueGuildTable.get(member.guild.id);
+      const storedOldQueueChannel = oldVoiceChannel ? await QueueChannelTable.get(oldVoiceChannel.id) : undefined;
+      const storedNewQueueChannel = newVoiceChannel ? await QueueChannelTable.get(newVoiceChannel.id) : undefined;
 
-   if (Base.isMe(member) && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
-      // Ignore when the bot moves between queues or when it starts and stops
-      return;
-   }
-   if (storedNewQueueChannel && !Base.isMe(member)) {
-      // Joined queue channel
-      if (storedNewQueueChannel.target_channel_id) {
-         const targetChannel = (await member.guild.channels
-            .fetch(storedNewQueueChannel.target_channel_id)
-            .catch(() => null)) as VoiceChannel;
-         if (targetChannel) {
-            if (
-               storedNewQueueChannel.auto_fill &&
-               newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
-               (!targetChannel.userLimit || targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
-            ) {
-               SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
-               return;
+      if (Base.isMe(member) && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
+         // Ignore when the bot moves between queues or when it starts and stops
+         return;
+      }
+      if (storedNewQueueChannel && !Base.isMe(member)) {
+         // Joined queue channel
+         if (storedNewQueueChannel.target_channel_id) {
+            const targetChannel = (await member.guild.channels
+               .fetch(storedNewQueueChannel.target_channel_id)
+               .catch(() => null)) as VoiceChannel;
+            if (targetChannel) {
+               if (
+                  storedNewQueueChannel.auto_fill &&
+                  newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
+                  (!targetChannel.userLimit || targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
+               ) {
+                  SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+                  return;
+               }
+            } else {
+               // Target has been deleted - clean it up
+               await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
             }
+         }
+         await QueueMemberTable.store(newVoiceChannel, member);
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
+      }
+      if (storedOldQueueChannel) {
+         // Left queue channel
+         if (Base.isMe(member) && newVoiceChannel) {
+            await QueueChannelTable.updateTarget(oldVoiceChannel.id, newVoiceChannel.id);
+            // move bot back
+            SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
+            await setTimeout(async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel), 1000);
          } else {
-            // Target has been deleted - clean it up
-            await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
+            await QueueMemberTable.unstore(oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
+         }
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
+      }
+      if (!Base.isMe(member) && oldVoiceChannel) {
+         // Check if leaving target channel
+         const storedQueueChannels = await QueueChannelTable.getFromTarget(oldVoiceChannel.id);
+         // Randomly pick a queue to pull from
+         const storedQueueChannel = storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
+         if (storedQueueChannel && storedQueueChannel.auto_fill) {
+            const queueChannel = (await member.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as VoiceChannel;
+            if (queueChannel) {
+               await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
+            }
          }
       }
-      await QueueMemberTable.store(newVoiceChannel, member);
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
-   }
-   if (storedOldQueueChannel) {
-      // Left queue channel
-      if (Base.isMe(member) && newVoiceChannel) {
-         await QueueChannelTable.updateTarget(oldVoiceChannel.id, newVoiceChannel.id);
-         // move bot back
-         SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
-         await setTimeout(async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel), 1000);
-      } else {
-         await QueueMemberTable.unstore(oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
-      }
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
-   }
-   if (!Base.isMe(member) && oldVoiceChannel) {
-      // Check if leaving target channel
-      const storedQueueChannels = await QueueChannelTable.getFromTarget(oldVoiceChannel.id);
-      // Randomly pick a queue to pull from
-      const storedQueueChannel = storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
-      if (storedQueueChannel && storedQueueChannel.auto_fill) {
-         const queueChannel = (await member.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as VoiceChannel;
-         if (queueChannel) {
-            await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
-         }
-      }
+   } catch (e) {
+      console.error(e);
    }
 });
 

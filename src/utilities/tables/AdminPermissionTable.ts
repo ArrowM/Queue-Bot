@@ -30,7 +30,7 @@ export class AdminPermissionTable {
    public static async validateEntries() {
       const entries = await Base.getKnex()<AdminPermission>("admin_permission");
       for await (const entry of entries) {
-         await delay(80);
+         await delay(300);
          const guild = await Base.getClient()
             .guilds.fetch(entry.guild_id)
             .catch(() => null as Guild);
