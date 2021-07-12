@@ -29,12 +29,10 @@ export class AdminPermissionTable {
    public static async validateEntries() {
       const entries = await Base.getKnex()<AdminPermission>("admin_permission");
       for await (const entry of entries) {
-         console.log("fetching Guild: " + entry.guild_id);
          const guild = await Base.getClient()
             .guilds.fetch(entry.guild_id)
             .catch(() => null as Guild);
          if (guild) {
-            console.log("fetching Role/Member: " + entry.role_member_id);
             const roleMember =
                (await guild.roles.fetch(entry.role_member_id).catch(() => null as Role)) ||
                (await guild.members.fetch(entry.role_member_id).catch(() => null as GuildMember));
