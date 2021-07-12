@@ -264,9 +264,15 @@ client.on("messageCreate", async (message) => {
 
 async function resumeAfterOffline(): Promise<void> {
    // VALIDATE ENTRIES
+   console.log("Validating Queue Guilds...");
    await QueueGuildTable.validateEntries();
+   console.log("Validated Queue Guilds.");
+   console.log("Validating dmin Permissions...");
    await AdminPermissionTable.validateEntries();
+   console.log("Validated Admin Permissions.");
+   console.log("Validating Priority entries...");
    await PriorityTable.validateEntries();
+   console.log("Validated Priority entries.");
 
    // Update Queues
    const storedQueueGuilds = await QueueGuildTable.getAll();
@@ -274,6 +280,7 @@ async function resumeAfterOffline(): Promise<void> {
       const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null as Guild);
       if (!guild) continue;
       // Clean queue channels
+      console.log("Updating Queues for Guild: " + guild.name);
       const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
       for await (const queueChannel of queueChannels) {
          if (queueChannel.type !== "GUILD_VOICE") continue;
@@ -315,9 +322,9 @@ client.once("ready", async () => {
    await AdminPermissionTable.initTable();
    await PriorityTable.initTable();
    await SchedulingUtils.startScheduler();
-   await resumeAfterOffline();
    console.timeEnd("READY. Bot started in");
    isReady = true;
+   await resumeAfterOffline();
 });
 
 client.on("shardResume", async () => {
