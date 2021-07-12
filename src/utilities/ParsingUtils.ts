@@ -15,7 +15,7 @@ import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 
 export class ParsingUtils {
-   private static regEx = RegExp(Base.getConfig().permissionRegexp, "i");
+   private static regEx = RegExp(Base.getConfig().permissionsRegexp, "i");
    /**
     * Determine whether user has permission to interact with bot
     * @param CommandInteraction
@@ -24,12 +24,15 @@ export class ParsingUtils {
       const member = command.member as GuildMember;
       // Check if ADMIN
       if (member.permissionsIn(command.channel as TextChannel | VoiceChannel).has("ADMINISTRATOR")) return true;
-      // Check ROLEs and IDs
-      const storedRoleIds = (await AdminPermissionTable.getMany(command.guild.id)).map((role) => role.role_member_id);
-      const authorIds = [member.id, ...member.roles.cache.keyArray()];
-      for await (const storedId of storedRoleIds) {
-         const role = await command.guild.roles.fetch(storedId).catch(() => null as Role);
-         if (authorIds.includes(storedId) || (role && this.regEx.test(role.name))) return true;
+      // Check IDs
+      const roleIds = member.roles.cache.keyArray();
+      for await (const entry of await AdminPermissionTable.getMany(command.guild.id)) {
+         if (roleIds.includes(entry.role_member_id) || member.id === entry.role_member_id) return true;
+      }
+      // Check role names
+      const roles = member.roles.cache.array();
+      for await (const role of roles) {
+         if (this.regEx.test(role.name)) return true;
       }
       // False if no matches
       return false;

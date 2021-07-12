@@ -78,7 +78,7 @@ export interface ConfigJson {
    databaseUsername: string;
    databasePassword: string;
    gracePeriod: number;
-   permissionRegexp: string;
+   permissionsRegexp: string;
 
    announcementChannelId: Snowflake;
 }
