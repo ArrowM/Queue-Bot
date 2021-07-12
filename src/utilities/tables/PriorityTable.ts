@@ -1,4 +1,4 @@
-import { Guild, GuildMember, Role, Snowflake } from "discord.js";
+import { GuildMember, Snowflake } from "discord.js";
 import { Base } from "../Base";
 import { PriorityEntry } from "../Interfaces";
 
@@ -30,12 +30,9 @@ export class PriorityTable {
       const entries = await Base.getKnex()<PriorityEntry>("priority");
       for await (const entry of entries) {
          try {
-            const guild = await Base.getClient()
-               .guilds.fetch(entry.guild_id);
+            const guild = await Base.getClient().guilds.fetch(entry.guild_id);
             if (guild) {
-               const roleMember =
-                  (await guild.roles.fetch(entry.role_member_id)) ||
-                  (await guild.members.fetch(entry.role_member_id));
+               const roleMember = (await guild.roles.fetch(entry.role_member_id)) || (await guild.members.fetch(entry.role_member_id));
                if (roleMember) continue;
             }
             await this.unstore(entry.guild_id, entry.role_member_id);
