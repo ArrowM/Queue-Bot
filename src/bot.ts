@@ -393,9 +393,9 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel;
       const newVoiceChannel = newVoiceState?.channel as VoiceChannel;
 
-      const member = newVoiceState.member;
+      const member = newVoiceState.member || oldVoiceState.member;
       // Ignore mutes and deafens
-      if (oldVoiceChannel === newVoiceChannel) return;
+      if (oldVoiceChannel === newVoiceChannel || !member) return;
 
       const queueGuild = await QueueGuildTable.get(member.guild.id);
       const storedOldQueueChannel = oldVoiceChannel ? await QueueChannelTable.get(oldVoiceChannel.id) : undefined;
