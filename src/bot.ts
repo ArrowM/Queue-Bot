@@ -44,14 +44,25 @@ if (config.topGgToken) {
 }
 
 client.on("interactionCreate", async (interaction: Interaction) => {
-   if (!isReady) return;
    if (interaction.isButton()) {
+      if (!isReady) return;
+      if (!interaction.guild?.id) return;
+
       switch (interaction?.customId) {
          case "joinLeave":
             joinLeaveButton(interaction);
             break;
       }
    } else if (interaction.isCommand()) {
+      if (!isReady) {
+         interaction.reply("Bot is starting up. Please try again in ~10 seconds...");
+         return;
+      }
+      if (!interaction.guild?.id) {
+         interaction.reply("Commands can only be used in servers.")
+         return;
+      }
+
       const parsed = new Parsed(interaction);
       await parsed.setup();
       // -- EVERYONE --
@@ -244,7 +255,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 const prefixCache = new Map<Snowflake, string>();
 let hasPrefix: boolean;
 client.on("messageCreate", async (message) => {
-   const guildId = message?.guild?.id;
+   const guildId = message.guild?.id;
    if (!isReady || !guildId) return;
    if (hasPrefix === undefined) {
       hasPrefix = await Base.getKnex().schema.hasColumn("queue_guilds", "prefix");
@@ -495,9 +506,11 @@ export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChann
 async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
    try {
       const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
+      if (!storedDisplayChannel) throw "storedDisplayChannel not found";
       const queueChannel = (await interaction.guild.channels.fetch(storedDisplayChannel.queue_channel_id).catch(() => null)) as
          | TextChannel
          | VoiceChannel;
+      if (!queueChannel) throw "queueChannel not found";
       const member = await queueChannel.guild.members.fetch(interaction.user.id);
       const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);

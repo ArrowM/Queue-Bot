@@ -54,7 +54,7 @@ export class QueueGuildTable {
       return Base.getKnex()<QueueGuild>("queue_guilds");
    }
 
-   public static async updateMessageMode(guildId: Snowflake, mode: number) {
+   public static async updateMessageMode(guildId: Snowflake, mode: number): Promise<void> {
       await this.get(guildId).update("msg_mode", mode);
    }
 
