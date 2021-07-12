@@ -7,6 +7,7 @@ import { Knex } from "knex";
 import { Parsed } from "../ParsingUtils";
 import { Commands } from "../../Commands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
+import delay from "delay";
 
 export class QueueChannelTable {
    /**
@@ -40,6 +41,7 @@ export class QueueChannelTable {
    public static async validateEntries(guild: Guild) {
       const entries = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
       for await (const entry of entries) {
+         await delay(100);
          const queueChannel = (await guild.channels.fetch(entry.queue_channel_id).catch(() => null)) as VoiceChannel | TextChannel;
          if (queueChannel) {
             BlackWhiteListTable.validateEntries(guild, queueChannel);

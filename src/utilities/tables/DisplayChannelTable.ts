@@ -2,6 +2,7 @@ import { Guild, Message, MessageEmbed, Snowflake, TextChannel, VoiceChannel } fr
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { MessagingUtils } from "../MessagingUtils";
+import delay from "delay";
 
 export class DisplayChannelTable {
    /**
@@ -30,6 +31,7 @@ export class DisplayChannelTable {
    public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
       const entries = await Base.getKnex()<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
       for await (const entry of entries) {
+         await delay(100);
          const displayChannel = (await guild.channels.fetch(entry.display_channel_id).catch(() => null)) as TextChannel;
          if (!displayChannel) {
             this.unstore(queueChannel.id, entry.display_channel_id);

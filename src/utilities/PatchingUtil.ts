@@ -16,7 +16,6 @@ interface PatchNote {
 }
 
 export class PatchingUtil {
-
    public static async run() {
       await this.tableBlackWhiteList();
       await this.tableQueueMembers();
@@ -30,7 +29,9 @@ export class PatchingUtil {
 
    private static async setNickNames() {
       for await (const entry of await Base.getKnex()<QueueGuild>("queue_guilds")) {
-         const guild = await Base.getClient().guilds.fetch(entry.guild_id).catch(() => null as Guild);
+         const guild = await Base.getClient()
+            .guilds.fetch(entry.guild_id)
+            .catch(() => null as Guild);
          if (!guild) continue;
 
          await guild.me.setNickname("Queue Bot").catch(() => null);
@@ -127,7 +128,7 @@ export class PatchingUtil {
          // RENAME
          await Base.getKnex().schema.renameTable("queue_manager_roles", "admin_permission");
          await Base.getKnex().schema.raw("ALTER SEQUENCE queue_manager_roles_id_seq RENAME TO admin_permission_id_seq");
-         await delay(1000);
+         await delay(100);
          await Base.getKnex().schema.alterTable("admin_permission", (table) => {
             // NEW COLUMNS
             table.renameColumn("role_name", "role_member_id");
@@ -180,7 +181,7 @@ export class PatchingUtil {
          // RENAME
          await Base.getKnex().schema.renameTable("member_perms", "black_white_list");
          await Base.getKnex().schema.raw("ALTER SEQUENCE member_perms_id_seq RENAME TO black_white_list_id_seq");
-         await delay(1000);
+         await delay(100);
          await Base.getKnex().schema.alterTable("black_white_list", (table) => {
             // NEW COLUMNS
             table.renameColumn("perm", "type");
@@ -246,13 +247,9 @@ export class PatchingUtil {
                ?.edit({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
                .catch(() => null as Message);
             if (response) {
-               await Base.getKnex()<DisplayChannel>("display_channels")
-                  .where("id", entry.id)
-                  .update("message_id", response.id);
+               await Base.getKnex()<DisplayChannel>("display_channels").where("id", entry.id).update("message_id", response.id);
             } else {
-               await Base.getKnex()<DisplayChannel>("display_channels")
-                  .where("id", entry.id)
-                  .delete();
+               await Base.getKnex()<DisplayChannel>("display_channels").where("id", entry.id).delete();
             }
             await delay(40);
          }
