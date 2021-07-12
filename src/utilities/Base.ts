@@ -50,7 +50,7 @@ export class Base {
          ],
          status: "online",
       },
-      intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES", "GUILD_MEMBERS"],
+      intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES"], // add  "GUILD_MEMBERS"
    });
 
    public static getConfig(): ConfigJson {

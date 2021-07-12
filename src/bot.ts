@@ -264,51 +264,51 @@ client.on("messageCreate", async (message) => {
 });
 
 async function resumeAfterOffline(): Promise<void> {
-   //// VALIDATE ENTRIES
-   //console.log("Validating Queue Guilds...");
-   //await QueueGuildTable.validateEntries();
-   //console.log("Validated Queue Guilds.");
-   //console.log("Validating Admin Permissions...");
-   //await AdminPermissionTable.validateEntries();
-   //console.log("Validated Admin Permissions.");
-   //console.log("Validating Priority entries...");
-   //await PriorityTable.validateEntries();
-   //console.log("Validated Priority entries.");
+   // VALIDATE ENTRIES
+   console.log("Validating Queue Guilds...");
+   await QueueGuildTable.validateEntries();
+   console.log("Validated Queue Guilds.");
+   console.log("Validating Admin Permissions...");
+   await AdminPermissionTable.validateEntries();
+   console.log("Validated Admin Permissions.");
+   console.log("Validating Priority entries...");
+   await PriorityTable.validateEntries();
+   console.log("Validated Priority entries.");
 
-   //// Update Queues
-   //const storedQueueGuilds = await QueueGuildTable.getAll();
-   //for await (const storedQueueGuild of storedQueueGuilds) {
-   //   const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null as Guild);
-   //   if (!guild) continue;
-   //   // Clean queue channels
-   //   console.log("Updating Queues for Guild: " + guild.name);
-   //   const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
-   //   for await (const queueChannel of queueChannels) {
-   //      if (queueChannel.type !== "GUILD_VOICE") continue;
-   //      let updateDisplay = false;
+   // Update Queues
+   const storedQueueGuilds = await QueueGuildTable.getAll();
+   for await (const storedQueueGuild of storedQueueGuilds) {
+      const guild = await client.guilds.fetch(storedQueueGuild.guild_id).catch(() => null as Guild);
+      if (!guild) continue;
+      // Clean queue channels
+      console.log("Updating Queues for Guild: " + guild.name);
+      const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
+      for await (const queueChannel of queueChannels) {
+         if (queueChannel.type !== "GUILD_VOICE") continue;
+         let updateDisplay = false;
 
-   //      // Fetch stored and live members
-   //      const storedQueueMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.member_id);
-   //      const queueMembers = queueChannel.members.filter((member) => !Base.isMe(member)).array();
+         // Fetch stored and live members
+         const storedQueueMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.member_id);
+         const queueMembers = queueChannel.members.filter((member) => !Base.isMe(member)).array();
 
-   //      // Update member lists
-   //      for await (const storedQueueMemberId of storedQueueMemberIds) {
-   //         if (!queueMembers.some((queueMember) => queueMember.id === storedQueueMemberId)) {
-   //            updateDisplay = true;
-   //            await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).delete();
-   //         }
-   //      }
-   //      for await (const queueMember of queueMembers) {
-   //         if (!storedQueueMemberIds.includes(queueMember.id)) {
-   //            updateDisplay = true;
-   //            await QueueMemberTable.store(queueChannel, queueMember);
-   //         }
-   //      }
-   //      if (updateDisplay) {
-   //         SchedulingUtils.scheduleDisplayUpdate(storedQueueGuild, queueChannel);
-   //      }
-   //   }
-   //}
+         // Update member lists
+         for await (const storedQueueMemberId of storedQueueMemberIds) {
+            if (!queueMembers.some((queueMember) => queueMember.id === storedQueueMemberId)) {
+               updateDisplay = true;
+               await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).delete();
+            }
+         }
+         for await (const queueMember of queueMembers) {
+            if (!storedQueueMemberIds.includes(queueMember.id)) {
+               updateDisplay = true;
+               await QueueMemberTable.store(queueChannel, queueMember);
+            }
+         }
+         if (updateDisplay) {
+            SchedulingUtils.scheduleDisplayUpdate(storedQueueGuild, queueChannel);
+         }
+      }
+   }
    console.log("Done resuming...")
 }
 
