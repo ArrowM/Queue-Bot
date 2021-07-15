@@ -195,9 +195,135 @@
                   },
                   {
                      "name": "color",
-                     "description": "HEX value of the new color (example: #51ff7e)",
+                     "description": "New color",
                      "type": 3,
-                     "required": true
+                     "required": true,
+                     "choices": [
+                        {
+                           "name": "DEFAULT",
+                           "value": "DEFAULT"
+                        },
+                        {
+                           "name": "WHITE",
+                           "value": "WHITE"
+                        },
+                        {
+                           "name": "AQUA",
+                           "value": "AQUA"
+                        },
+                        {
+                           "name": "GREEN",
+                           "value": "GREEN"
+                        },
+                        {
+                           "name": "BLUE",
+                           "value": "BLUE"
+                        },
+                        {
+                           "name": "YELLOW",
+                           "value": "YELLOW"
+                        },
+                        {
+                           "name": "PURPLE",
+                           "value": "PURPLE"
+                        },
+                        {
+                           "name": "LUMINOUS_VIVID_PINK",
+                           "value": "LUMINOUS_VIVID_PINK"
+                        },
+                        {
+                           "name": "FUCHSIA",
+                           "value": "FUCHSIA"
+                        },
+                        {
+                           "name": "GOLD",
+                           "value": "GOLD"
+                        },
+                        {
+                           "name": "ORANGE",
+                           "value": "ORANGE"
+                        },
+                        {
+                           "name": "RED",
+                           "value": "RED"
+                        },
+                        {
+                           "name": "GREY",
+                           "value": "GREY"
+                        },
+                        {
+                           "name": "DARKER_GREY",
+                           "value": "DARKER_GREY"
+                        },
+                        {
+                           "name": "NAVY",
+                           "value": "NAVY"
+                        },
+                        {
+                           "name": "DARK_AQUA",
+                           "value": "DARK_AQUA"
+                        },
+                        {
+                           "name": "DARK_GREEN",
+                           "value": "DARK_GREEN"
+                        },
+                        {
+                           "name": "DARK_BLUE",
+                           "value": "DARK_BLUE"
+                        },
+                        {
+                           "name": "DARK_PURPLE",
+                           "value": "DARK_PURPLE"
+                        },
+                        {
+                           "name": "DARK_VIVID_PINK",
+                           "value": "DARK_VIVID_PINK"
+                        },
+                        {
+                           "name": "DARK_GOLD",
+                           "value": "DARK_GOLD"
+                        },
+                        {
+                           "name": "DARK_ORANGE",
+                           "value": "DARK_ORANGE"
+                        },
+                        {
+                           "name": "DARK_RED",
+                           "value": "DARK_RED"
+                        },
+                        {
+                           "name": "DARK_GREY",
+                           "value": "DARK_GREY"
+                        },
+                        {
+                           "name": "LIGHT_GREY",
+                           "value": "LIGHT_GREY"
+                        },
+                        {
+                           "name": "DARK_NAVY",
+                           "value": "DARK_NAVY"
+                        },
+                        {
+                           "name": "BLURPLE",
+                           "value": "BLURPLE"
+                        },
+                        {
+                           "name": "GREYPLE",
+                           "value": "GREYPLE"
+                        },
+                        {
+                           "name": "DARK_BUT_NOT_BLACK",
+                           "value": "DARK_BUT_NOT_BLACK"
+                        },
+                        {
+                           "name": "NOT_QUITE_BLACK",
+                           "value": "NOT_QUITE_BLACK"
+                        },
+                        {
+                           "name": "RANDOM",
+                           "value": "RANDOM"
+                        }
+                     ]
                   }
                ]
             }
@@ -800,6 +926,21 @@
       {
          "name": "start",
          "description": "Add the bot to a voice queue",
+         "options": [
+            {
+               "name": "queue",
+               "description": "Queue channel",
+               "type": 7,
+               "required": true
+            }
+         ]
+      }
+   ],
+   [
+      "update",
+      {
+         "name": "update",
+         "description": "Force a queue to update",
          "options": [
             {
                "name": "queue",
