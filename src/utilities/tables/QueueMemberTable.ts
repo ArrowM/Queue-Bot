@@ -45,26 +45,26 @@ export class QueueMemberTable {
       }
    }
 
-   public static get(channelId: Snowflake, queueMemberId?: Snowflake) {
-      return Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", queueMemberId).first();
+   public static get(channelId: Snowflake, memberId?: Snowflake) {
+      return Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", memberId).first();
    }
 
    public static getFromId(id: Snowflake) {
       return Base.getKnex()<QueueMember>("queue_members").where("id", id).first();
    }
 
-   public static getFromMember(queueMemberId: Snowflake) {
-      return Base.getKnex()<QueueMember>("queue_members").where("member_id", queueMemberId);
+   public static getFromMember(memberId: Snowflake) {
+      return Base.getKnex()<QueueMember>("queue_members").where("member_id", memberId);
    }
 
    public static async setCreatedAt(memberId: Snowflake, time: string): Promise<void> {
       await this.getFromId(memberId).update("created_at", time);
    }
 
-   public static async setPriority(channelId: Snowflake, queueMemberId: Snowflake, isPriority: boolean): Promise<void> {
+   public static async setPriority(channelId: Snowflake, memberId: Snowflake, isPriority: boolean): Promise<void> {
       await Base.getKnex()<QueueMember>("queue_members")
          .where("channel_id", channelId)
-         .where("member_id", queueMemberId)
+         .where("member_id", memberId)
          .first()
          .update("is_priority", isPriority);
    }
@@ -105,25 +105,44 @@ export class QueueMemberTable {
       member: GuildMember,
       customMessage?: string,
       force?: boolean
-   ): Promise<boolean> {
-      if ((await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) && !force) {
-         return false;
-      } else {
-         const isPriority = await PriorityTable.isPriority(queueChannel.guild.id, member);
-         await Base.getKnex()<QueueMember>("queue_members").insert({
-            created_at: this.unstoredMembersCache.get(member.id),
-            is_priority: isPriority,
-            personal_message: customMessage,
-            channel_id: queueChannel.id,
-            member_id: member.id,
-         });
-         this.unstoredMembersCache.delete(member.id);
-         // Assign Queue Role
-         const StoredQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
-         if (StoredQueueChannel?.role_id) {
-            await member.roles.add(StoredQueueChannel.role_id).catch(() => null);
+   ): Promise<void> {
+      if (await QueueMemberTable.get(queueChannel.id, member.id)) {
+         throw {
+            author: "Queue Bot",
+            message: `<@!${member.id}> is already in \`${queueChannel.name}\`.\n`
+         };
+      }
+      if (!force) {
+         if ((await BlackWhiteListTable.isBlacklisted(queueChannel.id, member))) {
+            throw {
+               author: "Queue Bot",
+               message: `<@!${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`
+            };
          }
-         return true;
+         const storedChannel = await QueueChannelTable.get(queueChannel.id);
+         if (storedChannel.max_members) {
+            const storedQueueMembers = await this.getFromQueue(queueChannel);
+            if (storedChannel.max_members <= storedQueueMembers?.length) {
+               throw {
+                  author: "Queue Bot",
+                  message: `Failed to add <@!${member.id}> to \`${queueChannel.name}\`. Queue is full!\n`
+               };
+            }
+         }
+      }
+      const isPriority = await PriorityTable.isPriority(queueChannel.guild.id, member);
+      await Base.getKnex()<QueueMember>("queue_members").insert({
+         created_at: this.unstoredMembersCache.get(member.id),
+         is_priority: isPriority,
+         personal_message: customMessage,
+         channel_id: queueChannel.id,
+         member_id: member.id,
+      });
+      this.unstoredMembersCache.delete(member.id);
+      // Assign Queue Role
+      const StoredQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
+      if (StoredQueueChannel?.role_id) {
+         await member.roles.add(StoredQueueChannel.role_id).catch(() => null);
       }
    }
 

@@ -14,7 +14,7 @@ import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { Parsed } from "./utilities/ParsingUtils";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
-import { PatchingUtil } from "./utilities/PatchingUtil";
+import { PatchingUtils } from "./utilities/PatchingUtils";
 
 // Setup client
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
@@ -53,211 +53,215 @@ async function onAdminCommand(parsed: Parsed) {
       case "autopull":
          switch (parsed.command.options.firstKey()) {
             case "get":
-               Commands.autopullGet(parsed);
+               await Commands.autopullGet(parsed);
                break;
             case "set":
-               Commands.autopullSet(parsed);
+               await Commands.autopullSet(parsed);
                break;
          }
          break;
       case "blacklist":
          switch (parsed.command.options.firstKey()) {
             case "add":
-               Commands.blacklistAdd(parsed);
+               await Commands.blacklistAdd(parsed);
                break;
             case "delete":
-               Commands.blacklistDelete(parsed);
+               await Commands.blacklistDelete(parsed);
                break;
             case "list":
-               Commands.blacklistList(parsed);
+               await Commands.blacklistList(parsed);
                break;
          }
          break;
       case "clear":
-         Commands.clear(parsed);
+         await Commands.clear(parsed);
          break;
       case "color":
          switch (parsed.command.options.firstKey()) {
             case "get":
-               Commands.colorGet(parsed);
+               await Commands.colorGet(parsed);
                break;
             case "set":
-               Commands.colorSet(parsed);
+               await Commands.colorSet(parsed);
                break;
          }
          break;
       case "display":
-         Commands.display(parsed);
+         await Commands.display(parsed);
          break;
       case "enqueue":
-         Commands.enqueue(parsed);
+         await Commands.enqueue(parsed);
          break;
       case "graceperiod":
          switch (parsed.command.options.firstKey()) {
             case "get":
-               Commands.graceperiodGet(parsed);
+               await Commands.graceperiodGet(parsed);
                break;
             case "set":
-               Commands.graceperiodSet(parsed);
+               await Commands.graceperiodSet(parsed);
                break;
          }
          break;
       case "header":
          switch (parsed.command.options.firstKey()) {
             case "get":
-               Commands.headerGet(parsed);
+               await Commands.headerGet(parsed);
                break;
             case "set":
-               Commands.headerSet(parsed);
+               await Commands.headerSet(parsed);
                break;
          }
          break;
       case "kick":
-         Commands.kick(parsed);
+         await Commands.kick(parsed);
          break;
       case "kickall":
-         Commands.kickAll(parsed);
+         await Commands.kickAll(parsed);
          break;
       case "mention":
-         Commands.mention(parsed);
+         await Commands.mention(parsed);
          break;
       case "mode":
          switch (parsed.command.options.firstKey()) {
             case "get":
-               Commands.modeGet(parsed);
+               await Commands.modeGet(parsed);
                break;
             case "set":
-               Commands.modeSet(parsed);
+               await Commands.modeSet(parsed);
                break;
          }
          break;
       case "next":
-         Commands.next(parsed);
+         await Commands.next(parsed);
          break;
       case "permission":
          switch (parsed.command.options.firstKey()) {
             case "add":
-               Commands.permissionAdd(parsed);
+               await Commands.permissionAdd(parsed);
                break;
             case "delete":
-               Commands.permissionDelete(parsed);
+               await Commands.permissionDelete(parsed);
                break;
             case "list":
-               Commands.permissionList(parsed);
+               await Commands.permissionList(parsed);
                break;
          }
          break;
       case "priority":
          switch (parsed.command.options.firstKey()) {
             case "add":
-               Commands.priorityAdd(parsed);
+               await Commands.priorityAdd(parsed);
                break;
             case "delete":
-               Commands.priorityDelete(parsed);
+               await Commands.priorityDelete(parsed);
                break;
             case "list":
-               Commands.priorityList(parsed);
+               await Commands.priorityList(parsed);
                break;
          }
          break;
       case "pullnum":
          switch (parsed.command.options.firstKey()) {
             case "get":
-               Commands.pullnumGet(parsed);
+               await Commands.pullnumGet(parsed);
                break;
             case "set":
-               Commands.pullnumSet(parsed);
+               await Commands.pullnumSet(parsed);
                break;
          }
          break;
       case "queues":
          switch (parsed.command.options.firstKey()) {
             case "add":
-               Commands.queuesAdd(parsed);
+               await Commands.queuesAdd(parsed);
                break;
             case "delete":
-               Commands.queuesDelete(parsed);
+               await Commands.queuesDelete(parsed);
                break;
             case "list":
-               Commands.queuesList(parsed);
+               await Commands.queuesList(parsed);
                break;
          }
          break;
       case "shuffle":
-         Commands.shuffle(parsed);
+         await Commands.shuffle(parsed);
          break;
       case "size":
          switch (parsed.command.options.firstKey()) {
             case "get":
-               Commands.sizeGet(parsed);
+               await Commands.sizeGet(parsed);
                break;
             case "set":
-               Commands.sizeSet(parsed);
+               await Commands.sizeSet(parsed);
                break;
          }
          break;
       case "start":
-         Commands.start(parsed);
+         await Commands.start(parsed);
          break;
       case "update":
-         Commands.update(parsed);
+         await Commands.update(parsed);
          break;
    }
 }
 
 client.on("interactionCreate", async (interaction: Interaction) => {
-   if (interaction.isButton()) {
-      if (!isReady) return;
-      if (!interaction.guild?.id) return;
+   try {
+      if (interaction.isButton()) {
+         if (!isReady) return;
+         if (!interaction.guild?.id) return;
 
-      switch (interaction?.customId) {
-         case "joinLeave":
-            joinLeaveButton(interaction);
-            break;
-      }
-   } else if (interaction.isCommand()) {
-      if (!isReady) {
-         interaction.reply("Bot is starting up. Please try again in ~10 seconds...");
-         return;
-      }
-      if (!interaction.guild?.id) {
-         interaction.reply("Commands can only be used in servers.");
-         return;
-      }
+         switch (interaction?.customId) {
+            case "joinLeave":
+               joinLeaveButton(interaction);
+               break;
+         }
+      } else if (interaction.isCommand()) {
+         if (!isReady) {
+            interaction.reply("Bot is starting up. Please try again in ~10 seconds...");
+            return;
+         }
+         if (!interaction.guild?.id) {
+            interaction.reply("Commands can only be used in servers.");
+            return;
+         }
 
-      const parsed = new Parsed(interaction);
-      await parsed.setup();
-      // -- EVERYONE COMMANDS --
-      switch (interaction.commandName) {
-         case "help":
-            switch (parsed.command.options.first()?.value) {
-               case undefined:
-                  Commands.help(parsed);
-                  break;
-               case "setup":
-                  Commands.helpSetup(parsed);
-                  break;
-               case "queues":
-                  Commands.helpQueue(parsed);
-                  break;
-               case "bot":
-                  Commands.helpBot(parsed);
-                  break;
-            }
-            break;
-         case "join":
-            Commands.join(parsed);
-            break;
-         case "leave":
-            Commands.leave(parsed);
-            break;
-         case "myqueues":
-            Commands.myqueues(parsed);
-            break;
-         default:
-            onAdminCommand(parsed);
-            break;
+         const parsed = new Parsed(interaction);
+         await parsed.setup();
+         // -- EVERYONE COMMANDS --
+         switch (interaction.commandName) {
+            case "help":
+               switch (parsed.command.options.first()?.value) {
+                  case undefined:
+                     await Commands.help(parsed);
+                     break;
+                  case "setup":
+                     await Commands.helpSetup(parsed);
+                     break;
+                  case "queues":
+                     await Commands.helpQueue(parsed);
+                     break;
+                  case "bot":
+                     await Commands.helpBot(parsed);
+                     break;
+               }
+               break;
+            case "join":
+               await Commands.join(parsed);
+               break;
+            case "leave":
+               await Commands.leave(parsed);
+               break;
+            case "myqueues":
+               await Commands.myqueues(parsed);
+               break;
+            default:
+               await onAdminCommand(parsed);
+               break;
+         }
       }
+   } catch (e) {
+      console.error(e);
    }
 });
 
@@ -323,7 +327,7 @@ async function resumeAfterOffline(): Promise<void> {
          for await (const queueMember of queueMembers) {
             if (!storedQueueMemberIds.includes(queueMember.id)) {
                updateDisplay = true;
-               await QueueMemberTable.store(queueChannel, queueMember);
+               await QueueMemberTable.store(queueChannel, queueMember).catch(() => null);
             }
          }
          if (updateDisplay) {
@@ -337,7 +341,7 @@ async function resumeAfterOffline(): Promise<void> {
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once("ready", async () => {
    console.time("READY. Bot started in");
-   await PatchingUtil.run();
+   await PatchingUtils.run();
    await QueueGuildTable.initTable();
    await QueueChannelTable.initTable();
    await DisplayChannelTable.initTable();
@@ -444,7 +448,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
                await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
             }
          }
-         await QueueMemberTable.store(newVoiceChannel, member);
+         await QueueMemberTable.store(newVoiceChannel, member).catch(() => null);
          SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
       }
       if (storedOldQueueChannel) {
@@ -529,12 +533,18 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
          await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueueChannel.grace_period);
          await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } else {
-         if (await QueueMemberTable.store(queueChannel, member)) {
+         try {
+            await QueueMemberTable.store(queueChannel, member);
             await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
-         } else {
-            await interaction
-               .reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true })
-               .catch(() => null);
+         } catch (e) {
+            if (e.author === "Queue Bot") {
+               await interaction
+                  .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
+                  .catch(() => null);
+               return;
+            } else {
+               throw e;
+            }
          }
       }
       const queueGuild = await QueueGuildTable.get(interaction.guild.id);

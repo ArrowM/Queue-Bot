@@ -321,25 +321,57 @@
       "enqueue",
       {
          "name": "enqueue",
-         "description": "Add a specified user to a queue",
+         "description": "Add a specified user or role to a queue",
          "options": [
             {
-               "name": "queue",
-               "description": "Text queue channel",
-               "type": 7,
-               "required": true
-            },
-            {
                "name": "user",
-               "description": "User to add",
-               "type": 6,
-               "required": true
+               "description": "Add a specified user to a queue",
+               "type": 1,
+               "options": [
+                  {
+                     "name": "queue",
+                     "description": "Text queue channel",
+                     "type": 7,
+                     "required": true
+                  },
+                  {
+                     "name": "user",
+                     "description": "User to add",
+                     "type": 6,
+                     "required": true
+                  },
+                  {
+                     "name": "message",
+                     "description": "Message to display next to the name",
+                     "type": 3,
+                     "required": false
+                  }
+               ]
             },
             {
-               "name": "message",
-               "description": "Message to display next to the name",
-               "type": 3,
-               "required": false
+               "name": "role",
+               "description": "Add a specified role to a queue",
+               "type": 1,
+               "options": [
+                  {
+                     "name": "queue",
+                     "description": "Text queue channel",
+                     "type": 7,
+                     "required": true
+                  },
+                  {
+                     "name": "role",
+                     "description": "Role to add",
+                     "type": 8,
+                     "required": true
+                  },
+                  {
+                     "name": "message",
+                     "description": "Message to display next to the name",
+                     "type": 3,
+                     "required": false
+                  }
+               ]
             }
          ]
       }

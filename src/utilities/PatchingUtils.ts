@@ -1,13 +1,13 @@
 import { Guild, GuildChannel, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
-import { Base } from "../utilities/Base";
-import { AdminPermission, BlackWhiteListEntry, DisplayChannel, QueueChannel, QueueGuild } from "../utilities/Interfaces";
+import { Base } from "./Base";
+import { AdminPermission, BlackWhiteListEntry, DisplayChannel, QueueChannel, QueueGuild } from "./Interfaces";
 import { ApplicationOptions, Client as SlashClient } from "discord-slash-commands-client";
 import { exists, readFileSync, writeFileSync } from "fs";
 import delay from "delay";
 import schemaInspector from "knex-schema-inspector";
-import { QueueChannelTable } from "../utilities/tables/QueueChannelTable";
-import { DisplayChannelTable } from "../utilities/tables/DisplayChannelTable";
-import { MessagingUtils } from "../utilities/MessagingUtils";
+import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { DisplayChannelTable } from "./tables/DisplayChannelTable";
+import { MessagingUtils } from "./MessagingUtils";
 
 interface PatchNote {
    sent: boolean;
@@ -15,7 +15,7 @@ interface PatchNote {
    embeds: MessageEmbed[];
 }
 
-export class PatchingUtil {
+export class PatchingUtils {
    public static async run() {
       await this.tableBlackWhiteList();
       await this.tableQueueMembers();

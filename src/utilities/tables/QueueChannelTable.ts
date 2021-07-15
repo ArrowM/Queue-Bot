@@ -205,7 +205,7 @@ export class QueueChannelTable {
          .catch(() => null);
       if (channel.type === "GUILD_VOICE") {
          for await (const member of channel.members.filter((member) => !member.user.bot).array()) {
-            await QueueMemberTable.store(channel, member);
+            await QueueMemberTable.store(channel, member).catch(() => null);
          }
       }
       await Commands.display(parsed, channel);

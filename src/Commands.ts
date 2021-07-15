@@ -249,17 +249,46 @@ export class Commands {
    public static async enqueue(parsed: Parsed): Promise<void> {
       const queueChannel = (await ParsingUtils.getStoredQueue(parsed, "GUILD_TEXT")) as TextChannel;
       if (!queueChannel) return;
+      const customMessage = parsed.getStringParam()?.substring(0, 128);
+
       const member = parsed.getMemberParam();
-      if (!member?.id) return;
-
-      const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel);
-
-      if (storedQueueMembers.some((storedMember) => storedMember.member_id === member.id)) {
-         await parsed.reply(`They were already in \`${queueChannel.name}\`.`).catch(() => null);
+      const role = parsed.getRoleParam();
+      if (member?.id) {
+         try {
+            await QueueMemberTable.store(queueChannel, member, customMessage, true);
+            await parsed.reply({
+               content: `Added <@!${member.id}> to \`${queueChannel.name}\`.`,
+               allowedMentions: { users: [] },
+            }).catch(() => null);
+         } catch (e) {
+            if (e.author === "Queue Bot") {
+               await parsed
+                  .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
+                  .catch(() => null);
+            } else {
+               throw e;
+            }
+         }
+      } else if (role?.id) {
+         let errorAccumulator = "";
+         for await (const member of role.members.array()) {
+            try {
+               await QueueMemberTable.store(queueChannel, member, customMessage, true);
+            } catch (e) {
+               if (e.author === "Queue Bot") {
+                  errorAccumulator += e.message;
+               } else {
+                  throw e;
+               }
+            }
+         }
+         const errorText = errorAccumulator ? "However, failed to add 1 or more members:\n" + errorAccumulator : "";
+         await parsed.reply({
+            content: `Added <@&${role.id}> to \`${queueChannel.name}\`.` + errorText,
+            allowedMentions: { users: [] },
+         }).catch(() => null);
       } else {
-         const customMessage = parsed.getStringParam()?.substring(0, 128);
-         await QueueMemberTable.store(queueChannel, member, customMessage, true);
-         await parsed.reply(`Added \`${member.displayName}\` to \`${queueChannel.name}\`.`).catch(() => null);
+         return;
       }
 
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -400,8 +429,8 @@ export class Commands {
                value: "Display a queue",
             },
             {
-               name: "`/enqueue`",
-               value: "Add another user to a queue",
+               name: "`/enqueue user` & `/enqueue role`",
+               value: "Add a specified user or role to a queue",
             },
             {
                name: "`/graceperiod`",
@@ -562,24 +591,17 @@ export class Commands {
       const author = parsed.command.member as GuildMember;
       if (!author?.id) return;
 
-      const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel);
-      const storedChannel = await QueueChannelTable.get(queueChannel.id);
-      if (storedChannel.max_members && storedChannel.max_members <= storedQueueMembers?.length) {
-         // Full
-         await parsed.reply({ content: `**ERROR**: \`${queueChannel.name}\` is full.`, ephemeral: true }).catch(() => null);
-      } else if (storedQueueMembers.some((storedMember) => storedMember.member_id === author.id)) {
-         // Already member
-         await parsed.reply({ content: `You are already in \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
-      } else {
-         const customMessage = parsed.getStringParam()?.substring(0, 128);
-         if (await QueueMemberTable.store(queueChannel, author, customMessage)) {
-            // Join
-            await parsed.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
-         } else {
-            // Blacklisted
+      const customMessage = parsed.getStringParam()?.substring(0, 128);
+
+      try {
+         await QueueMemberTable.store(queueChannel, author, customMessage);
+         await parsed.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+      } catch (e) {
+         if (e.author === "Queue Bot") {
             await parsed
-               .reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true })
+               .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
                .catch(() => null);
+            return;
          }
       }
 
