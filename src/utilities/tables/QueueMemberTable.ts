@@ -1,8 +1,9 @@
-import { QueueMember } from "../Interfaces";
+import { QueueChannel, QueueMember } from "../Interfaces";
 import { Base } from "../Base";
 import { Guild, GuildMember, Snowflake, TextChannel, VoiceChannel } from "discord.js";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { PriorityTable } from "./PriorityTable";
+import { QueueChannelTable } from "./QueueChannelTable";
 
 export class QueueMemberTable {
    /**
@@ -36,7 +37,7 @@ export class QueueMemberTable {
          try {
             const member = await guild.members.fetch(entry.member_id);
             if (!member) {
-               this.unstore(queueChannel.id, [entry.member_id]);
+               this.unstore(guild.id, queueChannel.id, [entry.member_id]);
             }
          } catch (e) {
             // SKIP
@@ -44,7 +45,7 @@ export class QueueMemberTable {
       }
    }
 
-   public static get(channelId: Snowflake, queueMemberId: Snowflake) {
+   public static get(channelId: Snowflake, queueMemberId?: Snowflake) {
       return Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", queueMemberId).first();
    }
 
@@ -117,15 +118,20 @@ export class QueueMemberTable {
             member_id: member.id,
          });
          this.unstoredMembersCache.delete(member.id);
+         // Assign Queue Role
+         const StoredQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
+         if (StoredQueueChannel?.role_id) {
+            await member.roles.add(StoredQueueChannel.role_id).catch(() => null);
+         }
          return true;
       }
    }
 
-   public static async unstore(channelId: Snowflake, memberIdsToRemove?: Snowflake[], gracePeriod?: number): Promise<void> {
+   public static async unstore(guildId: Snowflake, channelId: Snowflake, memberIds?: Snowflake[], gracePeriod?: number): Promise<void> {
       // Retreive list of stored embeds for display channel
       let query = Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId);
-      if (memberIdsToRemove) {
-         query = query.whereIn("member_id", memberIdsToRemove);
+      if (memberIds) {
+         query = query.whereIn("member_id", memberIds);
          if (gracePeriod) {
             // Cache members
             for (const queueMember of await query) {
@@ -135,6 +141,21 @@ export class QueueMemberTable {
             }
          }
       }
+      const deletedMembers = await query;
       await query.delete();
+      // Unassign Queue Role
+      const storedQueueChannel = await QueueChannelTable.get(channelId).catch(() => null as QueueChannel);
+      if (!storedQueueChannel?.role_id) return;
+
+      const guild = await Base.getClient()
+         .guilds.fetch(guildId)
+         .catch(() => null as Guild);
+      if (!guild) return;
+
+      for await (const deletedMember of deletedMembers) {
+         const member = await guild.members.fetch(deletedMember.member_id).catch(() => null as GuildMember);
+         if (!member) continue;
+         await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
+      }
    }
 }

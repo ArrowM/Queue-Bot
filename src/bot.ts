@@ -43,6 +43,168 @@ if (config.topGgToken) {
    dbl.on("error", () => null);
 }
 
+async function onAdminCommand(parsed: Parsed) {
+   if (!parsed.hasPermission) {
+      await parsed.reply({ content: "ERROR: Missing permission to use that command", ephemeral: true }).catch(() => null);
+      return;
+   }
+   // -- ADMIN COMMANDS --
+   switch (parsed.command.commandName) {
+      case "autopull":
+         switch (parsed.command.options.firstKey()) {
+            case "get":
+               Commands.autopullGet(parsed);
+               break;
+            case "set":
+               Commands.autopullSet(parsed);
+               break;
+         }
+         break;
+      case "blacklist":
+         switch (parsed.command.options.firstKey()) {
+            case "add":
+               Commands.blacklistAdd(parsed);
+               break;
+            case "delete":
+               Commands.blacklistDelete(parsed);
+               break;
+            case "list":
+               Commands.blacklistList(parsed);
+               break;
+         }
+         break;
+      case "clear":
+         Commands.clear(parsed);
+         break;
+      case "color":
+         switch (parsed.command.options.firstKey()) {
+            case "get":
+               Commands.colorGet(parsed);
+               break;
+            case "set":
+               Commands.colorSet(parsed);
+               break;
+         }
+         break;
+      case "display":
+         Commands.display(parsed);
+         break;
+      case "enqueue":
+         Commands.enqueue(parsed);
+         break;
+      case "graceperiod":
+         switch (parsed.command.options.firstKey()) {
+            case "get":
+               Commands.graceperiodGet(parsed);
+               break;
+            case "set":
+               Commands.graceperiodSet(parsed);
+               break;
+         }
+         break;
+      case "header":
+         switch (parsed.command.options.firstKey()) {
+            case "get":
+               Commands.headerGet(parsed);
+               break;
+            case "set":
+               Commands.headerSet(parsed);
+               break;
+         }
+         break;
+      case "kick":
+         Commands.kick(parsed);
+         break;
+      case "kickall":
+         Commands.kickAll(parsed);
+         break;
+      case "mention":
+         Commands.mention(parsed);
+         break;
+      case "mode":
+         switch (parsed.command.options.firstKey()) {
+            case "get":
+               Commands.modeGet(parsed);
+               break;
+            case "set":
+               Commands.modeSet(parsed);
+               break;
+         }
+         break;
+      case "next":
+         Commands.next(parsed);
+         break;
+      case "permission":
+         switch (parsed.command.options.firstKey()) {
+            case "add":
+               Commands.permissionAdd(parsed);
+               break;
+            case "delete":
+               Commands.permissionDelete(parsed);
+               break;
+            case "list":
+               Commands.permissionList(parsed);
+               break;
+         }
+         break;
+      case "priority":
+         switch (parsed.command.options.firstKey()) {
+            case "add":
+               Commands.priorityAdd(parsed);
+               break;
+            case "delete":
+               Commands.priorityDelete(parsed);
+               break;
+            case "list":
+               Commands.priorityList(parsed);
+               break;
+         }
+         break;
+      case "pullnum":
+         switch (parsed.command.options.firstKey()) {
+            case "get":
+               Commands.pullnumGet(parsed);
+               break;
+            case "set":
+               Commands.pullnumSet(parsed);
+               break;
+         }
+         break;
+      case "queues":
+         switch (parsed.command.options.firstKey()) {
+            case "add":
+               Commands.queuesAdd(parsed);
+               break;
+            case "delete":
+               Commands.queuesDelete(parsed);
+               break;
+            case "list":
+               Commands.queuesList(parsed);
+               break;
+         }
+         break;
+      case "shuffle":
+         Commands.shuffle(parsed);
+         break;
+      case "size":
+         switch (parsed.command.options.firstKey()) {
+            case "get":
+               Commands.sizeGet(parsed);
+               break;
+            case "set":
+               Commands.sizeSet(parsed);
+               break;
+         }
+         break;
+      case "start":
+         Commands.start(parsed);
+         break;
+      case "update":
+         Commands.update(parsed);
+         break;
+   }
+}
+
 client.on("interactionCreate", async (interaction: Interaction) => {
    if (interaction.isButton()) {
       if (!isReady) return;
@@ -59,13 +221,13 @@ client.on("interactionCreate", async (interaction: Interaction) => {
          return;
       }
       if (!interaction.guild?.id) {
-         interaction.reply("Commands can only be used in servers.")
+         interaction.reply("Commands can only be used in servers.");
          return;
       }
 
       const parsed = new Parsed(interaction);
       await parsed.setup();
-      // -- EVERYONE --
+      // -- EVERYONE COMMANDS --
       switch (interaction.commandName) {
          case "help":
             switch (parsed.command.options.first()?.value) {
@@ -86,167 +248,14 @@ client.on("interactionCreate", async (interaction: Interaction) => {
          case "join":
             Commands.join(parsed);
             break;
-         case "myqueues":
-            Commands.myqueues(parsed);
-            break;
-      }
-      if (!parsed.hasPermission) {
-         await parsed.command.reply({ content: "ERROR: Missing permission to use that command", ephemeral: true }).catch(() => null);
-         return;
-      }
-      // -- RESTRICTED --
-      switch (interaction.commandName) {
-         case "autopull":
-            switch (parsed.command.options.firstKey()) {
-               case "get":
-                  Commands.autopullGet(parsed);
-                  break;
-               case "set":
-                  Commands.autopullSet(parsed);
-                  break;
-            }
-            break;
-         case "blacklist":
-            switch (parsed.command.options.firstKey()) {
-               case "add":
-                  Commands.blacklistAdd(parsed);
-                  break;
-               case "delete":
-                  Commands.blacklistDelete(parsed);
-                  break;
-               case "list":
-                  Commands.blacklistList(parsed);
-                  break;
-            }
-            break;
-         case "clear":
-            Commands.clear(parsed);
-            break;
-         case "color":
-            switch (parsed.command.options.firstKey()) {
-               case "get":
-                  Commands.colorGet(parsed);
-                  break;
-               case "set":
-                  Commands.colorSet(parsed);
-                  break;
-            }
-            break;
-         case "display":
-            Commands.display(parsed);
-            break;
-         case "enqueue":
-            Commands.enqueue(parsed);
-            break;
-         case "graceperiod":
-            switch (parsed.command.options.firstKey()) {
-               case "get":
-                  Commands.graceperiodGet(parsed);
-                  break;
-               case "set":
-                  Commands.graceperiodSet(parsed);
-                  break;
-            }
-            break;
-         case "header":
-            switch (parsed.command.options.firstKey()) {
-               case "get":
-                  Commands.headerGet(parsed);
-                  break;
-               case "set":
-                  Commands.headerSet(parsed);
-                  break;
-            }
-            break;
-         case "kick":
-            Commands.kick(parsed);
-            break;
-         case "kickall":
-            Commands.kickAll(parsed);
-            break;
          case "leave":
             Commands.leave(parsed);
             break;
-         case "mention":
-            Commands.mention(parsed);
+         case "myqueues":
+            Commands.myqueues(parsed);
             break;
-         case "mode":
-            switch (parsed.command.options.firstKey()) {
-               case "get":
-                  Commands.modeGet(parsed);
-                  break;
-               case "set":
-                  Commands.modeSet(parsed);
-                  break;
-            }
-            break;
-         case "next":
-            Commands.next(parsed);
-            break;
-         case "permission":
-            switch (parsed.command.options.firstKey()) {
-               case "add":
-                  Commands.permissionAdd(parsed);
-                  break;
-               case "delete":
-                  Commands.permissionDelete(parsed);
-                  break;
-               case "list":
-                  Commands.permissionList(parsed);
-                  break;
-            }
-            break;
-         case "priority":
-            switch (parsed.command.options.firstKey()) {
-               case "add":
-                  Commands.priorityAdd(parsed);
-                  break;
-               case "delete":
-                  Commands.priorityDelete(parsed);
-                  break;
-               case "list":
-                  Commands.priorityList(parsed);
-                  break;
-            }
-            break;
-         case "pullnum":
-            switch (parsed.command.options.firstKey()) {
-               case "get":
-                  Commands.pullnumGet(parsed);
-                  break;
-               case "set":
-                  Commands.pullnumSet(parsed);
-                  break;
-            }
-            break;
-         case "queues":
-            switch (parsed.command.options.firstKey()) {
-               case "add":
-                  Commands.queuesAdd(parsed);
-                  break;
-               case "delete":
-                  Commands.queuesDelete(parsed);
-                  break;
-               case "list":
-                  Commands.queuesList(parsed);
-                  break;
-            }
-            break;
-         case "shuffle":
-            Commands.shuffle(parsed);
-            break;
-         case "size":
-            switch (parsed.command.options.firstKey()) {
-               case "get":
-                  Commands.sizeGet(parsed);
-                  break;
-               case "set":
-                  Commands.sizeSet(parsed);
-                  break;
-            }
-            break;
-         case "start":
-            Commands.start(parsed);
+         default:
+            onAdminCommand(parsed);
             break;
       }
    }
@@ -269,7 +278,9 @@ client.on("messageCreate", async (message) => {
       } else if (prefix === null) {
          return;
       } else if (message.content === prefix + "help") {
-         await message.reply(`I no longer respond to your old prefix (\`${prefix}\`). Try using the new slash commands! Like \`/help\`.`).catch(() => null);
+         await message
+            .reply(`I no longer respond to your old prefix (\`${prefix}\`). Try using the new slash commands! Like \`/help\`.`)
+            .catch(() => null);
       }
    }
 });
@@ -320,7 +331,7 @@ async function resumeAfterOffline(): Promise<void> {
          }
       }
    }
-   console.log("Done resuming...")
+   console.log("Done resuming...");
 }
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
@@ -356,7 +367,7 @@ client.on("roleDelete", async (role) => {
    const queueGuild = await QueueGuildTable.get(role.guild.id);
    const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
    for (const queueChannel of queueChannels) {
-      await SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
    }
 });
 
@@ -364,9 +375,9 @@ client.on("guildMemberRemove", async (guildMember) => {
    if (!isReady) return;
    const queueGuild = await QueueGuildTable.get(guildMember.guild.id);
    const queueChannels = await QueueChannelTable.fetchFromGuild(guildMember.guild);
-   for (const queueChannel of queueChannels) {
-      await QueueMemberTable.unstore(queueChannel.id, [guildMember.id]);
-      await SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   for await (const queueChannel of queueChannels) {
+      await QueueMemberTable.unstore(queueGuild.guild_id, queueChannel.id, [guildMember.id]);
+      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
    }
 });
 
@@ -384,7 +395,7 @@ client.on("channelDelete", async (channel) => {
    await DisplayChannelTable.getFromQueue(channel.id).delete();
 });
 
-client.on("channelUpdate", async (_oldChannel, newCh) => {
+client.on("channelUpdate", async (_oldCh, newCh) => {
    if (!isReady) return;
    const newChannel = newCh as VoiceChannel | TextChannel;
    const changedChannel = await QueueChannelTable.get(newCh.id);
@@ -444,7 +455,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
             SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
             await setTimeout(async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel), 1000);
          } else {
-            await QueueMemberTable.unstore(oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
+            await QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
          }
          SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
       }
@@ -515,13 +526,15 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
       const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (storedQueueMember) {
-         await QueueMemberTable.unstore(queueChannel.id, [member.id], storedQueueChannel.grace_period);
+         await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueueChannel.grace_period);
          await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } else {
          if (await QueueMemberTable.store(queueChannel, member)) {
             await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
          } else {
-            await interaction.reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true }).catch(() => null);
+            await interaction
+               .reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true })
+               .catch(() => null);
          }
       }
       const queueGuild = await QueueGuildTable.get(interaction.guild.id);

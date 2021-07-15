@@ -4,6 +4,8 @@ import {
    CommandInteractionOption,
    GuildChannel,
    GuildMember,
+   InteractionReplyOptions,
+   MessagePayload,
    Role,
    TextChannel,
    VoiceChannel,
@@ -51,19 +53,23 @@ export class ParsingUtils {
       let result = storedChannels.find((storedChannel) => storedChannel.id === channelParam.id);
       if (result) {
          if (type && type !== result.type) {
-            await parsed.command.reply({
-               content: `**ERROR**: Expected a ${type} channel. \`${channelParam.name}\` is a ${channelParam.type} channel.`,
-               ephemeral: true,
-            }).catch(() => null);
+            await parsed
+               .reply({
+                  content: `**ERROR**: Expected a ${type} channel. \`${channelParam.name}\` is a ${channelParam.type} channel.`,
+                  ephemeral: true,
+               })
+               .catch(() => null);
             result = null;
          }
       } else {
-         await parsed.command.reply({
-            content:
-               `**ERROR**: \`${channelParam.name}\` is not a queue. ` +
-               (parsed.hasPermission ? `Use \`/queues add ${channelParam.name}\` to make it a queue.` : ""),
-            ephemeral: true,
-         }).catch(() => null);
+         await parsed
+            .reply({
+               content:
+                  `**ERROR**: \`${channelParam.name}\` is not a queue. ` +
+                  (parsed.hasPermission ? `Use \`/queues add ${channelParam.name}\` to make it a queue.` : ""),
+               ephemeral: true,
+            })
+            .catch(() => null);
       }
       return result;
    }
@@ -76,6 +82,14 @@ export class Parsed {
 
    constructor(command: CommandInteraction) {
       this.command = command;
+   }
+
+   public async reply(options: string | MessagePayload | InteractionReplyOptions): Promise<void> {
+      if (this.command.replied) {
+         await this.command.followUp(options);
+      } else {
+         await this.command.reply(options);
+      }
    }
 
    public async setup(): Promise<void> {

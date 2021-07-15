@@ -1,4 +1,4 @@
-import { GuildMember, HexColorString, Message, Snowflake } from "discord.js";
+import { GuildMember, ColorResolvable, Message, Snowflake } from "discord.js";
 
 export interface ParsedArguments {
    queueGuild: QueueGuild;
@@ -10,13 +10,14 @@ export interface ParsedArguments {
 export interface QueueChannel {
    id: Snowflake;
    auto_fill: number; // 0 off. 1 on.
-   color: HexColorString;
+   color: ColorResolvable;
    guild_id: Snowflake;
    grace_period: number;
    header: string;
    max_members: number;
    pull_num: number;
    queue_channel_id: Snowflake;
+   role_id: Snowflake;
    target_channel_id: Snowflake;
 }
 
@@ -71,7 +72,7 @@ export interface ConfigJson {
    clientId: string;
    topGgToken: string;
 
-   color: HexColorString;
+   color: ColorResolvable;
    databaseType: string;
    databaseHost: string;
    databaseName: string;

@@ -1,4 +1,4 @@
-import { Guild, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { DiscordAPIError, Guild, ColorResolvable, Role, Snowflake, TextChannel, VoiceChannel } from "discord.js";
 import { QueueChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
@@ -81,8 +81,13 @@ export class QueueChannelTable {
       await this.get(queueChannelId).update("target_channel_id", targetChannelId);
    }
 
-   public static async updateColor(queueChannelId: Snowflake, value: string) {
-      await this.get(queueChannelId).update("color", value);
+   public static async updateColor(queueChannel: VoiceChannel | TextChannel, value: ColorResolvable) {
+      await this.get(queueChannel.id).update("color", value);
+      const storedQueueChannel = await this.get(queueChannel.id);
+      if (storedQueueChannel?.role_id) {
+         const role = await queueChannel.guild.roles.fetch(storedQueueChannel.role_id).catch(() => null as Role);
+         await role?.setColor(value).catch(() => null);
+      }
    }
 
    public static async updateGraceperiod(queueChannelId: Snowflake, value: number) {
@@ -95,6 +100,14 @@ export class QueueChannelTable {
 
    public static async updatePullnum(queueChannelId: Snowflake, value: number) {
       await this.get(queueChannelId).update("pull_num", value);
+   }
+
+   public static async updateRoleId(queueChannel: VoiceChannel | TextChannel, role: Role) {
+      await this.get(queueChannel.id).update("role_id", role.id);
+      const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
+      for await (const queueMember of queueMembers) {
+         await queueMember.member.roles.add(role);
+      }
    }
 
    public static async fetchFromGuild(guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
@@ -121,8 +134,64 @@ export class QueueChannelTable {
       return queueChannels;
    }
 
+   public static async createQueueRole(parsed: Parsed, channel: VoiceChannel | TextChannel, color: ColorResolvable): Promise<Role> {
+      return await channel.guild.roles
+         .create({
+            color: color,
+            mentionable: true,
+            name: "In queue: " + channel.name,
+         })
+         .catch(async (e: DiscordAPIError) => {
+            if (e.httpStatus === 403) {
+               await parsed
+                  .reply({
+                     content:
+                        "ERROR: Failed to create server role for queue. Please:\n1. Grant me the Manage Roles permission **or** click the link below\n2. Then use `/display` to create role",
+                     embeds: [
+                        {
+                           title: "Update Permission",
+                           url: "https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot",
+                        },
+                     ],
+                     ephemeral: true,
+                  })
+                  .catch(console.error);
+            }
+            return null;
+         });
+   }
+
+   public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed: Parsed): Promise<void> {
+      await this.get(channel.queue_channel_id).update("role_id", Base.getKnex().raw("DEFAULT"));
+      const roleId = channel?.role_id;
+      if (roleId) {
+         const guild = await Base.getClient()
+            .guilds.fetch(guildId)
+            .catch(() => null as Guild);
+         if (guild) {
+            const role = await guild.roles.fetch(roleId).catch(() => null as Role);
+            await role?.delete().catch(async (e: DiscordAPIError) => {
+               if (e.httpStatus === 403) {
+                  await parsed
+                     .reply({
+                        content: `ERROR: Failed to delete server role for queue. Please:\n1. Grant me the Manage Roles permission **or** click this link\n2. Manually delete the \`${role.name}\` role`,
+                        embeds: [
+                           {
+                              title: "Update Permission",
+                              url: "https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot",
+                           },
+                        ],
+                        ephemeral: true,
+                     })
+                     .catch(console.error);
+               }
+            });
+         }
+      }
+   }
+
    public static async store(parsed: Parsed, channel: VoiceChannel | TextChannel, maxMembers?: number): Promise<void> {
-      // Fetch old channels
+      // Store
       await Base.getKnex()<QueueChannel>("queue_channels")
          .insert({
             auto_fill: 1,
@@ -132,7 +201,6 @@ export class QueueChannelTable {
             max_members: maxMembers,
             pull_num: 1,
             queue_channel_id: channel.id,
-            target_channel_id: null,
          })
          .catch(() => null);
       if (channel.type === "GUILD_VOICE") {
@@ -143,8 +211,11 @@ export class QueueChannelTable {
       await Commands.display(parsed, channel);
    }
 
-   public static async unstore(guildId: Snowflake, channelId?: Snowflake): Promise<void> {
+   public static async unstore(guildId: Snowflake, channelId?: Snowflake, parsed?: Parsed): Promise<void> {
       let query = Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
+      // Delete role
+      await this.deleteQueueRole(guildId, await query.first(), parsed);
+      // Delete store db entries
       const channelIds: Snowflake[] = [];
       if (channelId) {
          query = query.where("queue_channel_id", channelId);
@@ -156,7 +227,7 @@ export class QueueChannelTable {
       for await (const channelId of channelIds) {
          await BlackWhiteListTable.unstore(2, channelId);
          await DisplayChannelTable.unstore(channelId);
-         await QueueMemberTable.unstore(channelId);
+         await QueueMemberTable.unstore(guildId, channelId);
       }
       await query.delete();
    }

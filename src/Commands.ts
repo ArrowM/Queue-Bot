@@ -1,4 +1,13 @@
-import { TextChannel, VoiceChannel, GuildMember, MessageEmbed, MessageEmbedOptions, Snowflake } from "discord.js";
+import {
+   TextChannel,
+   VoiceChannel,
+   GuildMember,
+   MessageEmbed,
+   MessageEmbedOptions,
+   Snowflake,
+   ColorResolvable,
+   DiscordAPIError,
+} from "discord.js";
 import { QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { Parsed, ParsingUtils } from "./utilities/ParsingUtils";
@@ -11,6 +20,7 @@ import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
+import delay from "delay";
 
 export class Commands {
    // --------------------------------- AUTOPULL ------------------------------- //
@@ -28,7 +38,7 @@ export class Commands {
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.auto_fill ? "on" : "off"}\n`;
       }
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -40,7 +50,7 @@ export class Commands {
 
       const value = parsed.getStringParam() === "off" ? 0 : 1;
       await QueueChannelTable.updateAutopull(queueChannel.id, value);
-      await parsed.command.reply(`Set autopull of \`${queueChannel.name}\` to \`${value ? "on" : "off"}\`.`).catch(() => null);
+      await parsed.reply(`Set autopull of \`${queueChannel.name}\` to \`${value ? "on" : "off"}\`.`).catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 
@@ -86,7 +96,7 @@ export class Commands {
       }
 
       response += await this.genBlacklistWhitelistList(queueChannel, type);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
    }
 
    /**
@@ -118,7 +128,7 @@ export class Commands {
       }
 
       response += await this.genBlacklistWhitelistList(queueChannel, type);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
    }
 
    /**
@@ -135,7 +145,7 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredQueue(parsed);
       if (!queueChannel) return;
       const response = await this.genBlacklistWhitelistList(queueChannel, type);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
    }
 
    /**
@@ -154,9 +164,9 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredQueue(parsed);
       if (!queueChannel) return;
 
-      await QueueMemberTable.unstore(queueChannel.id);
+      await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
-      await parsed.command.reply(`\`${queueChannel.name}\` queue cleared.`).catch(() => null);
+      await parsed.reply(`\`${queueChannel.name}\` queue cleared.`).catch(() => null);
    }
 
    // --------------------------------- COLOR ------------------------------- //
@@ -174,7 +184,7 @@ export class Commands {
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.color}\n`;
       }
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -185,17 +195,9 @@ export class Commands {
       if (!queueChannel) return;
 
       const value = parsed.getStringParam();
-      if (/^#?[0-9A-F]{6}$/i.test(value)) {
-         await QueueChannelTable.updateColor(queueChannel.id, value);
-         await parsed.command.reply(`Set color of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
-         SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
-      } else {
-         await parsed.command.reply({
-            content: `${value} is not a HEX color value. Please use a HEX color value like \`#51ff7e\`.`,
-            embeds: [{ title: "HEX Color Picker", url: "https://htmlcolorcodes.com/color-picker/" }],
-            ephemeral: true,
-         }).catch(() => null).catch(() => null);
-      }
+      await QueueChannelTable.updateColor(queueChannel, value as ColorResolvable);
+      await parsed.reply(`Set color of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 
    // --------------------------------- DISPLAY ------------------------------- //
@@ -219,10 +221,23 @@ export class Commands {
          // Create new display
          await DisplayChannelTable.store(queueChannel, displayChannel, embeds);
          if (!channel) {
-            await parsed.command.reply({ content: "Displayed.", ephemeral: true }).catch(() => null);
+            await parsed.reply({ content: "Displayed.", ephemeral: true }).catch(() => null);
          }
       } else {
-         author.send(`I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`).catch(() => null);
+         await parsed
+            .reply({
+               content: `I don't have permission to write messages and embeds in \`${displayChannel.name}\`.`,
+               ephemeral: true,
+            })
+            .catch(() => null);
+      }
+
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      if (!storedQueueChannel.role_id) {
+         const role = await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
+         if (role) {
+            await QueueChannelTable.updateRoleId(queueChannel, role);
+         }
       }
    }
 
@@ -240,11 +255,11 @@ export class Commands {
       const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel);
 
       if (storedQueueMembers.some((storedMember) => storedMember.member_id === member.id)) {
-         await parsed.command.reply(`They were already in \`${queueChannel.name}\`.`).catch(() => null);
+         await parsed.reply(`They were already in \`${queueChannel.name}\`.`).catch(() => null);
       } else {
          const customMessage = parsed.getStringParam()?.substring(0, 128);
          await QueueMemberTable.store(queueChannel, member, customMessage, true);
-         await parsed.command.reply(`Added \`${member.displayName}\` to \`${queueChannel.name}\`.`).catch(() => null);
+         await parsed.reply(`Added \`${member.displayName}\` to \`${queueChannel.name}\`.`).catch(() => null);
       }
 
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -265,7 +280,7 @@ export class Commands {
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.grace_period || 0}\n`;
       }
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -277,7 +292,7 @@ export class Commands {
 
       const value = parsed.getNumberParam(0, 6000, null);
       await QueueChannelTable.updateGraceperiod(queueChannel.id, value);
-      await parsed.command.reply(`Set grace period of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
+      await parsed.reply(`Set grace period of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 
@@ -296,7 +311,7 @@ export class Commands {
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.header || "none"}\n`;
       }
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -307,10 +322,8 @@ export class Commands {
       if (!queueChannel) return;
       const message = parsed.getStringParam() || "";
 
-      console.log(message);
-
       await QueueChannelTable.updateHeader(queueChannel.id, message);
-      await parsed.command.reply(`Updated **${queueChannel.name}** header.`).catch(() => null);
+      await parsed.reply(`Updated **${queueChannel.name}** header.`).catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 
@@ -347,7 +360,7 @@ export class Commands {
             },
          ],
       };
-      await parsed.command.reply({ embeds: [response], ephemeral: true }).catch(() => null);
+      await parsed.reply({ embeds: [response], ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -445,7 +458,7 @@ export class Commands {
          ],
       };
       const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can *NOT* use privileged commands.";
-      await parsed.command.reply({ content: content, embeds: [response], ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: content, embeds: [response], ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -475,7 +488,7 @@ export class Commands {
          ],
       };
       const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can *NOT* use privileged commands.";
-      await parsed.command.reply({ content: content, embeds: [response], ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: content, embeds: [response], ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -535,7 +548,7 @@ export class Commands {
          ],
       };
       const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can *NOT* use privileged commands.";
-      await parsed.command.reply({ content: content, embeds: [response], ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: content, embeds: [response], ephemeral: true }).catch(() => null);
    }
 
    // --------------------------------- JOIN ------------------------------- //
@@ -553,18 +566,20 @@ export class Commands {
       const storedChannel = await QueueChannelTable.get(queueChannel.id);
       if (storedChannel.max_members && storedChannel.max_members <= storedQueueMembers?.length) {
          // Full
-         await parsed.command.reply({ content: `**ERROR**: \`${queueChannel.name}\` is full.`, ephemeral: true }).catch(() => null);
+         await parsed.reply({ content: `**ERROR**: \`${queueChannel.name}\` is full.`, ephemeral: true }).catch(() => null);
       } else if (storedQueueMembers.some((storedMember) => storedMember.member_id === author.id)) {
          // Already member
-         await parsed.command.reply({ content: `You are already in \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+         await parsed.reply({ content: `You are already in \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } else {
          const customMessage = parsed.getStringParam()?.substring(0, 128);
          if (await QueueMemberTable.store(queueChannel, author, customMessage)) {
             // Join
-            await parsed.command.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+            await parsed.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
          } else {
             // Blacklisted
-            await parsed.command.reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true }).catch(() => null);
+            await parsed
+               .reply({ content: `**ERROR**: You are blacklisted from \`${queueChannel.name}\``, ephemeral: true })
+               .catch(() => null);
          }
       }
 
@@ -595,7 +610,7 @@ export class Commands {
       if (!member?.id) return;
 
       this.kickFromQueue(parsed.queueGuild, queueChannel, member);
-      await parsed.command.reply(`Kicked <@!${member.id}> from \`${queueChannel.name}\` queue.`).catch(() => null);
+      await parsed.reply(`Kicked <@!${member.id}> from \`${queueChannel.name}\` queue.`).catch(() => null);
    }
 
    // --------------------------------- KICKALL ------------------------------- //
@@ -614,7 +629,9 @@ export class Commands {
          channels.push(queueChannel);
       }
       channels.forEach((ch) => this.kickFromQueue(parsed.queueGuild, ch, member));
-      await parsed.command.reply(`Kicked <@!${member.id}> from ` + channels.map((ch) => `\`${ch.name}\``).join(", ") + " queues.").catch(() => null);
+      await parsed
+         .reply(`Kicked <@!${member.id}> from ` + channels.map((ch) => `\`${ch.name}\``).join(", ") + " queues.")
+         .catch(() => null);
    }
 
    // --------------------------------- LEAVE ------------------------------- //
@@ -630,10 +647,10 @@ export class Commands {
 
       const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel);
       if (storedQueueMembers.some((storedMember) => storedMember.member_id === author.id)) {
-         await QueueMemberTable.unstore(queueChannel.id, [author.id]);
-         await parsed.command.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+         await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [author.id]);
+         await parsed.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } else {
-         await parsed.command.reply({ content: `You were not in \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+         await parsed.reply({ content: `You were not in \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       }
 
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -651,15 +668,20 @@ export class Commands {
       if (!author?.id) return;
       const message = parsed.getStringParam();
 
-      const storedMembers = await QueueMemberTable.getFromQueue(queueChannel);
-      if (storedMembers.length > 0) {
-         await parsed.command.reply(
-            `**${author.displayName}** mentioned **${queueChannel.name}**` +
-               (message ? `: \`${message}\`\n` : `.\n`) +
-               storedMembers.map((member) => `<@!${member.member_id}>`).join(", ")
-         ).catch(() => null);
+      const response = `**${author.displayName}** mentioned **${queueChannel.name}**` + (message ? `: \`${message}\`` : "") + "\n";
+
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      if (storedQueueChannel.role_id) {
+         // Mention role
+         await parsed.reply(response + `<@&${storedQueueChannel.role_id}>`).catch(() => null);
       } else {
-         await parsed.command.reply(`\`${queueChannel.name}\` is empty.`).catch(() => null);
+         // Mention individual users
+         const storedMembers = await QueueMemberTable.getFromQueue(queueChannel);
+         if (storedMembers.length > 0) {
+            await parsed.reply(response + storedMembers.map((member) => `<@!${member.member_id}>`).join(", ")).catch(() => null);
+         } else {
+            await parsed.reply({ content: `\`${queueChannel.name}\` is empty.`, ephemeral: true }).catch(() => null);
+         }
       }
    }
 
@@ -681,7 +703,7 @@ export class Commands {
             response += "`3`. New display messages are sent.";
             break;
       }
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -691,7 +713,7 @@ export class Commands {
       const value = await parsed.getNumberParam(1, 3, 1);
 
       await QueueGuildTable.updateMessageMode(parsed.command.guild.id, value);
-      await parsed.command.reply(`Set messaging mode to \`${value}\`.`).catch(() => null)
+      await parsed.reply(`Set messaging mode to \`${value}\`.`).catch(() => null);
    }
 
    // --------------------------------- MYQUEUES ------------------------------- //
@@ -705,7 +727,7 @@ export class Commands {
 
       const storedEntries = (await QueueMemberTable.getFromMember(author.id)).slice(0, 25);
       if (storedEntries?.length < 1) {
-         await parsed.command.reply({ content: `You are in no queues.`, ephemeral: true }).catch(() => null)
+         await parsed.reply({ content: `You are in no queues.`, ephemeral: true }).catch(() => null);
       } else {
          const embed = new MessageEmbed();
          embed.setTitle(`${author.displayName}'s queues`);
@@ -718,7 +740,7 @@ export class Commands {
                `${memberIds.indexOf(author.id) + 1} <@!${author.id}>` + (entry.personal_message ? ` -- ${entry.personal_message}` : "")
             );
          }
-         await parsed.command.reply({ embeds: [embed], ephemeral: true }).catch(() => null);
+         await parsed.reply({ embeds: [embed], ephemeral: true }).catch(() => null);
       }
    }
 
@@ -748,9 +770,11 @@ export class Commands {
                   SchedulingUtils.scheduleMoveMember(member.member.voice, targetChannel);
                }
             } else {
-               await parsed.command.reply(
-                  "**ERROR**: No target channel. Set a target channel by sending `/start` then dragging the bot to the target channel."
-               ).catch(() => null);
+               await parsed
+                  .reply(
+                     "**ERROR**: No target channel. Set a target channel by sending `/start` then dragging the bot to the target channel."
+                  )
+                  .catch(() => null);
                return;
             }
          } else {
@@ -763,16 +787,17 @@ export class Commands {
                   .catch(() => null);
             }
          }
-         await parsed.command.reply(
-            `Pulled ` + queueMembers.map((member) => `<@!${member.member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`
-         ).catch(() => null)
+         await parsed
+            .reply(`Pulled ` + queueMembers.map((member) => `<@!${member.member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`)
+            .catch(() => null);
          await QueueMemberTable.unstore(
+            queueChannel.guild.id,
             queueChannel.id,
             queueMembers.map((member) => member.member_id)
          );
          SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
       } else {
-         await parsed.command.reply(`\`${queueChannel.name}\` is empty.`).catch(() => null);
+         await parsed.reply(`\`${queueChannel.name}\` is empty.`).catch(() => null);
       }
    }
 
@@ -810,7 +835,7 @@ export class Commands {
          response += `Added bot permission for \`${name}\`.`;
       }
       response += await this.genPermissionList(parsed);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
    }
 
    /**
@@ -831,7 +856,7 @@ export class Commands {
          response += `\`${name}\` did not have bot permission.`;
       }
       response += await this.genPermissionList(parsed);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
    }
 
    /**
@@ -839,7 +864,7 @@ export class Commands {
     */
    public static async permissionList(parsed: Parsed) {
       const response = await this.genPermissionList(parsed);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
    }
 
    // --------------------------------- PULLNUM ------------------------------- //
@@ -857,7 +882,7 @@ export class Commands {
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.pull_num}\n`;
       }
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -869,7 +894,7 @@ export class Commands {
 
       const value = parsed.getNumberParam(1, 99, 1);
       await QueueChannelTable.updatePullnum(queueChannel.id, value);
-      await parsed.command.reply(`Set pull number of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
+      await parsed.reply(`Set pull number of \`${queueChannel.name}\` to \`${value}\`.`).catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 
@@ -939,7 +964,7 @@ export class Commands {
       }
 
       response += await this.genPriorityList(guildId);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
       this.updatePriorities(parsed);
    }
 
@@ -963,7 +988,7 @@ export class Commands {
       }
 
       response += await this.genPriorityList(guildId);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null)
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
       this.updatePriorities(parsed);
    }
 
@@ -972,7 +997,7 @@ export class Commands {
     */
    public static async priorityList(parsed: Parsed): Promise<void> {
       const response = await this.genPriorityList(parsed.command.guild.id);
-      await parsed.command.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null)
+      await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
    }
 
    // --------------------------------- QUEUES ------------------------------- //
@@ -1000,14 +1025,14 @@ export class Commands {
 
       if (storedChannels.some((stored) => stored.id === channel.id)) {
          const response = `\`${channel.name}\` is already a queue.`;
-         await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+         await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
       } else {
          const size = parsed.getNumberParam(1, 99, null) || (channel as VoiceChannel).userLimit;
          if (channel.type === "GUILD_VOICE") {
             if (channel.permissionsFor(parsed.command.guild.me).has("CONNECT")) {
                await QueueChannelTable.store(parsed, channel, size);
                const response = `Created \`${channel.name}\` queue.` + (await this.genQueuesList(parsed));
-               await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+               await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
                if (size) {
                   if (channel.permissionsFor(parsed.command.guild.me).has("MANAGE_CHANNELS")) {
                      (channel as VoiceChannel).setUserLimit(size).catch(() => null);
@@ -1026,15 +1051,17 @@ export class Commands {
                   }
                }
             } else {
-               await parsed.command.reply({
-                  content: `**ERROR**: I need the **CONNECT** permission in the \`${channel.name}\` voice channel to pull in queue members.`,
-                  ephemeral: true,
-               }).catch(() => null);
+               await parsed
+                  .reply({
+                     content: `**ERROR**: I need the **CONNECT** permission in the \`${channel.name}\` voice channel to pull in queue members.`,
+                     ephemeral: true,
+                  })
+                  .catch(() => null);
             }
          } else {
             await QueueChannelTable.store(parsed, channel, size);
             const response = `Created \`${channel.name}\` queue.` + (await this.genQueuesList(parsed));
-            await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+            await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
          }
       }
    }
@@ -1046,9 +1073,9 @@ export class Commands {
       const queueChannel = await ParsingUtils.getStoredQueue(parsed);
       if (!queueChannel) return;
 
-      await QueueChannelTable.unstore(parsed.command.guild.id, queueChannel.id);
+      await QueueChannelTable.unstore(parsed.command.guild.id, queueChannel.id, parsed);
       const response = `Deleted queue for \`${queueChannel.name}\`.` + (await this.genQueuesList(parsed));
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
       Voice.disconnectFromChannel(queueChannel as VoiceChannel);
    }
 
@@ -1057,7 +1084,7 @@ export class Commands {
     */
    public static async queuesList(parsed: Parsed): Promise<void> {
       const response = await this.genQueuesList(parsed);
-      await parsed.command.reply(response).catch(() => null);
+      await parsed.reply(response).catch(() => null);
    }
 
    // --------------------------------- SHUFFLE ------------------------------- //
@@ -1087,7 +1114,7 @@ export class Commands {
          await QueueMemberTable.setCreatedAt(queueMembers[i].id, queueMemberTimeStamps[i]);
       }
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
-      await parsed.command.reply(`\`${queueChannel.name}\` queue shuffled.`).catch(() => null);
+      await parsed.reply(`\`${queueChannel.name}\` queue shuffled.`).catch(() => null);
    }
 
    // --------------------------------- SIZE ------------------------------- //
@@ -1105,7 +1132,7 @@ export class Commands {
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.max_members || "none"}\n`;
       }
-      await parsed.command.reply({ content: response, ephemeral: true }).catch(() => null);
+      await parsed.reply({ content: response, ephemeral: true }).catch(() => null);
    }
 
    /**
@@ -1118,7 +1145,7 @@ export class Commands {
 
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
       await QueueChannelTable.updateMaxMembers(queueChannel.id, max);
-      await parsed.command.reply(`Set \`${queueChannel.name}\` size to \`${max}\` users.`).catch(() => null);
+      await parsed.reply(`Set \`${queueChannel.name}\` size to \`${max}\` users.`).catch(() => null);
       if (queueChannel.type === "GUILD_VOICE") {
          if (queueChannel.permissionsFor(parsed.command.guild.me).has("MANAGE_CHANNELS")) {
             (queueChannel as VoiceChannel).setUserLimit(max).catch(() => null);
@@ -1146,12 +1173,55 @@ export class Commands {
       if (queueChannel.permissionsFor(parsed.command.guild.me).has("CONNECT")) {
          if (!queueChannel.full) {
             await Voice.connectToChannel(queueChannel).catch(() => null);
-            await parsed.command.reply("Started.").catch(() => null);
+            await parsed.reply("Started.").catch(() => null);
          } else {
-            await parsed.command.reply({ content: `**ERROR**: I can't join \`${queueChannel.name}\` because it is full.`, ephemeral: true }).catch(() => null);
+            await parsed
+               .reply({ content: `**ERROR**: I can't join \`${queueChannel.name}\` because it is full.`, ephemeral: true })
+               .catch(() => null);
          }
       } else {
-         await parsed.command.reply({ content: `**ERROR**: I don't have permission to join ${queueChannel.name}.`, ephemeral: true }).catch(() => null);
+         await parsed
+            .reply({ content: `**ERROR**: I don't have permission to join ${queueChannel.name}.`, ephemeral: true })
+            .catch(() => null);
       }
+   }
+
+   // --------------------------------- UPDATE ------------------------------- //
+
+   /**
+    * Force a queue to update
+    */
+   public static async update(parsed: Parsed): Promise<void> {
+      const queueChannel = (await ParsingUtils.getStoredQueue(parsed)) as VoiceChannel | TextChannel;
+      if (!queueChannel) return;
+
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      if (!storedQueueChannel.role_id) {
+         await parsed.reply({
+            content: `Attempting to create role for \`${queueChannel.name}\`.`,
+            ephemeral: true,
+         }).catch (() => null);
+         const role = await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
+         if (role) {
+            await QueueChannelTable.updateRoleId(queueChannel, role);
+         }
+      }
+
+      const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
+      await parsed
+         .reply({
+            content: `Verifying users in \`${queueChannel.name}\`. This will take about ${Math.floor(queueMembers.length * 1.1)} seconds.`,
+            ephemeral: true
+         })
+         .catch(() => null);
+      for await (const queueMember of queueMembers) {
+         await delay(1100);
+         await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
+            if (e.httpStatus === 404) {
+               await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
+            }
+         });
+      }
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 }

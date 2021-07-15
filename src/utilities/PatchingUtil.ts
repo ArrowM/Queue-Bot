@@ -292,6 +292,10 @@ export class PatchingUtil {
             });
          }
       }
+      // Add Role ID column
+      if (!(await Base.getKnex().schema.hasColumn("queue_channels", "role_id"))) {
+         await Base.getKnex().schema.table("queue_channels", (table) => table.bigInteger("role_id"));
+      }
    }
 
    private static async tableQueueGuilds(): Promise<void> {
