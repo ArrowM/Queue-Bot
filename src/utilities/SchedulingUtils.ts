@@ -19,26 +19,29 @@ export class SchedulingUtils {
    private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
 
    public static scheduleMoveMember(voice: VoiceState, channel: VoiceChannel) {
-      let timestamps = this.moveMembersTimeStamps.get(channel.guild.id);
-      if (!timestamps) {
-         timestamps = [];
-         this.moveMembersTimeStamps.set(channel.guild.id, timestamps);
-      }
-      let delay = 0;
-      // At 10 previous moves, rate limit kicks in
-      if (timestamps.length === 10) {
-         const newTime = timestamps.shift() + 12000;
-         timestamps.push(newTime);
-         delay = newTime - Date.now();
-      } else {
-         timestamps.push(Date.now());
-      }
-      setTimeout(() => {
-         if (!channel.full) {
-            voice.setChannel(channel).catch(() => null);
+      try {
+         let timestamps = this.moveMembersTimeStamps.get(channel.guild.id);
+         if (!timestamps) {
+            timestamps = [];
+            this.moveMembersTimeStamps.set(channel.guild.id, timestamps);
          }
-      }, delay);
-      // EMPTY
+         let delay = 0;
+         // At 10 previous moves, rate limit kicks in
+         if (timestamps.length === 10) {
+            const newTime = timestamps.shift() + 12000;
+            timestamps.push(newTime);
+            delay = newTime - Date.now();
+         } else {
+            timestamps.push(Date.now());
+         }
+         setTimeout(() => {
+            if (!channel.full) {
+               voice.setChannel(channel).catch(() => null);
+            }
+         }, delay);
+      } catch (e) {
+         // EMPTY
+      }
    }
 
    /**

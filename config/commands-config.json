@@ -292,34 +292,6 @@
                            "value": "DARK_RED"
                         },
                         {
-                           "name": "DARK_GREY",
-                           "value": "DARK_GREY"
-                        },
-                        {
-                           "name": "LIGHT_GREY",
-                           "value": "LIGHT_GREY"
-                        },
-                        {
-                           "name": "DARK_NAVY",
-                           "value": "DARK_NAVY"
-                        },
-                        {
-                           "name": "BLURPLE",
-                           "value": "BLURPLE"
-                        },
-                        {
-                           "name": "GREYPLE",
-                           "value": "GREYPLE"
-                        },
-                        {
-                           "name": "DARK_BUT_NOT_BLACK",
-                           "value": "DARK_BUT_NOT_BLACK"
-                        },
-                        {
-                           "name": "NOT_QUITE_BLACK",
-                           "value": "NOT_QUITE_BLACK"
-                        },
-                        {
                            "name": "RANDOM",
                            "value": "RANDOM"
                         }
