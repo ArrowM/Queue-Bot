@@ -5,6 +5,7 @@ import {
    GuildChannel,
    GuildMember,
    InteractionReplyOptions,
+   Message,
    MessagePayload,
    Role,
    TextChannel,
@@ -20,7 +21,6 @@ export class ParsingUtils {
    private static regEx = RegExp(Base.getConfig().permissionsRegexp, "i");
    /**
     * Determine whether user has permission to interact with bot
-    * @param CommandInteraction
     */
    public static async checkPermission(command: CommandInteraction): Promise<boolean> {
       const member = command.member as GuildMember;
@@ -42,8 +42,6 @@ export class ParsingUtils {
 
    /**
     * Get a queue using user argument
-    * @param command
-    * @param type? Type of channels to fetch ('GUILD_TEXT' or 'GUILD_VOICE')
     */
    public static async getStoredQueue(parsed: Parsed, type?: "GUILD_TEXT" | "GUILD_VOICE"): Promise<VoiceChannel | TextChannel> {
       const storedChannels = await QueueChannelTable.fetchFromGuild(parsed.command.guild);
@@ -73,6 +71,20 @@ export class ParsingUtils {
       }
       return result;
    }
+
+   private static coll = new Intl.Collator("en", { sensitivity: "base" });
+   public static async getTextChannelFromName(message: Message) {
+      let channelName = message.content.substring(message.content.indexOf(" ") + 1);
+      const channels = (await message.guild.channels.fetch().catch(() => [])) as TextChannel[];
+      const textChannels = channels.filter((ch) => ch.type === "GUILD_TEXT");
+      for (const textChannel of textChannels) {
+         if (this.coll.compare(channelName, textChannel.name) === 0) {
+            return textChannel;
+         }
+         channelName = channelName.substring(0, channelName.lastIndexOf(" "));
+      }
+      return null;
+   }
 }
 
 export class Parsed {
@@ -87,6 +99,8 @@ export class Parsed {
    public async reply(options: string | MessagePayload | InteractionReplyOptions): Promise<void> {
       if (this.command.replied) {
          await this.command.followUp(options);
+      } else if (this.command.deferred) {
+         await this.command.editReply(options);
       } else {
          await this.command.reply(options);
       }

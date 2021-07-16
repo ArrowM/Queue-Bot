@@ -6,7 +6,7 @@ import {
    MessageEmbedOptions,
    Snowflake,
    ColorResolvable,
-   DiscordAPIError,
+   Message,
 } from "discord.js";
 import { QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
@@ -20,7 +20,6 @@ import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
-import delay from "delay";
 
 export class Commands {
    // --------------------------------- AUTOPULL ------------------------------- //
@@ -256,15 +255,15 @@ export class Commands {
       if (member?.id) {
          try {
             await QueueMemberTable.store(queueChannel, member, customMessage, true);
-            await parsed.reply({
-               content: `Added <@!${member.id}> to \`${queueChannel.name}\`.`,
-               allowedMentions: { users: [] },
-            }).catch(() => null);
+            await parsed
+               .reply({
+                  content: `Added <@!${member.id}> to \`${queueChannel.name}\`.`,
+                  allowedMentions: { users: [] },
+               })
+               .catch(() => null);
          } catch (e) {
             if (e.author === "Queue Bot") {
-               await parsed
-                  .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
-                  .catch(() => null);
+               await parsed.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
             } else {
                throw e;
             }
@@ -283,10 +282,12 @@ export class Commands {
             }
          }
          const errorText = errorAccumulator ? "However, failed to add 1 or more members:\n" + errorAccumulator : "";
-         await parsed.reply({
-            content: `Added <@&${role.id}> to \`${queueChannel.name}\`.` + errorText,
-            allowedMentions: { users: [] },
-         }).catch(() => null);
+         await parsed
+            .reply({
+               content: `Added <@&${role.id}> to \`${queueChannel.name}\`.` + errorText,
+               allowedMentions: { users: [] },
+            })
+            .catch(() => null);
       } else {
          return;
       }
@@ -598,9 +599,7 @@ export class Commands {
          await parsed.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } catch (e) {
          if (e.author === "Queue Bot") {
-            await parsed
-               .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
-               .catch(() => null);
+            await parsed.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
             return;
          }
       }
@@ -667,8 +666,8 @@ export class Commands {
       const author = parsed.command.member as GuildMember;
       if (!author?.id) return;
 
-      const storedQueueMembers = await QueueMemberTable.getFromQueue(queueChannel);
-      if (storedQueueMembers.some((storedMember) => storedMember.member_id === author.id)) {
+      const storedMember = await QueueMemberTable.get(queueChannel.id, author.id);
+      if (storedMember) {
          await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [author.id]);
          await parsed.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } else {
@@ -689,6 +688,8 @@ export class Commands {
       const author = parsed.command.member as GuildMember;
       if (!author?.id) return;
       const message = parsed.getStringParam();
+
+      await parsed.command.defer({ ephemeral: true });
 
       const response = `**${author.displayName}** mentioned **${queueChannel.name}**` + (message ? `: \`${message}\`` : "") + "\n";
 
@@ -788,8 +789,10 @@ export class Commands {
                .fetch(storedQueueChannel.target_channel_id)
                .catch(() => null)) as VoiceChannel;
             if (targetChannel) {
-               for (const member of queueMembers) {
-                  SchedulingUtils.scheduleMoveMember(member.member.voice, targetChannel);
+               for (const queueMember of queueMembers) {
+                  const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
+                  if (!member) continue;
+                  SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
                }
             } else {
                await parsed
@@ -800,10 +803,12 @@ export class Commands {
                return;
             }
          } else {
-            for await (const nextMember of queueMembers) {
-               await nextMember.member
+            for (const queueMember of queueMembers) {
+               const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
+               if (!member) continue;
+               await member
                   .send(
-                     `Hey <@!${nextMember.member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
+                     `Hey <@!${member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
                         `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
                   )
                   .catch(() => null);
@@ -937,21 +942,21 @@ export class Commands {
    }
 
    /**
-    * HELPER
+    * HELPER. Re-evaluate all. This can be slow
     */
    private static async updatePriorities(parsed: Parsed): Promise<void> {
       const guild = parsed.command.guild;
       // Get all priority Ids for guild
       const priorityIds = (await PriorityTable.getMany(guild.id)).map((entry) => entry.role_member_id);
       // Get all queue channels for guild
-      const entries = await QueueChannelTable.getFromGuild(guild.id);
-      for await (const entry of entries) {
-         const queueChannel = (await guild.channels.fetch(entry.queue_channel_id).catch(() => null)) as VoiceChannel | TextChannel;
+      const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
+      for await (const storedChannel of storedChannels) {
+         const queueChannel = (await guild.channels.fetch(storedChannel.queue_channel_id).catch(() => null)) as VoiceChannel | TextChannel;
          if (!queueChannel) continue;
          // Get members for each queue channel
-         const entries = await QueueMemberTable.getFromQueue(queueChannel);
-         for await (const entry of entries) {
-            const queueMember = await guild.members.fetch(entry.member_id).catch(() => null as GuildMember);
+         const storedMembers = await QueueMemberTable.getFromQueue(queueChannel);
+         for await (const storedMember of storedMembers) {
+            const queueMember = await QueueMemberTable.getMemberFromQueueMember(queueChannel, storedMember);
             if (!queueMember) continue;
             // Re-evaluate priority for each member
             const roleIds = queueMember.roles.cache.keyArray();
@@ -983,11 +988,11 @@ export class Commands {
       } else {
          await PriorityTable.store(guildId, id, role != null);
          response += `Added \`${name}\` to the the priority list.`;
+         this.updatePriorities(parsed);
       }
 
       response += await this.genPriorityList(guildId);
       await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
-      this.updatePriorities(parsed);
    }
 
    /**
@@ -1005,13 +1010,13 @@ export class Commands {
       if (await PriorityTable.get(guildId, id)) {
          await PriorityTable.unstore(guildId, id);
          response += `Removed \`${name}\` from the priority list.`;
+         this.updatePriorities(parsed);
       } else {
          response += `\`${name}\` was not on the priority list.`;
       }
 
       response += await this.genPriorityList(guildId);
       await parsed.reply({ content: response, allowedMentions: { users: [] } }).catch(() => null);
-      this.updatePriorities(parsed);
    }
 
    /**
@@ -1219,31 +1224,42 @@ export class Commands {
 
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel.role_id) {
-         await parsed.reply({
-            content: `Attempting to create role for \`${queueChannel.name}\`.`,
-            ephemeral: true,
-         }).catch (() => null);
+         await parsed
+            .reply({
+               content: `Attempting to create role for \`${queueChannel.name}\`.`,
+               ephemeral: true,
+            })
+            .catch(() => null);
          const role = await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
          if (role) {
             await QueueChannelTable.updateRoleId(queueChannel, role);
          }
       }
 
+      await parsed.reply({
+         content: `Verifying users in \`${queueChannel.name}\`. This may take a while...`,
+         ephemeral: true,
+      });
       const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
-      await parsed
-         .reply({
-            content: `Verifying users in \`${queueChannel.name}\`. This will take about ${Math.floor(queueMembers.length * 1.1)} seconds.`,
-            ephemeral: true
-         })
-         .catch(() => null);
       for await (const queueMember of queueMembers) {
-         await delay(1100);
-         await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
-            if (e.httpStatus === 404) {
-               await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
-            }
-         });
+         await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
       }
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+   }
+
+   // ---------------------------------------------------------------------------------- //
+   // --------------------------------- MESSAGE COMMANDS ------------------------------- //
+   // ---------------------------------------------------------------------------------- //
+
+   // --------------------------------- MESSAGE JOIN ------------------------------- //
+
+   public static async messageJoin(message: Message): Promise<void> {
+      const queueChannel = ParsingUtils.getTextChannelFromName(message);
+   }
+
+   // --------------------------------- MESSAGE LEAVE ------------------------------- //
+
+   public static async messageLeave(message: Message): Promise<void> {
+      const queueChannel = ParsingUtils.getTextChannelFromName(message);
    }
 }

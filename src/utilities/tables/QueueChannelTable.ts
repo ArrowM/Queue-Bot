@@ -106,7 +106,9 @@ export class QueueChannelTable {
       await this.get(queueChannel.id).update("role_id", role.id);
       const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
       for await (const queueMember of queueMembers) {
-         await queueMember.member.roles.add(role);
+         const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
+         if (!member) continue;
+         await member.roles.add(role);
       }
    }
 
@@ -213,21 +215,16 @@ export class QueueChannelTable {
 
    public static async unstore(guildId: Snowflake, channelId?: Snowflake, parsed?: Parsed): Promise<void> {
       let query = Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
-      // Delete role
-      await this.deleteQueueRole(guildId, await query.first(), parsed);
       // Delete store db entries
-      const channelIds: Snowflake[] = [];
-      if (channelId) {
-         query = query.where("queue_channel_id", channelId);
-         channelIds.push(channelId);
-      } else {
-         channelIds.push(...(await query).map((entry) => entry.queue_channel_id));
-      }
+      if (channelId) query = query.where("queue_channel_id", channelId);
+      const queueChannels = await query;
 
-      for await (const channelId of channelIds) {
-         await BlackWhiteListTable.unstore(2, channelId);
-         await DisplayChannelTable.unstore(channelId);
-         await QueueMemberTable.unstore(guildId, channelId);
+      for await (const queueChannel of queueChannels) {
+         // Delete role
+         await this.deleteQueueRole(guildId, queueChannel, parsed);
+         await BlackWhiteListTable.unstore(2, queueChannel.queue_channel_id);
+         await DisplayChannelTable.unstore(queueChannel.queue_channel_id);
+         await QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id);
       }
       await query.delete();
    }

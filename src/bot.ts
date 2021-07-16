@@ -270,9 +270,22 @@ let hasPrefix: boolean;
 client.on("messageCreate", async (message) => {
    const guildId = message.guild?.id;
    if (!isReady || !guildId) return;
+   // -
+   //if (message.content.startsWith("!join")) {
+   //   await Commands.messageJoin(message);
+   //} else if (message.content.startsWith("!leave")) {
+   //   await Commands.messageLeave(message);
+   //} else if (message.content.startsWith("!myqueues")) {
+   //   //await Commands.messageMyQueues(message);
+   //} else if (message.content.startsWith("!help")) {
+   //   //await Commands.messageHelp(message);
+   //}
+   // --
    if (hasPrefix === undefined) {
       hasPrefix = await Base.getKnex().schema.hasColumn("queue_guilds", "prefix");
-   } else if (hasPrefix === false) {
+   }
+   // -
+   if (hasPrefix === false) {
       return;
    } else {
       let prefix = prefixCache.get(guildId);
@@ -314,18 +327,18 @@ async function resumeAfterOffline(): Promise<void> {
          let updateDisplay = false;
 
          // Fetch stored and live members
-         const storedQueueMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.member_id);
+         const storedMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.member_id);
          const queueMembers = queueChannel.members.filter((member) => !Base.isMe(member)).array();
 
          // Update member lists
-         for await (const storedQueueMemberId of storedQueueMemberIds) {
-            if (!queueMembers.some((queueMember) => queueMember.id === storedQueueMemberId)) {
+         for await (const storedMemberId of storedMemberIds) {
+            if (!queueMembers.some((queueMember) => queueMember.id === storedMemberId)) {
                updateDisplay = true;
-               await QueueMemberTable.get(queueChannel.id, storedQueueMemberId).delete();
+               await QueueMemberTable.unstore(guild.id, queueChannel.id, [storedMemberId]);
             }
          }
          for await (const queueMember of queueMembers) {
-            if (!storedQueueMemberIds.includes(queueMember.id)) {
+            if (!storedMemberIds.includes(queueMember.id)) {
                updateDisplay = true;
                await QueueMemberTable.store(queueChannel, queueMember).catch(() => null);
             }
@@ -485,22 +498,18 @@ export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChann
    // Check to see if I have perms to drag other users into this channel.
    if (dstChannel.permissionsFor(guild.me).has("CONNECT")) {
       // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit.
-      let storedQueueMembers = await QueueMemberTable.getNext(srcChannel);
-      if (storedQueueMembers.length > 0) {
+      let storedMembers = await QueueMemberTable.getNext(srcChannel);
+      if (storedMembers.length > 0) {
          if (!storedSrcChannel.auto_fill) {
-            storedQueueMembers = storedQueueMembers.slice(0, storedSrcChannel.pull_num);
+            storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
          }
          if (dstChannel.userLimit) {
-            storedQueueMembers = storedQueueMembers.slice(
-               0,
-               dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size
-            );
+            storedMembers = storedMembers.slice(0, dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size);
          }
-         const queueMembers = storedQueueMembers.map((member) => member.member).filter((member) => member);
-         if (queueMembers.length > 0) {
-            queueMembers.forEach((member) => {
-               SchedulingUtils.scheduleMoveMember(member.voice, dstChannel);
-            });
+         for await (const storedMember of storedMembers) {
+            const queueMember = await QueueMemberTable.getMemberFromQueueMember(srcChannel, storedMember);
+            if (!queueMember) continue;
+            SchedulingUtils.scheduleMoveMember(queueMember.voice, dstChannel);
          }
       }
    } else {
@@ -538,9 +547,7 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
             await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
          } catch (e) {
             if (e.author === "Queue Bot") {
-               await interaction
-                  .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
-                  .catch(() => null);
+               await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
                return;
             } else {
                throw e;

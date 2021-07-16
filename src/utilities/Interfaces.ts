@@ -42,7 +42,6 @@ export interface QueueMember {
    personal_message: string;
    channel_id: Snowflake;
    member_id: Snowflake;
-   member?: GuildMember;
 }
 
 export interface BlackWhiteListEntry {

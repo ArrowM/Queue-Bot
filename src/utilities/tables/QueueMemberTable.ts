@@ -37,7 +37,7 @@ export class QueueMemberTable {
          try {
             const member = await guild.members.fetch(entry.member_id);
             if (!member) {
-               this.unstore(guild.id, queueChannel.id, [entry.member_id]);
+               await this.unstore(guild.id, queueChannel.id, [entry.member_id]);
             }
          } catch (e) {
             // SKIP
@@ -72,18 +72,26 @@ export class QueueMemberTable {
    /**
     * UNORDERED. Fetch members for channel, filter out users who have left the guild.
     */
-   public static async getFromQueue(queueChannel: TextChannel | VoiceChannel): Promise<QueueMember[]> {
-      let query = Base.getKnex()<QueueMember>("queue_members").where("channel_id", queueChannel.id);
-
-      const storedMembers = await query;
-      for await (const storedMember of storedMembers) {
-         storedMember.member = await queueChannel.guild.members.fetch(storedMember.member_id).catch(() => null as GuildMember);
-      }
-      return storedMembers.filter((storedMember) => storedMember.member);
+   public static async getFromQueue(queueChannel: TextChannel | VoiceChannel) {
+      return Base.getKnex()<QueueMember>("queue_members").where("channel_id", queueChannel.id);
    }
 
    /**
-    * Fetch members for channel, filter out users who have left the guild.
+    * WARNING THIS MIGHT BE SLOW
+    */
+   public static async getMemberFromQueueMember(queueChannel: TextChannel | VoiceChannel, queueMember: QueueMember): Promise<GuildMember> {
+      try {
+         return await queueChannel.guild.members.fetch(queueMember.member_id);
+      } catch (e) {
+         if (e.httpStatus === 404) {
+            await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
+         }
+         return undefined;
+      }
+   }
+
+   /**
+    *
     */
    public static async getNext(queueChannel: TextChannel | VoiceChannel, amount?: number): Promise<QueueMember[]> {
       let query = Base.getKnex()<QueueMember>("queue_members")
@@ -91,11 +99,7 @@ export class QueueMemberTable {
          .orderBy([{ column: "is_priority", order: "desc" }, "created_at"]);
       if (amount) query = query.limit(amount);
 
-      const storedMembers = await query;
-      for await (const storedMember of storedMembers) {
-         storedMember.member = await queueChannel.guild.members.fetch(storedMember.member_id).catch(() => null as GuildMember);
-      }
-      return storedMembers.filter((storedMember) => storedMember.member);
+      return await query;
    }
 
    private static unstoredMembersCache = new Map<Snowflake, string>();
@@ -109,14 +113,14 @@ export class QueueMemberTable {
       if (await QueueMemberTable.get(queueChannel.id, member.id)) {
          throw {
             author: "Queue Bot",
-            message: `<@!${member.id}> is already in \`${queueChannel.name}\`.\n`
+            message: `<@!${member.id}> is already in \`${queueChannel.name}\`.\n`,
          };
       }
       if (!force) {
-         if ((await BlackWhiteListTable.isBlacklisted(queueChannel.id, member))) {
+         if (await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) {
             throw {
                author: "Queue Bot",
-               message: `<@!${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`
+               message: `<@!${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`,
             };
          }
          const storedChannel = await QueueChannelTable.get(queueChannel.id);
@@ -125,7 +129,7 @@ export class QueueMemberTable {
             if (storedChannel.max_members <= storedQueueMembers?.length) {
                throw {
                   author: "Queue Bot",
-                  message: `Failed to add <@!${member.id}> to \`${queueChannel.name}\`. Queue is full!\n`
+                  message: `Failed to add <@!${member.id}> to \`${queueChannel.name}\`. Queue is full!\n`,
                };
             }
          }

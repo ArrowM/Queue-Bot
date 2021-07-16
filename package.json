@@ -25,6 +25,7 @@
       "libsodium-wrappers": "^0.7.9",
       "node-gyp": "^8.1.0",
       "pg": "^8.6.0",
+      "string-similarity": "^4.0.4",
       "utf-8-validate": "^5.0.5",
       "zlib-sync": "^0.1.7"
    },
