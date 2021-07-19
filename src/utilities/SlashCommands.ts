@@ -16,7 +16,7 @@ export class SlashCommands {
    private static commandRegistrationCache = new Map<string, number>();
 
    private static async editProgress(msg: Message, respText: string, progNum: number, TotalNum: number): Promise<void> {
-      await msg.edit(respText + "\n[" + "▓".repeat(progNum) + "░".repeat(TotalNum - progNum) + "]");
+      await msg?.edit(respText + "\n[" + "▓".repeat(progNum) + "░".repeat(TotalNum - progNum) + "]");
    }
 
    private static removeQueueArg(options: ApplicationOptions): ApplicationOptions {
@@ -156,6 +156,12 @@ export class SlashCommands {
             console.log("Registered global commands: " + command.name);
             await delay(5000);
          }
+      }
+      for await (const command of commands) {
+         if (!["altprefix", "help", "queues"].includes(command.name)) {
+            await this.slashClient.deleteCommand(command.id);
+         }
+         await delay(5000);
       }
    }
 }
