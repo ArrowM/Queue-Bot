@@ -12,18 +12,16 @@ import { Parsed } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 
 export class SlashCommands {
-   private static slashClient = new SlashClient(Base.getConfig().token, Base.getConfig().clientId);
+   private static slashClient = new SlashClient(Base.config.token, Base.config.clientId);
    private static commandRegistrationCache = new Map<string, number>();
 
    private static async editProgress(msg: Message, respText: string, progNum: number, TotalNum: number): Promise<void> {
-      if (progNum % 2 === 0) {
-         await msg?.edit(respText + "\n[" + "▓".repeat(progNum) + "░".repeat(TotalNum - progNum) + "]").catch(() => null);
-      }
+      await msg?.edit(respText + "\n[" + "▓".repeat(progNum) + "░".repeat(TotalNum - progNum) + "]").catch(() => null);
    }
 
-   private static removeQueueArg(options: ApplicationOptions): ApplicationOptions {
-      if (options.options) options.options = this.removeQueue(options.options);
-      return options;
+   private static removeQueueArg(cmd: ApplicationOptions): ApplicationOptions {
+      if (cmd.options) cmd.options = this.removeQueue(cmd.options);
+      return cmd;
    }
 
    private static removeQueue(options: ApplicationCommandOption[]): ApplicationCommandOption[] {
@@ -39,9 +37,9 @@ export class SlashCommands {
       return options;
    }
 
-   private static modifyQueueArg(options: ApplicationOptions, storedChannels: (VoiceChannel | TextChannel)[]): ApplicationOptions {
-      if (options.options) options.options = this.modifyQueue(options.options, storedChannels);
-      return options;
+   private static modifyQueueArg(cmd: ApplicationOptions, storedChannels: (VoiceChannel | TextChannel)[]): ApplicationOptions {
+      if (cmd.options) cmd.options = this.modifyQueue(cmd.options, storedChannels);
+      return cmd;
    }
 
    private static modifyQueue(
@@ -50,8 +48,10 @@ export class SlashCommands {
    ): ApplicationCommandOption[] {
       for (let i = 0; i < options.length; i++) {
          const option = options[i];
-         if ((option.type === 1 || option.type === 2) && option.options) {
-            option.options = this.modifyQueue(option.options, storedChannels);
+         if (option.type === 1 || option.type === 2) {
+            if (option.options?.length) {
+               option.options = this.modifyQueue(option.options, storedChannels);
+            }
          } else if (option.type === 7) {
             const choices: ApplicationCommandOptionChoice[] = storedChannels.map((ch) => {
                return { name: ch.name, value: ch.id };
@@ -69,7 +69,9 @@ export class SlashCommands {
       return options;
    }
 
-   private static async modifyForNoQueues(guildId: Snowflake, now: number, parsed?: Parsed): Promise<void> {
+   private static async modifyForNoQueues(guildId: Snowflake, parsed?: Parsed): Promise<void> {
+      const now = Date.now();
+      this.commandRegistrationCache.set(guildId, now);
       let count = 0;
       const respText = "Unregistering queue commands. This will take about 2 minutes...";
       const resp = await parsed?.reply({ content: respText }).catch(() => null as Message);
@@ -90,12 +92,17 @@ export class SlashCommands {
       await resp?.edit({ content: "Done unregistering queue commands." }).catch(() => null);
    }
 
-   private static async modifyForOneQueue(guildId: Snowflake, now: number, parsed?: Parsed): Promise<void> {
+   private static async modifyForOneQueue(guildId: Snowflake, parsed?: Parsed): Promise<void> {
+      const now = Date.now();
+      this.commandRegistrationCache.set(guildId, now);
       let count = 0;
       const respText = "Registering queue commands. This will take about 2 minutes...";
       const resp = await parsed?.reply({ content: respText }).catch(() => null as Message);
 
-      const commands = Base.getCommands().filter((c) => !["altprefix", "help", "queues"].includes(c.name));
+      // Deepclone this object because it is being modified.
+      let commands = JSON.parse(JSON.stringify(Base.commands)) as ApplicationOptions[];
+      commands = commands.filter((c) => !["altprefix", "help", "queues"].includes(c.name));
+
       for await (let command of commands) {
          if (this.commandRegistrationCache.get(guildId) !== now) {
             resp?.delete().catch(() => null);
@@ -110,18 +117,17 @@ export class SlashCommands {
       }
       await resp?.edit({ content: "Done registering queue commands." }).catch(() => null);
    }
-   
-   private static async modifyForManyQueues(
-      guildId: Snowflake,
-      now: number,
-      storedChannels: (VoiceChannel | TextChannel)[],
-      parsed?: Parsed
-   ) {
+
+   private static async modifyForManyQueues(guildId: Snowflake, storedChannels: (VoiceChannel | TextChannel)[], parsed?: Parsed) {
+      const now = Date.now();
+      this.commandRegistrationCache.set(guildId, now);
       let count = 0;
       const respText = "Registering queue commands. This will take about 2 minutes...";
       const resp = await parsed?.reply({ content: respText }).catch(() => null as Message);
 
-      const commands = Base.getCommands().filter((c) => !["altprefix", "help", "queues"].includes(c.name));
+      // Deepclone this object because it is being modified.
+      let commands = JSON.parse(JSON.stringify(Base.commands)) as ApplicationOptions[];
+      commands = commands.filter((c) => !["altprefix", "help", "queues"].includes(c.name));
       for await (let command of commands) {
          if (this.commandRegistrationCache.get(guildId) !== now) {
             resp?.delete().catch(() => null);
@@ -138,31 +144,29 @@ export class SlashCommands {
    }
 
    public static async modifyCommandsForGuild(guild: Guild, parsed?: Parsed): Promise<void> {
-      const now = Date.now();
-      this.commandRegistrationCache.set(guild.id, now);
-      const storedChannels = await QueueChannelTable.fetchFromGuild(guild); 
+      const storedChannels = await QueueChannelTable.fetchFromGuild(guild);
       if (storedChannels.length === 0) {
-         await this.modifyForNoQueues(guild.id, now, parsed);
+         await this.modifyForNoQueues(guild.id, parsed);
       } else if (storedChannels.length === 1) {
-         await this.modifyForOneQueue(guild.id, now, parsed);
-      } else {
-         await this.modifyForManyQueues(guild.id, now, storedChannels, parsed);
+         await this.modifyForOneQueue(guild.id, parsed);
+      } else if (storedChannels.length === 2 && parsed.queueChannels.length === 1) {
+         await this.modifyForManyQueues(guild.id, storedChannels, parsed);
       }
    }
 
    public static async modifySlashCommandsForAllGuilds() {
       if (((await this.slashClient.getCommands({})) as ApplicationCommand[]).length < 10) return;
-      for await (const guild of Base.getClient().guilds.cache.array()) {
+      for await (const guild of Base.client.guilds.cache.array()) {
          this.modifyCommandsForGuild(guild);
          await delay(6000);
       }
    }
 
    public static async registerGlobalCommands() {
-      const commands = await this.slashClient.getCommands({}) as ApplicationCommand[];
+      const commands = (await this.slashClient.getCommands({})) as ApplicationCommand[];
       for await (const name of ["altprefix", "help", "queues"]) {
          if (!commands.some((cmd) => cmd.name === name)) {
-            const command = Base.getCommands().find((cmd) => cmd.name === name);
+            const command = Base.commands.find((cmd) => cmd.name === name);
             await this.slashClient.createCommand(command).catch(console.error);
             console.log("Registered global commands: " + command.name);
             await delay(5000);

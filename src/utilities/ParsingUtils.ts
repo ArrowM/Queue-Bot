@@ -19,7 +19,7 @@ import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 
 export class ParsingUtils {
-   private static regEx = RegExp(Base.getConfig().permissionsRegexp, "i");
+   private static regEx = RegExp(Base.config.permissionsRegexp, "i");
    /**
     * Determine whether user has permission to interact with bot
     */
@@ -195,7 +195,7 @@ export abstract class Parsed {
       }
       this.hasPermission = await ParsingUtils.checkPermission(this.request);
    }
-   
+
    protected abstract getStringParam(_commandNameLength: number): Promise<void>;
    protected abstract getChannelParam(_channelType: "GUILD_VOICE" | "GUILD_TEXT"): Promise<void>;
    protected abstract getRoleParam(): Promise<void>;

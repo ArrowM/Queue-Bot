@@ -12,7 +12,7 @@ export class MessageCollection<K, V> extends LimitedCollection<K, V> {
 
    public set(key: any, value: any) {
       const msg = value as Message;
-      if (msg?.author?.id && msg.author.id !== Base.getClient().user.id) return this;
+      if (msg?.author?.id && msg.author.id !== Base.client.user.id) return this;
       if (this.maxSize === 0) return this;
       if (this.size >= this.maxSize && !this.has(key)) this.delete(this.firstKey());
       return super.set(key, value);

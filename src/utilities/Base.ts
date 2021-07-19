@@ -1,17 +1,15 @@
 import { ApplicationOptions } from "discord-slash-commands-client";
 import { Client, Collection, GuildMember, LimitedCollection } from "discord.js";
 import { readFileSync } from "fs";
-import { knex, Knex } from "knex";
+import { knex } from "knex";
 import { ConfigJson } from "./Interfaces";
 import { MessageCollection } from "./MessageCollection";
 
 export class Base {
-   private static config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
-   private static commands = new Collection<string, ApplicationOptions>(
-      JSON.parse(readFileSync("../config/commands-config.json", "utf8"))
-   ).array();
+   static readonly config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
+   static readonly commands = JSON.parse(readFileSync("../config/commands-config.json", "utf8")) as ApplicationOptions[];
 
-   protected static knex = knex({
+   static readonly knex = knex({
       client: Base.config.databaseType,
       connection: {
          database: Base.config.databaseName,
@@ -21,7 +19,7 @@ export class Base {
       },
    });
 
-   private static client = new Client({
+   static readonly client = new Client({
       makeCache: (manager) => {
          if ("MessageManager" === manager.name) {
             return new MessageCollection(5);
@@ -56,22 +54,6 @@ export class Base {
       },
       intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES"], // add  "GUILD_MEMBERS"
    });
-
-   public static getCommands(): ApplicationOptions[] {
-      return this.commands;
-   }
-
-   public static getConfig(): ConfigJson {
-      return this.config;
-   }
-
-   public static getKnex(): Knex {
-      return this.knex;
-   }
-
-   public static getClient(): Client {
-      return this.client;
-   }
 
    public static isMe(member: GuildMember): boolean {
       return member.id === member.guild.me.id;

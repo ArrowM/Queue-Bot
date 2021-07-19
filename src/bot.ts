@@ -20,9 +20,9 @@ import { PatchingUtils } from "./utilities/PatchingUtils";
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
 
 let isReady = false;
-const config = Base.getConfig();
-const client = Base.getClient();
-const knex = Base.getKnex();
+const config = Base.config;
+const client = Base.client;
+const knex = Base.knex;
 client.login(config.token);
 client.on("error", console.error);
 client.on("shardError", console.error);

@@ -9,30 +9,28 @@ export class QueueGuildTable {
     * Create & update QueueGuild database table if necessary
     */
    public static async initTable(): Promise<void> {
-      await Base.getKnex()
-         .schema.hasTable("queue_guilds")
-         .then(async (exists) => {
-            if (!exists) {
-               await Base.getKnex()
-                  .schema.createTable("queue_guilds", (table) => {
-                     table.bigInteger("guild_id").primary();
-                     table.integer("msg_mode");
-                     table.boolean("enable_alt_prefix");
-                  })
-                  .catch((e) => console.error(e));
-            }
-         });
+      await Base.knex.schema.hasTable("queue_guilds").then(async (exists) => {
+         if (!exists) {
+            await Base.knex.schema
+               .createTable("queue_guilds", (table) => {
+                  table.bigInteger("guild_id").primary();
+                  table.integer("msg_mode");
+                  table.boolean("enable_alt_prefix");
+               })
+               .catch((e) => console.error(e));
+         }
+      });
    }
 
    /**
     * Cleanup deleted Guilds
     **/
    public static async validateEntries() {
-      const entries = await Base.getKnex()<QueueGuild>("queue_guilds");
+      const entries = await Base.knex<QueueGuild>("queue_guilds");
       for await (const entry of entries) {
          try {
             await delay(1000);
-            const guild = await Base.getClient().guilds.fetch(entry.guild_id);
+            const guild = await Base.client.guilds.fetch(entry.guild_id);
             if (guild) {
                await guild.channels.fetch().catch(() => null);
                await guild.members.fetch().catch(() => null);
@@ -48,11 +46,11 @@ export class QueueGuildTable {
    }
 
    public static get(guildId: Snowflake) {
-      return Base.getKnex()<QueueGuild>("queue_guilds").where("guild_id", guildId).first();
+      return Base.knex<QueueGuild>("queue_guilds").where("guild_id", guildId).first();
    }
 
    public static getAll() {
-      return Base.getKnex()<QueueGuild>("queue_guilds");
+      return Base.knex<QueueGuild>("queue_guilds");
    }
 
    public static async updateMessageMode(guildId: Snowflake, mode: number): Promise<void> {
@@ -64,11 +62,11 @@ export class QueueGuildTable {
    }
 
    public static async store(guild: Guild): Promise<void> {
-      await Base.getKnex()<QueueGuild>("queue_guilds").insert({ guild_id: guild.id, msg_mode: 1 });
+      await Base.knex<QueueGuild>("queue_guilds").insert({ guild_id: guild.id, msg_mode: 1 });
    }
 
    public static async unstore(guildId: Snowflake): Promise<void> {
       await QueueChannelTable.unstore(guildId);
-      await Base.getKnex()<QueueGuild>("queue_guilds").where("guild_id", guildId).delete();
+      await Base.knex<QueueGuild>("queue_guilds").where("guild_id", guildId).delete();
    }
 }

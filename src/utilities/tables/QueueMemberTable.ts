@@ -10,29 +10,27 @@ export class QueueMemberTable {
     * Create & update QueueGuild database table if necessary
     */
    public static async initTable(): Promise<void> {
-      await Base.getKnex()
-         .schema.hasTable("queue_members")
-         .then(async (exists) => {
-            if (!exists) {
-               await Base.getKnex()
-                  .schema.createTable("queue_members", (table) => {
-                     table.increments("id").primary();
-                     table.bigInteger("channel_id");
-                     table.bigInteger("member_id");
-                     table.text("personal_message");
-                     table.timestamp("created_at").defaultTo(Base.getKnex().fn.now());
-                     table.boolean("is_priority");
-                  })
-                  .catch((e) => console.error(e));
-            }
-         });
+      await Base.knex.schema.hasTable("queue_members").then(async (exists) => {
+         if (!exists) {
+            await Base.knex.schema
+               .createTable("queue_members", (table) => {
+                  table.increments("id").primary();
+                  table.bigInteger("channel_id");
+                  table.bigInteger("member_id");
+                  table.text("personal_message");
+                  table.timestamp("created_at").defaultTo(Base.knex.fn.now());
+                  table.boolean("is_priority");
+               })
+               .catch((e) => console.error(e));
+         }
+      });
    }
 
    /**
     * Cleanup deleted Display Channels
     **/
    public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
-      const entries = await Base.getKnex()<QueueMember>("queue_members").where("channel_id", queueChannel.id);
+      const entries = await Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
       for await (const entry of entries) {
          try {
             const member = await guild.members.fetch(entry.member_id);
@@ -46,15 +44,15 @@ export class QueueMemberTable {
    }
 
    public static get(channelId: Snowflake, memberId?: Snowflake) {
-      return Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", memberId).first();
+      return Base.knex<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", memberId).first();
    }
 
    public static getFromId(id: Snowflake) {
-      return Base.getKnex()<QueueMember>("queue_members").where("id", id).first();
+      return Base.knex<QueueMember>("queue_members").where("id", id).first();
    }
 
    public static getFromMember(memberId: Snowflake) {
-      return Base.getKnex()<QueueMember>("queue_members").where("member_id", memberId);
+      return Base.knex<QueueMember>("queue_members").where("member_id", memberId);
    }
 
    public static async setCreatedAt(memberId: Snowflake, time: string): Promise<void> {
@@ -62,7 +60,7 @@ export class QueueMemberTable {
    }
 
    public static async setPriority(channelId: Snowflake, memberId: Snowflake, isPriority: boolean): Promise<void> {
-      await Base.getKnex()<QueueMember>("queue_members")
+      await Base.knex<QueueMember>("queue_members")
          .where("channel_id", channelId)
          .where("member_id", memberId)
          .first()
@@ -73,7 +71,7 @@ export class QueueMemberTable {
     * UNORDERED. Fetch members for channel, filter out users who have left the guild.
     */
    public static async getFromQueue(queueChannel: TextChannel | VoiceChannel) {
-      return Base.getKnex()<QueueMember>("queue_members").where("channel_id", queueChannel.id);
+      return Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
    }
 
    /**
@@ -94,7 +92,7 @@ export class QueueMemberTable {
     *
     */
    public static async getNext(queueChannel: TextChannel | VoiceChannel, amount?: number): Promise<QueueMember[]> {
-      let query = Base.getKnex()<QueueMember>("queue_members")
+      let query = Base.knex<QueueMember>("queue_members")
          .where("channel_id", queueChannel.id)
          .orderBy([{ column: "is_priority", order: "desc" }, "created_at"]);
       if (amount) query = query.limit(amount);
@@ -135,7 +133,7 @@ export class QueueMemberTable {
          }
       }
       const isPriority = await PriorityTable.isPriority(queueChannel.guild.id, member);
-      await Base.getKnex()<QueueMember>("queue_members").insert({
+      await Base.knex<QueueMember>("queue_members").insert({
          created_at: this.unstoredMembersCache.get(member.id),
          is_priority: isPriority,
          personal_message: customMessage,
@@ -152,7 +150,7 @@ export class QueueMemberTable {
 
    public static async unstore(guildId: Snowflake, channelId: Snowflake, memberIds?: Snowflake[], gracePeriod?: number): Promise<void> {
       // Retreive list of stored embeds for display channel
-      let query = Base.getKnex()<QueueMember>("queue_members").where("channel_id", channelId);
+      let query = Base.knex<QueueMember>("queue_members").where("channel_id", channelId);
       if (memberIds) {
          query = query.whereIn("member_id", memberIds);
          if (gracePeriod) {
@@ -170,9 +168,7 @@ export class QueueMemberTable {
       const storedQueueChannel = await QueueChannelTable.get(channelId).catch(() => null as QueueChannel);
       if (!storedQueueChannel?.role_id) return;
 
-      const guild = await Base.getClient()
-         .guilds.fetch(guildId)
-         .catch(() => null as Guild);
+      const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
       if (!guild) return;
 
       for await (const deletedMember of deletedMembers) {

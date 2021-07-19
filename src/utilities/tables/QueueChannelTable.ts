@@ -14,32 +14,30 @@ export class QueueChannelTable {
     * Create & update QueueChannel database table if necessary
     */
    public static async initTable(): Promise<void> {
-      await Base.getKnex()
-         .schema.hasTable("queue_channels")
-         .then(async (exists) => {
-            if (!exists) {
-               await Base.getKnex()
-                  .schema.createTable("queue_channels", (table) => {
-                     table.bigInteger("queue_channel_id").primary();
-                     table.integer("auto_fill");
-                     table.text("color");
-                     table.integer("grace_period");
-                     table.bigInteger("guild_id");
-                     table.text("header");
-                     table.integer("max_members");
-                     table.integer("pull_num");
-                     table.bigInteger("target_channel_id");
-                  })
-                  .catch((e) => console.error(e));
-            }
-         });
+      await Base.knex.schema.hasTable("queue_channels").then(async (exists) => {
+         if (!exists) {
+            await Base.knex.schema
+               .createTable("queue_channels", (table) => {
+                  table.bigInteger("queue_channel_id").primary();
+                  table.integer("auto_fill");
+                  table.text("color");
+                  table.integer("grace_period");
+                  table.bigInteger("guild_id");
+                  table.text("header");
+                  table.integer("max_members");
+                  table.integer("pull_num");
+                  table.bigInteger("target_channel_id");
+               })
+               .catch((e) => console.error(e));
+         }
+      });
    }
 
    /**
     * Cleanup deleted QueueChannels
     **/
    public static async validateEntries(guild: Guild) {
-      const entries = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
+      const entries = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
       for await (const entry of entries) {
          try {
             await delay(1000);
@@ -58,15 +56,15 @@ export class QueueChannelTable {
    }
 
    public static get(queueChannelId: Snowflake) {
-      return Base.getKnex()<QueueChannel>("queue_channels").where("queue_channel_id", queueChannelId).first();
+      return Base.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannelId).first();
    }
 
    public static getFromGuild(guildId: Snowflake) {
-      return Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
+      return Base.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
    }
 
    public static getFromTarget(targetChannelId: Snowflake) {
-      return Base.getKnex()<QueueChannel>("queue_channels").where("target_channel_id", targetChannelId);
+      return Base.knex<QueueChannel>("queue_channels").where("target_channel_id", targetChannelId);
    }
 
    public static async updateMaxMembers(queueChannelId: Snowflake, max: number) {
@@ -115,7 +113,7 @@ export class QueueChannelTable {
    public static async fetchFromGuild(guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
       const queueChannelIdsToRemove: Snowflake[] = [];
       // Fetch stored channels
-      const storedQueueChannels = await Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guild.id);
+      const storedQueueChannels = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
       const queueChannels: (VoiceChannel | TextChannel)[] = [];
       // Check for deleted channels
       // Going backwards allows the removal of entries while visiting each one
@@ -168,12 +166,10 @@ export class QueueChannelTable {
    }
 
    public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await this.get(channel.queue_channel_id).update("role_id", Base.getKnex().raw("DEFAULT"));
+      await this.get(channel.queue_channel_id).update("role_id", Base.knex.raw("DEFAULT"));
       const roleId = channel?.role_id;
       if (roleId) {
-         const guild = await Base.getClient()
-            .guilds.fetch(guildId)
-            .catch(() => null as Guild);
+         const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
          if (guild) {
             const role = await guild.roles.fetch(roleId).catch(() => null as Role);
             await role?.delete().catch(async (e: DiscordAPIError) => {
@@ -202,11 +198,11 @@ export class QueueChannelTable {
       maxMembers?: number
    ): Promise<void> {
       // Store
-      await Base.getKnex()<QueueChannel>("queue_channels")
+      await Base.knex<QueueChannel>("queue_channels")
          .insert({
             auto_fill: 1,
-            color: Base.getConfig().color,
-            grace_period: Base.getConfig().gracePeriod,
+            color: Base.config.color,
+            grace_period: Base.config.gracePeriod,
             guild_id: channel.guild.id,
             max_members: maxMembers,
             pull_num: 1,
@@ -222,7 +218,7 @@ export class QueueChannelTable {
    }
 
    public static async unstore(guildId: Snowflake, channelId?: Snowflake, parsed?: ParsedCommand | ParsedMessage): Promise<void> {
-      let query = Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
+      let query = Base.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
       // Delete store db entries
       if (channelId) query = query.where("queue_channel_id", channelId);
       const queueChannels = await query;

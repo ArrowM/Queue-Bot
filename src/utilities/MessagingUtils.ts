@@ -31,8 +31,8 @@ export class MessagingUtils {
       for await (const storedDisplayChannel of storedDisplayChannels) {
          // For each embed list of the queue
          try {
-            const displayChannel = (await Base.getClient()
-               .channels.fetch(storedDisplayChannel.display_channel_id)
+            const displayChannel = (await Base.client.channels
+               .fetch(storedDisplayChannel.display_channel_id)
                .catch(() => null)) as TextChannel;
 
             if (displayChannel) {
@@ -109,7 +109,7 @@ export class MessagingUtils {
             title += `  ->  ${targetChannel.name}`;
          } else {
             // Target has been deleted - clean it up
-            await QueueChannelTable.updateTarget(queueChannel.id, Base.getKnex().raw("DEFAULT"));
+            await QueueChannelTable.updateTarget(queueChannel.id, Base.knex.raw("DEFAULT"));
          }
       }
       let position = 0;
