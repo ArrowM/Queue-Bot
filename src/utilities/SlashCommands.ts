@@ -151,7 +151,7 @@ export class SlashCommands {
             await this.modifyForNoQueues(guild.id, parsed);
          } else if (storedChannels.length === 1) {
             await this.modifyForOneQueue(guild.id, parsed);
-         } else if (storedChannels.length === 2 && (!parsed || parsed.queueChannels.length === 1)) {
+         } else {
             await this.modifyForManyQueues(guild.id, storedChannels, parsed);
          }
       } catch (e) {
