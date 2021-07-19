@@ -42,7 +42,7 @@ export class Commands {
             })
             .catch(() => null);
       } else {
-         await QueueGuildTable.updateAltPrefix(parsed.request.guild.id, true);
+         await QueueGuildTable.updateAltPrefix(parsed.request.guild.id, parsed.args.text === "enable");
          await parsed
             .reply({
                content: `Alternative prefixes have been ${parsed.args.text}d.`,
