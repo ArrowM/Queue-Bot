@@ -448,7 +448,7 @@ export class Commands {
     * Add a specified user to a queue
     */
    public static async enqueueUser(parsed: ParsedCommand | ParsedMessage) {
-      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasMember: true, hasText: true });
+      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasMember: true, hasText: true });
 
       await this.enqueue(parsed);
    }
@@ -457,7 +457,7 @@ export class Commands {
     * Add a specified role to a queue
     */
    public static async enqueueRole(parsed: ParsedCommand | ParsedMessage) {
-      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasRole: true, hasText: true });
+      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasRole: true, hasText: true });
 
       await this.enqueue(parsed);
    }
@@ -822,7 +822,7 @@ export class Commands {
     * Join a text queue
     */
    public static async join(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, hasText: true });
+      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, channelType: "GUILD_TEXT", hasText: true });
 
       const queueChannel = parsed.args.channel as TextChannel;
       if (!queueChannel?.id) return;
@@ -916,7 +916,7 @@ export class Commands {
     * Leave a text queue
     */
    public static async leave(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 5, hasChannel: true });
+      await parsed.readArgs({ commandNameLength: 5, hasChannel: true, channelType: "GUILD_TEXT" });
 
       const queueChannel = parsed.args.channel as TextChannel;
       if (!queueChannel?.id) return;
@@ -1641,7 +1641,7 @@ export class Commands {
     * Add the bot to a voice queue
     */
    public static async start(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 5, hasChannel: true });
+      await parsed.readArgs({ commandNameLength: 5, hasChannel: true, channelType: "GUILD_VOICE" });
 
       const queueChannel = parsed.args.channel as VoiceChannel;
       if (!queueChannel?.id) return;
