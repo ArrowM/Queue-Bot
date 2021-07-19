@@ -16,7 +16,9 @@ export class SlashCommands {
    private static commandRegistrationCache = new Map<string, number>();
 
    private static async editProgress(msg: Message, respText: string, progNum: number, TotalNum: number): Promise<void> {
-      await msg?.edit(respText + "\n[" + "▓".repeat(progNum) + "░".repeat(TotalNum - progNum) + "]");
+      if (progNum % 2 === 0) {
+         await msg?.edit(respText + "\n[" + "▓".repeat(progNum) + "░".repeat(TotalNum - progNum) + "]").catch(() => null);
+      }
    }
 
    private static removeQueueArg(options: ApplicationOptions): ApplicationOptions {
@@ -67,7 +69,7 @@ export class SlashCommands {
       return options;
    }
 
-   private static async modifyForNoQueues(guildId: Snowflake, now: number, parsed?: Parsed) {
+   private static async modifyForNoQueues(guildId: Snowflake, now: number, parsed?: Parsed): Promise<void> {
       let count = 0;
       const respText = "Unregistering queue commands. This will take about 2 minutes...";
       const resp = await parsed?.reply({ content: respText }).catch(() => null as Message);
@@ -75,7 +77,10 @@ export class SlashCommands {
       let commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
       commands = commands.filter((c) => !["altprefix", "help", "queues"].includes(c.name));
       for await (let command of commands) {
-         if (this.commandRegistrationCache.get(guildId) !== now) return;
+         if (this.commandRegistrationCache.get(guildId) !== now) {
+            resp?.delete().catch(() => null);
+            return;
+         }
 
          await this.slashClient.deleteCommand(command.id, guildId).catch(() => null);
 
@@ -85,14 +90,17 @@ export class SlashCommands {
       await resp?.edit({ content: "Done unregistering queue commands." }).catch(() => null);
    }
 
-   private static async modifyForOneQueue(guildId: Snowflake, now: number, parsed?: Parsed) {
+   private static async modifyForOneQueue(guildId: Snowflake, now: number, parsed?: Parsed): Promise<void> {
       let count = 0;
       const respText = "Registering queue commands. This will take about 2 minutes...";
       const resp = await parsed?.reply({ content: respText }).catch(() => null as Message);
 
       const commands = Base.getCommands().filter((c) => !["altprefix", "help", "queues"].includes(c.name));
       for await (let command of commands) {
-         if (this.commandRegistrationCache.get(guildId) !== now) return;
+         if (this.commandRegistrationCache.get(guildId) !== now) {
+            resp?.delete().catch(() => null);
+            return;
+         }
 
          command = await this.removeQueueArg(command);
          await this.slashClient.createCommand(command, guildId).catch(() => null);
@@ -115,9 +123,12 @@ export class SlashCommands {
 
       const commands = Base.getCommands().filter((c) => !["altprefix", "help", "queues"].includes(c.name));
       for await (let command of commands) {
-         if (this.commandRegistrationCache.get(guildId) !== now) return;
-         command = await this.modifyQueueArg(command, storedChannels);
+         if (this.commandRegistrationCache.get(guildId) !== now) {
+            resp?.delete().catch(() => null);
+            return;
+         }
 
+         command = await this.modifyQueueArg(command, storedChannels);
          await this.slashClient.createCommand(command, guildId).catch(() => null);
 
          this.editProgress(resp, respText, ++count, commands.length);
