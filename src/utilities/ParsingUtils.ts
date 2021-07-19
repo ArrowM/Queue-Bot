@@ -115,7 +115,10 @@ export abstract class Parsed {
          if (!this.args.channel && this.queueChannels.length === 1) {
             this.args.channel = await this.request.guild.channels.fetch(this.queueChannels[0]?.queue_channel_id).catch(() => null);
          }
-         if (!this.args.channel?.guild?.id) this.missingArgs.push("channel");
+         if (!this.args.channel?.guild?.id) {
+            const channelText = (conf.channelType === "GUILD_TEXT" ? "**text**" : "") + (conf.channelType === "GUILD_VOICE" ? "**voice**" : "") + " channel";
+            this.missingArgs.push(channelText);
+         }
       }
       if (conf.hasNumber) {
          await this.getNumberParam();
@@ -231,10 +234,6 @@ export class ParsedCommand extends Parsed {
 
    protected async getChannelParam(channelType: string): Promise<void> {
       let channel = this.findArgs(this.request.options, "CHANNEL", [])[0] as GuildChannel;
-      if (channel && ((channelType && channelType !== channel.type) || !["GUILD_VOICE", "GUILD_TEXT"].includes(channel.type))) {
-         this.request.reply({ content: `**ERROR**: \`${channel.name}\` is an invalid channel`, ephemeral: true }).catch(() => null);
-         channel = null;
-      }
       if (!channel) {
          const id = this.findArgs(this.request.options, "STRING", [])[0] as Snowflake;
          channel = await this.request.guild.channels.fetch(id).catch(() => null);
@@ -242,6 +241,9 @@ export class ParsedCommand extends Parsed {
             this.removeChannelParam(this.request.options, id);
             await this.getStringParam();
          }
+      }
+      if (channel && ((channelType && channelType !== channel.type) || !["GUILD_VOICE", "GUILD_TEXT"].includes(channel.type))) {
+         channel = null;
       }
       this.args.channel = channel as TextChannel | VoiceChannel;
    }
