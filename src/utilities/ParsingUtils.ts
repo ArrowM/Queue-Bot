@@ -191,7 +191,7 @@ export class ParsedCommand extends Parsed {
    }
 
    public async reply(options: ReplyOptions): Promise<Message> {
-      const mentions: MessageMentionOptions = options.allowMentions ? { users: [], roles: [] } : null;
+      const mentions: MessageMentionOptions = options.allowMentions ? null : { parse: [] };
       const message: InteractionReplyOptions = {
          content: options.content,
          embeds: options.embeds,
@@ -278,7 +278,7 @@ export class ParsedMessage extends Parsed {
    }
 
    public async reply(options: ReplyOptions): Promise<Message> {
-      const mentions: MessageMentionOptions = options.allowMentions ? { users: [], roles: [] } : null;
+      const mentions: MessageMentionOptions = options.allowMentions ? null : { parse: [] };
       const message: ReplyMessageOptions = {
          content: options.content,
          embeds: options.embeds,
