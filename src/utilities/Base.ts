@@ -44,7 +44,7 @@ export class Base {
       },
       messageCacheLifetime: 24 * 60 * 60, // Cache messages for 24 hours
       messageSweepInterval: 1 * 60 * 60, // Sweep every hour
-      partials: ["MESSAGE", "REACTION", "USER"],
+      //partials: ["MESSAGE", "REACTION", "USER"],
       presence: {
          activities: [
             {
