@@ -26,6 +26,7 @@ Privileged commands are restricted to the server owner, administrators, and user
 If a command that expects a channel name is not given one, the current text channel will be used.  
   
 **Queue Management**  
+`/altprefix` - Enable or disable alternate prefix `!`
 `/autopull` - Get / Set automatic pull from a voice queue  
 `/blacklist add user` & `/blacklist add role` - Blacklist a user or role  
 `/blacklist delete user` & `/blacklist delete role` - Un-blacklist a user or role  
@@ -38,7 +39,6 @@ If a command that expects a channel name is not given one, the current text chan
 `/header` - Get / Set a header on display messages  
 `/kick` - Kick from a queue  
 `/size` - Get / Set size limit of a queue  
-`/mention` - Mention everyone in a Queue  
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
 `/queues add` - Create a queue  

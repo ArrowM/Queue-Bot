@@ -19,7 +19,7 @@
       "dblapi.js": "^2.4.1",
       "delay": "^5.0.0",
       "discord-slash-commands-client": "^1.2.1",
-      "discord.js": "^13.0.0-dev.4206e35.1626350625",
+      "discord.js": "^13.0.0-dev.4206e35.1626393827",
       "knex": "^0.95.6",
       "knex-schema-inspector": "^1.5.8",
       "libsodium-wrappers": "^0.7.9",

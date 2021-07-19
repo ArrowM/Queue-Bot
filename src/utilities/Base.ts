@@ -1,3 +1,4 @@
+import { ApplicationOptions } from "discord-slash-commands-client";
 import { Client, Collection, GuildMember, LimitedCollection } from "discord.js";
 import { readFileSync } from "fs";
 import { knex, Knex } from "knex";
@@ -5,7 +6,10 @@ import { ConfigJson } from "./Interfaces";
 import { MessageCollection } from "./MessageCollection";
 
 export class Base {
-   protected static config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
+   private static config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
+   private static commands = new Collection<string, ApplicationOptions>(
+      JSON.parse(readFileSync("../config/commands-config.json", "utf8"))
+   ).array();
 
    protected static knex = knex({
       client: Base.config.databaseType,
@@ -17,7 +21,7 @@ export class Base {
       },
    });
 
-   protected static client = new Client({
+   private static client = new Client({
       makeCache: (manager) => {
          if ("MessageManager" === manager.name) {
             return new MessageCollection(5);
@@ -52,6 +56,10 @@ export class Base {
       },
       intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES"], // add  "GUILD_MEMBERS"
    });
+
+   public static getCommands(): ApplicationOptions[] {
+      return this.commands;
+   }
 
    public static getConfig(): ConfigJson {
       return this.config;

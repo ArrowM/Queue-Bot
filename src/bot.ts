@@ -1,5 +1,5 @@
 import DBL from "dblapi.js";
-import { ButtonInteraction, Guild, Interaction, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { ButtonInteraction, Guild, Interaction, TextChannel, VoiceChannel } from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import { QueueChannel } from "./utilities/Interfaces";
@@ -12,7 +12,7 @@ import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import util from "util";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
-import { Parsed } from "./utilities/ParsingUtils";
+import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtils } from "./utilities/PatchingUtils";
 
@@ -43,168 +43,6 @@ if (config.topGgToken) {
    dbl.on("error", () => null);
 }
 
-async function onAdminCommand(parsed: Parsed) {
-   if (!parsed.hasPermission) {
-      await parsed.reply({ content: "ERROR: Missing permission to use that command", ephemeral: true }).catch(() => null);
-      return;
-   }
-   // -- ADMIN COMMANDS --
-   switch (parsed.command.commandName) {
-      case "autopull":
-         switch (parsed.command.options.firstKey()) {
-            case "get":
-               await Commands.autopullGet(parsed);
-               break;
-            case "set":
-               await Commands.autopullSet(parsed);
-               break;
-         }
-         break;
-      case "blacklist":
-         switch (parsed.command.options.firstKey()) {
-            case "add":
-               await Commands.blacklistAdd(parsed);
-               break;
-            case "delete":
-               await Commands.blacklistDelete(parsed);
-               break;
-            case "list":
-               await Commands.blacklistList(parsed);
-               break;
-         }
-         break;
-      case "clear":
-         await Commands.clear(parsed);
-         break;
-      case "color":
-         switch (parsed.command.options.firstKey()) {
-            case "get":
-               await Commands.colorGet(parsed);
-               break;
-            case "set":
-               await Commands.colorSet(parsed);
-               break;
-         }
-         break;
-      case "display":
-         await Commands.display(parsed);
-         break;
-      case "enqueue":
-         await Commands.enqueue(parsed);
-         break;
-      case "graceperiod":
-         switch (parsed.command.options.firstKey()) {
-            case "get":
-               await Commands.graceperiodGet(parsed);
-               break;
-            case "set":
-               await Commands.graceperiodSet(parsed);
-               break;
-         }
-         break;
-      case "header":
-         switch (parsed.command.options.firstKey()) {
-            case "get":
-               await Commands.headerGet(parsed);
-               break;
-            case "set":
-               await Commands.headerSet(parsed);
-               break;
-         }
-         break;
-      case "kick":
-         await Commands.kick(parsed);
-         break;
-      case "kickall":
-         await Commands.kickAll(parsed);
-         break;
-      case "mention":
-         await Commands.mention(parsed);
-         break;
-      case "mode":
-         switch (parsed.command.options.firstKey()) {
-            case "get":
-               await Commands.modeGet(parsed);
-               break;
-            case "set":
-               await Commands.modeSet(parsed);
-               break;
-         }
-         break;
-      case "next":
-         await Commands.next(parsed);
-         break;
-      case "permission":
-         switch (parsed.command.options.firstKey()) {
-            case "add":
-               await Commands.permissionAdd(parsed);
-               break;
-            case "delete":
-               await Commands.permissionDelete(parsed);
-               break;
-            case "list":
-               await Commands.permissionList(parsed);
-               break;
-         }
-         break;
-      case "priority":
-         switch (parsed.command.options.firstKey()) {
-            case "add":
-               await Commands.priorityAdd(parsed);
-               break;
-            case "delete":
-               await Commands.priorityDelete(parsed);
-               break;
-            case "list":
-               await Commands.priorityList(parsed);
-               break;
-         }
-         break;
-      case "pullnum":
-         switch (parsed.command.options.firstKey()) {
-            case "get":
-               await Commands.pullnumGet(parsed);
-               break;
-            case "set":
-               await Commands.pullnumSet(parsed);
-               break;
-         }
-         break;
-      case "queues":
-         switch (parsed.command.options.firstKey()) {
-            case "add":
-               await Commands.queuesAdd(parsed);
-               break;
-            case "delete":
-               await Commands.queuesDelete(parsed);
-               break;
-            case "list":
-               await Commands.queuesList(parsed);
-               break;
-         }
-         break;
-      case "shuffle":
-         await Commands.shuffle(parsed);
-         break;
-      case "size":
-         switch (parsed.command.options.firstKey()) {
-            case "get":
-               await Commands.sizeGet(parsed);
-               break;
-            case "set":
-               await Commands.sizeSet(parsed);
-               break;
-         }
-         break;
-      case "start":
-         await Commands.start(parsed);
-         break;
-      case "update":
-         await Commands.update(parsed);
-         break;
-   }
-}
-
 client.on("interactionCreate", async (interaction: Interaction) => {
    try {
       if (interaction.isButton()) {
@@ -218,7 +56,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
          }
       } else if (interaction.isCommand()) {
          if (!isReady) {
-            interaction.reply("Bot is starting up. Please try again in ~10 seconds...");
+            interaction.reply("Bot is starting up. Please try again in 5 seconds...");
             return;
          }
          if (!interaction.guild?.id) {
@@ -226,12 +64,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             return;
          }
 
-         const parsed = new Parsed(interaction);
+         const parsed = new ParsedCommand(interaction);
          await parsed.setup();
          // -- EVERYONE COMMANDS --
          switch (interaction.commandName) {
             case "help":
-               switch (parsed.command.options.first()?.value) {
+               switch (parsed.request.options.first()?.value) {
                   case undefined:
                      await Commands.help(parsed);
                      break;
@@ -265,40 +103,343 @@ client.on("interactionCreate", async (interaction: Interaction) => {
    }
 });
 
-const prefixCache = new Map<Snowflake, string>();
-let hasPrefix: boolean;
-client.on("messageCreate", async (message) => {
-   const guildId = message.guild?.id;
-   if (!isReady || !guildId) return;
-   // -
-   //if (message.content.startsWith("!join")) {
-   //   await Commands.messageJoin(message);
-   //} else if (message.content.startsWith("!leave")) {
-   //   await Commands.messageLeave(message);
-   //} else if (message.content.startsWith("!myqueues")) {
-   //   //await Commands.messageMyQueues(message);
-   //} else if (message.content.startsWith("!help")) {
-   //   //await Commands.messageHelp(message);
-   //}
-   // --
-   if (hasPrefix === undefined) {
-      hasPrefix = await Base.getKnex().schema.hasColumn("queue_guilds", "prefix");
+async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<boolean> {
+   if (!parsed.hasPermission) {
+      await parsed
+         .reply({
+            content: "ERROR: Missing permission to use that command",
+            commandDisplay: "EPHEMERAL",
+         })
+         .catch(() => null);
+      return false;
    }
-   // -
-   if (hasPrefix === false) {
-      return;
-   } else {
-      let prefix = prefixCache.get(guildId);
-      if (prefix === undefined) {
-         let prefix = (await QueueGuildTable.get(guildId))?.prefix;
-         prefixCache.set(guildId, prefix);
-      } else if (prefix === null) {
-         return;
-      } else if (message.content === prefix + "help") {
-         await message
-            .reply(`I no longer respond to your old prefix (\`${prefix}\`). Try using the new slash commands! Like \`/help\`.`)
-            .catch(() => null);
+   return true;
+}
+
+async function onAdminCommand(parsed: ParsedCommand) {
+   if (!(await checkPermission(parsed))) return false;
+   // -- ADMIN COMMANDS --
+   switch (parsed.request.commandName) {
+      case "altprefix":
+         await Commands.altPrefix(parsed);
+         break;
+      case "autopull":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.autopullGet(parsed);
+               break;
+            case "set":
+               await Commands.autopullSet(parsed);
+               break;
+         }
+         break;
+      case "blacklist":
+         switch (parsed.request.options.firstKey()) {
+            case "add":
+               switch (parsed.request.options.first().options.firstKey()) {
+                  case "user":
+                     await Commands.blacklistAddUser(parsed);
+                     break;
+                  case "role":
+                     await Commands.blacklistAddRole(parsed);
+                     break;
+               }
+               break;
+            case "delete":
+               switch (parsed.request.options.first().options.firstKey()) {
+                  case "user":
+                     await Commands.blacklistDeleteUser(parsed);
+                     break;
+                  case "role":
+                     await Commands.blacklistDeleteRole(parsed);
+                     break;
+               }
+               break;
+            case "list":
+               await Commands.blacklistList(parsed);
+               break;
+         }
+         break;
+      case "clear":
+         await Commands.clear(parsed);
+         break;
+      case "color":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.colorGet(parsed);
+               break;
+            case "set":
+               await Commands.colorSet(parsed);
+               break;
+         }
+         break;
+      case "display":
+         await Commands.display(parsed);
+         break;
+      case "enqueue":
+         switch (parsed.request.options.firstKey()) {
+            case "user":
+               await Commands.enqueueUser(parsed);
+               break;
+            case "role":
+               await Commands.enqueueRole(parsed);
+               break;
+         }
+         break;
+      case "graceperiod":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.graceperiodGet(parsed);
+               break;
+            case "set":
+               await Commands.graceperiodSet(parsed);
+               break;
+         }
+         break;
+      case "header":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.headerGet(parsed);
+               break;
+            case "set":
+               await Commands.headerSet(parsed);
+               break;
+         }
+         break;
+      case "kick":
+         await Commands.kick(parsed);
+         break;
+      case "kickall":
+         await Commands.kickAll(parsed);
+         break;
+      case "mode":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.modeGet(parsed);
+               break;
+            case "set":
+               await Commands.modeSet(parsed);
+               break;
+         }
+         break;
+      case "next":
+         await Commands.next(parsed);
+         break;
+      case "permission":
+         switch (parsed.request.options.firstKey()) {
+            case "add":
+               switch (parsed.request.options.first().options.firstKey()) {
+                  case "user":
+                     await Commands.permissionAddUser(parsed);
+                     break;
+                  case "role":
+                     await Commands.permissionAddRole(parsed);
+                     break;
+               }
+               break;
+            case "delete":
+               switch (parsed.request.options.first().options.firstKey()) {
+                  case "user":
+                     await Commands.permissionDeleteUser(parsed);
+                     break;
+                  case "role":
+                     await Commands.permissionDeleteRole(parsed);
+                     break;
+               }
+               break;
+            case "list":
+               await Commands.permissionList(parsed);
+               break;
+         }
+         break;
+      case "priority":
+         switch (parsed.request.options.firstKey()) {
+            case "add":
+               switch (parsed.request.options.first().options.firstKey()) {
+                  case "user":
+                     await Commands.priorityAddUser(parsed);
+                     break;
+                  case "role":
+                     await Commands.priorityAddRole(parsed);
+                     break;
+               }
+               break;
+            case "delete":
+               switch (parsed.request.options.first().options.firstKey()) {
+                  case "user":
+                     await Commands.priorityDeleteUser(parsed);
+                     break;
+                  case "role":
+                     await Commands.priorityDeleteRole(parsed);
+                     break;
+               }
+               break;
+            case "list":
+               await Commands.priorityList(parsed);
+               break;
+         }
+         break;
+      case "pullnum":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.pullnumGet(parsed);
+               break;
+            case "set":
+               await Commands.pullnumSet(parsed);
+               break;
+         }
+         break;
+      case "queues":
+         switch (parsed.request.options.firstKey()) {
+            case "add":
+               await Commands.queuesAdd(parsed);
+               break;
+            case "delete":
+               await Commands.queuesDelete(parsed);
+               break;
+            case "list":
+               await Commands.queuesList(parsed);
+               break;
+         }
+         break;
+      case "shuffle":
+         await Commands.shuffle(parsed);
+         break;
+      case "size":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.sizeGet(parsed);
+               break;
+            case "set":
+               await Commands.sizeSet(parsed);
+               break;
+         }
+         break;
+      case "start":
+         await Commands.start(parsed);
+         break;
+      case "update":
+         await Commands.update(parsed);
+         break;
+   }
+}
+
+client.on("messageCreate", async (message) => {
+   try {
+      const guildId = message.guild?.id;
+      if (!(isReady && guildId && message.content[0] === "!")) return;
+      // -
+      const parsed = new ParsedMessage(message);
+      await parsed.setup();
+      const commandName = message.content.substring(1);
+      if (parsed.queueGuild.enable_alt_prefix) {
+         // - EVERYONE
+         if (commandName.startsWith("join")) {
+            await Commands.join(parsed);
+         } else if (commandName.startsWith("leave")) {
+            await Commands.leave(parsed);
+         } else if (commandName.startsWith("myqueues")) {
+            await Commands.myqueues(parsed);
+         } else if (commandName.startsWith("help")) {
+            await Commands.help(parsed);
+         } else if (commandName.startsWith("help setup")) {
+            await Commands.helpSetup(parsed);
+         } else if (commandName.startsWith("help queues")) {
+            await Commands.helpQueue(parsed);
+         } else if (commandName.startsWith("help bot")) {
+            await Commands.helpBot(parsed);
+         }
+         // - ADMIN
+         if (commandName.startsWith("altprefix") && (await checkPermission(parsed))) {
+            await Commands.altPrefix(parsed);
+         } else if (commandName.startsWith("autopull get") && (await checkPermission(parsed))) {
+            await Commands.autopullGet(parsed);
+         } else if (commandName.startsWith("autopull set") && (await checkPermission(parsed))) {
+            await Commands.autopullSet(parsed);
+         } else if (commandName.startsWith("blacklist add user") && (await checkPermission(parsed))) {
+            await Commands.blacklistAddUser(parsed);
+         } else if (commandName.startsWith("blacklist add role") && (await checkPermission(parsed))) {
+            await Commands.blacklistAddRole(parsed);
+         } else if (commandName.startsWith("blacklist delete user") && (await checkPermission(parsed))) {
+            await Commands.blacklistDeleteUser(parsed);
+         } else if (commandName.startsWith("blacklist delete role") && (await checkPermission(parsed))) {
+            await Commands.blacklistDeleteRole(parsed);
+         } else if (commandName.startsWith("blacklist list") && (await checkPermission(parsed))) {
+            await Commands.blacklistList(parsed);
+         } else if (commandName.startsWith("clear") && (await checkPermission(parsed))) {
+            await Commands.clear(parsed);
+         } else if (commandName.startsWith("color get") && (await checkPermission(parsed))) {
+            await Commands.colorGet(parsed);
+         } else if (commandName.startsWith("color set") && (await checkPermission(parsed))) {
+            await Commands.colorSet(parsed);
+         } else if (commandName.startsWith("display") && (await checkPermission(parsed))) {
+            await Commands.display(parsed);
+         } else if (commandName.startsWith("enqueue user") && (await checkPermission(parsed))) {
+            await Commands.enqueueUser(parsed);
+         } else if (commandName.startsWith("enqueue role") && (await checkPermission(parsed))) {
+            await Commands.enqueueRole(parsed);
+         } else if (commandName.startsWith("graceperiod get") && (await checkPermission(parsed))) {
+            await Commands.graceperiodGet(parsed);
+         } else if (commandName.startsWith("graceperiod set") && (await checkPermission(parsed))) {
+            await Commands.graceperiodSet(parsed);
+         } else if (commandName.startsWith("header get") && (await checkPermission(parsed))) {
+            await Commands.headerGet(parsed);
+         } else if (commandName.startsWith("header set") && (await checkPermission(parsed))) {
+            await Commands.headerSet(parsed);
+         } else if (commandName.startsWith("kick ") && (await checkPermission(parsed))) {
+            await Commands.kick(parsed);
+         } else if (commandName.startsWith("kickall") && (await checkPermission(parsed))) {
+            await Commands.kickAll(parsed);
+         } else if (commandName.startsWith("mode get") && (await checkPermission(parsed))) {
+            await Commands.modeGet(parsed);
+         } else if (commandName.startsWith("mode set") && (await checkPermission(parsed))) {
+            await Commands.modeSet(parsed);
+         } else if (commandName.startsWith("next") && (await checkPermission(parsed))) {
+            await Commands.next(parsed);
+         } else if (commandName.startsWith("permission add user") && (await checkPermission(parsed))) {
+            await Commands.permissionAddUser(parsed);
+         } else if (commandName.startsWith("permission add role") && (await checkPermission(parsed))) {
+            await Commands.permissionAddRole(parsed);
+         } else if (commandName.startsWith("permission delete user") && (await checkPermission(parsed))) {
+            await Commands.permissionDeleteUser(parsed);
+         } else if (commandName.startsWith("permission delete role") && (await checkPermission(parsed))) {
+            await Commands.permissionDeleteRole(parsed);
+         } else if (commandName.startsWith("permission list") && (await checkPermission(parsed))) {
+            await Commands.permissionList(parsed);
+         } else if (commandName.startsWith("priority add user") && (await checkPermission(parsed))) {
+            await Commands.priorityAddUser(parsed);
+         } else if (commandName.startsWith("priority add role") && (await checkPermission(parsed))) {
+            await Commands.priorityAddRole(parsed);
+         } else if (commandName.startsWith("priority delete user") && (await checkPermission(parsed))) {
+            await Commands.priorityDeleteUser(parsed);
+         } else if (commandName.startsWith("priority delete role") && (await checkPermission(parsed))) {
+            await Commands.priorityDeleteRole(parsed);
+         } else if (commandName.startsWith("priority list") && (await checkPermission(parsed))) {
+            await Commands.priorityList(parsed);
+         } else if (commandName.startsWith("pullnum get") && (await checkPermission(parsed))) {
+            await Commands.pullnumGet(parsed);
+         } else if (commandName.startsWith("pullnum set") && (await checkPermission(parsed))) {
+            await Commands.pullnumSet(parsed);
+         } else if (commandName.startsWith("queues add") && (await checkPermission(parsed))) {
+            await Commands.queuesAdd(parsed);
+         } else if (commandName.startsWith("queues delete") && (await checkPermission(parsed))) {
+            await Commands.queuesDelete(parsed);
+         } else if (commandName.startsWith("queues list") && (await checkPermission(parsed))) {
+            await Commands.queuesList(parsed);
+         } else if (commandName.startsWith("shuffle") && (await checkPermission(parsed))) {
+            await Commands.shuffle(parsed);
+         } else if (commandName.startsWith("size get") && (await checkPermission(parsed))) {
+            await Commands.sizeGet(parsed);
+         } else if (commandName.startsWith("size set") && (await checkPermission(parsed))) {
+            await Commands.sizeSet(parsed);
+         } else if (commandName.startsWith("start") && (await checkPermission(parsed))) {
+            await Commands.start(parsed);
+         } else if (commandName.startsWith("update") && (await checkPermission(parsed))) {
+            await Commands.update(parsed);
+         }
       }
+   } catch (e) {
+      console.error(e);
    }
 });
 

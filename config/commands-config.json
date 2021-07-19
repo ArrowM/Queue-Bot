@@ -1,5 +1,30 @@
 [
    [
+      "altprefix",
+      {
+         "name": "altprefix",
+         "description": "altprefix",
+         "options": [
+            {
+               "name": "status",
+               "description": "Enable or disable alternate prefix",
+               "type": 3,
+               "required": true,
+               "choices": [
+                  {
+                     "name": "enable",
+                     "value": "enable"
+                  },
+                  {
+                     "name": "disable",
+                     "value": "disable"
+                  }
+               ]
+            }
+         ]
+      }
+   ],
+   [
       "autopull",
       {
          "name": "autopull",
@@ -575,27 +600,6 @@
                      "required": true
                   }
                ]
-            }
-         ]
-      }
-   ],
-   [
-      "mention",
-      {
-         "name": "mention",
-         "description": "Mention everyone in a queue. You can add a message too",
-         "options": [
-            {
-               "name": "queue",
-               "description": "Queue channel",
-               "type": 7,
-               "required": true
-            },
-            {
-               "name": "message",
-               "description": "Message to include in the mention",
-               "type": 3,
-               "required": false
             }
          ]
       }

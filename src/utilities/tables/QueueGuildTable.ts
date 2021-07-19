@@ -17,6 +17,7 @@ export class QueueGuildTable {
                   .schema.createTable("queue_guilds", (table) => {
                      table.bigInteger("guild_id").primary();
                      table.integer("msg_mode");
+                     table.boolean("enable_alt_prefix");
                   })
                   .catch((e) => console.error(e));
             }
@@ -58,10 +59,12 @@ export class QueueGuildTable {
       await this.get(guildId).update("msg_mode", mode);
    }
 
+   public static async updateAltPrefix(guildId: Snowflake, enable: boolean): Promise<void> {
+      await this.get(guildId).update("enable_alt_prefix", enable);
+   }
+
    public static async store(guild: Guild): Promise<void> {
-      await Base.getKnex()<QueueGuild>("queue_guilds")
-         .insert({ guild_id: guild.id, msg_mode: 1 })
-         .catch(() => null);
+      await Base.getKnex()<QueueGuild>("queue_guilds").insert({ guild_id: guild.id, msg_mode: 1 });
    }
 
    public static async unstore(guildId: Snowflake): Promise<void> {

@@ -1,13 +1,13 @@
 import { Guild, GuildChannel, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 import { Base } from "./Base";
 import { AdminPermission, BlackWhiteListEntry, DisplayChannel, QueueChannel, QueueGuild } from "./Interfaces";
-import { ApplicationOptions, Client as SlashClient } from "discord-slash-commands-client";
 import { exists, readFileSync, writeFileSync } from "fs";
 import delay from "delay";
 import schemaInspector from "knex-schema-inspector";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { MessagingUtils } from "./MessagingUtils";
+import { SlashCommands } from "./SlashCommands";
 
 interface PatchNote {
    sent: boolean;
@@ -23,20 +23,9 @@ export class PatchingUtils {
       await this.tableAdminPermission();
       await this.tableDisplayChannels();
       await this.tableQueueGuilds();
-      await this.checkPatchNotes();
-      this.setNickNames();
-   }
-
-   private static async setNickNames() {
-      for await (const entry of await Base.getKnex()<QueueGuild>("queue_guilds")) {
-         const guild = await Base.getClient()
-            .guilds.fetch(entry.guild_id)
-            .catch(() => null as Guild);
-         if (!guild) continue;
-
-         await guild.me.setNickname("Queue Bot").catch(() => null);
-         await delay(1100);
-      }
+      this.checkPatchNotes();
+      SlashCommands.modifySlashCommandsForAllGuilds();
+      SlashCommands.registerGlobalCommands();
    }
 
    private static async checkPatchNotes() {
@@ -61,13 +50,14 @@ export class PatchingUtils {
             } catch (e) {
                // Empty
             }
-            await delay(40);
+            await delay(100);
          }
          let sentNote = false;
          const failedChannelIds: Snowflake[] = [];
          // Send notes
          for await (const patchNote of patchNotes.filter((p) => !p.sent)) {
             for await (const displayChannel of displayChannels) {
+               if (!patchNote.embeds) continue;
                try {
                   await displayChannel.send({ embeds: patchNote.embeds });
                   console.log("Sent to " + displayChannel.id);
@@ -75,7 +65,7 @@ export class PatchingUtils {
                   failedChannelIds.push(displayChannel.id);
                   console.error(e);
                }
-               await delay(40);
+               await delay(100);
             }
             const announcementChannel = (await Base.getClient()
                .channels.fetch(Base.getConfig().announcementChannelId)
@@ -87,40 +77,12 @@ export class PatchingUtils {
          }
          if (sentNote) {
             writeFileSync("../patch_notes/patch_notes.json", JSON.stringify(patchNotes, null, 3));
-            this.slashCommands();
          }
          if (failedChannelIds.length) {
             console.log("FAILED TO SEND TO THE FOLLOWING CHANNEL IDS:");
             console.log(failedChannelIds);
          }
       });
-   }
-
-   private static async slashCommands() {
-      // --------- POPULATE GLOBAL COMMANDS ---------
-      const commands: Map<string, ApplicationOptions> = new Map(JSON.parse(readFileSync("../config/commands-config.json", "utf8")));
-      const slashClient = new SlashClient(Base.getConfig().token, Base.getConfig().clientId);
-      for await (const command of commands.values()) {
-         await slashClient.createCommand(command).catch(console.error);
-         await delay(5000);
-      }
-
-      // --------- DELETE LOCAL DEV SERVER COMMANDS ---------
-      //let localCommands = (await this.slashClient.getCommands({ guildID: "719950919768342529" })) as ApplicationCommand[];
-      //for await (const cmd of localCommands) {
-      //   console.log("deleting: " + cmd.name);
-      //   await this.slashClient.deleteCommand(cmd.id, "719950919768342529").catch(console.error);
-      //   await delay(5000);
-      //}
-
-      // --------- DELETE GLOBAL COMMANDS ---------
-      //globalCommands = (await this.slashClient.getCommands({})) as ApplicationCommand[];
-      //for await (const cmd of globalCommands) {
-      //   console.log("deleting: " + cmd.name);
-      //   await this.slashClient.deleteCommand(cmd.id).catch(console.error);
-      //   await delay(5000);
-      //}
-      console.log("Finished registering commands.");
    }
 
    private static async tableAdminPermission(): Promise<void> {
@@ -254,6 +216,20 @@ export class PatchingUtils {
             await delay(40);
          }
          await Base.getKnex().schema.alterTable("display_channels", (table) => table.dropColumn("embed_ids"));
+         // ALSO do some 1 time updates for slash commands and nicknames
+         this.setNickNames();
+      }
+   }
+
+   private static async setNickNames() {
+      for await (const entry of await Base.getKnex()<QueueGuild>("queue_guilds")) {
+         const guild = await Base.getClient()
+            .guilds.fetch(entry.guild_id)
+            .catch(() => null as Guild);
+         if (!guild) continue;
+
+         await guild.me.setNickname("Queue Bot").catch(() => null);
+         await delay(1100);
       }
    }
 
@@ -341,6 +317,9 @@ export class PatchingUtils {
                table.dropColumn("cleanup_commands");
             });
          }
+      }
+      if (!(await Base.getKnex().schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {
+         await Base.getKnex().schema.alterTable("queue_guilds", (t) => t.boolean("enable_alt_prefix"));
       }
    }
 

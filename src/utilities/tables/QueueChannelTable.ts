@@ -4,7 +4,7 @@ import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
 import { Knex } from "knex";
-import { Parsed } from "../ParsingUtils";
+import { ParsedCommand, ParsedMessage } from "../ParsingUtils";
 import { Commands } from "../../Commands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import delay from "delay";
@@ -136,7 +136,11 @@ export class QueueChannelTable {
       return queueChannels;
    }
 
-   public static async createQueueRole(parsed: Parsed, channel: VoiceChannel | TextChannel, color: ColorResolvable): Promise<Role> {
+   public static async createQueueRole(
+      parsed: ParsedCommand | ParsedMessage,
+      channel: VoiceChannel | TextChannel,
+      color: ColorResolvable
+   ): Promise<Role> {
       return await channel.guild.roles
          .create({
             color: color,
@@ -155,7 +159,7 @@ export class QueueChannelTable {
                            url: "https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot",
                         },
                      ],
-                     ephemeral: true,
+                     commandDisplay: "EPHEMERAL",
                   })
                   .catch(console.error);
             }
@@ -163,7 +167,7 @@ export class QueueChannelTable {
          });
    }
 
-   public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed: Parsed): Promise<void> {
+   public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed: ParsedCommand | ParsedMessage): Promise<void> {
       await this.get(channel.queue_channel_id).update("role_id", Base.getKnex().raw("DEFAULT"));
       const roleId = channel?.role_id;
       if (roleId) {
@@ -183,7 +187,7 @@ export class QueueChannelTable {
                               url: "https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot",
                            },
                         ],
-                        ephemeral: true,
+                        commandDisplay: "EPHEMERAL",
                      })
                      .catch(console.error);
                }
@@ -192,7 +196,11 @@ export class QueueChannelTable {
       }
    }
 
-   public static async store(parsed: Parsed, channel: VoiceChannel | TextChannel, maxMembers?: number): Promise<void> {
+   public static async store(
+      parsed: ParsedCommand | ParsedMessage,
+      channel: VoiceChannel | TextChannel,
+      maxMembers?: number
+   ): Promise<void> {
       // Store
       await Base.getKnex()<QueueChannel>("queue_channels")
          .insert({
@@ -213,7 +221,7 @@ export class QueueChannelTable {
       await Commands.display(parsed, channel);
    }
 
-   public static async unstore(guildId: Snowflake, channelId?: Snowflake, parsed?: Parsed): Promise<void> {
+   public static async unstore(guildId: Snowflake, channelId?: Snowflake, parsed?: ParsedCommand | ParsedMessage): Promise<void> {
       let query = Base.getKnex()<QueueChannel>("queue_channels").where("guild_id", guildId);
       // Delete store db entries
       if (channelId) query = query.where("queue_channel_id", channelId);

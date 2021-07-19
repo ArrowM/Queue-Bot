@@ -1,4 +1,4 @@
-import { GuildMember, ColorResolvable, Message, Snowflake } from "discord.js";
+import { ColorResolvable, Message, Snowflake } from "discord.js";
 
 export interface ParsedArguments {
    queueGuild: QueueGuild;
@@ -30,6 +30,7 @@ export interface DisplayChannel {
 
 export interface QueueGuild {
    id: Snowflake;
+   enable_alt_prefix: boolean;
    guild_id: Snowflake;
    msg_mode: number;
    prefix?: string;
