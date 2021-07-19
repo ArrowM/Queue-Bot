@@ -379,7 +379,7 @@ export class Commands {
             .catch(() => null);
       }
 
-      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      const storedQueueChannel = parsed.queueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
       if (!storedQueueChannel.role_id) {
          const role = await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
          if (role) await QueueChannelTable.updateRoleId(queueChannel, role);
@@ -448,7 +448,7 @@ export class Commands {
     * Add a specified user to a queue
     */
    public static async enqueueUser(parsed: ParsedCommand | ParsedMessage) {
-      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasMember: true, hasText: true });
+      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasMember: true});
 
       await this.enqueue(parsed);
    }
@@ -457,7 +457,7 @@ export class Commands {
     * Add a specified role to a queue
     */
    public static async enqueueRole(parsed: ParsedCommand | ParsedMessage) {
-      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasRole: true, hasText: true });
+      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasRole: true });
 
       await this.enqueue(parsed);
    }
@@ -537,7 +537,7 @@ export class Commands {
     * Set or remove a header for a queue's display messages
     */
    public static async headerSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 10, hasChannel: true, hasText: true });
+      await parsed.readArgs({ commandNameLength: 10, hasChannel: true });
 
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
@@ -822,7 +822,7 @@ export class Commands {
     * Join a text queue
     */
    public static async join(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, channelType: "GUILD_TEXT", hasText: true });
+      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, channelType: "GUILD_TEXT" });
 
       const queueChannel = parsed.args.channel as TextChannel;
       if (!queueChannel?.id) return;
@@ -1042,9 +1042,10 @@ export class Commands {
    public static async next(parsed: ParsedCommand | ParsedMessage): Promise<void> {
       await parsed.readArgs({ commandNameLength: 4, hasChannel: true, numberArgs: { min: 1, max: 99, defaultValue: 1 } });
 
+
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
-      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      const storedQueueChannel = parsed.queueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
       if (!storedQueueChannel) return;
 
       // Get the oldest member entries for the queue
@@ -1683,7 +1684,7 @@ export class Commands {
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
 
-      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      const storedQueueChannel = parsed.queueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
       if (!storedQueueChannel.role_id) {
          await parsed
             .reply({

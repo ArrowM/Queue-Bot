@@ -4,9 +4,11 @@ import {
    CommandInteractionOption,
    GuildChannel,
    GuildMember,
+   InteractionReplyOptions,
    Message,
    MessageEmbedOptions,
    MessageMentionOptions,
+   MessagePayload,
    Role,
    Snowflake,
    TextChannel,
@@ -107,8 +109,9 @@ export abstract class Parsed {
          return this.missingArgs;
       }
 
-      await this.getStringParam(conf.commandNameLength); // must call before getChannelParam()
+      await this.getStringParam(conf.commandNameLength); // must call before channel or number
 
+      // Required - channel, role, member
       if (conf.hasChannel) {
          this.queueChannels = await this.getStoredQueueChannels();
          await this.getChannelParam(conf.channelType);
@@ -116,14 +119,9 @@ export abstract class Parsed {
             this.args.channel = await this.request.guild.channels.fetch(this.queueChannels[0]?.queue_channel_id).catch(() => null);
          }
          if (!this.args.channel?.guild?.id) {
-            const channelText = (conf.channelType === "GUILD_TEXT" ? "**text**" : "") + (conf.channelType === "GUILD_VOICE" ? "**voice**" : "") + " channel";
+            const channelText = (conf.channelType === "GUILD_TEXT" ? "**text** " : "") + (conf.channelType === "GUILD_VOICE" ? "**voice** " : "") + "channel";
             this.missingArgs.push(channelText);
          }
-      }
-      if (conf.hasNumber) {
-         await this.getNumberParam();
-         this.verifyNumber(conf.numberArgs.min, conf.numberArgs.max, conf.numberArgs.defaultValue);
-         if (!this.args.num) this.missingArgs.push("number");
       }
       if (conf.hasRole) {
          await this.getRoleParam();
@@ -133,10 +131,15 @@ export abstract class Parsed {
          await this.getMemberParam();
          if (!this.args.member) this.missingArgs.push("member");
       }
-      if (conf.hasText && !this.args.text) {
-         this.missingArgs.push("message");
+      // OPTIONAL - number & text
+      if (conf.numberArgs) {
+         await this.getNumberParam();
+         this.verifyNumber(conf.numberArgs.min, conf.numberArgs.max, conf.numberArgs.defaultValue);
       }
+      if (conf.hasNumber && !this.args.num) this.missingArgs.push("number");
 
+      if (conf.hasText && !this.args.text) this.missingArgs.push("message");
+      // Report missing
       if (this.missingArgs.length) {
          await this.reply({
             content: "**ERROR**: Missing " + this.missingArgs.join(" and ") + " argument" + (this.missingArgs.length > 1 ? "s" : "") + ".",
@@ -188,10 +191,10 @@ export class ParsedCommand extends Parsed {
 
    public async reply(options: ReplyOptions): Promise<Message> {
       const mentions: MessageMentionOptions = options.allowMentions ? { users: [], roles: [] } : null;
-      const message = {
+      const message: InteractionReplyOptions = {
          content: options.content,
          embeds: options.embeds,
-         mention: mentions,
+         allowedMentions: mentions,
          ephemeral: options.commandDisplay === "EPHEMERAL",
       };
       if (this.request.replied) {
