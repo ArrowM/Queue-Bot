@@ -25,7 +25,7 @@ export class SlashCommands {
    }
 
    private static removeQueue(options: ApplicationCommandOption[]): ApplicationCommandOption[] {
-      for (let i = 0; i < options.length; i++) {
+      for (let i = options.length - 1; i >= 0; i--) {
          const option = options[i];
          if ((option.type === 1 || option.type === 2) && option.options) {
             option.options = this.removeQueue(option.options);
@@ -46,7 +46,7 @@ export class SlashCommands {
       options: ApplicationCommandOption[],
       storedChannels: (VoiceChannel | TextChannel)[]
    ): ApplicationCommandOption[] {
-      for (let i = 0; i < options.length; i++) {
+      for (let i = options.length - 1; i >= 0; i--) {
          const option = options[i];
          if (option.type === 1 || option.type === 2) {
             if (option.options?.length) {

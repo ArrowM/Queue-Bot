@@ -341,7 +341,7 @@ client.on("messageCreate", async (message) => {
             await Commands.leave(parsed);
          } else if (commandName.startsWith("myqueues")) {
             await Commands.myqueues(parsed);
-         } else if (commandName.startsWith("help")) {
+         } else if (commandName === "help") {
             await Commands.help(parsed);
          } else if (commandName.startsWith("help setup")) {
             await Commands.helpSetup(parsed);

@@ -17,6 +17,7 @@ import { QueueChannel, QueueGuild } from "./Interfaces";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
+import util from "util";
 
 export class ParsingUtils {
    private static regEx = RegExp(Base.config.permissionsRegexp, "i");
@@ -39,43 +40,6 @@ export class ParsingUtils {
       }
       // False if no matches
       return false;
-   }
-
-   /**
-    * Get a queue using user argument
-    */
-   public static async getStoredQueue(
-      parsed: ParsedCommand | ParsedMessage,
-      type?: "GUILD_TEXT" | "GUILD_VOICE"
-   ): Promise<VoiceChannel | TextChannel> {
-      const storedChannels = await QueueChannelTable.fetchFromGuild(parsed.request.guild);
-      if (storedChannels.length === 1) return storedChannels[0];
-
-      const channelParam = parsed.args.channel;
-      if (!channelParam) return null;
-
-      let result = storedChannels.find((storedChannel) => storedChannel.id === channelParam.id);
-      if (result) {
-         if (type && type !== result.type) {
-            await parsed
-               .reply({
-                  content: `**ERROR**: Expected a ${type} channel.\`${channelParam.name}\` is a ${channelParam.type} channel.`,
-                  commandDisplay: "EPHEMERAL",
-               })
-               .catch(() => null);
-            result = null;
-         }
-      } else {
-         await parsed
-            .reply({
-               content:
-                  `**ERROR**: \`${channelParam.name}\` is not a queue. ` +
-                  (parsed.hasPermission ? `Use \`/queues add ${channelParam.name}\` to make it a queue.` : ""),
-               commandDisplay: "EPHEMERAL",
-            })
-            .catch(() => null);
-      }
-      return result;
    }
 
    public static async reportMissingArgs(parsed: ParsedCommand | ParsedMessage, missingArgs: string[]): Promise<void> {
@@ -151,7 +115,7 @@ export abstract class Parsed {
          if (!this.args.channel && this.queueChannels.length === 1) {
             this.args.channel = await this.request.guild.channels.fetch(this.queueChannels[0]?.queue_channel_id).catch(() => null);
          }
-         if (!this.args.channel) this.missingArgs.push("channel");
+         if (!this.args.channel?.guild?.id) this.missingArgs.push("channel");
       }
       if (conf.hasNumber) {
          await this.getNumberParam();
@@ -255,6 +219,16 @@ export class ParsedCommand extends Parsed {
       return accumulator;
    }
 
+   protected removeChannelParam(options: Collection<string, CommandInteractionOption>, id: string) {
+      for (const option of options.values()) {
+         if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options) {
+            this.removeChannelParam(option.options, id);
+         } else if (option?.value === id) {
+            options.delete(option.name);
+         }
+      }
+   }
+
    protected async getChannelParam(channelType: string): Promise<void> {
       let channel = this.findArgs(this.request.options, "CHANNEL", [])[0] as GuildChannel;
       if (channel && ((channelType && channelType !== channel.type) || !["GUILD_VOICE", "GUILD_TEXT"].includes(channel.type))) {
@@ -264,6 +238,10 @@ export class ParsedCommand extends Parsed {
       if (!channel) {
          const id = this.findArgs(this.request.options, "STRING", [])[0] as Snowflake;
          channel = await this.request.guild.channels.fetch(id).catch(() => null);
+         if (channel) {
+            this.removeChannelParam(this.request.options, id);
+            await this.getStringParam();
+         }
       }
       this.args.channel = channel as TextChannel | VoiceChannel;
    }
@@ -277,8 +255,7 @@ export class ParsedCommand extends Parsed {
    }
 
    protected async getStringParam(): Promise<void> {
-      const texts = this.findArgs(this.request.options, "STRING", []) as string[];
-      this.args.text = texts[texts.length - 1] as string;
+      this.args.text = this.findArgs(this.request.options, "STRING", [])[0] as string;
    }
 
    protected async getNumberParam(): Promise<void> {
