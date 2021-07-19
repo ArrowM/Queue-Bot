@@ -1437,14 +1437,18 @@ export class Commands {
       channel: VoiceChannel | TextChannel,
       size: number
    ): Promise<void> {
-      await QueueChannelTable.store(parsed, channel, size);
-      await parsed
-         .reply({
-            content: `Created \`${channel.name}\` queue.` + (await this.genQueuesList(parsed)),
-         })
-         .catch(() => null);
-
-      await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+      try {
+         await QueueChannelTable.store(parsed, channel, size);
+         await parsed
+            .reply({
+               content: `Created \`${channel.name}\` queue.` + (await this.genQueuesList(parsed)),
+            })
+            .catch(() => null);
+         await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+      } catch (e) {
+         await parsed.reply({ content: `An error occured.`, commandDisplay: "EPHEMERAL" }).catch(() => null);
+         console.error(e);
+      }
    }
 
    /**
