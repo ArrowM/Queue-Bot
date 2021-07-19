@@ -263,7 +263,7 @@ export class ParsedCommand extends Parsed {
       }
       if (!channel) {
          const id = this.findArgs(this.request.options, "STRING", [])[0] as Snowflake;
-         channel = await this.request.guild.channels.fetch(id);
+         channel = await this.request.guild.channels.fetch(id).catch(() => null);
       }
       this.args.channel = channel as TextChannel | VoiceChannel;
    }
