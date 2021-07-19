@@ -144,22 +144,27 @@ export class SlashCommands {
    }
 
    public static async modifyCommandsForGuild(guild: Guild, parsed?: Parsed): Promise<void> {
-      const storedChannels = await QueueChannelTable.fetchFromGuild(guild);
-      if (storedChannels.length === 0) {
-         await this.modifyForNoQueues(guild.id, parsed);
-      } else if (storedChannels.length === 1) {
-         await this.modifyForOneQueue(guild.id, parsed);
-      } else if (storedChannels.length === 2 && parsed.queueChannels.length === 1) {
-         await this.modifyForManyQueues(guild.id, storedChannels, parsed);
+      try {
+         console.log("Modifying commands for " + guild.id);
+         const storedChannels = await QueueChannelTable.fetchFromGuild(guild);
+         if (storedChannels.length === 0) {
+            await this.modifyForNoQueues(guild.id, parsed);
+         } else if (storedChannels.length === 1) {
+            await this.modifyForOneQueue(guild.id, parsed);
+         } else if (storedChannels.length === 2 && (!parsed || parsed.queueChannels.length === 1)) {
+            await this.modifyForManyQueues(guild.id, storedChannels, parsed);
+         }
+      } catch (e) {
+         console.error(e);
       }
    }
 
    public static async modifySlashCommandsForAllGuilds() {
-      if (((await this.slashClient.getCommands({})) as ApplicationCommand[]).length < 10) return;
       for await (const guild of Base.client.guilds.cache.array()) {
          this.modifyCommandsForGuild(guild);
          await delay(6000);
       }
+      console.log("Done modifying commands.")
    }
 
    public static async registerGlobalCommands() {

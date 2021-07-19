@@ -17,6 +17,7 @@ import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtils } from "./utilities/PatchingUtils";
 
 // Setup client
+console.time("READY. Bot started in");
 EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be handled at once.
 
 let isReady = false;
@@ -494,7 +495,6 @@ async function resumeAfterOffline(): Promise<void> {
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once("ready", async () => {
-   console.time("READY. Bot started in");
    await PatchingUtils.run();
    await QueueGuildTable.initTable();
    await QueueChannelTable.initTable();
