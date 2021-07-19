@@ -9,6 +9,7 @@ import {
    MessageEmbedOptions,
    MessageMentionOptions,
    MessagePayload,
+   ReplyMessageOptions,
    Role,
    Snowflake,
    TextChannel,
@@ -278,10 +279,10 @@ export class ParsedMessage extends Parsed {
 
    public async reply(options: ReplyOptions): Promise<Message> {
       const mentions: MessageMentionOptions = options.allowMentions ? { users: [], roles: [] } : null;
-      const message = {
+      const message: ReplyMessageOptions = {
          content: options.content,
          embeds: options.embeds,
-         mention: mentions,
+         allowedMentions: mentions,
       };
       if (options.messageDisplay === "DM") {
          return (await this.request.author.send(message)) as Message;
