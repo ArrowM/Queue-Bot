@@ -521,11 +521,13 @@ client.on("guildCreate", async (guild) => {
 
 client.on("roleDelete", async (role) => {
    if (!isReady) return;
-   await PriorityTable.unstore(role.guild.id, role.id);
-   const queueGuild = await QueueGuildTable.get(role.guild.id);
-   const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
-   for (const queueChannel of queueChannels) {
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   if (await PriorityTable.get(role.guild.id, role.id)) {
+      await PriorityTable.unstore(role.guild.id, role.id);
+      const queueGuild = await QueueGuildTable.get(role.guild.id);
+      const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
+      for (const queueChannel of queueChannels) {
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      }
    }
 });
 
