@@ -640,14 +640,15 @@ export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChann
    const guild = srcChannel.guild;
    // Check to see if I have perms to drag other users into this channel.
    if (dstChannel.permissionsFor(guild.me).has("CONNECT")) {
-      // Swap bot with nextQueueMember. If the destination has a user limit, swap with add enough users to fill the limit.
+      // Swap bot with nextQueueMember. If the destination has a user limit, swap and add enough users to fill the limit.
       let storedMembers = await QueueMemberTable.getNext(srcChannel);
       if (storedMembers.length > 0) {
          if (!storedSrcChannel.auto_fill) {
             storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
          }
          if (dstChannel.userLimit) {
-            storedMembers = storedMembers.slice(0, dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size);
+            const num = Math.max(0, dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size);
+            storedMembers = storedMembers.slice(0, num);
          }
          for await (const storedMember of storedMembers) {
             const queueMember = await QueueMemberTable.getMemberFromQueueMember(srcChannel, storedMember);
