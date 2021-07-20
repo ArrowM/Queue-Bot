@@ -1034,7 +1034,7 @@ export class Commands {
     * Pull a specified # of user(s) from a queue and display their name(s)
     */
    public static async next(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, numberArgs: { min: 1, max: 99, defaultValue: 1 } });
+      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, numberArgs: { min: 1, max: 99, defaultValue: null } });
 
 
       const queueChannel = parsed.args.channel;
@@ -1043,7 +1043,7 @@ export class Commands {
       if (!storedQueueChannel) return;
 
       // Get the oldest member entries for the queue
-      const amount = parsed.args.num;
+      const amount = parsed.args.num || storedQueueChannel.pull_num || 1;
       let queueMembers = await QueueMemberTable.getNext(queueChannel, amount);
 
       if (queueMembers.length > 0) {
