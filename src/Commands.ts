@@ -1,5 +1,5 @@
 import { TextChannel, VoiceChannel, GuildMember, MessageEmbed, MessageEmbedOptions, Snowflake, ColorResolvable } from "discord.js";
-import { QueueGuild } from "./utilities/Interfaces";
+import { QueueChannel, QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { ParsedCommand, ParsedMessage, ParsingUtils } from "./utilities/ParsingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
@@ -78,7 +78,7 @@ export class Commands {
     * Toggle automatic pull of users from a queue
     */
    public static async autopullSet(parsed: ParsedCommand | ParsedMessage) {
-      if ((await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasText: true })).length) return;
+      if ((await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_VOICE", hasText: true })).length) return;
 
       if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
          await parsed
@@ -379,8 +379,8 @@ export class Commands {
             .catch(() => null);
       }
 
-      const storedQueueChannel = parsed.queueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
-      if (!storedQueueChannel.role_id) {
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
+      if (!storedQueueChannel?.role_id) {
          const role = await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
          if (role) await QueueChannelTable.updateRoleId(queueChannel, role);
       }
@@ -439,8 +439,6 @@ export class Commands {
             })
             .catch(() => null);
          SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
-      } else {
-         return;
       }
    }
 
@@ -610,10 +608,6 @@ export class Commands {
             {
                name: "`/altprefix`",
                value: "Enable or disable alternate prefix `!`",
-            },
-            {
-               name: "`/autopull`",
-               value: "Get / Set automatic pull from a voice queue",
             },
             {
                name: "`/autopull`",
