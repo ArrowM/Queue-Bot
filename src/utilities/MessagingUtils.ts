@@ -1,8 +1,9 @@
-import { GuildChannel, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, VoiceChannel } from "discord.js";
+import { GuildChannel, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
-import { QueueGuild, QueueMember } from "./Interfaces";
+import { QueueGuild } from "./Interfaces";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
 
 export interface QueueUpdateRequest {
@@ -22,9 +23,7 @@ export class MessagingUtils {
       const queueGuild = updateRequest.queueGuild;
       const queueChannel = updateRequest.queueChannel;
       const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);
-      if (!storedDisplayChannels || storedDisplayChannels.length === 0) {
-         return;
-      }
+      if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
       // Create an embed list
       const embeds = await this.generateEmbed(queueChannel);
@@ -46,7 +45,11 @@ export class MessagingUtils {
                   if (queueGuild.msg_mode === 1) {
                      /* Edit */
                      await message
-                        .edit({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
+                        .edit({
+                           embeds: embeds,
+                           components: await MessagingUtils.getButton(queueChannel),
+                           allowedMentions: { users: [] },
+                        })
                         .catch(() => null as Message);
                   } else {
                      /* Replace */
@@ -94,6 +97,7 @@ export class MessagingUtils {
     * @param queueChannel Discord message object.
     */
    public static async generateEmbed(queueChannel: TextChannel | VoiceChannel): Promise<MessageEmbed[]> {
+      const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel) return [];
       let queueMembers = await QueueMemberTable.getNext(queueChannel);
@@ -136,17 +140,19 @@ export class MessagingUtils {
             const maxFieldCount = 25;
             for (let i = 0; i < queueMembersSlice.length / maxFieldCount; i++) {
                const pos = position % this.MAX_MEMBERS_PER_EMBED;
-               const userList = queueMembersSlice
-                  .slice(pos, pos + maxFieldCount)
-                  .reduce(
-                     (accumlator: string, queueMember: QueueMember) =>
-                        (accumlator +=
-                           `\`${++position < 10 ? position + " " : position}\` ` +
-                           `${queueMember.is_priority ? "⋆" : ""}<@!${queueMember.member_id}>` +
-                           (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
-                           "\n"),
-                     ""
-                  );
+               let userList = "";
+               for (const queueMember of queueMembersSlice.slice(pos, pos + maxFieldCount)) {
+                  let member: GuildMember;
+                  if (queueGuild.disable_mentions) {
+                     member = await queueChannel.guild.members.fetch(queueMember.member_id);
+                  }
+                  userList +=
+                     `\`${++position < 10 ? position + " " : position}\` ` +
+                     `${queueMember.is_priority ? "⋆" : ""}` +
+                     (queueGuild.disable_mentions && member?.displayName ? `\`${member.displayName}\`` : `<@${queueMember.member_id}>`) +
+                     (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
+                     "\n";
+               }
                embed.addField("\u200b", userList, true);
             }
          } else {
@@ -172,7 +178,12 @@ export class MessagingUtils {
       }),
    ];
 
-   public static getButton(channel: GuildChannel) {
-      return channel.type !== "GUILD_VOICE" ? this.rows : [];
+   public static async getButton(channel: GuildChannel) {
+      const storedQueueChannel = await QueueChannelTable.get(channel.id);
+      if (channel.type !== "GUILD_VOICE" && !storedQueueChannel.hide_button) {
+         return this.rows;
+      } else {
+         return [];
+      }
    }
 }

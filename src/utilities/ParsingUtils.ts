@@ -8,7 +8,6 @@ import {
    Message,
    MessageEmbedOptions,
    MessageMentionOptions,
-   MessagePayload,
    ReplyMessageOptions,
    Role,
    Snowflake,
@@ -27,13 +26,14 @@ export class ParsingUtils {
    /**
     * Determine whether user has permission to interact with bot
     */
-   public static async checkPermission(req: CommandInteraction | Message): Promise<boolean> {
-      const member = req.member as GuildMember;
+   public static async checkPermission(request: CommandInteraction | Message): Promise<boolean> {
+      const member = request.member as GuildMember;
+      if (!member) return false;
       // Check if ADMIN
-      if (member.permissionsIn(req.channel as TextChannel | VoiceChannel).has("ADMINISTRATOR")) return true;
+      if (member.permissionsIn(request.channel as TextChannel | VoiceChannel).has("ADMINISTRATOR")) return true;
       // Check IDs
       const roleIds = member.roles.cache.keyArray();
-      for await (const entry of await AdminPermissionTable.getMany(req.guild.id)) {
+      for await (const entry of await AdminPermissionTable.getMany(request.guild.id)) {
          if (roleIds.includes(entry.role_member_id) || member.id === entry.role_member_id) return true;
       }
       // Check role names
@@ -120,7 +120,10 @@ export abstract class Parsed {
             this.args.channel = await this.request.guild.channels.fetch(this.queueChannels[0]?.queue_channel_id).catch(() => null);
          }
          if (!this.args.channel?.guild?.id) {
-            const channelText = (conf.channelType === "GUILD_TEXT" ? "**text** " : "") + (conf.channelType === "GUILD_VOICE" ? "**voice** " : "") + "channel";
+            const channelText =
+               (conf.channelType === "GUILD_TEXT" ? "**text** " : "") +
+               (conf.channelType === "GUILD_VOICE" ? "**voice** " : "") +
+               "channel";
             this.missingArgs.push(channelText);
          }
       }

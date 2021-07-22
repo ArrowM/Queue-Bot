@@ -164,7 +164,7 @@ export class SlashCommands {
          this.modifyCommandsForGuild(guild);
          await delay(6000);
       }
-      console.log("Done modifying commands.")
+      console.log("Done modifying commands.");
    }
 
    public static async registerGlobalCommands() {

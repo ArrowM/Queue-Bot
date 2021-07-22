@@ -10,12 +10,12 @@
             "required": true,
             "choices": [
                {
-                  "name": "enable",
-                  "value": "enable"
+                  "name": "on",
+                  "value": "on"
                },
                {
-                  "name": "disable",
-                  "value": "disable"
+                  "name": "off",
+                  "value": "off"
                }
             ]
          }
@@ -166,6 +166,47 @@
                   "description": "Queue channel",
                   "type": 7,
                   "required": true
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "name": "button",
+      "description": "button",
+      "options": [
+         {
+            "name": "get",
+            "description": "Get the current button settings",
+            "type": 1,
+            "options": []
+         },
+         {
+            "name": "set",
+            "description": "Enable or disable the \"Join / Leave\" button for a queue",
+            "type": 1,
+            "options": [
+               {
+                  "name": "queue",
+                  "description": "Queue channel",
+                  "type": 7,
+                  "required": true
+               },
+               {
+                  "name": "status",
+                  "description": "Enable or disable button",
+                  "type": 3,
+                  "required": true,
+                  "choices": [
+                     {
+                        "name": "on",
+                        "value": "on"
+                     },
+                     {
+                        "name": "off",
+                        "value": "off"
+                     }
+                  ]
                }
             ]
          }
@@ -529,39 +570,39 @@
       ]
    },
    {
-      "name": "size",
-      "description": "size",
+      "name": "mentions",
+      "description": "mentions",
       "options": [
          {
             "name": "get",
-            "description": "Get the current queue sizes",
+            "description": "Get the current mentions setting",
             "type": 1,
             "options": []
          },
          {
             "name": "set",
-            "description": "Set the size of a queue",
+            "description": "Enable or disable mentions in queue displays",
             "type": 1,
             "options": [
                {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "size",
-                  "description": "Maximum # of users allowed in the queue",
-                  "type": 4,
-                  "required": true
+                  "name": "status",
+                  "description": "Enable or disable mentions in queue displays",
+                  "type": 3,
+                  "required": true,
+                  "choices": [
+                     {
+                        "name": "on",
+                        "value": "on"
+                     },
+                     {
+                        "name": "off",
+                        "value": "off"
+                     }
+                  ]
                }
             ]
          }
       ]
-   },
-   {
-      "name": "myqueues",
-      "description": "Display the queues you are in with your position"
    },
    {
       "name": "mode",
@@ -601,6 +642,10 @@
             ]
          }
       ]
+   },
+   {
+      "name": "myqueues",
+      "description": "Display the queues you are in with your position"
    },
    {
       "name": "next",
@@ -857,6 +902,37 @@
             "description": "Queue channel",
             "type": 7,
             "required": true
+         }
+      ]
+   },
+   {
+      "name": "size",
+      "description": "size",
+      "options": [
+         {
+            "name": "get",
+            "description": "Get the current queue sizes",
+            "type": 1,
+            "options": []
+         },
+         {
+            "name": "set",
+            "description": "Set the size of a queue",
+            "type": 1,
+            "options": [
+               {
+                  "name": "queue",
+                  "description": "Queue channel",
+                  "type": 7,
+                  "required": true
+               },
+               {
+                  "name": "size",
+                  "description": "Maximum # of users allowed in the queue",
+                  "type": 4,
+                  "required": true
+               }
+            ]
          }
       ]
    },

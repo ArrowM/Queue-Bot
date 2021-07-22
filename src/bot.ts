@@ -161,6 +161,16 @@ async function onAdminCommand(parsed: ParsedCommand) {
                break;
          }
          break;
+      case "button":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.buttonGet(parsed);
+               break;
+            case "set":
+               await Commands.buttonSet(parsed);
+               break;
+         }
+         break;
       case "clear":
          await Commands.clear(parsed);
          break;
@@ -212,6 +222,16 @@ async function onAdminCommand(parsed: ParsedCommand) {
          break;
       case "kickall":
          await Commands.kickAll(parsed);
+         break;
+      case "mentions":
+         switch (parsed.request.options.firstKey()) {
+            case "get":
+               await Commands.mentionsGet(parsed);
+               break;
+            case "set":
+               await Commands.mentionsSet(parsed);
+               break;
+         }
          break;
       case "mode":
          switch (parsed.request.options.firstKey()) {
@@ -367,6 +387,10 @@ client.on("messageCreate", async (message) => {
             await Commands.blacklistDeleteRole(parsed);
          } else if (commandName.startsWith("blacklist list") && (await checkPermission(parsed))) {
             await Commands.blacklistList(parsed);
+         } else if (commandName.startsWith("button get") && (await checkPermission(parsed))) {
+            await Commands.buttonGet(parsed);
+         } else if (commandName.startsWith("button set") && (await checkPermission(parsed))) {
+            await Commands.buttonSet(parsed);
          } else if (commandName.startsWith("clear") && (await checkPermission(parsed))) {
             await Commands.clear(parsed);
          } else if (commandName.startsWith("color get") && (await checkPermission(parsed))) {

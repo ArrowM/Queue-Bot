@@ -24,6 +24,7 @@ export class QueueChannelTable {
                   table.integer("grace_period");
                   table.bigInteger("guild_id");
                   table.text("header");
+                  table.boolean("hide_button");
                   table.integer("max_members");
                   table.integer("pull_num");
                   table.bigInteger("target_channel_id");
@@ -73,6 +74,10 @@ export class QueueChannelTable {
 
    public static async updateHeader(queueChannelId: Snowflake, message: string) {
       await this.get(queueChannelId).update("header", message);
+   }
+
+   public static async updateHideButton(queueChannelId: Snowflake, status: boolean) {
+      await this.get(queueChannelId).update("hide_button", status);
    }
 
    public static async updateTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw<any>) {

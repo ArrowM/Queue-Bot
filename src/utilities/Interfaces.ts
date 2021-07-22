@@ -14,6 +14,7 @@ export interface QueueChannel {
    guild_id: Snowflake;
    grace_period: number;
    header: string;
+   hide_button: boolean;
    max_members: number;
    pull_num: number;
    queue_channel_id: Snowflake;
@@ -30,6 +31,7 @@ export interface DisplayChannel {
 
 export interface QueueGuild {
    id: Snowflake;
+   disable_mentions: boolean;
    enable_alt_prefix: boolean;
    guild_id: Snowflake;
    msg_mode: number;

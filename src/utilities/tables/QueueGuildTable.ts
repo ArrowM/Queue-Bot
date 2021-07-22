@@ -14,6 +14,7 @@ export class QueueGuildTable {
             await Base.knex.schema
                .createTable("queue_guilds", (table) => {
                   table.bigInteger("guild_id").primary();
+                  table.boolean("disable_mentions");
                   table.integer("msg_mode");
                   table.boolean("enable_alt_prefix");
                })
@@ -53,12 +54,16 @@ export class QueueGuildTable {
       return Base.knex<QueueGuild>("queue_guilds");
    }
 
+   public static async updateDisableMentions(guildId: Snowflake, value: boolean): Promise<void> {
+      await this.get(guildId).update("disable_mentions", value);
+   }
+
    public static async updateMessageMode(guildId: Snowflake, mode: number): Promise<void> {
       await this.get(guildId).update("msg_mode", mode);
    }
 
-   public static async updateAltPrefix(guildId: Snowflake, enable: boolean): Promise<void> {
-      await this.get(guildId).update("enable_alt_prefix", enable);
+   public static async updateAltPrefix(guildId: Snowflake, value: boolean): Promise<void> {
+      await this.get(guildId).update("enable_alt_prefix", value);
    }
 
    public static async store(guild: Guild): Promise<void> {

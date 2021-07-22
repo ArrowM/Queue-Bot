@@ -1,7 +1,7 @@
 import { TextChannel, VoiceChannel, GuildMember, MessageEmbed, MessageEmbedOptions, Snowflake, ColorResolvable } from "discord.js";
 import { QueueChannel, QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
-import { ParsedCommand, ParsedMessage, ParsingUtils } from "./utilities/ParsingUtils";
+import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
@@ -22,30 +22,30 @@ export class Commands {
    public static async altPrefix(parsed: ParsedCommand | ParsedMessage): Promise<void> {
       if ((await parsed.readArgs({ commandNameLength: 9, hasText: true })).length) return;
 
-      if (!["enable", "disable"].includes(parsed.args.text.toLowerCase())) {
+      if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
          await parsed
             .reply({
-               content: "**ERROR**: Missing required argument: `enable` or `disable`.",
+               content: "**ERROR**: Missing required argument: `on` or `off`.",
                commandDisplay: "EPHEMERAL",
             })
             .catch(() => null);
          return;
       }
       if (
-         (parsed.queueGuild.enable_alt_prefix && parsed.args.text === "enable") ||
-         (!parsed.queueGuild.enable_alt_prefix && parsed.args.text === "disable")
+         (parsed.queueGuild.enable_alt_prefix && parsed.args.text === "on") ||
+         (!parsed.queueGuild.enable_alt_prefix && parsed.args.text === "off")
       ) {
          await parsed
             .reply({
-               content: `Alternative prefixes have already been ${parsed.args.text}d. Try \`!help\`.`,
+               content: `Alternative prefixes were already ${parsed.args.text}. Try \`!help\`.`,
                commandDisplay: "EPHEMERAL",
             })
             .catch(() => null);
       } else {
-         await QueueGuildTable.updateAltPrefix(parsed.request.guild.id, parsed.args.text === "enable");
+         await QueueGuildTable.updateAltPrefix(parsed.request.guild.id, parsed.args.text === "on");
          await parsed
             .reply({
-               content: `Alternative prefixes have been ${parsed.args.text}d.`,
+               content: `Alternative prefixes have been turned ${parsed.args.text}.`,
             })
             .catch(() => null);
       }
@@ -97,7 +97,7 @@ export class Commands {
       await QueueChannelTable.updateAutopull(queueChannel.id, value);
       await parsed
          .reply({
-            content: `Set autopull of \`${queueChannel.name}\` to \`${value ? "on" : "off"}\`.`,
+            content: `Set autopull of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
          })
          .catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -240,6 +240,57 @@ export class Commands {
       this.blacklistWhitelistList(parsed, 0);
    }
 
+   // --------------------------------- BUTTON ------------------------------- //
+
+   /**
+    * Get button settings
+    */
+   public static async buttonGet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+      await parsed.readArgs({ commandNameLength: 10 });
+
+      let response = "**Buttons**:\n";
+      for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
+         const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
+            | VoiceChannel
+            | TextChannel;
+         if (!queueChannel) continue;
+         response += `\`${queueChannel.name}\`: ${storedQueueChannel.hide_button ? "on" : "off"}\n`;
+      }
+      await parsed
+         .reply({
+            content: response,
+         })
+         .catch(() => null);
+   }
+
+   /**
+    * Enable or disable the "Join / Leave" button for a queue
+    */
+   public static async buttonSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+      await parsed.readArgs({ commandNameLength: 10, hasChannel: true, channelType: "GUILD_TEXT", hasText: true });
+
+      const queueChannel = parsed.args.channel;
+      if (!queueChannel?.id) return;
+
+      if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
+         await parsed
+            .reply({
+               content: "**ERROR**: Missing required argument: `on` or `off`.",
+               commandDisplay: "EPHEMERAL",
+            })
+            .catch(() => null);
+         return;
+      }
+
+      await QueueChannelTable.updateHideButton(queueChannel.id, parsed.args.text === "off");
+      await parsed
+         .reply({
+            content: `Set button of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
+         })
+         .catch(() => null);
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+   }
+
    // --------------------------------- CLEAR ------------------------------- //
 
    /**
@@ -346,7 +397,7 @@ export class Commands {
    public static async display(parsed: ParsedCommand | ParsedMessage, channel?: VoiceChannel | TextChannel): Promise<void> {
       await parsed.readArgs({ commandNameLength: 7, hasChannel: true });
 
-      const queueChannel = channel || (parsed.args.channel);
+      const queueChannel = channel || parsed.args.channel;
       if (!queueChannel) return;
       const author = parsed.request.member as GuildMember;
       if (!author?.id) return;
@@ -403,7 +454,7 @@ export class Commands {
             await QueueMemberTable.store(queueChannel, member, customMessage, true);
             await parsed
                .reply({
-                  content: `Added <@!${member.id}> to \`${queueChannel.name}\`.`,
+                  content: `Added <@${member.id}> to \`${queueChannel.name}\`.`,
                })
                .catch(() => null);
             SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -446,7 +497,7 @@ export class Commands {
     * Add a specified user to a queue
     */
    public static async enqueueUser(parsed: ParsedCommand | ParsedMessage) {
-      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasMember: true});
+      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasMember: true });
 
       await this.enqueue(parsed);
    }
@@ -566,7 +617,8 @@ export class Commands {
                name: "How to join queues",
                value:
                   "**TEXT**: Click the button under a queue display or use `/join` & `/leave`.\n" +
-                  "**VOICE**: Join the matching voice channel.",
+                  "**VOICE**: Join the matching voice channel." +
+                  "\n<@264479399779237879>",
             },
             {
                name: "`/join`" + alt ? "or `!join`" : "",
@@ -867,14 +919,14 @@ export class Commands {
    public static async kick(parsed: ParsedCommand | ParsedMessage): Promise<void> {
       await parsed.readArgs({ commandNameLength: 4, hasChannel: true, hasMember: true });
 
-      const member = parsed.args.member
+      const member = parsed.args.member;
       const channel = parsed.args.channel;
       if (!member?.id || !channel?.id) return;
 
       this.kickFromQueue(parsed.queueGuild, channel, member);
       await parsed
          .reply({
-            content: `Kicked <@!${member.id}> from \`${channel.name}\` queue.`,
+            content: `Kicked <@${member.id}> from \`${channel.name}\` queue.`,
          })
          .catch(() => null);
    }
@@ -899,7 +951,7 @@ export class Commands {
       channels.forEach((ch) => this.kickFromQueue(parsed.queueGuild, ch, member));
       await parsed
          .reply({
-            content: `Kicked <@!${member.id}> from ` + channels.map((ch) => `\`${ch.name}\``).join(", ") + " queues.",
+            content: `Kicked <@${member.id}> from ` + channels.map((ch) => `\`${ch.name}\``).join(", ") + " queues.",
          })
          .catch(() => null);
    }
@@ -935,6 +987,54 @@ export class Commands {
       }
 
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+   }
+
+   // --------------------------------- MENTIONS ------------------------------- //
+
+   /**
+    * Get the current mentions settings
+    */
+   public static async mentionsGet(parsed: ParsedCommand | ParsedMessage) {
+      await parsed.readArgs({ commandNameLength: 12 });
+
+      await parsed
+         .reply({
+            content: "**Mentions**: " + parsed.queueGuild.disable_mentions ? "off" : "on",
+         })
+         .catch(() => null);
+   }
+
+   /**
+    * Enable or disable mentions in queue displays
+    */
+   public static async mentionsSet(parsed: ParsedCommand | ParsedMessage) {
+      await parsed.readArgs({ commandNameLength: 12, hasText: true });
+
+      if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
+         await parsed
+            .reply({
+               content: "**ERROR**: Missing required argument: `on` or `off`.",
+               commandDisplay: "EPHEMERAL",
+            })
+            .catch(() => null);
+         return;
+      }
+
+      const guild = parsed.request.guild;
+      const disableMentions = parsed.args.text === "on" ? false : true;
+      await QueueGuildTable.updateDisableMentions(guild.id, disableMentions);
+      await parsed
+         .reply({
+            content: `Set mentions to \`${parsed.args.text}\`.`,
+         })
+         .catch(() => null);
+      const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
+      for (const storedQueueChannel of storedQueueChannels) {
+         const queueChannel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
+            | VoiceChannel
+            | TextChannel;
+         SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      }
    }
 
    // --------------------------------- MODE ------------------------------- //
@@ -1016,7 +1116,7 @@ export class Commands {
             const memberIds = (await QueueMemberTable.getNext(queueChannel)).map((member) => member.member_id);
             embed.addField(
                queueChannel.name,
-               `${memberIds.indexOf(author.id) + 1} <@!${author.id}>` + (entry.personal_message ? ` -- ${entry.personal_message}` : "")
+               `${memberIds.indexOf(author.id) + 1} <@${author.id}>` + (entry.personal_message ? ` -- ${entry.personal_message}` : "")
             );
          }
          await parsed
@@ -1035,7 +1135,6 @@ export class Commands {
     */
    public static async next(parsed: ParsedCommand | ParsedMessage): Promise<void> {
       await parsed.readArgs({ commandNameLength: 4, hasChannel: true, numberArgs: { min: 1, max: 99, defaultValue: null } });
-
 
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
@@ -1074,7 +1173,7 @@ export class Commands {
                if (!member) continue;
                await member
                   .send(
-                     `Hey <@!${member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
+                     `Hey <@${member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
                         `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
                   )
                   .catch(() => null);
@@ -1082,7 +1181,7 @@ export class Commands {
          }
          await parsed
             .reply({
-               content: `Pulled ` + queueMembers.map((member) => `<@!${member.member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`,
+               content: `Pulled ` + queueMembers.map((member) => `<@${member.member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`,
             })
             .catch(() => null);
          await QueueMemberTable.unstore(

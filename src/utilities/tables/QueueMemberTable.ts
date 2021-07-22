@@ -111,14 +111,14 @@ export class QueueMemberTable {
       if (await QueueMemberTable.get(queueChannel.id, member.id)) {
          throw {
             author: "Queue Bot",
-            message: `<@!${member.id}> is already in \`${queueChannel.name}\`.\n`,
+            message: `<@${member.id}> is already in \`${queueChannel.name}\`.\n`,
          };
       }
       if (!force) {
          if (await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) {
             throw {
                author: "Queue Bot",
-               message: `<@!${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`,
+               message: `<@${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`,
             };
          }
          const storedChannel = await QueueChannelTable.get(queueChannel.id);
@@ -127,7 +127,7 @@ export class QueueMemberTable {
             if (storedChannel.max_members <= storedQueueMembers?.length) {
                throw {
                   author: "Queue Bot",
-                  message: `Failed to add <@!${member.id}> to \`${queueChannel.name}\`. Queue is full!\n`,
+                  message: `Failed to add <@${member.id}> to \`${queueChannel.name}\`. Queue is full!\n`,
                };
             }
          }

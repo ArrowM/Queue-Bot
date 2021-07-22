@@ -57,7 +57,7 @@ export class DisplayChannelTable {
       const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
       if (displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
          const response = await displayChannel
-            .send({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
+            .send({ embeds: embeds, components: await MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
             .catch(() => null as Message);
          if (!response) return;
 

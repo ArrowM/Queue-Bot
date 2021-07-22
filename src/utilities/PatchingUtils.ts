@@ -200,7 +200,7 @@ export class PatchingUtils {
             }
             const response = await messages
                .shift()
-               ?.edit({ embeds: embeds, components: MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
+               ?.edit({ embeds: embeds, components: await MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
                .catch(() => null as Message);
             if (response) {
                await Base.knex<DisplayChannel>("display_channels").where("id", entry.id).update("message_id", response.id);
@@ -264,6 +264,10 @@ export class PatchingUtils {
       if (!(await Base.knex.schema.hasColumn("queue_channels", "role_id"))) {
          await Base.knex.schema.table("queue_channels", (table) => table.bigInteger("role_id"));
       }
+      //
+      if (!(await Base.knex.schema.hasColumn("queue_channels", "hide_button"))) {
+         await Base.knex.schema.table("queue_channels", (table) => table.boolean("hide_button"));
+      }
    }
 
    private static async tableQueueGuilds(): Promise<void> {
@@ -310,8 +314,13 @@ export class PatchingUtils {
             });
          }
       }
+      //
       if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {
          await Base.knex.schema.alterTable("queue_guilds", (t) => t.boolean("enable_alt_prefix"));
+      }
+      //
+      if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_mentions"))) {
+         await Base.knex.schema.table("queue_guilds", (table) => table.boolean("disable_mentions"));
       }
    }
 
