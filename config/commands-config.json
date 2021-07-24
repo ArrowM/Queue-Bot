@@ -177,18 +177,18 @@
       "options": [
          {
             "name": "get",
-            "description": "Get the current button settings",
+            "description": "Get whether a \"Join / Leave\" button appears under a text queue display",
             "type": 1,
             "options": []
          },
          {
             "name": "set",
-            "description": "Enable or disable the \"Join / Leave\" button for a queue",
+            "description": "Set whether a \"Join / Leave\" button appears under a text queue display",
             "type": 1,
             "options": [
                {
                   "name": "queue",
-                  "description": "Queue channel",
+                  "description": "Text queue channel",
                   "type": 7,
                   "required": true
                },
@@ -575,18 +575,18 @@
       "options": [
          {
             "name": "get",
-            "description": "Get the current mentions setting",
+            "description": "Get whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
             "type": 1,
             "options": []
          },
          {
             "name": "set",
-            "description": "Enable or disable mentions in queue displays",
+            "description": "Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
             "type": 1,
             "options": [
                {
                   "name": "status",
-                  "description": "Enable or disable mentions in queue displays",
+                  "description": "mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
                   "type": 3,
                   "required": true,
                   "choices": [

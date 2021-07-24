@@ -1,4 +1,4 @@
-import { GuildChannel, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, VoiceChannel } from "discord.js";
+import { DiscordAPIError, GuildChannel, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
 import { QueueGuild } from "./Interfaces";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
@@ -144,7 +144,13 @@ export class MessagingUtils {
                for (const queueMember of queueMembersSlice.slice(pos, pos + maxFieldCount)) {
                   let member: GuildMember;
                   if (queueGuild.disable_mentions) {
-                     member = await queueChannel.guild.members.fetch(queueMember.member_id);
+                     member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
+                        if (e.httpStatus === 403) {
+                           await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
+                        }
+                        return null;
+                     });
+                     if (!member) continue;
                   }
                   userList +=
                      `\`${++position < 10 ? position + " " : position}\` ` +

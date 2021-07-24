@@ -678,6 +678,10 @@ export class Commands {
                value: "Display a blacklist",
             },
             {
+               name: "`/button`",
+               value: "Get / Set whether a \"Join / Leave\" button appears under a text queue display",
+            },
+            {
                name: "`/clear`",
                value: "Clear a queue",
             },
@@ -708,6 +712,10 @@ export class Commands {
             {
                name: "`/kick all`",
                value: "Kick a user from all queue",
+            },
+            {
+               name: "`/mentions`",
+               value: "Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
             },
             {
                name: "`/next`",

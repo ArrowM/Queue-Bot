@@ -31,6 +31,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/blacklist add user` & `/blacklist add role` - Blacklist a user or role  
 `/blacklist delete user` & `/blacklist delete role` - Un-blacklist a user or role  
 `/blacklist list` - Display a blacklist  
+`/button` - Get / Set whether a \"Join / Leave\" button appears under a text queue display  
 `/clear` - Clear a queue  
 `/color` - Get / Set color of queue displays  
 `/display` - Display a queue  
@@ -39,6 +40,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/header` - Get / Set a header on display messages  
 `/kick` - Kick from a queue  
 `/size` - Get / Set size limit of a queue  
+`/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
 `/queues add` - Create a queue  
