@@ -536,7 +536,7 @@ export class Commands {
    }
 
    /**
-    * Set how long a user can leave a voice queue before losing their spot
+    * Set how long a user can leave a queue before losing their spot
     */
    public static async graceperiodSet(parsed: ParsedCommand | ParsedMessage) {
       await parsed.readArgs({
@@ -679,7 +679,7 @@ export class Commands {
             },
             {
                name: "`/button`",
-               value: "Get / Set whether a \"Join / Leave\" button appears under a text queue display",
+               value: 'Get / Set whether a "Join / Leave" button appears under a text queue display',
             },
             {
                name: "`/clear`",
@@ -1613,16 +1613,27 @@ export class Commands {
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
 
-      await QueueChannelTable.unstore(parsed.request.guild.id, queueChannel.id, parsed);
-      const response = `Deleted queue for \`${queueChannel.name}\`.` + (await this.genQueuesList(parsed));
-      await parsed
-         .reply({
-            content: response,
-         })
-         .catch(() => null);
-      Voice.disconnectFromChannel(queueChannel as VoiceChannel);
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      if (storedQueueChannel) {
+         await QueueChannelTable.unstore(parsed.request.guild.id, queueChannel.id, parsed);
+         const response = `Deleted queue for \`${queueChannel.name}\`.` + (await this.genQueuesList(parsed));
+         await parsed
+            .reply({
+               content: response,
+            })
+            .catch(() => null);
+         Voice.disconnectFromChannel(queueChannel as VoiceChannel);
 
-      await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+         await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+      } else {
+         const response = `\`${queueChannel.name}\` is not a queue.` + (await this.genQueuesList(parsed));
+         await parsed
+            .reply({
+               content: response,
+               commandDisplay: "EPHEMERAL",
+            })
+            .catch(() => null);
+      }
    }
 
    /**

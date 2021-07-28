@@ -1,4 +1,14 @@
-import { DiscordAPIError, GuildChannel, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, VoiceChannel } from "discord.js";
+import {
+   DiscordAPIError,
+   GuildChannel,
+   GuildMember,
+   Message,
+   MessageActionRow,
+   MessageButton,
+   MessageEmbed,
+   TextChannel,
+   VoiceChannel,
+} from "discord.js";
 import { Base } from "./Base";
 import { QueueGuild } from "./Interfaces";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
@@ -155,7 +165,9 @@ export class MessagingUtils {
                   userList +=
                      `\`${++position < 10 ? position + " " : position}\` ` +
                      `${queueMember.is_priority ? "⋆" : ""}` +
-                     (queueGuild.disable_mentions && member?.displayName ? `\`${member.displayName}#${member?.user?.discriminator}\`` : `<@${queueMember.member_id}>`) +
+                     (queueGuild.disable_mentions && member?.displayName
+                        ? `\`${member.displayName}#${member?.user?.discriminator}\``
+                        : `<@${queueMember.member_id}>`) +
                      (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
                      "\n";
                }

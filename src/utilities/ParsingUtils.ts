@@ -117,7 +117,12 @@ export abstract class Parsed {
          this.queueChannels = await this.getStoredQueueChannels();
          await this.getChannelParam(conf.channelType);
          if (!this.args.channel && this.queueChannels.length === 1) {
-            this.args.channel = await this.request.guild.channels.fetch(this.queueChannels[0]?.queue_channel_id).catch(() => null);
+            const onlyQueue = (await this.request.guild.channels.fetch(this.queueChannels[0]?.queue_channel_id).catch(() => null)) as
+               | VoiceChannel
+               | TextChannel;
+            if (!conf.channelType || conf.channelType === onlyQueue.type) {
+               this.args.channel = onlyQueue;
+            }
          }
          if (!this.args.channel?.guild?.id) {
             const channelText =

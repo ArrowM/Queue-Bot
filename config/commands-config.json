@@ -433,7 +433,7 @@
          },
          {
             "name": "set",
-            "description": "Set how long a user can leave a voice queue before losing their spot",
+            "description": "Set how long a user can leave a queue before losing their spot",
             "type": 1,
             "options": [
                {

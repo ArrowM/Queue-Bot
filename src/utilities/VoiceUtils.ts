@@ -6,18 +6,18 @@ import {
    VoiceConnection,
    VoiceConnectionStatus,
 } from "@discordjs/voice/dist";
-import { Client, Constants, Guild, Snowflake, VoiceChannel, WebSocketShard } from "discord.js";
-import { GatewayVoiceServerUpdateDispatchData, GatewayVoiceStateUpdateDispatchData } from "discord-api-types/v8";
+import { Client, Constants, Guild, Snowflake, VoiceChannel } from "discord.js";
+import { GatewayVoiceServerUpdateDispatchData, GatewayVoiceStateUpdateDispatchData } from "discord-api-types/v9";
 
 export class Voice {
    /**
     * https://github.com/discordjs/voice/blob/main/examples/basic/basic-example.ts
     */
-
    private static connections = new Map<Snowflake, VoiceConnection>();
    private static adapters = new Map<Snowflake, DiscordGatewayAdapterLibraryMethods>();
+   private static trackedShards = new Map<number, Set<Snowflake>>();
    private static trackedClients = new Set<Client>();
-   private static trackedGuilds = new Map<WebSocketShard, Set<Snowflake>>();
+
    /**
     * Tracks a Discord.js client, listening to VOICE_SERVER_UPDATE and VOICE_STATE_UPDATE events.
     * @param client - The Discord.js Client to track
@@ -33,25 +33,22 @@ export class Voice {
             Voice.adapters.get(payload.guild_id)?.onVoiceStateUpdate(payload);
          }
       });
-   }
-
-   private static cleanupGuilds(shard: WebSocketShard) {
-      const guilds = Voice.trackedGuilds.get(shard);
-      if (guilds) {
-         for (const guildID of guilds.values()) {
-            Voice.adapters.get(guildID)?.destroy();
+      client.on(Constants.Events.SHARD_DISCONNECT, (_, shardID) => {
+         const guilds = Voice.trackedShards.get(shardID);
+         if (guilds) {
+            for (const guildID of guilds.values()) {
+               Voice.adapters.get(guildID)?.destroy();
+            }
          }
-      }
+         Voice.trackedShards.delete(shardID);
+      });
    }
 
    private static trackGuild(guild: Guild) {
-      let guilds = Voice.trackedGuilds.get(guild.shard);
+      let guilds = Voice.trackedShards.get(guild.shardId);
       if (!guilds) {
-         const cleanup = () => Voice.cleanupGuilds(guild.shard);
-         guild.shard.on("close", cleanup);
-         guild.shard.on("destroyed", cleanup);
          guilds = new Set();
-         Voice.trackedGuilds.set(guild.shard, guilds);
+         Voice.trackedShards.set(guild.shardId, guilds);
       }
       guilds.add(guild.id);
    }
@@ -60,7 +57,7 @@ export class Voice {
     * Creates an adapter for a Voice Channel
     * @param channel - The channel to create the adapter for
     */
-   private static createDiscordJSAdapter(channel: VoiceChannel): DiscordGatewayAdapterCreator {
+   public static createDiscordJSAdapter(channel: VoiceChannel): DiscordGatewayAdapterCreator {
       return (methods) => {
          Voice.adapters.set(channel.guild.id, methods);
          Voice.trackClient(channel.client);
