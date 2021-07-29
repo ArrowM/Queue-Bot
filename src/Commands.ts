@@ -917,7 +917,7 @@ export class Commands {
          member?.voice?.kick().catch(() => null);
       } else {
          await QueueMemberTable.get(channel.id, member.id).delete();
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, channel as TextChannel | VoiceChannel);
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, channel);
       }
    }
 
@@ -931,7 +931,7 @@ export class Commands {
       const channel = parsed.args.channel;
       if (!member?.id || !channel?.id) return;
 
-      this.kickFromQueue(parsed.queueGuild, channel, member);
+      await this.kickFromQueue(parsed.queueGuild, channel, member);
       await parsed
          .reply({
             content: `Kicked <@${member.id}> from \`${channel.name}\` queue.`,
@@ -949,14 +949,17 @@ export class Commands {
 
       const member = parsed.args.member;
       if (!member?.id) return;
+
       const channels: (VoiceChannel | TextChannel)[] = [];
-      const entries = await QueueMemberTable.getFromMember(member.id);
-      for await (const entry of entries) {
-         const queueChannel = (await parsed.request.guild.channels.fetch(entry.id).catch(() => null)) as VoiceChannel | TextChannel;
+      const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map((ch) => ch.queue_channel_id);
+      const storedEntries = (await QueueMemberTable.getFromChannels(storedChannelIds, member.id));
+
+      for await (const entry of storedEntries) {
+         const queueChannel = (await parsed.request.guild.channels.fetch(entry.channel_id).catch(() => null)) as VoiceChannel | TextChannel;
          if (!queueChannel) continue;
          channels.push(queueChannel);
+         await this.kickFromQueue(parsed.queueGuild, queueChannel, member);
       }
-      channels.forEach((ch) => this.kickFromQueue(parsed.queueGuild, ch, member));
       await parsed
          .reply({
             content: `Kicked <@${member.id}> from ` + channels.map((ch) => `\`${ch.name}\``).join(", ") + " queues.",
@@ -1107,7 +1110,8 @@ export class Commands {
       const author = parsed.request.member as GuildMember;
       if (!author?.id) return;
 
-      const storedEntries = (await QueueMemberTable.getFromMember(author.id)).slice(0, 25);
+      const storedChannelIds = (await QueueChannelTable.getFromGuild(author.guild.id)).map((ch) => ch.queue_channel_id);
+      const storedEntries = (await QueueMemberTable.getFromChannels(storedChannelIds, author.id)).slice(0, 25);
       if (storedEntries?.length < 1) {
          await parsed
             .reply({

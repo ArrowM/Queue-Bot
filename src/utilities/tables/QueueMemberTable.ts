@@ -43,16 +43,16 @@ export class QueueMemberTable {
       }
    }
 
-   public static get(channelId: Snowflake, memberId?: Snowflake) {
+   public static get(channelId: Snowflake, memberId: Snowflake) {
       return Base.knex<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", memberId).first();
+   }
+
+   public static getFromChannels(queueChannelIds: Snowflake[], memberId: Snowflake) {
+      return Base.knex<QueueMember>("queue_members").whereIn("channel_id", queueChannelIds).where("member_id", memberId);
    }
 
    public static getFromId(id: Snowflake) {
       return Base.knex<QueueMember>("queue_members").where("id", id).first();
-   }
-
-   public static getFromMember(memberId: Snowflake) {
-      return Base.knex<QueueMember>("queue_members").where("member_id", memberId);
    }
 
    public static async setCreatedAt(memberId: Snowflake, time: string): Promise<void> {
