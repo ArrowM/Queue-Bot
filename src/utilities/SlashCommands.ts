@@ -146,18 +146,18 @@ export class SlashCommands {
       const now = Date.now();
       this.commandRegistrationCache.set(guildId, now);
 
+      const commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
+      const filteredCommands = commands.filter(
+         (cmd) => !["altprefix", "help", "queues"].includes(cmd.name) && cmd.application_id === Base.client.user.id
+      );
+
       const msgTest = "Unregistering queue commands. This will take about 2 minutes...";
       const slashUpdateMessage = {
          resp: await parsed?.reply({ content: msgTest }).catch(() => null as Message),
          respText: msgTest,
          progNum: 0,
-         totalNum: 0,
+         totalNum: commands.length,
       };
-
-      const commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
-      const filteredCommands = commands.filter(
-         (cmd) => !["altprefix", "help", "queues"].includes(cmd.name) && cmd.application_id === Base.client.user.id
-      );
 
       for await (let command of filteredCommands) {
          if (this.commandRegistrationCache.get(guildId) !== now) {
