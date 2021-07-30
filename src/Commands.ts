@@ -617,8 +617,7 @@ export class Commands {
                name: "How to join queues",
                value:
                   "**TEXT**: Click the button under a queue display or use `/join` & `/leave`.\n" +
-                  "**VOICE**: Join the matching voice channel." +
-                  "\n<@264479399779237879>",
+                  "**VOICE**: Join the matching voice channel.",
             },
             {
                name: "`/join`" + alt ? "or `!join`" : "",
