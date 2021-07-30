@@ -29,24 +29,6 @@ export class SlashCommands {
       await delay(5000);
    }
 
-   private static removeQueueArg(cmd: ApplicationOptions): ApplicationOptions {
-      if (cmd.options) cmd.options = this.removeQueue(cmd.options);
-      return cmd;
-   }
-
-   private static removeQueue(options: ApplicationCommandOption[]): ApplicationCommandOption[] {
-      for (let i = options.length - 1; i >= 0; i--) {
-         const option = options[i];
-         if ((option.type === 1 || option.type === 2) && option.options) {
-            option.options = this.removeQueue(option.options);
-         } else if (option.type === 7) {
-            // Remove
-            options.splice(i, 1);
-         }
-      }
-      return options;
-   }
-
    private static modifyQueueArg(cmd: ApplicationOptions, storedChannels: (VoiceChannel | TextChannel)[]): ApplicationOptions {
       if (cmd.options) cmd.options = this.modifyQueue(cmd.options, storedChannels);
       return cmd;
@@ -68,17 +50,21 @@ export class SlashCommands {
             } else if (option.description.toLowerCase().includes("voice queue")) {
                storedChannels = storedChannels.filter((ch) => ch.type === "GUILD_VOICE");
             }
-            const choices: ApplicationCommandOptionChoice[] = storedChannels.map((ch) => {
-               return { name: ch.name, value: ch.id };
-            });
-            // Modify
-            options[i] = {
-               name: option.name,
-               description: option.description,
-               type: 3,
-               required: option.required,
-               choices: choices,
-            };
+            if (storedChannels.length > 1) {
+               const choices: ApplicationCommandOptionChoice[] = storedChannels.map((ch) => {
+                  return { name: ch.name, value: ch.id };
+               });
+               // Modify
+               options[i] = {
+                  name: option.name,
+                  description: option.description,
+                  type: 3,
+                  required: option.required,
+                  choices: choices,
+               };
+            } else {
+               options.splice(i, 1);
+            }
          }
       }
       return options;
@@ -130,12 +116,8 @@ export class SlashCommands {
             return;
          }
 
-         if (storedChannels.length === 1) {
-            command = await this.removeQueueArg(command);
-         } else {
-            command = await this.modifyQueueArg(command, storedChannels);
-         }
-         await this.slashClient.createCommand(command, guildId).catch(() => null);
+         command = await this.modifyQueueArg(command, storedChannels);
+         await this.slashClient.createCommand(command, guildId).catch(console.error);
 
          await this.editProgress(slashUpdateMessage);
       }

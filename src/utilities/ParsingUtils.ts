@@ -115,14 +115,19 @@ export abstract class Parsed {
       // Required - channel, role, member
       if (conf.hasChannel) {
          this.queueChannels = await this.getStoredQueueChannels();
+         await this.request.guild.channels.fetch(); // Pre-fetch all channels
          await this.getChannelParam(conf.channelType);
-         if (!this.args.channel && this.queueChannels.length === 1) {
-            const onlyQueue = (await this.request.guild.channels.fetch(this.queueChannels[0]?.queue_channel_id).catch(() => null)) as
-               | VoiceChannel
-               | TextChannel;
-            if (!conf.channelType || conf.channelType === onlyQueue.type) {
-               this.args.channel = onlyQueue;
+         if (!this.args.channel) {
+            const queues: (VoiceChannel | TextChannel)[] = [];
+            for await (const storedQueueChannel of this.queueChannels) {
+               const queueChannel = (await this.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
+                  | VoiceChannel
+                  | TextChannel;
+               if (!queueChannel) continue; // No channel
+               if (conf.channelType && conf.channelType !== queueChannel.type) continue; // Wrong type
+               queues.push(queueChannel);
             }
+            if (queues.length === 1) this.args.channel = queues[0];
          }
          if (!this.args.channel?.guild?.id) {
             const channelText =

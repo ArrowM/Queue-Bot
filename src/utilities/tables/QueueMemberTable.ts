@@ -108,12 +108,6 @@ export class QueueMemberTable {
       customMessage?: string,
       force?: boolean
    ): Promise<void> {
-      if (await QueueMemberTable.get(queueChannel.id, member.id)) {
-         throw {
-            author: "Queue Bot",
-            message: `<@${member.id}> is already in \`${queueChannel.name}\`.\n`,
-         };
-      }
       if (!force) {
          if (await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) {
             throw {
@@ -132,14 +126,20 @@ export class QueueMemberTable {
             }
          }
       }
-      const isPriority = await PriorityTable.isPriority(queueChannel.guild.id, member);
-      await Base.knex<QueueMember>("queue_members").insert({
-         created_at: this.unstoredMembersCache.get(member.id),
-         is_priority: isPriority,
-         personal_message: customMessage,
-         channel_id: queueChannel.id,
-         member_id: member.id,
-      });
+
+      const storedMember = await QueueMemberTable.get(queueChannel.id, member.id);
+      if (storedMember) {
+         storedMember.personal_message = customMessage;
+         await QueueMemberTable.get(queueChannel.id, member.id).update(storedMember);
+      } else {
+         await Base.knex<QueueMember>("queue_members").insert({
+            created_at: this.unstoredMembersCache.get(member.id),
+            is_priority: await PriorityTable.isPriority(queueChannel.guild.id, member),
+            personal_message: customMessage,
+            channel_id: queueChannel.id,
+            member_id: member.id,
+         });
+      }
       this.unstoredMembersCache.delete(member.id);
       // Assign Queue Role
       const StoredQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);

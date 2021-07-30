@@ -890,6 +890,7 @@ export class Commands {
          await parsed
             .reply({
                content: `You joined \`${queueChannel.name}\`.`,
+               commandDisplay: "EPHEMERAL",
             })
             .catch(() => null);
       } catch (e) {
@@ -952,7 +953,7 @@ export class Commands {
 
       const channels: (VoiceChannel | TextChannel)[] = [];
       const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map((ch) => ch.queue_channel_id);
-      const storedEntries = (await QueueMemberTable.getFromChannels(storedChannelIds, member.id));
+      const storedEntries = await QueueMemberTable.getFromChannels(storedChannelIds, member.id);
 
       for await (const entry of storedEntries) {
          const queueChannel = (await parsed.request.guild.channels.fetch(entry.channel_id).catch(() => null)) as VoiceChannel | TextChannel;
@@ -986,6 +987,7 @@ export class Commands {
          await parsed
             .reply({
                content: `You left \`${queueChannel.name}\`.`,
+               commandDisplay: "EPHEMERAL",
             })
             .catch(() => null);
       } else {

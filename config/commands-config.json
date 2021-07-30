@@ -33,12 +33,12 @@
          },
          {
             "name": "set",
-            "description": "Toggle automatic pull of users from a queue",
+            "description": "Toggle automatic pull of users from a voice queue",
             "type": 1,
             "options": [
                {
                   "name": "queue",
-                  "description": "Queue channel",
+                  "description": "Voice queue channel",
                   "type": 7,
                   "required": true
                },
@@ -575,18 +575,18 @@
       "options": [
          {
             "name": "get",
-            "description": "Get whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
+            "description": "Get whether users are displayed as mentions (on), or normal text (off)",
             "type": 1,
             "options": []
          },
          {
             "name": "set",
-            "description": "Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
+            "description": "Set whether users are displayed as mentions (on), or normal text (off)",
             "type": 1,
             "options": [
                {
                   "name": "status",
-                  "description": "mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
+                  "description": "mentions (on), or normal text (off)",
                   "type": 3,
                   "required": true,
                   "choices": [
@@ -942,7 +942,7 @@
       "options": [
          {
             "name": "queue",
-            "description": "Queue channel",
+            "description": "Voice queue channel",
             "type": 7,
             "required": true
          }
