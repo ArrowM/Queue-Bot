@@ -527,7 +527,7 @@ client.once("ready", async () => {
    await BlackWhiteListTable.initTable();
    await AdminPermissionTable.initTable();
    await PriorityTable.initTable();
-   await SchedulingUtils.startScheduler();
+   SchedulingUtils.startScheduler();
    console.timeEnd("READY. Bot started in");
    isReady = true;
    //await resumeAfterOffline();

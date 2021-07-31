@@ -48,7 +48,7 @@ export class SchedulingUtils {
     * Send scheduled display updates every 1.1 seconds
     * Necessary to comply with Discord API rate limits
     */
-   public static async startScheduler() {
+   public static startScheduler() {
       // Edit displays
       setInterval(() => {
          if (this.pendingQueueUpdates) {

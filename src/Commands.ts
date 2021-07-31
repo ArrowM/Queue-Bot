@@ -914,9 +914,9 @@ export class Commands {
     */
    private static async kickFromQueue(queueGuild: QueueGuild, channel: TextChannel | VoiceChannel, member: GuildMember): Promise<void> {
       if (channel.type === "GUILD_VOICE") {
-         member?.voice?.kick().catch(() => null);
+         await member?.voice?.kick().catch(() => null);
       } else {
-         await QueueMemberTable.get(channel.id, member.id).delete();
+         await QueueMemberTable.unstore(queueGuild.id, channel.id, [member.id]);
          SchedulingUtils.scheduleDisplayUpdate(queueGuild, channel);
       }
    }
