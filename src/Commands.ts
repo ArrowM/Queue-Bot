@@ -37,7 +37,7 @@ export class Commands {
       ) {
          await parsed
             .reply({
-               content: `Alternative prefixes were already ${parsed.args.text}. Try \`!help\`.`,
+               content: `Alternative prefixes were already ${parsed.args.text}.`,
                commandDisplay: "EPHEMERAL",
             })
             .catch(() => null);
@@ -653,7 +653,7 @@ export class Commands {
       await parsed.readArgs({ commandNameLength: 10 });
 
       const response: MessageEmbedOptions = {
-         author: { name: "privileged Commands" },
+         author: { name: "Privileged Commands" },
          title: "Queue Management",
          fields: [
             {
@@ -750,7 +750,7 @@ export class Commands {
             },
          ],
       };
-      const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can *NOT* use privileged commands.";
+      const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can **NOT** use privileged commands.";
       await parsed
          .reply({
             content: content,
@@ -768,7 +768,7 @@ export class Commands {
       await parsed.readArgs({ commandNameLength: 8 });
 
       const response: MessageEmbedOptions = {
-         author: { name: "privileged Commands" },
+         author: { name: "Privileged Commands" },
          title: "Bot Management",
          fields: [
             {
@@ -789,7 +789,7 @@ export class Commands {
             },
          ],
       };
-      const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can *NOT* use privileged commands.";
+      const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can **NOT** use privileged commands.";
       await parsed
          .reply({
             content: content,
@@ -807,7 +807,7 @@ export class Commands {
       await parsed.readArgs({ commandNameLength: 10 });
 
       const response: MessageEmbedOptions = {
-         author: { name: "privileged Commands" },
+         author: { name: "Privileged Commands" },
          title: "Setup",
          description:
             "By default, privileged commands can only be used by the server owner, admins, and users with any " +
@@ -858,7 +858,7 @@ export class Commands {
             },
          ],
       };
-      const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can *NOT* use privileged commands.";
+      const content = parsed.hasPermission ? "✅ You can use privileged commands." : "❌ You can **NOT** use privileged commands.";
       await parsed
          .reply({
             content: content,
@@ -1186,7 +1186,7 @@ export class Commands {
                if (!member) continue;
                await member
                   .send(
-                     `Hey <@${member.id}>, you were just pulled from the \`${queueChannel.name}\` queue ` +
+                     `You were just pulled from the \`${queueChannel.name}\` queue ` +
                         `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
                   )
                   .catch(() => null);
@@ -1815,18 +1815,22 @@ export class Commands {
          }
       }
 
-      await parsed.reply({
-         content: `Verifying users in \`${queueChannel.name}\`. This may take a while...`,
-         commandDisplay: "EPHEMERAL",
-      });
+      await parsed
+         .reply({
+            content: `Verifying users in \`${queueChannel.name}\`. This may take a while...`,
+            commandDisplay: "EPHEMERAL",
+         })
+         .catch(() => null);
       const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
       for await (const queueMember of queueMembers) {
          await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
       }
-      await parsed.reply({
-         content: `Done updating.`,
-         commandDisplay: "EPHEMERAL",
-      });
+      await parsed
+         .reply({
+            content: `Done updating.`,
+            commandDisplay: "EPHEMERAL",
+         })
+         .catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
    }
 }
