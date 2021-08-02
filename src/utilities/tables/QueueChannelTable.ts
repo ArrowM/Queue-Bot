@@ -1,4 +1,4 @@
-import { DiscordAPIError, Guild, ColorResolvable, Role, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { DiscordAPIError, Guild, ColorResolvable, Role, Snowflake, TextChannel, VoiceChannel, StageChannel } from "discord.js";
 import { QueueChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
@@ -42,7 +42,7 @@ export class QueueChannelTable {
       for await (const entry of entries) {
          try {
             await delay(1000);
-            const queueChannel = (await guild.channels.fetch(entry.queue_channel_id)) as VoiceChannel | TextChannel;
+            const queueChannel = (await guild.channels.fetch(entry.queue_channel_id)) as VoiceChannel | StageChannel | TextChannel;
             if (queueChannel) {
                BlackWhiteListTable.validateEntries(guild, queueChannel);
                DisplayChannelTable.validateEntries(guild, queueChannel);
@@ -84,7 +84,7 @@ export class QueueChannelTable {
       await this.get(queueChannelId).update("target_channel_id", targetChannelId);
    }
 
-   public static async updateColor(queueChannel: VoiceChannel | TextChannel, value: ColorResolvable) {
+   public static async updateColor(queueChannel: VoiceChannel | StageChannel | TextChannel, value: ColorResolvable) {
       await this.get(queueChannel.id).update("color", value);
       const storedQueueChannel = await this.get(queueChannel.id);
       if (storedQueueChannel?.role_id) {
@@ -105,7 +105,7 @@ export class QueueChannelTable {
       await this.get(queueChannelId).update("pull_num", value);
    }
 
-   public static async updateRoleId(queueChannel: VoiceChannel | TextChannel, role: Role) {
+   public static async updateRoleId(queueChannel: VoiceChannel | StageChannel | TextChannel, role: Role) {
       await this.get(queueChannel.id).update("role_id", role.id);
       const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
       for await (const queueMember of queueMembers) {
@@ -115,16 +115,16 @@ export class QueueChannelTable {
       }
    }
 
-   public static async fetchFromGuild(guild: Guild): Promise<(VoiceChannel | TextChannel)[]> {
+   public static async fetchFromGuild(guild: Guild): Promise<(VoiceChannel | StageChannel | TextChannel)[]> {
       const queueChannelIdsToRemove: Snowflake[] = [];
       // Fetch stored channels
       const storedQueueChannels = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
-      const queueChannels: (VoiceChannel | TextChannel)[] = [];
+      const queueChannels: (VoiceChannel | StageChannel | TextChannel)[] = [];
       // Check for deleted channels
       // Going backwards allows the removal of entries while visiting each one
       for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
          const queueChannelId = storedQueueChannels[i].queue_channel_id;
-         const queueChannel = (await guild.channels.fetch(queueChannelId).catch(() => null)) as VoiceChannel | TextChannel;
+         const queueChannel = (await guild.channels.fetch(queueChannelId).catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
          if (queueChannel) {
             // Still exists, add to return list
             queueChannels.push(queueChannel);
@@ -141,7 +141,7 @@ export class QueueChannelTable {
 
    public static async createQueueRole(
       parsed: ParsedCommand | ParsedMessage,
-      channel: VoiceChannel | TextChannel,
+      channel: VoiceChannel | StageChannel | TextChannel,
       color: ColorResolvable
    ): Promise<Role> {
       return await channel.guild.roles
@@ -199,7 +199,7 @@ export class QueueChannelTable {
 
    public static async store(
       parsed: ParsedCommand | ParsedMessage,
-      channel: VoiceChannel | TextChannel,
+      channel: VoiceChannel | StageChannel | TextChannel,
       maxMembers?: number
    ): Promise<void> {
       // Store
@@ -214,7 +214,7 @@ export class QueueChannelTable {
             queue_channel_id: channel.id,
          })
          .catch(() => null);
-      if (channel.type === "GUILD_VOICE") {
+      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
          for await (const member of channel.members.filter((member) => !member.user.bot).array()) {
             await QueueMemberTable.store(channel, member).catch(() => null);
          }

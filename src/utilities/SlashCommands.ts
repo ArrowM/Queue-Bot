@@ -6,7 +6,7 @@ import {
    ApplicationOptions,
    Client as SlashClient,
 } from "discord-slash-commands-client";
-import { Guild, Message, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
 import { Parsed } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
@@ -29,14 +29,17 @@ export class SlashCommands {
       await delay(5000);
    }
 
-   private static modifyQueueArg(cmd: ApplicationOptions, storedChannels: (VoiceChannel | TextChannel)[]): ApplicationOptions {
+   private static modifyQueueArg(
+      cmd: ApplicationOptions,
+      storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
+   ): ApplicationOptions {
       if (cmd.options) cmd.options = this.modifyQueue(cmd.options, storedChannels);
       return cmd;
    }
 
    private static modifyQueue(
       options: ApplicationCommandOption[],
-      storedChannels: (VoiceChannel | TextChannel)[]
+      storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
    ): ApplicationCommandOption[] {
       for (let i = options.length - 1; i >= 0; i--) {
          const option = options[i];
@@ -48,7 +51,7 @@ export class SlashCommands {
             if (option.description.toLowerCase().includes("text queue")) {
                storedChannels = storedChannels.filter((ch) => ch.type === "GUILD_TEXT");
             } else if (option.description.toLowerCase().includes("voice queue")) {
-               storedChannels = storedChannels.filter((ch) => ch.type === "GUILD_VOICE");
+               storedChannels = storedChannels.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type));
             }
             if (storedChannels.length > 1) {
                const choices: ApplicationCommandOptionChoice[] = storedChannels.map((ch) => {
@@ -73,7 +76,7 @@ export class SlashCommands {
    private static async modify(
       guildId: Snowflake,
       parsed: Parsed,
-      storedChannels: (VoiceChannel | TextChannel)[]
+      storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
    ): Promise<ApplicationOptions[]> {
       const now = Date.now();
       this.commandRegistrationCache.set(guildId, now);

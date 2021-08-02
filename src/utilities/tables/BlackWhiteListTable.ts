@@ -1,4 +1,4 @@
-import { Guild, GuildMember, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, GuildMember, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "../Base";
 import { BlackWhiteListEntry } from "../Interfaces";
 
@@ -25,7 +25,7 @@ export class BlackWhiteListTable {
    /**
     * Cleanup deleted Roles and Members
     **/
-   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
+   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | StageChannel | TextChannel) {
       const entries = await Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannel.id);
       for await (const entry of entries) {
          try {

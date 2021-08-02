@@ -11,6 +11,7 @@ import {
    ReplyMessageOptions,
    Role,
    Snowflake,
+   StageChannel,
    TextChannel,
    VoiceChannel,
 } from "discord.js";
@@ -30,7 +31,7 @@ export class ParsingUtils {
       const member = request.member as GuildMember;
       if (!member) return false;
       // Check if ADMIN
-      if (member.permissionsIn(request.channel as TextChannel | VoiceChannel).has("ADMINISTRATOR")) return true;
+      if (member.permissionsIn(request.channel as TextChannel | VoiceChannel | StageChannel).has("ADMINISTRATOR")) return true;
       // Check IDs
       const roleIds = member.roles.cache.keyArray();
       for await (const entry of await AdminPermissionTable.getMany(request.guild.id)) {
@@ -64,7 +65,7 @@ export interface ReplyOptions {
 }
 
 export interface ParsedArguments {
-   channel?: VoiceChannel | TextChannel;
+   channel?: VoiceChannel | StageChannel | TextChannel;
    member?: GuildMember;
    role?: Role;
    text?: string;
@@ -78,7 +79,7 @@ export interface ParsedOptions {
    hasRole?: boolean;
    hasText?: boolean;
    hasNumber?: boolean;
-   channelType?: "GUILD_VOICE" | "GUILD_TEXT";
+   channelType?: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[];
    numberArgs?: {
       min: number;
       max: number;
@@ -118,21 +119,22 @@ export abstract class Parsed {
          await this.request.guild.channels.fetch(); // Pre-fetch all channels
          await this.getChannelParam(conf.channelType);
          if (!this.args.channel) {
-            const queues: (VoiceChannel | TextChannel)[] = [];
+            const queues: (VoiceChannel | StageChannel | TextChannel)[] = [];
             for await (const storedQueueChannel of this.queueChannels) {
                const queueChannel = (await this.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
                   | VoiceChannel
+                  | StageChannel
                   | TextChannel;
                if (!queueChannel) continue; // No channel
-               if (conf.channelType && conf.channelType !== queueChannel.type) continue; // Wrong type
+               if (conf.channelType && !conf.channelType.includes(queueChannel.type)) continue; // Wrong type
                queues.push(queueChannel);
             }
             if (queues.length === 1) this.args.channel = queues[0];
          }
          if (!this.args.channel?.guild?.id) {
             const channelText =
-               (conf.channelType === "GUILD_TEXT" ? "**text** " : "") +
-               (conf.channelType === "GUILD_VOICE" ? "**voice** " : "") +
+               (conf.channelType.includes("GUILD_TEXT") ? "**text** " : "") +
+               (conf.channelType.includes("GUILD_VOICE") || conf.channelType.includes("GUILD_STAGE_VOICE") ? "**voice** " : "") +
                "channel";
             this.missingArgs.push(channelText);
          }
@@ -181,7 +183,7 @@ export abstract class Parsed {
    }
 
    protected abstract getStringParam(_commandNameLength: number): Promise<void>;
-   protected abstract getChannelParam(_channelType: "GUILD_VOICE" | "GUILD_TEXT"): Promise<void>;
+   protected abstract getChannelParam(_channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]): Promise<void>;
    protected abstract getRoleParam(): Promise<void>;
    protected abstract getMemberParam(): Promise<void>;
    protected abstract getNumberParam(): Promise<void>;
@@ -249,7 +251,7 @@ export class ParsedCommand extends Parsed {
       }
    }
 
-   protected async getChannelParam(channelType: string): Promise<void> {
+   protected async getChannelParam(channelType: string[]): Promise<void> {
       let channel = this.findArgs(this.request.options, "CHANNEL", [])[0] as GuildChannel;
       if (!channel) {
          const id = this.findArgs(this.request.options, "STRING", [])[0] as Snowflake;
@@ -259,10 +261,14 @@ export class ParsedCommand extends Parsed {
             await this.getStringParam();
          }
       }
-      if (channel && ((channelType && channelType !== channel.type) || !["GUILD_VOICE", "GUILD_TEXT"].includes(channel.type))) {
+      if (
+         channel &&
+         ((channelType && !channelType.includes(channel.type)) ||
+            !["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type))
+      ) {
          channel = null;
       }
-      this.args.channel = channel as TextChannel | VoiceChannel;
+      this.args.channel = channel as VoiceChannel | StageChannel | TextChannel;
    }
 
    protected async getMemberParam(): Promise<void> {
@@ -306,14 +312,16 @@ export class ParsedMessage extends Parsed {
 
    private static coll = new Intl.Collator("en", { sensitivity: "base" });
    // Populate this.args.text as well
-   protected async getChannelParam(channelType: "GUILD_VOICE" | "GUILD_TEXT"): Promise<void> {
+   protected async getChannelParam(channelType: string[]): Promise<void> {
       if (this.request.mentions.channels.first()) {
-         this.args.channel = this.request.mentions.channels.first() as VoiceChannel | TextChannel;
+         this.args.channel = this.request.mentions.channels.first() as VoiceChannel | StageChannel | TextChannel;
          this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();
       } else {
-         let channels = (await this.request.guild.channels.fetch()).array() as (VoiceChannel | TextChannel)[];
+         let channels = (await this.request.guild.channels.fetch()).array() as (VoiceChannel | StageChannel | TextChannel)[];
 
-         channels = channels.filter((ch) => (channelType ? ch.type === channelType : ["GUILD_VOICE", "GUILD_TEXT"].includes(ch.type)));
+         channels = channels.filter((ch) =>
+            channelType ? channelType.includes(ch.type) : ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
+         );
 
          let channelName = this.args.text;
          // Search for largest matching channel name

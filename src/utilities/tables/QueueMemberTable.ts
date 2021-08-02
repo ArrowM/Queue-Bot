@@ -1,6 +1,6 @@
 import { QueueChannel, QueueMember } from "../Interfaces";
 import { Base } from "../Base";
-import { Guild, GuildMember, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, GuildMember, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { PriorityTable } from "./PriorityTable";
 import { QueueChannelTable } from "./QueueChannelTable";
@@ -29,7 +29,7 @@ export class QueueMemberTable {
    /**
     * Cleanup deleted Display Channels
     **/
-   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
+   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | StageChannel | TextChannel) {
       const entries = await Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
       for await (const entry of entries) {
          try {
@@ -70,14 +70,17 @@ export class QueueMemberTable {
    /**
     * UNORDERED. Fetch members for channel, filter out users who have left the guild.
     */
-   public static async getFromQueue(queueChannel: TextChannel | VoiceChannel) {
+   public static async getFromQueue(queueChannel: VoiceChannel | StageChannel | TextChannel) {
       return Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
    }
 
    /**
     * WARNING THIS MIGHT BE SLOW
     */
-   public static async getMemberFromQueueMember(queueChannel: TextChannel | VoiceChannel, queueMember: QueueMember): Promise<GuildMember> {
+   public static async getMemberFromQueueMember(
+      queueChannel: VoiceChannel | StageChannel | TextChannel,
+      queueMember: QueueMember
+   ): Promise<GuildMember> {
       try {
          return await queueChannel.guild.members.fetch(queueMember.member_id);
       } catch (e) {
@@ -91,7 +94,7 @@ export class QueueMemberTable {
    /**
     *
     */
-   public static async getNext(queueChannel: TextChannel | VoiceChannel, amount?: number): Promise<QueueMember[]> {
+   public static async getNext(queueChannel: VoiceChannel | StageChannel | TextChannel, amount?: number): Promise<QueueMember[]> {
       let query = Base.knex<QueueMember>("queue_members")
          .where("channel_id", queueChannel.id)
          .orderBy([{ column: "is_priority", order: "desc" }, "created_at"]);
@@ -103,7 +106,7 @@ export class QueueMemberTable {
    private static unstoredMembersCache = new Map<Snowflake, string>();
 
    public static async store(
-      queueChannel: VoiceChannel | TextChannel,
+      queueChannel: VoiceChannel | StageChannel | TextChannel,
       member: GuildMember,
       customMessage?: string,
       force?: boolean

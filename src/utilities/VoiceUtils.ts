@@ -6,7 +6,7 @@ import {
    VoiceConnection,
    VoiceConnectionStatus,
 } from "@discordjs/voice/dist";
-import { Client, Constants, Guild, Snowflake, VoiceChannel } from "discord.js";
+import { Client, Constants, Guild, Snowflake, StageChannel, VoiceChannel } from "discord.js";
 import { GatewayVoiceServerUpdateDispatchData, GatewayVoiceStateUpdateDispatchData } from "discord-api-types/v9";
 
 export class Voice {
@@ -57,7 +57,7 @@ export class Voice {
     * Creates an adapter for a Voice Channel
     * @param channel - The channel to create the adapter for
     */
-   public static createDiscordJSAdapter(channel: VoiceChannel): DiscordGatewayAdapterCreator {
+   public static createDiscordJSAdapter(channel: VoiceChannel | StageChannel): DiscordGatewayAdapterCreator {
       return (methods) => {
          Voice.adapters.set(channel.guild.id, methods);
          Voice.trackClient(channel.client);
@@ -77,11 +77,11 @@ export class Voice {
       };
    }
 
-   public static disconnectFromChannel(channel: VoiceChannel) {
+   public static disconnectFromChannel(channel: VoiceChannel | StageChannel): void {
       Voice.connections.get(channel.id)?.destroy();
    }
 
-   public static async connectToChannel(channel: VoiceChannel) {
+   public static async connectToChannel(channel: VoiceChannel | StageChannel): Promise<VoiceConnection> {
       const connection = joinVoiceChannel({
          channelId: channel.id,
          guildId: channel.guild.id,

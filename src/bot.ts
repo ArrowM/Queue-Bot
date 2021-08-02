@@ -1,5 +1,5 @@
 import DBL from "dblapi.js";
-import { ButtonInteraction, Guild, Interaction, TextChannel, VoiceChannel } from "discord.js";
+import { ButtonInteraction, Guild, Interaction, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import { QueueChannel } from "./utilities/Interfaces";
@@ -489,7 +489,7 @@ async function resumeAfterOffline(): Promise<void> {
       console.log("Updating Queues for Guild: " + guild.name);
       const queueChannels = await QueueChannelTable.fetchFromGuild(guild);
       for await (const queueChannel of queueChannels) {
-         if (queueChannel.type !== "GUILD_VOICE") continue;
+         if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) continue;
          let updateDisplay = false;
 
          // Fetch stored and live members
@@ -581,7 +581,7 @@ client.on("channelDelete", async (channel) => {
 
 client.on("channelUpdate", async (_oldCh, newCh) => {
    if (!isReady) return;
-   const newChannel = newCh as VoiceChannel | TextChannel;
+   const newChannel = newCh as VoiceChannel | StageChannel | TextChannel;
    const changedChannel = await QueueChannelTable.get(newCh.id);
    if (changedChannel) {
       const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
@@ -593,8 +593,8 @@ client.on("channelUpdate", async (_oldCh, newCh) => {
 client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    try {
       if (!isReady) return;
-      const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel;
-      const newVoiceChannel = newVoiceState?.channel as VoiceChannel;
+      const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel | StageChannel;
+      const newVoiceChannel = newVoiceState?.channel as VoiceChannel | StageChannel;
 
       const member = newVoiceState.member || oldVoiceState.member;
       // Ignore mutes and deafens
@@ -611,9 +611,9 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       if (storedNewQueueChannel && !Base.isMe(member)) {
          // Joined queue channel
          if (storedNewQueueChannel.target_channel_id) {
-            const targetChannel = (await member.guild.channels
-               .fetch(storedNewQueueChannel.target_channel_id)
-               .catch(() => null)) as VoiceChannel;
+            const targetChannel = (await member.guild.channels.fetch(storedNewQueueChannel.target_channel_id).catch(() => null)) as
+               | VoiceChannel
+               | StageChannel;
             if (targetChannel) {
                if (
                   storedNewQueueChannel.auto_fill &&
@@ -649,7 +649,9 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
          // Randomly pick a queue to pull from
          const storedQueueChannel = storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
          if (storedQueueChannel && storedQueueChannel.auto_fill) {
-            const queueChannel = (await member.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as VoiceChannel;
+            const queueChannel = (await member.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
+               | VoiceChannel
+               | StageChannel;
             if (queueChannel) {
                await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
             }
@@ -660,7 +662,11 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    }
 });
 
-export async function fillTargetChannel(storedSrcChannel: QueueChannel, srcChannel: VoiceChannel, dstChannel: VoiceChannel): Promise<void> {
+export async function fillTargetChannel(
+   storedSrcChannel: QueueChannel,
+   srcChannel: VoiceChannel | StageChannel,
+   dstChannel: VoiceChannel | StageChannel
+): Promise<void> {
    const guild = srcChannel.guild;
    // Check to see if I have perms to drag other users into this channel.
    if (dstChannel.permissionsFor(guild.me).has("CONNECT")) {
@@ -700,8 +706,9 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
       const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
       if (!storedDisplayChannel) throw "storedDisplayChannel not found";
       const queueChannel = (await interaction.guild.channels.fetch(storedDisplayChannel.queue_channel_id).catch(() => null)) as
-         | TextChannel
-         | VoiceChannel;
+         | VoiceChannel
+         | StageChannel
+         | TextChannel;
       if (!queueChannel) throw "queueChannel not found";
       const member = await queueChannel.guild.members.fetch(interaction.user.id);
       const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);

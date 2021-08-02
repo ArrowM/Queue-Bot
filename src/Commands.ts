@@ -1,4 +1,13 @@
-import { TextChannel, VoiceChannel, GuildMember, MessageEmbed, MessageEmbedOptions, Snowflake, ColorResolvable } from "discord.js";
+import {
+   TextChannel,
+   VoiceChannel,
+   GuildMember,
+   MessageEmbed,
+   MessageEmbedOptions,
+   Snowflake,
+   ColorResolvable,
+   StageChannel,
+} from "discord.js";
 import { QueueChannel, QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
@@ -63,6 +72,7 @@ export class Commands {
       for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
          const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.auto_fill ? "on" : "off"}\n`;
@@ -78,7 +88,17 @@ export class Commands {
     * Toggle automatic pull of users from a queue
     */
    public static async autopullSet(parsed: ParsedCommand | ParsedMessage) {
-      if ((await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_VOICE", hasText: true })).length) return;
+      if (
+         (
+            await parsed.readArgs({
+               commandNameLength: 12,
+               hasChannel: true,
+               channelType: ["GUILD_VOICE", "GUILD_STAGE_VOICE"],
+               hasText: true,
+            })
+         ).length
+      )
+         return;
 
       if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
          await parsed
@@ -108,7 +128,7 @@ export class Commands {
    /**
     * HELPER
     */
-   private static async genBlacklistWhitelistList(queueChannel: VoiceChannel | TextChannel, type: number): Promise<string> {
+   private static async genBlacklistWhitelistList(queueChannel: VoiceChannel | StageChannel | TextChannel, type: number): Promise<string> {
       const typeString = type ? "White" : "Black";
       const storedEntries = await BlackWhiteListTable.getMany(type, queueChannel.id);
       let response = `\n${typeString}list of \`${queueChannel.name}\`: `;
@@ -252,6 +272,7 @@ export class Commands {
       for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
          const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.hide_button ? "on" : "off"}\n`;
@@ -267,7 +288,7 @@ export class Commands {
     * Enable or disable the "Join / Leave" button for a queue
     */
    public static async buttonSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 10, hasChannel: true, channelType: "GUILD_TEXT", hasText: true });
+      await parsed.readArgs({ commandNameLength: 10, hasChannel: true, channelType: ["GUILD_TEXT"], hasText: true });
 
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
@@ -323,6 +344,7 @@ export class Commands {
       for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
          const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.color}\n`;
@@ -394,7 +416,7 @@ export class Commands {
    /**
     * Display the users in a queue. These messages stay updated
     */
-   public static async display(parsed: ParsedCommand | ParsedMessage, channel?: VoiceChannel | TextChannel): Promise<void> {
+   public static async display(parsed: ParsedCommand | ParsedMessage, channel?: VoiceChannel | StageChannel | TextChannel): Promise<void> {
       await parsed.readArgs({ commandNameLength: 7, hasChannel: true });
 
       const queueChannel = channel || parsed.args.channel;
@@ -497,7 +519,7 @@ export class Commands {
     * Add a specified user to a queue
     */
    public static async enqueueUser(parsed: ParsedCommand | ParsedMessage) {
-      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasMember: true });
+      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: ["GUILD_TEXT"], hasMember: true });
 
       await this.enqueue(parsed);
    }
@@ -506,7 +528,7 @@ export class Commands {
     * Add a specified role to a queue
     */
    public static async enqueueRole(parsed: ParsedCommand | ParsedMessage) {
-      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: "GUILD_TEXT", hasRole: true });
+      await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: ["GUILD_TEXT"], hasRole: true });
 
       await this.enqueue(parsed);
    }
@@ -523,6 +545,7 @@ export class Commands {
       for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
          const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (!queueChannel) continue;
          const timeString = await MessagingUtils.getGracePeriodString(storedQueueChannel.grace_period);
@@ -571,6 +594,7 @@ export class Commands {
       for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
          const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.header || "none"}\n`;
@@ -875,7 +899,7 @@ export class Commands {
     * Join a text queue
     */
    public static async join(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, channelType: "GUILD_TEXT" });
+      await parsed.readArgs({ commandNameLength: 4, hasChannel: true, channelType: ["GUILD_TEXT"] });
 
       const queueChannel = parsed.args.channel as TextChannel;
       if (!queueChannel?.id) return;
@@ -912,8 +936,12 @@ export class Commands {
    /**
     * HELPER
     */
-   private static async kickFromQueue(queueGuild: QueueGuild, channel: TextChannel | VoiceChannel, member: GuildMember): Promise<void> {
-      if (channel.type === "GUILD_VOICE") {
+   private static async kickFromQueue(
+      queueGuild: QueueGuild,
+      channel: TextChannel | VoiceChannel | StageChannel,
+      member: GuildMember
+   ): Promise<void> {
+      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
          await member?.voice?.kick().catch(() => null);
       } else {
          await QueueMemberTable.unstore(queueGuild.id, channel.id, [member.id]);
@@ -950,12 +978,15 @@ export class Commands {
       const member = parsed.args.member;
       if (!member?.id) return;
 
-      const channels: (VoiceChannel | TextChannel)[] = [];
+      const channels: (VoiceChannel | StageChannel | TextChannel)[] = [];
       const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map((ch) => ch.queue_channel_id);
       const storedEntries = await QueueMemberTable.getFromChannels(storedChannelIds, member.id);
 
       for await (const entry of storedEntries) {
-         const queueChannel = (await parsed.request.guild.channels.fetch(entry.channel_id).catch(() => null)) as VoiceChannel | TextChannel;
+         const queueChannel = (await parsed.request.guild.channels.fetch(entry.channel_id).catch(() => null)) as
+            | VoiceChannel
+            | StageChannel
+            | TextChannel;
          if (!queueChannel) continue;
          channels.push(queueChannel);
          await this.kickFromQueue(parsed.queueGuild, queueChannel, member);
@@ -973,7 +1004,7 @@ export class Commands {
     * Leave a text queue
     */
    public static async leave(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 5, hasChannel: true, channelType: "GUILD_TEXT" });
+      await parsed.readArgs({ commandNameLength: 5, hasChannel: true, channelType: ["GUILD_TEXT"] });
 
       const queueChannel = parsed.args.channel as TextChannel;
       if (!queueChannel?.id) return;
@@ -1044,6 +1075,7 @@ export class Commands {
       for (const storedQueueChannel of storedQueueChannels) {
          const queueChannel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
       }
@@ -1124,7 +1156,10 @@ export class Commands {
          const embed = new MessageEmbed();
          embed.setTitle(`${author.displayName}'s queues`);
          for await (const entry of storedEntries) {
-            const queueChannel = (await author.guild.channels.fetch(entry.channel_id).catch(() => null)) as VoiceChannel | TextChannel;
+            const queueChannel = (await author.guild.channels.fetch(entry.channel_id).catch(() => null)) as
+               | VoiceChannel
+               | StageChannel
+               | TextChannel;
             if (!queueChannel) continue;
             const memberIds = (await QueueMemberTable.getNext(queueChannel)).map((member) => member.member_id);
             embed.addField(
@@ -1160,10 +1195,10 @@ export class Commands {
 
       if (queueMembers.length > 0) {
          // Display and remove member from the the queue
-         if (queueChannel.type === "GUILD_VOICE") {
-            const targetChannel = (await queueChannel.guild.channels
-               .fetch(storedQueueChannel.target_channel_id)
-               .catch(() => null)) as VoiceChannel;
+         if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
+            const targetChannel = (await queueChannel.guild.channels.fetch(storedQueueChannel.target_channel_id).catch(() => null)) as
+               | VoiceChannel
+               | StageChannel;
             if (targetChannel) {
                for (const queueMember of queueMembers) {
                   const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
@@ -1354,7 +1389,10 @@ export class Commands {
       const priorityIds = (await PriorityTable.getMany(guild.id)).map((entry) => entry.role_member_id);
       // Get all queue channels for guild
       for await (const storedChannel of await parsed.getStoredQueueChannels()) {
-         const queueChannel = (await guild.channels.fetch(storedChannel.queue_channel_id).catch(() => null)) as VoiceChannel | TextChannel;
+         const queueChannel = (await guild.channels.fetch(storedChannel.queue_channel_id).catch(() => null)) as
+            | VoiceChannel
+            | StageChannel
+            | TextChannel;
          if (!queueChannel) continue;
          // Get members for each queue channel
          const storedMembers = await QueueMemberTable.getFromQueue(queueChannel);
@@ -1492,6 +1530,7 @@ export class Commands {
       for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
          const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.pull_num}\n`;
@@ -1541,7 +1580,7 @@ export class Commands {
     */
    private static async storeQueue(
       parsed: ParsedCommand | ParsedMessage,
-      channel: VoiceChannel | TextChannel,
+      channel: VoiceChannel | StageChannel | TextChannel,
       size: number
    ): Promise<void> {
       await QueueChannelTable.store(parsed, channel, size);
@@ -1572,13 +1611,13 @@ export class Commands {
             })
             .catch(() => null);
       } else {
-         const size = parsed.args.num || (channel as VoiceChannel).userLimit;
-         if (channel.type === "GUILD_VOICE") {
+         const size = parsed.args.num || (channel as VoiceChannel | StageChannel).userLimit;
+         if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
             if (channel.permissionsFor(parsed.request.guild.me).has("CONNECT")) {
                await this.storeQueue(parsed, channel, size);
-               if (size) {
+               if (size && channel.type === "GUILD_VOICE") {
                   if (channel.permissionsFor(parsed.request.guild.me).has("MANAGE_CHANNELS")) {
-                     (channel as VoiceChannel).setUserLimit(size).catch(() => null);
+                     await channel.setUserLimit(size).catch(() => null);
                   } else {
                      setTimeout(
                         async () =>
@@ -1627,7 +1666,7 @@ export class Commands {
                content: response,
             })
             .catch(() => null);
-         Voice.disconnectFromChannel(queueChannel as VoiceChannel);
+         Voice.disconnectFromChannel(queueChannel as VoiceChannel | StageChannel);
 
          await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
       } else {
@@ -1703,6 +1742,7 @@ export class Commands {
       for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
          const queueChannel = (await parsed.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (!queueChannel) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.max_members || "none"}\n`;
@@ -1738,7 +1778,7 @@ export class Commands {
          .catch(() => null);
       if (queueChannel.type === "GUILD_VOICE") {
          if (queueChannel.permissionsFor(parsed.request.guild.me).has("MANAGE_CHANNELS")) {
-            (queueChannel as VoiceChannel).setUserLimit(max).catch(() => null);
+            queueChannel.setUserLimit(max).catch(() => null);
          } else {
             await parsed
                .reply({
@@ -1759,9 +1799,9 @@ export class Commands {
     * Add the bot to a voice queue
     */
    public static async start(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      await parsed.readArgs({ commandNameLength: 5, hasChannel: true, channelType: "GUILD_VOICE" });
+      await parsed.readArgs({ commandNameLength: 5, hasChannel: true, channelType: ["GUILD_VOICE", "GUILD_STAGE_VOICE"] });
 
-      const queueChannel = parsed.args.channel as VoiceChannel;
+      const queueChannel = parsed.args.channel as VoiceChannel | StageChannel;
       if (!queueChannel?.id) return;
 
       if (queueChannel.permissionsFor(parsed.request.guild.me).has("CONNECT")) {

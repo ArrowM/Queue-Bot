@@ -6,6 +6,7 @@ import {
    MessageActionRow,
    MessageButton,
    MessageEmbed,
+   StageChannel,
    TextChannel,
    VoiceChannel,
 } from "discord.js";
@@ -18,7 +19,7 @@ import { QueueMemberTable } from "./tables/QueueMemberTable";
 
 export interface QueueUpdateRequest {
    queueGuild: QueueGuild;
-   queueChannel: VoiceChannel | TextChannel;
+   queueChannel: VoiceChannel | StageChannel | TextChannel;
 }
 
 export class MessagingUtils {
@@ -106,7 +107,7 @@ export class MessagingUtils {
     *
     * @param queueChannel Discord message object.
     */
-   public static async generateEmbed(queueChannel: TextChannel | VoiceChannel): Promise<MessageEmbed[]> {
+   public static async generateEmbed(queueChannel: TextChannel | VoiceChannel | StageChannel): Promise<MessageEmbed[]> {
       const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel) return [];
@@ -118,6 +119,7 @@ export class MessagingUtils {
       if (storedQueueChannel.target_channel_id) {
          const targetChannel = (await queueChannel.guild.channels.fetch(storedQueueChannel.target_channel_id).catch(() => null)) as
             | VoiceChannel
+            | StageChannel
             | TextChannel;
          if (targetChannel) {
             title += `  ->  ${targetChannel.name}`;
@@ -128,7 +130,7 @@ export class MessagingUtils {
       }
       let position = 0;
       let description: string;
-      if (queueChannel.type === "GUILD_VOICE") {
+      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
          description = `Join the **${queueChannel.name}** voice channel to join this queue.`;
       } else {
          description = `To interact, click the button or type \`/join ${queueChannel.name}\` or \`/leave ${queueChannel.name}\`.`;
@@ -198,7 +200,7 @@ export class MessagingUtils {
 
    public static async getButton(channel: GuildChannel) {
       const storedQueueChannel = await QueueChannelTable.get(channel.id);
-      if (channel.type !== "GUILD_VOICE" && !storedQueueChannel.hide_button) {
+      if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) && !storedQueueChannel.hide_button) {
          return this.rows;
       } else {
          return [];

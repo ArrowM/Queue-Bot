@@ -1,4 +1,4 @@
-import { TextChannel, VoiceChannel, VoiceState } from "discord.js";
+import { StageChannel, TextChannel, VoiceChannel, VoiceState } from "discord.js";
 import { QueueGuild } from "./Interfaces";
 import { MessagingUtils, QueueUpdateRequest } from "./MessagingUtils";
 
@@ -18,7 +18,7 @@ export class SchedulingUtils {
    private static moveMembersTimeStamps = new Map<string, number[]>(); // <guild id, timestamps>
    private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
 
-   public static scheduleMoveMember(voice: VoiceState, channel: VoiceChannel) {
+   public static scheduleMoveMember(voice: VoiceState, channel: VoiceChannel | StageChannel) {
       try {
          let timestamps = this.moveMembersTimeStamps.get(channel.guild.id);
          if (!timestamps) {
@@ -65,7 +65,7 @@ export class SchedulingUtils {
     * @param queueGuild
     * @param queueChannels
     */
-   public static scheduleDisplayUpdate(queueGuild: QueueGuild, queueChannel: VoiceChannel | TextChannel): void {
+   public static scheduleDisplayUpdate(queueGuild: QueueGuild, queueChannel: VoiceChannel | StageChannel | TextChannel): void {
       if (queueChannel) {
          this.pendingQueueUpdates.set(queueChannel.id, {
             queueGuild: queueGuild,

@@ -1,4 +1,4 @@
-import { Guild, Message, MessageEmbed, Snowflake, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, Message, MessageEmbed, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { MessagingUtils } from "../MessagingUtils";
@@ -26,7 +26,7 @@ export class DisplayChannelTable {
    /**
     * Cleanup deleted Display Channels
     **/
-   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | TextChannel) {
+   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | StageChannel | TextChannel) {
       const entries = await Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
       for await (const entry of entries) {
          try {
@@ -53,7 +53,11 @@ export class DisplayChannelTable {
       return Base.knex<DisplayChannel>("display_channels").where("message_id", messageId).first();
    }
 
-   public static async store(queueChannel: VoiceChannel | TextChannel, displayChannel: TextChannel, embeds: MessageEmbed[]): Promise<void> {
+   public static async store(
+      queueChannel: VoiceChannel | StageChannel | TextChannel,
+      displayChannel: TextChannel,
+      embeds: MessageEmbed[]
+   ): Promise<void> {
       const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
       if (displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
          const response = await displayChannel
