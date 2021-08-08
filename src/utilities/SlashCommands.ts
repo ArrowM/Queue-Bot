@@ -172,11 +172,11 @@ export class SlashCommands {
    }
 
    public static async modifySlashCommandsForAllGuilds() {
-      //for await (const guild of Base.client.guilds.cache.values()) {
-      //   this.modifyCommandsForGuild(guild);
-      //   await delay(6000);
-      //}
-      //console.log("Done modifying commands.");
+      for await (const guild of Base.client.guilds.cache.values()) {
+         this.modifyCommandsForGuild(guild);
+         await delay(6000);
+      }
+      console.log("Done modifying commands.");
    }
 
    public static async registerGlobalCommands() {
