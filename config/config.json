@@ -3,7 +3,7 @@
    "token": "YOUR_TOKEN",
    "topGgToken": "",
 
-   "color": "#478E81",
+   "color": "AQUA",
    "databaseType": "postgresql",
    "databaseHost": "localhost",
    "databaseName": "queue",
