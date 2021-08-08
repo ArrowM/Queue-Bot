@@ -70,7 +70,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
          // -- EVERYONE COMMANDS --
          switch (interaction.commandName) {
             case "help":
-               switch (parsed.request.options.first()?.value) {
+               switch (parsed.request.options.data[0]?.value) {
                   case undefined:
                      await Commands.help(parsed);
                      break;
@@ -125,7 +125,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.altPrefix(parsed);
          break;
       case "autopull":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.autopullGet(parsed);
                break;
@@ -135,9 +135,9 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "blacklist":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "add":
-               switch (parsed.request.options.first().options.firstKey()) {
+               switch (parsed.request.options.data[0].options[0].name) {
                   case "user":
                      await Commands.blacklistAddUser(parsed);
                      break;
@@ -147,7 +147,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
                }
                break;
             case "delete":
-               switch (parsed.request.options.first().options.firstKey()) {
+               switch (parsed.request.options.data[0].options[0].name) {
                   case "user":
                      await Commands.blacklistDeleteUser(parsed);
                      break;
@@ -162,7 +162,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "button":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.buttonGet(parsed);
                break;
@@ -175,7 +175,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.clear(parsed);
          break;
       case "color":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.colorGet(parsed);
                break;
@@ -188,7 +188,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.display(parsed);
          break;
       case "enqueue":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "user":
                await Commands.enqueueUser(parsed);
                break;
@@ -198,7 +198,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "graceperiod":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.graceperiodGet(parsed);
                break;
@@ -208,7 +208,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "header":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.headerGet(parsed);
                break;
@@ -224,7 +224,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.kickAll(parsed);
          break;
       case "mentions":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.mentionsGet(parsed);
                break;
@@ -234,7 +234,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "mode":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.modeGet(parsed);
                break;
@@ -247,9 +247,9 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.next(parsed);
          break;
       case "permission":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "add":
-               switch (parsed.request.options.first().options.firstKey()) {
+               switch (parsed.request.options.data[0].options[0].name) {
                   case "user":
                      await Commands.permissionAddUser(parsed);
                      break;
@@ -259,7 +259,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
                }
                break;
             case "delete":
-               switch (parsed.request.options.first().options.firstKey()) {
+               switch (parsed.request.options.data[0].options[0].name) {
                   case "user":
                      await Commands.permissionDeleteUser(parsed);
                      break;
@@ -274,9 +274,9 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "priority":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "add":
-               switch (parsed.request.options.first().options.firstKey()) {
+               switch (parsed.request.options.data[0].options[0].name) {
                   case "user":
                      await Commands.priorityAddUser(parsed);
                      break;
@@ -286,7 +286,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
                }
                break;
             case "delete":
-               switch (parsed.request.options.first().options.firstKey()) {
+               switch (parsed.request.options.data[0].options[0].name) {
                   case "user":
                      await Commands.priorityDeleteUser(parsed);
                      break;
@@ -301,7 +301,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "pullnum":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.pullnumGet(parsed);
                break;
@@ -311,7 +311,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "queues":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "add":
                await Commands.queuesAdd(parsed);
                break;
@@ -327,7 +327,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.shuffle(parsed);
          break;
       case "size":
-         switch (parsed.request.options.firstKey()) {
+         switch (parsed.request.options.data[0].name) {
             case "get":
                await Commands.sizeGet(parsed);
                break;
@@ -494,7 +494,7 @@ async function resumeAfterOffline(): Promise<void> {
 
          // Fetch stored and live members
          const storedMemberIds = (await QueueMemberTable.getFromQueue(queueChannel)).map((member) => member.member_id);
-         const queueMembers = queueChannel.members.filter((member) => !Base.isMe(member)).array();
+         const queueMembers = queueChannel.members.filter((member) => !Base.isMe(member));
 
          // Update member lists
          for await (const storedMemberId of storedMemberIds) {
@@ -503,8 +503,8 @@ async function resumeAfterOffline(): Promise<void> {
                await QueueMemberTable.unstore(guild.id, queueChannel.id, [storedMemberId]);
             }
          }
-         for await (const queueMember of queueMembers) {
-            if (!storedMemberIds.includes(queueMember.id)) {
+         for await (const [id, queueMember] of queueMembers) {
+            if (!storedMemberIds.includes(id)) {
                updateDisplay = true;
                await QueueMemberTable.store(queueChannel, queueMember).catch(() => null);
             }
@@ -628,8 +628,12 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
                await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
             }
          }
-         await QueueMemberTable.store(newVoiceChannel, member).catch(() => null);
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
+         try {
+            await QueueMemberTable.store(newVoiceChannel, member);
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
+         } catch (e) {
+            // skip display update if store fails
+         }
       }
       if (storedOldQueueChannel) {
          // Left queue channel
@@ -688,7 +692,7 @@ export async function fillTargetChannel(
       }
    } else {
       // Request perms in display channel chat
-      const storedDisplayChannel = await DisplayChannelTable.getFromQueue(srcChannel.id).first();
+      const storedDisplayChannel = await DisplayChannelTable.getFirstFromQueue(srcChannel.id);
       if (storedDisplayChannel) {
          const displayChannel = (await guild.channels.fetch(storedDisplayChannel.display_channel_id).catch(() => null)) as TextChannel;
          displayChannel.send(`I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`);

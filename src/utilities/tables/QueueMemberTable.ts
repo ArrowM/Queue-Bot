@@ -132,7 +132,8 @@ export class QueueMemberTable {
 
       const storedMember = await QueueMemberTable.get(queueChannel.id, member.id);
       if (storedMember) {
-         storedMember.personal_message = customMessage;
+         // || null is necessary to overwrite old values with empty ones
+         storedMember.personal_message = customMessage || null;
          await QueueMemberTable.get(queueChannel.id, member.id).update(storedMember);
       } else {
          await Base.knex<QueueMember>("queue_members").insert({

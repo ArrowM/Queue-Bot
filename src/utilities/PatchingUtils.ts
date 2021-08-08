@@ -35,7 +35,7 @@ export class PatchingUtils {
          // Collect notes
          const patchNotes: PatchNote[] = JSON.parse(readFileSync("../patch_notes/patch_notes.json", "utf8"));
          // Collect channel destinations
-         for await (const guild of Base.client.guilds.cache.array()) {
+         for await (const guild of Base.client.guilds.cache.values()) {
             try {
                const queueChannelId = (await QueueChannelTable.fetchFromGuild(guild))[0]?.id;
                if (!queueChannelId) continue;

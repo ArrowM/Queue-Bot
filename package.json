@@ -20,7 +20,7 @@
       "delay": "^5.0.0",
       "discord-slash-commands-client": "^1.2.1",
       "discord.js": "^13.0.0-dev.4206e35.1626393827",
-      "knex": "^0.95.6",
+      "knex": "^0.95.9",
       "knex-schema-inspector": "^1.5.8",
       "libsodium-wrappers": "^0.7.9",
       "node-gyp": "^8.1.0",

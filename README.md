@@ -17,9 +17,7 @@ Create voice and text queues in your discord server. This bot allows you to disp
 `/join` - Join a text queue  
 `/leave` - Leave a text queue  
 `/myqueues` - Show my queues  
-`/help setup`- Setup & admin commands  
-`/help queues` - Queue management commands  
-`/help bot` - Bot management commands  
+`/help` - Display help messages
   
 ### Privileged Commands  
 Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Users or roles can be granted permission to use privileged commands with `/permission add`.  
@@ -39,7 +37,6 @@ If a command that expects a channel name is not given one, the current text chan
 `/graceperiod` - Get / Set how long users can leave a queue before losing their position  
 `/header` - Get / Set a header on display messages  
 `/kick` - Kick from a queue  
-`/size` - Get / Set size limit of a queue  
 `/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
@@ -47,6 +44,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/queues delete` - Delete a queue  
 `/queues list` - List queues  
 `/shuffle` - Shuffle a queue  
+`/size` - Get / Set size limit of a queue  
 `/start` - Add the bot to a voice queue  
   
 **Bot Management**  

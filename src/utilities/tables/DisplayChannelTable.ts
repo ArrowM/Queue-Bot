@@ -49,6 +49,10 @@ export class DisplayChannelTable {
       return Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
    }
 
+   public static getFirstFromQueue(queueChannelId: Snowflake) {
+      return Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first();
+   }
+
    public static getFromMessage(messageId: Snowflake) {
       return Base.knex<DisplayChannel>("display_channels").where("message_id", messageId).first();
    }

@@ -20,7 +20,6 @@ import { QueueChannel, QueueGuild } from "./Interfaces";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
-import util from "util";
 
 export class ParsingUtils {
    private static regEx = RegExp(Base.config.permissionsRegexp, "i");
@@ -33,12 +32,12 @@ export class ParsingUtils {
       // Check if ADMIN
       if (member.permissionsIn(request.channel as TextChannel | VoiceChannel | StageChannel).has("ADMINISTRATOR")) return true;
       // Check IDs
-      const roleIds = member.roles.cache.keyArray();
+      const roleIds = Array.from(member.roles.cache.keys());
       for await (const entry of await AdminPermissionTable.getMany(request.guild.id)) {
          if (roleIds.includes(entry.role_member_id) || member.id === entry.role_member_id) return true;
       }
       // Check role names
-      const roles = member.roles.cache.array();
+      const roles = member.roles.cache.values();
       for await (const role of roles) {
          if (this.regEx.test(role.name)) return true;
       }
@@ -70,6 +69,7 @@ export interface ParsedArguments {
    role?: Role;
    text?: string;
    num?: number;
+   rawStrings?: string[];
 }
 
 export interface ParsedOptions {
@@ -133,8 +133,8 @@ export abstract class Parsed {
          }
          if (!this.args.channel?.guild?.id) {
             const channelText =
-               (conf.channelType.includes("GUILD_TEXT") ? "**text** " : "") +
-               (conf.channelType.includes("GUILD_VOICE") || conf.channelType.includes("GUILD_STAGE_VOICE") ? "**voice** " : "") +
+               (conf.channelType?.includes("GUILD_TEXT") ? "**text** " : "") +
+               (conf.channelType?.includes("GUILD_VOICE") || conf.channelType?.includes("GUILD_STAGE_VOICE") ? "**voice** " : "") +
                "channel";
             this.missingArgs.push(channelText);
          }
@@ -152,7 +152,7 @@ export abstract class Parsed {
          await this.getNumberParam();
          this.verifyNumber(conf.numberArgs.min, conf.numberArgs.max, conf.numberArgs.defaultValue);
       }
-      if (conf.hasNumber && !this.args.num) this.missingArgs.push("number");
+      if (conf.hasNumber && this.args.num === undefined) this.missingArgs.push("number");
 
       if (conf.hasText && !this.args.text) this.missingArgs.push("message");
       // Report missing
@@ -222,10 +222,10 @@ export class ParsedCommand extends Parsed {
       }
    }
 
-   private findArgs(options: Collection<string, CommandInteractionOption>, type: string, accumulator: any[]): any[] {
-      for (const option of options.values()) {
-         if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options) {
-            accumulator.push(...this.findArgs(option.options, type, accumulator));
+   private findArgs(_options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
+      for (const option of _options) {
+         if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options?.length) {
+            accumulator = this.findArgs(option.options, type, accumulator);
          } else if (option.type === type) {
             if (["CHANNEL"].includes(type)) {
                accumulator.push(option.channel);
@@ -241,28 +241,19 @@ export class ParsedCommand extends Parsed {
       return accumulator;
    }
 
-   protected removeChannelParam(options: Collection<string, CommandInteractionOption>, id: string) {
-      for (const option of options.values()) {
-         if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options) {
-            this.removeChannelParam(option.options, id);
-         } else if (option?.value === id) {
-            options.delete(option.name);
-         }
-      }
-   }
-
    protected async getChannelParam(channelType: string[]): Promise<void> {
-      let channel = this.findArgs(this.request.options, "CHANNEL", [])[0] as GuildChannel;
+      let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildChannel;
       if (!channel) {
-         const id = this.findArgs(this.request.options, "STRING", [])[0] as Snowflake;
-         channel = await this.request.guild.channels.fetch(id).catch(() => null);
-         if (channel) {
-            this.removeChannelParam(this.request.options, id);
-            await this.getStringParam();
+         const channelId = this.args.text as Snowflake;
+         if (channelId) {
+            channel = await this.request.guild.channels.fetch(channelId).catch(() => null);
+            if (channel) {
+               this.args.text = this.args.rawStrings[1];
+            }
          }
       }
       if (
-         channel &&
+         channel?.type &&
          ((channelType && !channelType.includes(channel.type)) ||
             !["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type))
       ) {
@@ -272,19 +263,20 @@ export class ParsedCommand extends Parsed {
    }
 
    protected async getMemberParam(): Promise<void> {
-      this.args.member = this.findArgs(this.request.options, "USER", [])[0] as GuildMember;
+      this.args.member = this.findArgs(this.request.options.data, "USER")[0] as GuildMember;
    }
 
    protected async getRoleParam(): Promise<void> {
-      this.args.role = this.findArgs(this.request.options, "ROLE", [])[0] as Role;
+      this.args.role = this.findArgs(this.request.options.data, "ROLE")[0] as Role;
    }
 
    protected async getStringParam(): Promise<void> {
-      this.args.text = this.findArgs(this.request.options, "STRING", [])[0] as string;
+      this.args.rawStrings = this.findArgs(this.request.options.data, "STRING") as string[];
+      this.args.text = this.args.rawStrings[0];
    }
 
    protected async getNumberParam(): Promise<void> {
-      this.args.num = this.findArgs(this.request.options, "INTEGER", [])[0] as number;
+      this.args.num = this.findArgs(this.request.options.data, "INTEGER")[0] as number;
    }
 }
 
@@ -317,7 +309,7 @@ export class ParsedMessage extends Parsed {
          this.args.channel = this.request.mentions.channels.first() as VoiceChannel | StageChannel | TextChannel;
          this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();
       } else {
-         let channels = (await this.request.guild.channels.fetch()).array() as (VoiceChannel | StageChannel | TextChannel)[];
+         let channels = (await this.request.guild.channels.fetch()) as Collection<Snowflake, VoiceChannel | StageChannel | TextChannel>;
 
          channels = channels.filter((ch) =>
             channelType ? channelType.includes(ch.type) : ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
@@ -326,7 +318,7 @@ export class ParsedMessage extends Parsed {
          let channelName = this.args.text;
          // Search for largest matching channel name
          while (channelName) {
-            for (const channel of channels) {
+            for (const channel of channels.values()) {
                if (ParsedMessage.coll.compare(channelName, channel.name) === 0) {
                   this.args.channel = channel;
                   this.args.text = this.args.text.substring(channelName.length + 1);

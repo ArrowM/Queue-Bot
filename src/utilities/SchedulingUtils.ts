@@ -36,7 +36,7 @@ export class SchedulingUtils {
          }
          setTimeout(() => {
             if (!channel.full) {
-               voice.setChannel(channel).catch(() => null);
+               voice.setChannel(channel as VoiceChannel).catch(() => null);
             }
          }, delay);
       } catch (e) {

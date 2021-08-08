@@ -49,7 +49,7 @@ export class PriorityTable {
    }
 
    public static async isPriority(guildId: Snowflake, member: GuildMember) {
-      const roleIds = member.roles.cache.keyArray();
+      const roleIds = member.roles.cache.keys();
       for (const id of [member.id, ...roleIds]) {
          const memberPerm = await Base.knex<PriorityEntry>("priority").where("guild_id", guildId).where("role_member_id", id).first();
          if (memberPerm) return true;

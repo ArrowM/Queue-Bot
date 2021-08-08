@@ -40,7 +40,7 @@ export class BlackWhiteListTable {
    }
 
    public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
-      const roleIds = member.roles.cache.array().map((role) => role.id);
+      const roleIds = member.roles.cache.map((role) => role.id);
       for (const id of [member.id, ...roleIds]) {
          const memberPerm = await Base.knex<BlackWhiteListEntry>("black_white_list")
             .where("queue_channel_id", queueChannelId)

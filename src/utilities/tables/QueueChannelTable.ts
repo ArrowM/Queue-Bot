@@ -151,7 +151,7 @@ export class QueueChannelTable {
             name: "In queue: " + channel.name,
          })
          .catch(async (e: DiscordAPIError) => {
-            if (e.httpStatus === 403) {
+            if ([403, 404].includes(e.httpStatus)) {
                await parsed
                   .reply({
                      content:
@@ -178,7 +178,7 @@ export class QueueChannelTable {
          if (guild) {
             const role = await guild.roles.fetch(roleId).catch(() => null as Role);
             await role?.delete().catch(async (e: DiscordAPIError) => {
-               if (e.httpStatus === 403) {
+               if ([403, 404].includes(e.httpStatus)) {
                   await parsed
                      .reply({
                         content: `ERROR: Failed to delete server role for queue. Please:\n1. Grant me the Manage Roles permission **or** click this link\n2. Manually delete the \`${role.name}\` role`,
@@ -215,7 +215,7 @@ export class QueueChannelTable {
          })
          .catch(() => null);
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
-         for await (const member of channel.members.filter((member) => !member.user.bot).array()) {
+         for await (const member of channel.members.filter((member) => !member.user.bot).values()) {
             await QueueMemberTable.store(channel, member).catch(() => null);
          }
       }

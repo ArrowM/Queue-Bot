@@ -4,11 +4,11 @@ import {
    GuildMember,
    MessageEmbed,
    MessageEmbedOptions,
-   Snowflake,
    ColorResolvable,
    StageChannel,
+   DiscordAPIError,
 } from "discord.js";
-import { QueueChannel, QueueGuild } from "./utilities/Interfaces";
+import { BlackWhiteListEntry, PriorityEntry, QueueChannel, QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
@@ -74,7 +74,7 @@ export class Commands {
             | VoiceChannel
             | StageChannel
             | TextChannel;
-         if (!queueChannel) continue;
+         if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel?.type)) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.auto_fill ? "on" : "off"}\n`;
       }
       await parsed
@@ -128,10 +128,36 @@ export class Commands {
    /**
     * HELPER
     */
-   private static async genBlacklistWhitelistList(queueChannel: VoiceChannel | StageChannel | TextChannel, type: number): Promise<string> {
+   private static async validateBlacklistWhitelist(
+      parsed: ParsedCommand | ParsedMessage,
+      type: number,
+      storedEntries: BlackWhiteListEntry[]
+   ) {
+      let removedAny = false;
+      for await (const entry of storedEntries) {
+         await parsed.request.guild.members.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
+            if ([403, 404].includes(e.httpStatus)) {
+               await BlackWhiteListTable.unstore(type, entry.queue_channel_id, entry.role_member_id);
+               removedAny = true;
+            }
+         });
+      }
+      if (removedAny) {
+         setTimeout(async () => await parsed.reply({
+            content: `Removed 1 or more invalid members/roles from the ${type ? "white" : "black"}list.`,
+         }).catch(() => null), 1000);
+      }
+   }
+
+   /**
+    * HELPER
+    */
+   private static async genBlacklistWhitelist(parsed: ParsedCommand | ParsedMessage, type: number): Promise<string> {
       const typeString = type ? "White" : "Black";
-      const storedEntries = await BlackWhiteListTable.getMany(type, queueChannel.id);
-      let response = `\n${typeString}list of \`${queueChannel.name}\`: `;
+      const storedEntries = await BlackWhiteListTable.getMany(type, parsed.args.channel.id);
+      this.validateBlacklistWhitelist(parsed, type, storedEntries);
+
+      let response = `\n${typeString}list of \`${parsed.args.channel.name}\`: `;
       if (storedEntries?.length) {
          response += storedEntries.map((entry) => "<@" + (entry.is_role ? "&" : "") + entry.role_member_id + ">").join(", ");
       } else {
@@ -159,12 +185,13 @@ export class Commands {
       } else {
          await BlackWhiteListTable.store(type, queueChannel.id, id, role != null);
          if (typeString === "black") {
-            await this.kickFromQueue(parsed.queueGuild, queueChannel, member);
+            const members = role ? Array.from(role.members.values()) : [member];
+            await this.kickFromQueue(parsed.queueGuild, queueChannel, members);
          }
          response += `Added \`${name}\` to the ${typeString}list of \`${queueChannel.name}\`.`;
       }
 
-      response += await this.genBlacklistWhitelistList(queueChannel, type);
+      response += await this.genBlacklistWhitelist(parsed, type);
       await parsed
          .reply({
             content: response,
@@ -211,7 +238,7 @@ export class Commands {
          response += `\`${name}\` was not on the ${typeString}list of \`${queueChannel.name}\`.`;
       }
 
-      response += await this.genBlacklistWhitelistList(queueChannel, type);
+      response += await this.genBlacklistWhitelist(parsed, type);
       await parsed
          .reply({
             content: response,
@@ -243,7 +270,7 @@ export class Commands {
    private static async blacklistWhitelistList(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
-      const response = await this.genBlacklistWhitelistList(queueChannel, type);
+      const response = await this.genBlacklistWhitelist(parsed, type);
       await parsed
          .reply({
             content: response,
@@ -274,7 +301,7 @@ export class Commands {
             | VoiceChannel
             | StageChannel
             | TextChannel;
-         if (!queueChannel) continue;
+         if (!["GUILD_TEXT"].includes(queueChannel?.type)) continue;
          response += `\`${queueChannel.name}\`: ${storedQueueChannel.hide_button ? "on" : "off"}\n`;
       }
       await parsed
@@ -361,7 +388,6 @@ export class Commands {
     */
    public static async colorSet(parsed: ParsedCommand | ParsedMessage) {
       await parsed.readArgs({ commandNameLength: 9, hasChannel: true, hasText: true });
-
       if (
          ![
             "default",
@@ -494,7 +520,7 @@ export class Commands {
          }
       } else if (role?.id) {
          let errorAccumulator = "";
-         for await (const member of role.members.array()) {
+         for await (const member of role.members.values()) {
             try {
                await QueueMemberTable.store(queueChannel, member, customMessage, true);
             } catch (e) {
@@ -576,7 +602,7 @@ export class Commands {
       const timeString = await MessagingUtils.getGracePeriodString(parsed.args.num);
       await parsed
          .reply({
-            content: `Set grace period of \`${queueChannel.name}\` to \`${timeString}\`.`,
+            content: `Set grace period of \`${queueChannel.name}\` to \`${timeString || "0 seconds"}\`.`,
          })
          .catch(() => null);
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
@@ -644,19 +670,19 @@ export class Commands {
                   "**VOICE**: Join the matching voice channel.",
             },
             {
-               name: "`/join`" + alt ? "or `!join`" : "",
+               name: "`/join`" + (alt ? " or `!join`" : ""),
                value: "Join a text queue",
             },
             {
-               name: "`/leave`" + alt ? "or `!leave`" : "",
+               name: "`/leave`" + (alt ? " or `!leave`" : ""),
                value: "Leave a text queue",
             },
             {
-               name: "`/myqueues`" + alt ? "or `!myqueues`" : "",
+               name: "`/myqueues`" + (alt ? " or `!myqueues`" : ""),
                value: "Show my queues",
             },
             {
-               name: "`/help setup`" + alt ? "or `!help setup`" : "",
+               name: "`/help setup`" + (alt ? " or `!help setup`" : ""),
                value: "Setup & admin commands",
             },
          ],
@@ -939,12 +965,18 @@ export class Commands {
    private static async kickFromQueue(
       queueGuild: QueueGuild,
       channel: TextChannel | VoiceChannel | StageChannel,
-      member: GuildMember
+      members: GuildMember[]
    ): Promise<void> {
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
-         await member?.voice?.kick().catch(() => null);
+         for await (const member of members) {
+            await member?.voice?.disconnect().catch(() => null);
+         }
       } else {
-         await QueueMemberTable.unstore(queueGuild.id, channel.id, [member.id]);
+         await QueueMemberTable.unstore(
+            queueGuild.guild_id,
+            channel.id,
+            members.map((m) => m.id)
+         );
          SchedulingUtils.scheduleDisplayUpdate(queueGuild, channel);
       }
    }
@@ -959,7 +991,7 @@ export class Commands {
       const channel = parsed.args.channel;
       if (!member?.id || !channel?.id) return;
 
-      await this.kickFromQueue(parsed.queueGuild, channel, member);
+      await this.kickFromQueue(parsed.queueGuild, channel, [member]);
       await parsed
          .reply({
             content: `Kicked <@${member.id}> from \`${channel.name}\` queue.`,
@@ -989,7 +1021,7 @@ export class Commands {
             | TextChannel;
          if (!queueChannel) continue;
          channels.push(queueChannel);
-         await this.kickFromQueue(parsed.queueGuild, queueChannel, member);
+         await this.kickFromQueue(parsed.queueGuild, queueChannel, [member]);
       }
       await parsed
          .reply({
@@ -1369,8 +1401,32 @@ export class Commands {
    /**
     * HELPER
     */
-   private static async genPriorityList(guildId: Snowflake): Promise<string> {
-      const storedEntries = await PriorityTable.getMany(guildId);
+   private static async validatePriorityList(parsed: ParsedCommand | ParsedMessage, storedEntries: PriorityEntry[]) {
+      let removedAny = false;
+      for await (const entry of storedEntries) {
+         if (entry.is_role) continue;
+         await parsed.request.guild.members.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
+            console.log(e);
+            if ([403, 404].includes(e.httpStatus)) {
+               await PriorityTable.unstore(parsed.queueGuild.guild_id, entry.role_member_id);
+               removedAny = true;
+            }
+         });
+         console.log(entry.role_member_id);
+      }
+      if (removedAny) {
+         setTimeout(async () => await parsed.reply({
+            content: `Removed 1 or more invalid members/roles from the priority list.`,
+         }).catch(() => null), 1000);
+      }
+   }
+
+   /**
+    * HELPER
+    */
+   private static async genPriorityList(parsed: ParsedCommand | ParsedMessage): Promise<string> {
+      const storedEntries = await PriorityTable.getMany(parsed.queueGuild.guild_id);
+      this.validatePriorityList(parsed, storedEntries);
       let response = "\nPriority list: ";
       if (storedEntries?.length) {
          response += storedEntries.map((entry) => "<@" + (entry.is_role ? "&" : "") + entry.role_member_id + ">").join(", ");
@@ -1400,7 +1456,7 @@ export class Commands {
             const queueMember = await QueueMemberTable.getMemberFromQueueMember(queueChannel, storedMember);
             if (!queueMember) continue;
             // Re-evaluate priority for each member
-            const roleIds = queueMember.roles.cache.keyArray();
+            const roleIds = queueMember.roles.cache.keys();
             if ([queueMember.id, ...roleIds].some((id) => priorityIds.includes(id))) {
                QueueMemberTable.setPriority(queueChannel.id, queueMember.id, true);
             } else {
@@ -1432,7 +1488,7 @@ export class Commands {
          this.updatePriorities(parsed);
       }
 
-      response += await this.genPriorityList(guildId);
+      response += await this.genPriorityList(parsed);
       await parsed
          .reply({
             content: response,
@@ -1478,7 +1534,7 @@ export class Commands {
          response += `\`${name}\` was not on the priority list.`;
       }
 
-      response += await this.genPriorityList(guildId);
+      response += await this.genPriorityList(parsed);
       await parsed
          .reply({
             content: response,
@@ -1510,7 +1566,7 @@ export class Commands {
    public static async priorityList(parsed: ParsedCommand | ParsedMessage): Promise<void> {
       await parsed.readArgs({ commandNameLength: 13 });
 
-      const response = await this.genPriorityList(parsed.request.guild.id);
+      const response = await this.genPriorityList(parsed);
       await parsed
          .reply({
             content: response,

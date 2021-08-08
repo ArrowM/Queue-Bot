@@ -88,13 +88,12 @@ export class MessagingUtils {
          if (gracePeriod) {
             const graceMinutes = Math.floor(gracePeriod / 60);
             const graceSeconds = gracePeriod % 60;
-            const timeString =
+            result =
                (graceMinutes > 0 ? graceMinutes + " minute" : "") +
                (graceMinutes > 1 ? "s" : "") +
                (graceMinutes > 0 && graceSeconds > 0 ? " and " : "") +
                (graceSeconds > 0 ? graceSeconds + " second" : "") +
                (graceSeconds > 1 ? "s" : "");
-            result = `\nIf you leave, you have **${timeString}** to rejoin to reclaim your spot.`;
          } else {
             result = "";
          }
@@ -133,9 +132,11 @@ export class MessagingUtils {
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
          description = `Join the **${queueChannel.name}** voice channel to join this queue.`;
       } else {
-         description = `To interact, click the button or type \`/join ${queueChannel.name}\` or \`/leave ${queueChannel.name}\`.`;
+         description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
       }
-      description += await this.getGracePeriodString(storedQueueChannel.grace_period);
+      const timeString = await this.getGracePeriodString(storedQueueChannel.grace_period);
+      if (timeString) description += `\nIf you leave, you have ** ${timeString}** to rejoin to reclaim your spot.`;
+
       if (queueMembers.some((member) => member.is_priority)) description += `\nPriority users are marked with a ⋆.`;
       if (storedQueueChannel.header) description += `\n\n${storedQueueChannel.header}`;
 
@@ -157,7 +158,7 @@ export class MessagingUtils {
                   let member: GuildMember;
                   if (queueGuild.disable_mentions) {
                      member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
-                        if (e.httpStatus === 403) {
+                        if ([403, 404].includes(e.httpStatus)) {
                            await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
                         }
                         return null;

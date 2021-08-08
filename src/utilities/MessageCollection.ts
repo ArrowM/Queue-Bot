@@ -1,13 +1,12 @@
-import { Collection, LimitedCollection, Message } from "discord.js";
+import { Collection, LimitedCollection, LimitedCollectionOptions, Message } from "discord.js";
 import { Base } from "./Base";
 
 /**
  * This Message cache only caches messages from this bot
  **/
 export class MessageCollection<K, V> extends LimitedCollection<K, V> {
-   constructor(maxSize = 0, iterable: any = null) {
-      super(iterable);
-      this.maxSize = maxSize;
+   constructor(options?: LimitedCollectionOptions<K, V>, iterable?: Iterable<readonly [K, V]>) {
+      super(options, iterable);
    }
 
    public set(key: any, value: any) {
