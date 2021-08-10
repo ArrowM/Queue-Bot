@@ -23,8 +23,9 @@ export interface QueueUpdateRequest {
 }
 
 export class MessagingUtils {
-   private static gracePeriodCache = new Map<number, string>();
+   private static USERS_PER_FIELD = 25;
    private static MAX_MEMBERS_PER_EMBED = 200;
+   private static gracePeriodCache = new Map<number, string>();
 
    /**
     * Update a server's display messages
@@ -127,7 +128,7 @@ export class MessagingUtils {
             await QueueChannelTable.updateTarget(queueChannel.id, Base.knex.raw("DEFAULT"));
          }
       }
-      let position = 0;
+
       let description: string;
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
          description = `Join the **${queueChannel.name}** voice channel to join this queue.`;
@@ -140,8 +141,8 @@ export class MessagingUtils {
       if (queueMembers.some((member) => member.is_priority)) description += `\nPriority users are marked with a ⋆.`;
       if (storedQueueChannel.header) description += `\n\n${storedQueueChannel.header}`;
 
-      let queueMembersSlice = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
-
+      let queueMembersSlice = queueMembers.slice(0, this.MAX_MEMBERS_PER_EMBED);
+      let position = 0;
       const embeds: MessageEmbed[] = [];
       for (;;) {
          const embed = new MessageEmbed();
@@ -150,11 +151,9 @@ export class MessagingUtils {
          embed.setDescription(description);
          if (queueMembersSlice?.length > 0) {
             // Handle non-empty
-            const maxFieldCount = 25;
-            for (let i = 0; i < queueMembersSlice.length / maxFieldCount; i++) {
-               const pos = position % this.MAX_MEMBERS_PER_EMBED;
+            while (position < queueMembersSlice.length && position < this.MAX_MEMBERS_PER_EMBED) {
                let userList = "";
-               for (const queueMember of queueMembersSlice.slice(pos, pos + maxFieldCount)) {
+               for (const queueMember of queueMembersSlice.slice(position, (position += this.USERS_PER_FIELD))) {
                   let member: GuildMember;
                   if (queueGuild.disable_mentions) {
                      member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
@@ -174,7 +173,7 @@ export class MessagingUtils {
                      (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
                      "\n";
                }
-               embed.addField("\u200b", userList, true);
+               if (userList) embed.addField("\u200b", userList, true);
             }
          } else {
             // Handle empty queue

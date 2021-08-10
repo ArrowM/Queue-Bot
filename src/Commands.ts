@@ -143,9 +143,15 @@ export class Commands {
          });
       }
       if (removedAny) {
-         setTimeout(async () => await parsed.reply({
-            content: `Removed 1 or more invalid members/roles from the ${type ? "white" : "black"}list.`,
-         }).catch(() => null), 1000);
+         setTimeout(
+            async () =>
+               await parsed
+                  .reply({
+                     content: `Removed 1 or more invalid members/roles from the ${type ? "white" : "black"}list.`,
+                  })
+                  .catch(() => null),
+            1000
+         );
       }
    }
 
@@ -1406,18 +1412,22 @@ export class Commands {
       for await (const entry of storedEntries) {
          if (entry.is_role) continue;
          await parsed.request.guild.members.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
-            console.log(e);
             if ([403, 404].includes(e.httpStatus)) {
                await PriorityTable.unstore(parsed.queueGuild.guild_id, entry.role_member_id);
                removedAny = true;
             }
          });
-         console.log(entry.role_member_id);
       }
       if (removedAny) {
-         setTimeout(async () => await parsed.reply({
-            content: `Removed 1 or more invalid members/roles from the priority list.`,
-         }).catch(() => null), 1000);
+         setTimeout(
+            async () =>
+               await parsed
+                  .reply({
+                     content: `Removed 1 or more invalid members/roles from the priority list.`,
+                  })
+                  .catch(() => null),
+            1000
+         );
       }
    }
 
@@ -1645,7 +1655,15 @@ export class Commands {
             content: `Created \`${channel.name}\` queue.` + (await this.genQueuesList(parsed)),
          })
          .catch(() => null);
-      await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+      if ((await QueueChannelTable.getFromGuild(parsed.request.guild.id)).length <= 25) {
+         await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+      } else {
+         await parsed.reply({
+            content:
+               `WARNING: \`${channel.name}\` will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
+               ` To interact with this new queue, you must use the alternate prefix (\`/altprefix on\`) or delete another queue.`,
+         });
+      }
    }
 
    /**
@@ -1724,7 +1742,9 @@ export class Commands {
             .catch(() => null);
          Voice.disconnectFromChannel(queueChannel as VoiceChannel | StageChannel);
 
-         await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+         if ((await QueueChannelTable.getFromGuild(parsed.request.guild.id)).length <= 25) {
+            await SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed);
+         }
       } else {
          const response = `\`${queueChannel.name}\` is not a queue.` + (await this.genQueuesList(parsed));
          await parsed

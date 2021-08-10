@@ -14,7 +14,7 @@
    "license": "ISC",
    "type": "commonjs",
    "dependencies": {
-      "@discordjs/voice": "^0.5.1",
+      "@discordjs/voice": "^0.6.0",
       "bufferutil": "^4.0.3",
       "dblapi.js": "^2.4.1",
       "delay": "^5.0.0",

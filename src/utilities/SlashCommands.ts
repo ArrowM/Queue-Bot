@@ -6,7 +6,7 @@ import {
    ApplicationOptions,
    Client as SlashClient,
 } from "discord-slash-commands-client";
-import { Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import { DiscordAPIError, Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
 import { Parsed } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
@@ -173,8 +173,21 @@ export class SlashCommands {
 
    public static async modifySlashCommandsForAllGuilds() {
       for await (const guild of Base.client.guilds.cache.values()) {
-         this.modifyCommandsForGuild(guild);
-         await delay(6000);
+         await guild.channels.fetch();
+         const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
+         let updateRequired = false;
+         for await (const storedChannel of storedChannels) {
+            await guild.channels.fetch(storedChannel.queue_channel_id).catch(async (e: DiscordAPIError) => {
+               if ([403, 404].includes(e.httpStatus)) {
+                  await QueueChannelTable.unstore(guild.id, storedChannel.queue_channel_id);
+                  updateRequired = true;
+               }
+            });
+         }
+         if (updateRequired) {
+            this.modifyCommandsForGuild(guild);
+            await delay(6000);
+         }
       }
       console.log("Done modifying commands.");
    }
