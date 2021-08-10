@@ -153,7 +153,7 @@ export class MessagingUtils {
             // Handle non-empty
             while (position < queueMembersSlice.length && position < this.MAX_MEMBERS_PER_EMBED) {
                let userList = "";
-               for (const queueMember of queueMembersSlice.slice(position, (position += this.USERS_PER_FIELD))) {
+               for (const queueMember of queueMembersSlice.slice(position, position + this.USERS_PER_FIELD)) {
                   let member: GuildMember;
                   if (queueGuild.disable_mentions) {
                      member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
