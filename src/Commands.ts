@@ -1685,7 +1685,9 @@ export class Commands {
             })
             .catch(() => null);
       } else {
-         const size = parsed.args.num || (channel as VoiceChannel | StageChannel).userLimit;
+         const channelLim = (channel as VoiceChannel | StageChannel).userLimit
+         let size = parsed.args.num;
+         if (!size && channelLim) size = channelLim;
          if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
             if (channel.permissionsFor(parsed.request.guild.me).has("CONNECT")) {
                await this.storeQueue(parsed, channel, size);
@@ -1704,7 +1706,7 @@ export class Commands {
                                  commandDisplay: "EPHEMERAL",
                               })
                               .catch(() => null),
-                        2000
+                        1000
                      );
                   }
                }
