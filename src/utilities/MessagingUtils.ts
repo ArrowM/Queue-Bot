@@ -1,5 +1,6 @@
 import {
    DiscordAPIError,
+   EmbedFieldData,
    GuildChannel,
    GuildMember,
    Message,
@@ -23,8 +24,6 @@ export interface QueueUpdateRequest {
 }
 
 export class MessagingUtils {
-   private static USERS_PER_FIELD = 25;
-   private static MAX_MEMBERS_PER_EMBED = 200;
    private static gracePeriodCache = new Map<number, string>();
 
    /**
@@ -141,54 +140,68 @@ export class MessagingUtils {
       if (queueMembers.some((member) => member.is_priority)) description += `\nPriority users are marked with a ⋆.`;
       if (storedQueueChannel.header) description += `\n\n${storedQueueChannel.header}`;
 
-      let queueMembersSlice = queueMembers.slice(0, this.MAX_MEMBERS_PER_EMBED);
+      // Create a list of entries
       let position = 0;
-      const embeds: MessageEmbed[] = [];
-      for (;;) {
-         const embed = new MessageEmbed();
-         embed.setTitle(title);
-         embed.setColor(storedQueueChannel.color);
-         embed.setDescription(description);
-         if (queueMembersSlice?.length > 0) {
-            // Handle non-empty
-            while (position < queueMembersSlice.length && position < this.MAX_MEMBERS_PER_EMBED) {
-               let userList = "";
-               for (const queueMember of queueMembersSlice.slice(position, position + this.USERS_PER_FIELD)) {
-                  let member: GuildMember;
-                  if (queueGuild.disable_mentions) {
-                     member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
-                        if ([403, 404].includes(e.httpStatus)) {
-                           await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
-                        }
-                        return null;
-                     });
-                     if (!member) continue;
-                  }
-                  userList +=
-                     `\`${++position < 10 ? position + " " : position}\` ` +
-                     `${queueMember.is_priority ? "⋆" : ""}` +
-                     (queueGuild.disable_mentions && member?.displayName
-                        ? `\`${member.displayName}#${member?.user?.discriminator}\``
-                        : `<@${queueMember.member_id}>`) +
-                     (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
-                     "\n";
+      const entries: string[] = [];
+      while (queueMembers.length) {
+         // Get queue member
+         const queueMember = queueMembers.shift();
+         let member: GuildMember;
+         if (queueGuild.disable_mentions) {
+            member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
+               if ([403, 404].includes(e.httpStatus)) {
+                  await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
                }
-               if (userList) embed.addField("\u200b", userList, true);
-            }
-         } else {
-            // Handle empty queue
-            embed.addField("\u200b", "\u200b");
+               return null;
+            });
+            if (!member) continue;
          }
-         if (storedQueueChannel.max_members) {
-            embed.fields[0].name = `Capacity:  ${queueMembers ? queueMembers.length : 0} / ${storedQueueChannel.max_members}`;
-         } else {
-            embed.fields[0].name = `Length:  ${queueMembers ? queueMembers.length : 0}`;
-         }
-         embeds.push(embed);
-         // Setup for next 200 members (Keep at the bottom of loop. We want to generate 1 embed for empty queues).
-         queueMembersSlice = queueMembers.slice(position, position + this.MAX_MEMBERS_PER_EMBED);
-         if (queueMembersSlice.length === 0) break;
+         // Create entry string
+         entries.push(
+            `\`${++position < 10 ? position + " " : position}\` ` +
+               `${queueMember.is_priority ? "⋆" : ""}` +
+               (queueGuild.disable_mentions && member?.displayName
+                  ? `\`${member.displayName}#${member?.user?.discriminator}\``
+                  : `<@${queueMember.member_id}>`) +
+               (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
+               "\n"
+         );
       }
+
+      const firstFieldName = storedQueueChannel.max_members
+         ? `Capacity:  ${position} / ${storedQueueChannel.max_members}`
+         : `Length:  ${position}`;
+
+      const embeds: MessageEmbed[] = [];
+      let embedLength = title.length + description.length + firstFieldName.length;
+      let fields: EmbedFieldData[] = [];
+      let field: EmbedFieldData = { name: "\u200b", value: "", inline: true };
+
+      while (entries.length) {
+         const entry = entries.shift();
+         if (embedLength + entry.length >= 6000) {
+            // New Message Needed - TODO support multiple messages?
+            break;
+         }
+         if (field.value.length + entry.length >= 1024) {
+            fields.push(field);
+            field = { name: "\u200b", value: "", inline: true };
+            embedLength += 1;
+         }
+         field.value += entry;
+         embedLength += entry.length;
+      }
+      // Add the remaining fields to embeds
+      if (!field.value) field.value = "\u200b";
+      fields.push(field);
+      const embed = new MessageEmbed();
+      embed.setTitle(title);
+      embed.setColor(storedQueueChannel.color);
+      embed.setDescription(description);
+      embed.setFields(fields);
+      embed.fields[0].name = firstFieldName;
+      embeds.push(embed);
+
       return embeds;
    }
 

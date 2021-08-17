@@ -1685,7 +1685,7 @@ export class Commands {
             })
             .catch(() => null);
       } else {
-         const channelLim = (channel as VoiceChannel | StageChannel).userLimit
+         const channelLim = (channel as VoiceChannel | StageChannel).userLimit;
          let size = parsed.args.num;
          if (!size && channelLim) size = channelLim;
          if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
