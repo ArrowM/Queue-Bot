@@ -45,7 +45,7 @@ export class SchedulingUtils {
    }
 
    /**
-    * Send scheduled display updates every 1.1 seconds
+    * Send scheduled display updates every second
     * Necessary to comply with Discord API rate limits
     */
    public static startScheduler() {
@@ -57,13 +57,13 @@ export class SchedulingUtils {
             }
             this.pendingQueueUpdates.clear();
          }
-      }, 1100);
+      }, 1000);
    }
 
    /**
     * Schedule a queue channel to have it's displays updated
     * @param queueGuild
-    * @param queueChannels
+    * @param queueChannel
     */
    public static scheduleDisplayUpdate(queueGuild: QueueGuild, queueChannel: VoiceChannel | StageChannel | TextChannel): void {
       if (queueChannel) {

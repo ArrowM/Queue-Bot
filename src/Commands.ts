@@ -135,7 +135,8 @@ export class Commands {
    ) {
       let removedAny = false;
       for await (const entry of storedEntries) {
-         await parsed.request.guild.members.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
+         let manager = entry.is_role ? parsed.request.guild.roles : parsed.request.guild.members;
+         await manager.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
             if ([403, 404].includes(e.httpStatus)) {
                await BlackWhiteListTable.unstore(type, entry.queue_channel_id, entry.role_member_id);
                removedAny = true;
@@ -1227,6 +1228,8 @@ export class Commands {
       const storedQueueChannel = parsed.queueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
       if (!storedQueueChannel) return;
 
+      await parsed.deferReply();
+
       // Get the oldest member entries for the queue
       const amount = parsed.args.num || storedQueueChannel.pull_num || 1;
       let queueMembers = await QueueMemberTable.getNext(queueChannel, amount);
@@ -1245,7 +1248,7 @@ export class Commands {
                }
             } else {
                await parsed
-                  .reply({
+                  .edit({
                      content:
                         "**ERROR**: No target channel. Set a target channel by sending `/start` then dragging the bot to the target channel.",
                      commandDisplay: "EPHEMERAL",
@@ -1266,7 +1269,7 @@ export class Commands {
             }
          }
          await parsed
-            .reply({
+            .edit({
                content: `Pulled ` + queueMembers.map((member) => `<@${member.member_id}>`).join(", ") + ` from \`${queueChannel.name}\`.`,
             })
             .catch(() => null);
@@ -1411,7 +1414,8 @@ export class Commands {
       let removedAny = false;
       for await (const entry of storedEntries) {
          if (entry.is_role) continue;
-         await parsed.request.guild.members.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
+         let manager = entry.is_role ? parsed.request.guild.roles : parsed.request.guild.members;
+         await manager.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
             if ([403, 404].includes(e.httpStatus)) {
                await PriorityTable.unstore(parsed.queueGuild.guild_id, entry.role_member_id);
                removedAny = true;

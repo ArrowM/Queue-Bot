@@ -34,9 +34,9 @@ client.on("uncaughtException", (err, origin) => {
       })}`
    );
 });
-client.on("rateLimit", (rateLimitInfo) => {
-   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
-});
+//client.on("rateLimit", (rateLimitInfo) => {
+//   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
+//});
 
 // Top GG integration
 if (config.topGgToken) {

@@ -100,6 +100,9 @@ export abstract class Parsed {
    }
    // noinspection JSUnusedLocalSymbols
    public abstract reply(_options: ReplyOptions): Promise<Message>;
+   // noinspection JSUnusedLocalSymbols
+   public abstract edit(_options: ReplyOptions): Promise<Message>;
+   public abstract deferReply(): Promise<void>;
 
    /**
     * Return missing fields
@@ -222,6 +225,14 @@ export class ParsedCommand extends Parsed {
       }
    }
 
+   public async edit(options: ReplyOptions): Promise<Message> {
+      return (await this.request.editReply(options)) as Message;
+   }
+
+   public async deferReply(): Promise<void> {
+      return await this.request.deferReply();
+   }
+
    private findArgs(_options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
       for (const option of _options) {
          if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options?.length) {
@@ -282,6 +293,7 @@ export class ParsedCommand extends Parsed {
 
 export class ParsedMessage extends Parsed {
    public request: Message;
+   private lastResponse: Message;
 
    constructor(message: Message) {
       super();
@@ -296,10 +308,23 @@ export class ParsedMessage extends Parsed {
          allowedMentions: mentions,
       };
       if (options.messageDisplay === "DM") {
-         return (await this.request.author.send(message)) as Message;
+         this.lastResponse = (await this.request.author.send(message)) as Message;
       } else if (options.messageDisplay !== "NONE") {
-         return (await this.request.reply(message)) as Message;
+         this.lastResponse = (await this.request.reply(message)) as Message;
       }
+      return this.lastResponse;
+   }
+
+   public async edit(options: ReplyOptions): Promise<Message> {
+      if (this.lastResponse && this.lastResponse.editable) {
+         return (await this.lastResponse.edit(options)) as Message;
+      } else {
+         return await this.reply(options);
+      }
+   }
+
+   public async deferReply(): Promise<void> {
+      this.lastResponse = await this.request.reply("Thinking...");
    }
 
    private static coll = new Intl.Collator("en", { sensitivity: "base" });
