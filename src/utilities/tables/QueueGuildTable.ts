@@ -2,7 +2,6 @@ import { QueueGuild } from "../Interfaces";
 import { Base } from "../Base";
 import { Guild, Snowflake } from "discord.js";
 import { QueueChannelTable } from "./QueueChannelTable";
-import delay from "delay";
 
 export class QueueGuildTable {
    /**
@@ -23,35 +22,8 @@ export class QueueGuildTable {
       });
    }
 
-   /**
-    * Cleanup deleted Guilds
-    **/
-   public static async validateEntries() {
-      const entries = await Base.knex<QueueGuild>("queue_guilds");
-      for await (const entry of entries) {
-         try {
-            await delay(1000);
-            const guild = await Base.client.guilds.fetch(entry.guild_id);
-            if (guild) {
-               await guild.channels.fetch().catch(() => null);
-               await guild.members.fetch().catch(() => null);
-               await guild.roles.fetch().catch(() => null);
-               QueueChannelTable.validateEntries(guild);
-            } else {
-               this.unstore(entry.guild_id);
-            }
-         } catch (e) {
-            // SKIP
-         }
-      }
-   }
-
    public static get(guildId: Snowflake) {
       return Base.knex<QueueGuild>("queue_guilds").where("guild_id", guildId).first();
-   }
-
-   public static getAll() {
-      return Base.knex<QueueGuild>("queue_guilds");
    }
 
    public static async updateDisableMentions(guildId: Snowflake, value: boolean): Promise<void> {

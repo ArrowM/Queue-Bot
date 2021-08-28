@@ -26,29 +26,17 @@ export class QueueMemberTable {
       });
    }
 
-   /**
-    * Cleanup deleted Display Channels
-    **/
-   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | StageChannel | TextChannel) {
-      const entries = await Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
-      for await (const entry of entries) {
-         try {
-            const member = await guild.members.fetch(entry.member_id);
-            if (!member) {
-               await this.unstore(guild.id, queueChannel.id, [entry.member_id]);
-            }
-         } catch (e) {
-            // SKIP
-         }
-      }
-   }
-
    public static get(channelId: Snowflake, memberId: Snowflake) {
-      return Base.knex<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", memberId).first();
+      return Base.knex<QueueMember>("queue_members")
+         .where("channel_id", channelId)
+         .where("member_id", memberId)
+         .first();
    }
 
    public static getFromChannels(queueChannelIds: Snowflake[], memberId: Snowflake) {
-      return Base.knex<QueueMember>("queue_members").whereIn("channel_id", queueChannelIds).where("member_id", memberId);
+      return Base.knex<QueueMember>("queue_members")
+         .whereIn("channel_id", queueChannelIds)
+         .where("member_id", memberId);
    }
 
    public static getFromId(id: Snowflake) {
@@ -83,7 +71,7 @@ export class QueueMemberTable {
    ): Promise<GuildMember> {
       try {
          return await queueChannel.guild.members.fetch(queueMember.member_id);
-      } catch (e) {
+      } catch (e: any) {
          if (e.httpStatus === 404) {
             await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
          }
@@ -94,13 +82,16 @@ export class QueueMemberTable {
    /**
     *
     */
-   public static async getNext(queueChannel: VoiceChannel | StageChannel | TextChannel, amount?: number): Promise<QueueMember[]> {
+   public static async getNext(
+      queueChannel: VoiceChannel | StageChannel | TextChannel,
+      amount?: number
+   ): Promise<QueueMember[]> {
       let query = Base.knex<QueueMember>("queue_members")
          .where("channel_id", queueChannel.id)
          .orderBy([{ column: "is_priority", order: "desc" }, "created_at"]);
       if (amount) query = query.limit(amount);
 
-      return await query;
+      return query;
    }
 
    private static unstoredMembersCache = new Map<Snowflake, string>();
@@ -152,7 +143,12 @@ export class QueueMemberTable {
       }
    }
 
-   public static async unstore(guildId: Snowflake, channelId: Snowflake, memberIds?: Snowflake[], gracePeriod?: number): Promise<void> {
+   public static async unstore(
+      guildId: Snowflake,
+      channelId: Snowflake,
+      memberIds?: Snowflake[],
+      gracePeriod?: number
+   ): Promise<void> {
       // Retreive list of stored embeds for display channel
       let query = Base.knex<QueueMember>("queue_members").where("channel_id", channelId);
       if (memberIds) {
@@ -180,5 +176,20 @@ export class QueueMemberTable {
          if (!member) continue;
          await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
       }
+   }
+
+   public static async validate(
+      queueChannel: VoiceChannel | StageChannel | TextChannel,
+      members: GuildMember[]
+   ): Promise<boolean> {
+      let updateRequired = false;
+      const storedEntries = await this.getFromQueue(queueChannel);
+      for await (const entry of storedEntries) {
+         if (!members.find((m) => m.id === entry.member_id)) {
+            await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id]);
+            updateRequired = true;
+         }
+      }
+      return updateRequired;
    }
 }

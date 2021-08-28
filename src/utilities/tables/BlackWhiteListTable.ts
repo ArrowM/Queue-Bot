@@ -1,4 +1,4 @@
-import { Guild, GuildMember, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import { GuildChannel, GuildMember, Role, Snowflake } from "discord.js";
 import { Base } from "../Base";
 import { BlackWhiteListEntry } from "../Interfaces";
 
@@ -20,23 +20,6 @@ export class BlackWhiteListTable {
                .catch((e) => console.error(e));
          }
       });
-   }
-
-   /**
-    * Cleanup deleted Roles and Members
-    **/
-   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | StageChannel | TextChannel) {
-      const entries = await Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannel.id);
-      for await (const entry of entries) {
-         try {
-            const roleMember = (await guild.roles.fetch(entry.role_member_id)) || (await guild.members.fetch(entry.role_member_id));
-            if (!roleMember) {
-               this.unstore(2, queueChannel.id, entry.role_member_id);
-            }
-         } catch (e) {
-            // SKIP
-         }
-      }
    }
 
    public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
@@ -61,10 +44,17 @@ export class BlackWhiteListTable {
    }
 
    public static getMany(type: number, queueChannelId: Snowflake) {
-      return Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannelId).where("type", type);
+      return Base.knex<BlackWhiteListEntry>("black_white_list")
+         .where("queue_channel_id", queueChannelId)
+         .where("type", type);
    }
 
-   public static async store(type: number, queueChannelId: Snowflake, roleMemberId: Snowflake, isRole: boolean): Promise<void> {
+   public static async store(
+      type: number,
+      queueChannelId: Snowflake,
+      roleMemberId: Snowflake,
+      isRole: boolean
+   ): Promise<void> {
       await Base.knex<BlackWhiteListEntry>("black_white_list").insert({
          queue_channel_id: queueChannelId,
          role_member_id: roleMemberId,
@@ -75,11 +65,30 @@ export class BlackWhiteListTable {
 
    /**
     * @param type - 0 black, 1 white, 2 both
+    * @param queueChannelId
+    * @param roleMemberId
     */
    public static async unstore(type: number, queueChannelId: Snowflake, roleMemberId?: Snowflake): Promise<void> {
       let query = Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannelId);
       if (type !== 2) query = query.where("type", type);
       if (roleMemberId) query = query.where("role_member_id", roleMemberId);
       await query.delete();
+   }
+
+   public static async validate(queueChannel: GuildChannel, members: GuildMember[], roles: Role[]): Promise<boolean> {
+      let updateRequired = false;
+      for (const type of [0, 1]) {
+         const storedEntries = await this.getMany(type, queueChannel.id);
+         for await (const entry of storedEntries) {
+            if (
+               (entry.is_role && !roles.find((r) => r.id === entry.role_member_id)) ||
+               (!entry.is_role && !members.find((m: GuildMember) => m.id === entry.role_member_id))
+            ) {
+               await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
+               updateRequired = true;
+            }
+         }
+      }
+      return updateRequired;
    }
 }

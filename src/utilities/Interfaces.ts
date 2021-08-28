@@ -1,11 +1,4 @@
-import { ColorResolvable, Message, Snowflake } from "discord.js";
-
-export interface ParsedArguments {
-   queueGuild: QueueGuild;
-   message: Message;
-   command: string;
-   arguments: string;
-}
+import { ColorResolvable, Snowflake } from "discord.js";
 
 export interface QueueChannel {
    id: Snowflake;

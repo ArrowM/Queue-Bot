@@ -36,8 +36,8 @@ export class Voice {
       client.on(Constants.Events.SHARD_DISCONNECT, (_, shardID) => {
          const guilds = Voice.trackedShards.get(shardID);
          if (guilds) {
-            for (const guildID of guilds.values()) {
-               Voice.adapters.get(guildID)?.destroy();
+            for (const guildId of guilds.values()) {
+               Voice.adapters.get(guildId)?.destroy();
             }
          }
          Voice.trackedShards.delete(shardID);

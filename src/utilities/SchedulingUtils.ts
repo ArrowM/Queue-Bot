@@ -53,6 +53,7 @@ export class SchedulingUtils {
       setInterval(() => {
          if (this.pendingQueueUpdates) {
             for (const request of this.pendingQueueUpdates.values()) {
+               // noinspection JSIgnoredPromiseFromCall
                MessagingUtils.updateQueueDisplays(request);
             }
             this.pendingQueueUpdates.clear();
@@ -65,7 +66,10 @@ export class SchedulingUtils {
     * @param queueGuild
     * @param queueChannel
     */
-   public static scheduleDisplayUpdate(queueGuild: QueueGuild, queueChannel: VoiceChannel | StageChannel | TextChannel): void {
+   public static scheduleDisplayUpdate(
+      queueGuild: QueueGuild,
+      queueChannel: VoiceChannel | StageChannel | TextChannel
+   ): void {
       if (queueChannel) {
          this.pendingQueueUpdates.set(queueChannel.id, {
             queueGuild: queueGuild,

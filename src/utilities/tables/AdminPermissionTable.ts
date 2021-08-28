@@ -1,6 +1,6 @@
 import { AdminPermission } from "../Interfaces";
 import { Base } from "../Base";
-import { Snowflake } from "discord.js";
+import { Guild, GuildMember, Role, Snowflake } from "discord.js";
 
 export class AdminPermissionTable {
    /**
@@ -21,30 +21,14 @@ export class AdminPermissionTable {
       });
    }
 
-   /**
-    * Cleanup deleted Guilds, Roles, or Members
-    **/
-   public static async validateEntries() {
-      const entries = await Base.knex<AdminPermission>("admin_permission");
-      for await (const entry of entries) {
-         try {
-            const guild = await Base.client.guilds.fetch(entry.guild_id);
-            if (guild) {
-               const roleMember = (await guild.roles.fetch(entry.role_member_id)) || (await guild.members.fetch(entry.role_member_id));
-               if (roleMember) continue;
-            }
-            await this.unstore(entry.guild_id, entry.role_member_id);
-         } catch (e) {
-            // SKIP
-         }
-      }
+   public static async get(guildId: Snowflake, roleMemberId: Snowflake) {
+      return Base.knex<AdminPermission>("admin_permission")
+         .where("guild_id", guildId)
+         .where("role_member_id", roleMemberId)
+         .first();
    }
 
-   public static get(guildId: Snowflake, roleMemberId: Snowflake) {
-      return Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId).where("role_member_id", roleMemberId).first();
-   }
-
-   public static getMany(guildId: Snowflake) {
+   public static async getMany(guildId: Snowflake) {
       return Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId);
    }
 
@@ -59,6 +43,22 @@ export class AdminPermissionTable {
    }
 
    public static async unstore(guildId: Snowflake, roleMemberId: Snowflake): Promise<void> {
-      await Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId).where("role_member_id", roleMemberId).delete();
+      await Base.knex<AdminPermission>("admin_permission")
+         .where("guild_id", guildId)
+         .where("role_member_id", roleMemberId)
+         .first()
+         .delete();
+   }
+
+   public static async validate(guild: Guild, members: GuildMember[], roles: Role[]): Promise<void> {
+      const storedEntries = await this.getMany(guild.id);
+      for await (const entry of storedEntries) {
+         if (
+            (entry.is_role && !roles.find((r) => r.id === entry.role_member_id)) ||
+            (!entry.is_role && !members.find((m: GuildMember) => m.id === entry.role_member_id))
+         ) {
+            await this.unstore(guild.id, entry.role_member_id);
+         }
+      }
    }
 }

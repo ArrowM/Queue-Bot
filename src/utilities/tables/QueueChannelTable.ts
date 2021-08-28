@@ -1,5 +1,15 @@
-import { DiscordAPIError, Guild, ColorResolvable, Role, Snowflake, TextChannel, VoiceChannel, StageChannel } from "discord.js";
-import { QueueChannel } from "../Interfaces";
+import {
+   DiscordAPIError,
+   Guild,
+   ColorResolvable,
+   Role,
+   Snowflake,
+   TextChannel,
+   VoiceChannel,
+   StageChannel,
+   GuildMember,
+} from "discord.js";
+import { QueueChannel, QueueGuild } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
@@ -7,7 +17,8 @@ import { Knex } from "knex";
 import { ParsedCommand, ParsedMessage } from "../ParsingUtils";
 import { Commands } from "../../Commands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
-import delay from "delay";
+import { SchedulingUtils } from "../SchedulingUtils";
+import { SlashCommands } from "../SlashCommands";
 
 export class QueueChannelTable {
    /**
@@ -34,28 +45,6 @@ export class QueueChannelTable {
       });
    }
 
-   /**
-    * Cleanup deleted QueueChannels
-    **/
-   public static async validateEntries(guild: Guild) {
-      const entries = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
-      for await (const entry of entries) {
-         try {
-            await delay(1000);
-            const queueChannel = (await guild.channels.fetch(entry.queue_channel_id)) as VoiceChannel | StageChannel | TextChannel;
-            if (queueChannel) {
-               BlackWhiteListTable.validateEntries(guild, queueChannel);
-               DisplayChannelTable.validateEntries(guild, queueChannel);
-               QueueMemberTable.validateEntries(guild, queueChannel);
-            } else {
-               this.unstore(guild.id, entry.queue_channel_id);
-            }
-         } catch (e) {
-            // SKIP
-         }
-      }
-   }
-
    public static get(queueChannelId: Snowflake) {
       return Base.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannelId).first();
    }
@@ -80,7 +69,7 @@ export class QueueChannelTable {
       await this.get(queueChannelId).update("hide_button", status);
    }
 
-   public static async updateTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw<any>) {
+   public static async updateTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw) {
       await this.get(queueChannelId).update("target_channel_id", targetChannelId);
    }
 
@@ -119,12 +108,17 @@ export class QueueChannelTable {
       const queueChannelIdsToRemove: Snowflake[] = [];
       // Fetch stored channels
       const storedQueueChannels = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
+      const storedChannels = (await guild.channels.fetch().catch(() => null)) as (
+         | VoiceChannel
+         | StageChannel
+         | TextChannel
+      )[];
       const queueChannels: (VoiceChannel | StageChannel | TextChannel)[] = [];
       // Check for deleted channels
       // Going backwards allows the removal of entries while visiting each one
       for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
          const queueChannelId = storedQueueChannels[i].queue_channel_id;
-         const queueChannel = (await guild.channels.fetch(queueChannelId).catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+         const queueChannel = storedChannels.find((s) => s.id === queueChannelId);
          if (queueChannel) {
             // Still exists, add to return list
             queueChannels.push(queueChannel);
@@ -170,7 +164,11 @@ export class QueueChannelTable {
          });
    }
 
-   public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed: ParsedCommand | ParsedMessage): Promise<void> {
+   public static async deleteQueueRole(
+      guildId: Snowflake,
+      channel: QueueChannel,
+      parsed: ParsedCommand | ParsedMessage
+   ): Promise<void> {
       await this.get(channel.queue_channel_id).update("role_id", Base.knex.raw("DEFAULT"));
       const roleId = channel?.role_id;
       if (roleId) {
@@ -220,9 +218,23 @@ export class QueueChannelTable {
          }
       }
       await Commands.display(parsed, channel);
+
+      // Timeout for message order
+      setTimeout(() => SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed).catch(() => null), 500);
+      if ((await QueueChannelTable.getFromGuild(parsed.request.guild.id)).length > 25) {
+         await parsed.reply({
+            content:
+               `WARNING: \`${channel.name}\` will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
+               ` To interact with this new queue, you must use the alternate prefix (\`/altprefix on\`) or delete another queue.`,
+         });
+      }
    }
 
-   public static async unstore(guildId: Snowflake, channelId?: Snowflake, parsed?: ParsedCommand | ParsedMessage): Promise<void> {
+   public static async unstore(
+      guildId: Snowflake,
+      channelId?: Snowflake,
+      parsed?: ParsedCommand | ParsedMessage
+   ): Promise<void> {
       let query = Base.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
       // Delete store db entries
       if (channelId) query = query.where("queue_channel_id", channelId);
@@ -236,5 +248,44 @@ export class QueueChannelTable {
          await QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id);
       }
       await query.delete();
+
+      // Timeout for message order
+      const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
+      if (guild) {
+         setTimeout(() => SlashCommands.modifyCommandsForGuild(guild, parsed).catch(() => null), 500);
+      }
+   }
+
+   public static async validate(
+      requireGuildUpdate: boolean,
+      queueGuild: QueueGuild,
+      guild: Guild,
+      channels: (VoiceChannel | StageChannel | TextChannel)[],
+      members: GuildMember[],
+      roles: Role[]
+   ): Promise<void> {
+      const storedEntries = await this.getFromGuild(guild.id);
+      for await (const entry of storedEntries) {
+         let requireChannelUpdate = false;
+         const queueChannel = channels.find((c) => c.id === entry.queue_channel_id);
+         if (queueChannel) {
+            const results = await Promise.all([
+               BlackWhiteListTable.validate(queueChannel, members, roles),
+               DisplayChannelTable.validate(queueChannel, channels),
+               QueueMemberTable.validate(queueChannel, members),
+            ]);
+            if (results.includes(true)) {
+               requireChannelUpdate = true;
+            }
+         } else {
+            await this.unstore(guild.id, entry.queue_channel_id);
+            requireChannelUpdate = true;
+         }
+         if (requireGuildUpdate || requireChannelUpdate) {
+            console.log("Validation display update [3]: " + guild.id);
+            // If visual data has been unstored, schedule a display update.
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         }
+      }
    }
 }

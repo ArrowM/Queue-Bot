@@ -1,8 +1,7 @@
-import { Guild, Message, MessageEmbed, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import { GuildChannel, Message, MessageEmbed, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { MessagingUtils } from "../MessagingUtils";
-import delay from "delay";
 
 export class DisplayChannelTable {
    /**
@@ -23,26 +22,8 @@ export class DisplayChannelTable {
       });
    }
 
-   /**
-    * Cleanup deleted Display Channels
-    **/
-   public static async validateEntries(guild: Guild, queueChannel: VoiceChannel | StageChannel | TextChannel) {
-      const entries = await Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannel.id);
-      for await (const entry of entries) {
-         try {
-            await delay(100);
-            const displayChannel = (await guild.channels.fetch(entry.display_channel_id)) as TextChannel;
-            if (!displayChannel) {
-               this.unstore(queueChannel.id, entry.display_channel_id);
-            }
-         } catch (e) {
-            // SKIP
-         }
-      }
-   }
-
    public static get(displayChannelId: Snowflake) {
-      return Base.knex<DisplayChannel>("display_channels").where("display_channel_id", displayChannelId);
+      return Base.knex<DisplayChannel>("display_channels").where("display_channel_id", displayChannelId).first();
    }
 
    public static getFromQueue(queueChannelId: Snowflake) {
@@ -65,7 +46,11 @@ export class DisplayChannelTable {
       const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
       if (displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
          const response = await displayChannel
-            .send({ embeds: embeds, components: await MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
+            .send({
+               embeds: embeds,
+               components: await MessagingUtils.getButton(queueChannel),
+               allowedMentions: { users: [] },
+            })
             .catch(() => null as Message);
          if (!response) return;
 
@@ -77,7 +62,11 @@ export class DisplayChannelTable {
       }
    }
 
-   public static async unstore(queueChannelId: Snowflake, displayChannelId?: Snowflake, deleteOldDisplays = true): Promise<void> {
+   public static async unstore(
+      queueChannelId: Snowflake,
+      displayChannelId?: Snowflake,
+      deleteOldDisplays = true
+   ): Promise<void> {
       let query = Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
       if (displayChannelId) query = query.where("display_channel_id", displayChannelId);
       const storedDisplayChannels = await query;
@@ -103,5 +92,17 @@ export class DisplayChannelTable {
             await displayMessage.edit({ embeds: displayMessage.embeds, components: [] }).catch(() => null);
          }
       }
+   }
+
+   public static async validate(queueChannel: GuildChannel, channels: GuildChannel[]): Promise<boolean> {
+      let updateRequired = false;
+      const storedEntries = await this.getFromQueue(queueChannel.id);
+      for await (const entry of storedEntries) {
+         if (!channels.find((c) => c.id === entry.display_channel_id)) {
+            await this.unstore(queueChannel.id, entry.display_channel_id);
+            updateRequired = true;
+         }
+      }
+      return updateRequired;
    }
 }

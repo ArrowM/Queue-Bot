@@ -1,46 +1,46 @@
 import { Guild, GuildChannel, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 import { Base } from "./Base";
 import { AdminPermission, BlackWhiteListEntry, DisplayChannel, QueueChannel, QueueGuild } from "./Interfaces";
-import { exists, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import delay from "delay";
 import schemaInspector from "knex-schema-inspector";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { MessagingUtils } from "./MessagingUtils";
-import { SlashCommands } from "./SlashCommands";
 
-interface PatchNote {
+interface note {
    sent: boolean;
    date: Date;
    embeds: MessageEmbed[];
 }
 
 export class PatchingUtils {
-   public static async run() {
+   public static async run(guilds: Guild[]) {
       await this.tableBlackWhiteList();
       await this.tableQueueMembers();
       await this.tableQueueChannels();
       await this.tableAdminPermission();
       await this.tableDisplayChannels();
       await this.tableQueueGuilds();
-      this.checkPatchNotes();
-      SlashCommands.modifySlashCommandsForAllGuilds();
-      SlashCommands.registerGlobalCommands();
+      this.checknotes(guilds);
    }
 
-   private static async checkPatchNotes() {
+   private static async checknotes(guilds: Guild[]) {
       const displayChannels: TextChannel[] = [];
-      exists("../patch_notes/patch_notes.json", async (exists) => {
-         if (!exists) return;
+      if (existsSync("../patch_notes/patch_notes.json")) {
          // Collect notes
-         const patchNotes: PatchNote[] = JSON.parse(readFileSync("../patch_notes/patch_notes.json", "utf8"));
+         const notes: note[] = JSON.parse(readFileSync("../patch_notes/patch_notes.json", "utf8"));
+         const notesToSend = notes.filter((p) => !p.sent);
+         if (!notesToSend?.length) return;
          // Collect channel destinations
-         for await (const guild of Base.client.guilds.cache.values()) {
+         for await (const guild of guilds) {
+            await guild.channels.fetch(); // Avoid rate limits
             try {
                const queueChannelId = (await QueueChannelTable.fetchFromGuild(guild))[0]?.id;
                if (!queueChannelId) continue;
 
-               const displayChannelId = (await DisplayChannelTable.getFromQueue(queueChannelId).first())?.display_channel_id;
+               const displayChannelId = (await DisplayChannelTable.getFromQueue(queueChannelId).first())
+                  ?.display_channel_id;
                if (!displayChannelId) continue;
 
                const displayChannel = (await guild.channels.fetch(displayChannelId).catch(() => null)) as TextChannel;
@@ -55,11 +55,11 @@ export class PatchingUtils {
          let sentNote = false;
          const failedChannelIds: Snowflake[] = [];
          // Send notes
-         for await (const patchNote of patchNotes.filter((p) => !p.sent)) {
+         for await (const note of notesToSend) {
             for await (const displayChannel of displayChannels) {
-               if (!patchNote.embeds) continue;
+               if (!note.embeds) continue;
                try {
-                  await displayChannel.send({ embeds: patchNote.embeds });
+                  await displayChannel.send({ embeds: note.embeds });
                   console.log("Sent to " + displayChannel.id);
                } catch (e) {
                   failedChannelIds.push(displayChannel.id);
@@ -71,18 +71,18 @@ export class PatchingUtils {
                .fetch(Base.config.announcementChannelId)
                .catch(() => null)) as TextChannel;
             if (announcementChannel) {
-               await announcementChannel.send({ embeds: patchNote.embeds }).catch(() => null);
+               await announcementChannel.send({ embeds: note.embeds }).catch(() => null);
             }
-            patchNote.sent = sentNote = true;
+            note.sent = sentNote = true;
          }
          if (sentNote) {
-            writeFileSync("../patch_notes/patch_notes.json", JSON.stringify(patchNotes, null, 3));
+            writeFileSync("../patch_notes/patch_notes.json", JSON.stringify(notes, null, 3));
          }
          if (failedChannelIds.length) {
             console.log("FAILED TO SEND TO THE FOLLOWING CHANNEL IDS:");
             console.log(failedChannelIds);
          }
-      });
+      }
    }
 
    private static async tableAdminPermission(): Promise<void> {
@@ -185,8 +185,12 @@ export class PatchingUtils {
          await Base.knex.schema.alterTable("display_channels", (table) => table.bigInteger("message_id"));
          console.log("Display Channel updates");
          for await (const entry of await Base.knex<DisplayChannel>("display_channels")) {
-            const displayChannel = (await Base.client.channels.fetch(entry.display_channel_id).catch(() => null)) as TextChannel;
-            const queueChannel = (await Base.client.channels.fetch(entry.queue_channel_id).catch(() => null)) as GuildChannel;
+            const displayChannel = (await Base.client.channels
+               .fetch(entry.display_channel_id)
+               .catch(() => null)) as TextChannel;
+            const queueChannel = (await Base.client.channels
+               .fetch(entry.queue_channel_id)
+               .catch(() => null)) as GuildChannel;
             if (!displayChannel || !queueChannel) continue;
             const embedIds = entry["embed_ids"] as Snowflake[];
             const messages: Message[] = [];
@@ -200,10 +204,16 @@ export class PatchingUtils {
             }
             const response = await messages
                .shift()
-               ?.edit({ embeds: embeds, components: await MessagingUtils.getButton(queueChannel), allowedMentions: { users: [] } })
+               ?.edit({
+                  embeds: embeds,
+                  components: await MessagingUtils.getButton(queueChannel),
+                  allowedMentions: { users: [] },
+               })
                .catch(() => null as Message);
             if (response) {
-               await Base.knex<DisplayChannel>("display_channels").where("id", entry.id).update("message_id", response.id);
+               await Base.knex<DisplayChannel>("display_channels")
+                  .where("id", entry.id)
+                  .update("message_id", response.id);
             } else {
                await Base.knex<DisplayChannel>("display_channels").where("id", entry.id).delete();
             }

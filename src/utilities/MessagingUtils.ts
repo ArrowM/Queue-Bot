@@ -17,6 +17,7 @@ import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
+import { Validator } from "./Validator";
 
 export interface QueueUpdateRequest {
    queueGuild: QueueGuild;
@@ -51,7 +52,9 @@ export class MessagingUtils {
                   displayChannel.permissionsFor(displayChannel.guild.me).has("EMBED_LINKS")
                ) {
                   // Retrieved display embed
-                  const message = await displayChannel.messages.fetch(storedDisplayChannel.message_id).catch(() => null as Message);
+                  const message = await displayChannel.messages
+                     .fetch(storedDisplayChannel.message_id)
+                     .catch(() => null as Message);
                   if (!message) continue;
                   if (queueGuild.msg_mode === 1) {
                      /* Edit */
@@ -107,6 +110,8 @@ export class MessagingUtils {
     * @param queueChannel Discord message object.
     */
    public static async generateEmbed(queueChannel: TextChannel | VoiceChannel | StageChannel): Promise<MessageEmbed[]> {
+      Validator.validateGuild(queueChannel.guild).catch(() => null);
+
       const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel) return [];
@@ -116,10 +121,9 @@ export class MessagingUtils {
       // Setup embed variables
       let title = queueChannel.name;
       if (storedQueueChannel.target_channel_id) {
-         const targetChannel = (await queueChannel.guild.channels.fetch(storedQueueChannel.target_channel_id).catch(() => null)) as
-            | VoiceChannel
-            | StageChannel
-            | TextChannel;
+         const targetChannel = (await queueChannel.guild.channels
+            .fetch(storedQueueChannel.target_channel_id)
+            .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
          if (targetChannel) {
             title += `  ->  ${targetChannel.name}`;
          } else {
@@ -134,7 +138,7 @@ export class MessagingUtils {
       } else {
          description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
       }
-      const timeString = await this.getGracePeriodString(storedQueueChannel.grace_period);
+      const timeString = this.getGracePeriodString(storedQueueChannel.grace_period);
       if (timeString) description += `\nIf you leave, you have ** ${timeString}** to rejoin to reclaim your spot.`;
 
       if (queueMembers.some((member) => member.is_priority)) description += `\nPriority users are marked with a ⋆.`;

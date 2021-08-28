@@ -1,4 +1,4 @@
-import { GuildMember, Snowflake } from "discord.js";
+import { Guild, GuildMember, Role, Snowflake } from "discord.js";
 import { Base } from "../Base";
 import { PriorityEntry } from "../Interfaces";
 
@@ -21,27 +21,11 @@ export class PriorityTable {
       });
    }
 
-   /**
-    * Cleanup deleted Guilds, Roles, and Members
-    **/
-   public static async validateEntries() {
-      const entries = await Base.knex<PriorityEntry>("priority");
-      for await (const entry of entries) {
-         try {
-            const guild = await Base.client.guilds.fetch(entry.guild_id);
-            if (guild) {
-               const roleMember = (await guild.roles.fetch(entry.role_member_id)) || (await guild.members.fetch(entry.role_member_id));
-               if (roleMember) continue;
-            }
-            await this.unstore(entry.guild_id, entry.role_member_id);
-         } catch (e) {
-            // SKIP
-         }
-      }
-   }
-
    public static get(guildId: Snowflake, roleMemberId: Snowflake) {
-      return Base.knex<PriorityEntry>("priority").where("guild_id", guildId).where("role_member_id", roleMemberId).first();
+      return Base.knex<PriorityEntry>("priority")
+         .where("guild_id", guildId)
+         .where("role_member_id", roleMemberId)
+         .first();
    }
 
    public static getMany(guildId: Snowflake) {
@@ -51,7 +35,10 @@ export class PriorityTable {
    public static async isPriority(guildId: Snowflake, member: GuildMember) {
       const roleIds = member.roles.cache.keys();
       for (const id of [member.id, ...roleIds]) {
-         const memberPerm = await Base.knex<PriorityEntry>("priority").where("guild_id", guildId).where("role_member_id", id).first();
+         const memberPerm = await Base.knex<PriorityEntry>("priority")
+            .where("guild_id", guildId)
+            .where("role_member_id", id)
+            .first();
          if (memberPerm) return true;
       }
       return false;
@@ -66,6 +53,25 @@ export class PriorityTable {
    }
 
    public static async unstore(guildId: Snowflake, roleMemberId: Snowflake): Promise<void> {
-      await Base.knex<PriorityEntry>("priority").where("guild_id", guildId).where("role_member_id", roleMemberId).first().delete();
+      await Base.knex<PriorityEntry>("priority")
+         .where("guild_id", guildId)
+         .where("role_member_id", roleMemberId)
+         .first()
+         .delete();
+   }
+
+   public static async validate(guild: Guild, members: GuildMember[], roles: Role[]): Promise<boolean> {
+      let updateRequired = false;
+      const storedEntries = await this.getMany(guild.id);
+      for await (const entry of storedEntries) {
+         if (
+            (entry.is_role && !roles.find((r) => r.id === entry.role_member_id)) ||
+            (!entry.is_role && !members.find((m: GuildMember) => m.id === entry.role_member_id))
+         ) {
+            await this.unstore(guild.id, entry.role_member_id);
+            updateRequired = true;
+         }
+      }
+      return updateRequired;
    }
 }

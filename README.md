@@ -70,16 +70,16 @@ If a command that expects a channel name is not given one, the current text chan
 	3g. Close command prompt.  
 4. Open the Queue Bot folder.  
 5. Modify `config/config.json`:  
-	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.  
-  
+	If you followed all of Step 3, you only need to update the REQUIRED fields in the table below.
+
 | REQUIRED Config Fields | Description                                                                                                                       | Default |  
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|  
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|---|  
 | clientId               | Bot clientId. Found in the Discord Developer Portal for the bot you created in Step 1.                                            | |
 | token                  | Bot token. Found in the Discord Developer Portal for the bot you created in Step 1. See image of token location below this table. | |  
 | databasePassword       | Database login password                                                                                                           | |  
   
 | Optional Config Fields | Description                                                                                                                       | Default |  
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|-|  
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------|---|  
 | color                  | The color of bot messages.                                                                                                        | |  
 | databaseUsername		 | Database login username                                                                                                           | `postgres` |  
 | databaseName           | Database name                                                                                                                     | `queue` |  

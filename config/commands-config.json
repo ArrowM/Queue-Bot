@@ -947,17 +947,5 @@
             "required": true
          }
       ]
-   },
-   {
-      "name": "update",
-      "description": "Force a queue to update",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-         }
-      ]
    }
 ]

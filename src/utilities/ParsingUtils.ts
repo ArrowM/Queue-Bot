@@ -30,7 +30,8 @@ export class ParsingUtils {
       const member = request.member as GuildMember;
       if (!member) return false;
       // Check if ADMIN
-      if (member.permissionsIn(request.channel as TextChannel | VoiceChannel | StageChannel).has("ADMINISTRATOR")) return true;
+      if (member.permissionsIn(request.channel as TextChannel | VoiceChannel | StageChannel).has("ADMINISTRATOR"))
+         return true;
       // Check IDs
       const roleIds = Array.from(member.roles.cache.keys());
       for await (const entry of await AdminPermissionTable.getMany(request.guild.id)) {
@@ -43,15 +44,6 @@ export class ParsingUtils {
       }
       // False if no matches
       return false;
-   }
-
-   public static async reportMissingArgs(parsed: ParsedCommand | ParsedMessage, missingArgs: string[]): Promise<void> {
-      await parsed
-         .reply({
-            content: "**ERROR**: Missing " + missingArgs.join(" and ") + " argument" + (missingArgs.length > 1 ? "s" : "") + ".",
-            commandDisplay: "EPHEMERAL",
-         })
-         .catch(() => null);
    }
 }
 
@@ -95,12 +87,14 @@ export abstract class Parsed {
    public args: ParsedArguments;
    public missingArgs?: string[];
 
-   constructor() {
+   protected constructor() {
       this.args = {};
    }
    // noinspection JSUnusedLocalSymbols
+   // eslint-disable-next-line no-unused-vars
    public abstract reply(_options: ReplyOptions): Promise<Message>;
    // noinspection JSUnusedLocalSymbols
+   // eslint-disable-next-line no-unused-vars
    public abstract edit(_options: ReplyOptions): Promise<Message>;
    public abstract deferReply(): Promise<void>;
 
@@ -124,10 +118,9 @@ export abstract class Parsed {
          if (!this.args.channel) {
             const queues: (VoiceChannel | StageChannel | TextChannel)[] = [];
             for await (const storedQueueChannel of this.queueChannels) {
-               const queueChannel = (await this.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
-                  | VoiceChannel
-                  | StageChannel
-                  | TextChannel;
+               const queueChannel = (await this.request.guild.channels
+                  .fetch(storedQueueChannel.queue_channel_id)
+                  .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
                if (!queueChannel) continue; // No channel
                if (conf.channelType && !conf.channelType.includes(queueChannel.type)) continue; // Wrong type
                queues.push(queueChannel);
@@ -137,7 +130,9 @@ export abstract class Parsed {
          if (!this.args.channel?.guild?.id) {
             const channelText =
                (conf.channelType?.includes("GUILD_TEXT") ? "**text** " : "") +
-               (conf.channelType?.includes("GUILD_VOICE") || conf.channelType?.includes("GUILD_STAGE_VOICE") ? "**voice** " : "") +
+               (conf.channelType?.includes("GUILD_VOICE") || conf.channelType?.includes("GUILD_STAGE_VOICE")
+                  ? "**voice** "
+                  : "") +
                "channel";
             this.missingArgs.push(channelText);
          }
@@ -161,7 +156,12 @@ export abstract class Parsed {
       // Report missing
       if (this.missingArgs.length) {
          await this.reply({
-            content: "**ERROR**: Missing " + this.missingArgs.join(" and ") + " argument" + (this.missingArgs.length > 1 ? "s" : "") + ".",
+            content:
+               "**ERROR**: Missing " +
+               this.missingArgs.join(" and ") +
+               " argument" +
+               (this.missingArgs.length > 1 ? "s" : "") +
+               ".",
             commandDisplay: "EPHEMERAL",
          }).catch(() => null);
       }
@@ -185,8 +185,12 @@ export abstract class Parsed {
       this.hasPermission = await ParsingUtils.checkPermission(this.request);
    }
 
+   // eslint-disable-next-line no-unused-vars
    protected abstract getStringParam(_commandNameLength: number): Promise<void>;
-   protected abstract getChannelParam(_channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]): Promise<void>;
+   protected abstract getChannelParam(
+   // eslint-disable-next-line no-unused-vars
+      _channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]
+   ): Promise<void>;
    protected abstract getRoleParam(): Promise<void>;
    protected abstract getMemberParam(): Promise<void>;
    protected abstract getNumberParam(): Promise<void>;
@@ -210,18 +214,20 @@ export class ParsedCommand extends Parsed {
 
    public async reply(options: ReplyOptions): Promise<Message> {
       const mentions: MessageMentionOptions = options.allowMentions ? null : { parse: [] };
+      const isEphemeral = options.commandDisplay === "EPHEMERAL";
       const message: InteractionReplyOptions = {
+         allowedMentions: mentions,
          content: options.content,
          embeds: options.embeds,
-         allowedMentions: mentions,
-         ephemeral: options.commandDisplay === "EPHEMERAL",
+         ephemeral: isEphemeral,
+         fetchReply: !isEphemeral,
       };
       if (this.request.replied) {
          return (await this.request.followUp(message)) as Message;
       } else if (this.request.deferred) {
          return (await this.request.editReply(message)) as Message;
       } else {
-         await this.request.reply(message);
+         return (await this.request.reply(message)) as unknown as Message;
       }
    }
 
@@ -230,7 +236,7 @@ export class ParsedCommand extends Parsed {
    }
 
    public async deferReply(): Promise<void> {
-      return await this.request.deferReply();
+      await this.request.deferReply();
    }
 
    private findArgs(_options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
@@ -308,11 +314,10 @@ export class ParsedMessage extends Parsed {
          allowedMentions: mentions,
       };
       if (options.messageDisplay === "DM") {
-         this.lastResponse = (await this.request.author.send(message)) as Message;
+         return (this.lastResponse = (await this.request.author.send(message)) as Message);
       } else if (options.messageDisplay !== "NONE") {
-         this.lastResponse = (await this.request.reply(message)) as Message;
+         return (this.lastResponse = (await this.request.reply(message)) as Message);
       }
-      return this.lastResponse;
    }
 
    public async edit(options: ReplyOptions): Promise<Message> {
@@ -334,10 +339,15 @@ export class ParsedMessage extends Parsed {
          this.args.channel = this.request.mentions.channels.first() as VoiceChannel | StageChannel | TextChannel;
          this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();
       } else {
-         let channels = (await this.request.guild.channels.fetch()) as Collection<Snowflake, VoiceChannel | StageChannel | TextChannel>;
+         let channels = (await this.request.guild.channels.fetch()) as Collection<
+            Snowflake,
+            VoiceChannel | StageChannel | TextChannel
+         >;
 
          channels = channels.filter((ch) =>
-            channelType ? channelType.includes(ch.type) : ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
+            channelType
+               ? channelType.includes(ch.type)
+               : ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
          );
 
          let channelName = this.args.text;

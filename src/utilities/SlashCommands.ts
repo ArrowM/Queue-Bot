@@ -8,7 +8,7 @@ import {
 } from "discord-slash-commands-client";
 import { DiscordAPIError, Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
-import { Parsed } from "./ParsingUtils";
+import { Parsed, ParsedCommand, ParsedMessage } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 
 export interface SlashUpdateMessage {
@@ -20,7 +20,7 @@ export interface SlashUpdateMessage {
 
 export class SlashCommands {
    private static slashClient = new SlashClient(Base.config.token, Base.config.clientId);
-   private static commandRegistrationCache = new Map<string, number>();
+   private static commandRegistrationCache = new Map<Snowflake, number>();
 
    private static async editProgress(suMsg: SlashUpdateMessage): Promise<void> {
       await suMsg.resp
@@ -75,7 +75,7 @@ export class SlashCommands {
 
    private static async modify(
       guildId: Snowflake,
-      parsed: Parsed,
+      parsed: ParsedCommand | ParsedMessage,
       storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
    ): Promise<ApplicationOptions[]> {
       const now = Date.now();
@@ -98,8 +98,11 @@ export class SlashCommands {
          const excludedTextCommands = ["button", "enqueue", "join", "leave"];
          commands = commands.filter((c) => !excludedTextCommands.includes(c.name));
 
-         let liveCommands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
+         let liveCommands = (await this.slashClient
+            .getCommands({ guildID: guildId })
+            .catch(() => [])) as ApplicationCommand[];
          liveCommands = liveCommands.filter((cmd) => cmd.application_id === Base.client.user.id);
+
          for await (const excludedTextCommand of excludedTextCommands) {
             if (this.commandRegistrationCache.get(guildId) !== now) {
                slashUpdateMessage.resp?.delete().catch(() => null);
@@ -120,7 +123,7 @@ export class SlashCommands {
          }
 
          command = await this.modifyQueueArg(command, storedChannels);
-         await this.slashClient.createCommand(command, guildId).catch(console.error);
+         await this.slashClient.createCommand(command, guildId).catch(() => null);
 
          await this.editProgress(slashUpdateMessage);
       }
@@ -131,7 +134,9 @@ export class SlashCommands {
       const now = Date.now();
       this.commandRegistrationCache.set(guildId, now);
 
-      const commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
+      const commands = (await this.slashClient
+         .getCommands({ guildID: guildId })
+         .catch(() => [])) as ApplicationCommand[];
       const filteredCommands = commands.filter(
          (cmd) => !["altprefix", "help", "queues"].includes(cmd.name) && cmd.application_id === Base.client.user.id
       );
@@ -157,10 +162,10 @@ export class SlashCommands {
       await slashUpdateMessage.resp?.edit({ content: "Done unregistering queue commands." }).catch(() => null);
    }
 
-   public static async modifyCommandsForGuild(guild: Guild, parsed?: Parsed): Promise<void> {
+   public static async modifyCommandsForGuild(guild: Guild, parsed?: ParsedCommand | ParsedMessage): Promise<void> {
       try {
          //console.log("Modifying commands for " + guild.id);
-         const storedChannels = await QueueChannelTable.fetchFromGuild(guild);
+         const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 24);
          if (storedChannels.length === 0) {
             await this.modifyForNoQueues(guild.id, parsed);
          } else {
@@ -171,9 +176,9 @@ export class SlashCommands {
       }
    }
 
-   public static async modifySlashCommandsForAllGuilds() {
-      for await (const guild of Base.client.guilds.cache.values()) {
-         await guild.channels.fetch();
+   public static async modifyGuildCommands(guilds: Guild[]) {
+      for await (const guild of guilds) {
+         await guild.channels.fetch(); // Avoid rate limits
          const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
          let updateRequired = false;
          for await (const storedChannel of storedChannels) {
@@ -209,5 +214,10 @@ export class SlashCommands {
          }
          await delay(5000);
       }
+   }
+
+   public static async register(guild: Guild[]) {
+      this.registerGlobalCommands();
+      this.modifyGuildCommands(guild);
    }
 }
