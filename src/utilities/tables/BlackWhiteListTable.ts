@@ -81,18 +81,12 @@ export class BlackWhiteListTable {
          const storedEntries = await this.getMany(type, queueChannel.id);
          for await (const entry of storedEntries) {
             if (entry.is_role) {
-               const role = roles.find((r) => r.id === entry.role_member_id);
-               if (role) {
-                  role.guild.roles.cache.set(role.id, role); // cache
-               } else {
+               if (!roles.some((r) => r.id === entry.role_member_id)) {
                   await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
                   updateRequired = true;
                }
             } else {
-               const member = members.find((m) => m.id === entry.role_member_id);
-               if (member) {
-                  member.guild.members.cache.set(member.id, member); // cache
-               } else {
+               if (!members.some((m) => m.id === entry.role_member_id)) {
                   await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
                   updateRequired = true;
                }
