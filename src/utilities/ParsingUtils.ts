@@ -27,20 +27,24 @@ export class ParsingUtils {
     * Determine whether user has permission to interact with bot
     */
    public static async checkPermission(request: CommandInteraction | Message): Promise<boolean> {
-      const member = request.member as GuildMember;
-      if (!member) return false;
-      // Check if ADMIN
-      if (member.permissionsIn(request.channel as TextChannel | VoiceChannel | StageChannel).has("ADMINISTRATOR"))
-         return true;
-      // Check IDs
-      const roleIds = Array.from(member.roles.cache.keys());
-      for await (const entry of await AdminPermissionTable.getMany(request.guild.id)) {
-         if (roleIds.includes(entry.role_member_id) || member.id === entry.role_member_id) return true;
-      }
-      // Check role names
-      const roles = member.roles.cache.values();
-      for await (const role of roles) {
-         if (this.regEx.test(role.name)) return true;
+      try {
+         const member = request.member as GuildMember;
+         if (!member) return false;
+         // Check if ADMIN
+         if (member.permissionsIn(request.channel as TextChannel | VoiceChannel | StageChannel).has("ADMINISTRATOR"))
+            return true;
+         // Check IDs
+         const roleIds = Array.from(member.roles.cache.keys());
+         for await (const entry of await AdminPermissionTable.getMany(request.guild.id)) {
+            if (roleIds.includes(entry.role_member_id) || member.id === entry.role_member_id) return true;
+         }
+         // Check role names
+         const roles = member.roles.cache.values();
+         for await (const role of roles) {
+            if (this.regEx.test(role.name)) return true;
+         }
+      } catch (e) {
+         // Empty
       }
       // False if no matches
       return false;

@@ -7,7 +7,7 @@ import delay from "delay";
 
 export class Validator {
    private static timestampCache = new Map<Snowflake, number>(); // <guild.id, timestamp>
-   private static HALF_HOUR = 1000 * 60 * 30;
+   private static HALF_HOUR = 1000 * 60 * 60;
 
    public static async validateGuild(guild: Guild): Promise<void> {
       const cachedTime = this.timestampCache.get(guild.id);
@@ -40,7 +40,7 @@ export class Validator {
    public static async validateAtStartup(guilds: Guild[]): Promise<void> {
       for await (const guild of guilds) {
          this.validateGuild(guild);
-         await delay(100);
+         await delay(400);
       }
    }
 }
