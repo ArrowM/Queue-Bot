@@ -23,7 +23,7 @@ export class Base {
    static readonly client = new Client({
       makeCache: (manager) => {
          if ("MessageManager" === manager.name) {
-            return new MessageCollection();
+            return new MessageCollection({ maxSize: 5 });
          } else if (
             [
                "GuildBanManager",

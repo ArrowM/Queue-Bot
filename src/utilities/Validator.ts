@@ -16,6 +16,7 @@ export class Validator {
       this.timestampCache.set(guild.id, now);
       try {
          // Force fetch server data
+         // (Clear potentially delete data)
          guild.channels.cache.clear();
          guild.members.cache.clear();
          guild.roles.cache.clear();
@@ -26,6 +27,10 @@ export class Validator {
          )[];
          const members = Array.from((await guild.members.fetch()).values());
          const roles = Array.from((await guild.roles.fetch()).values());
+         // Clear cached data - the validate methods below will handle caching
+         guild.channels.cache.clear();
+         guild.members.cache.clear();
+         guild.roles.cache.clear();
 
          const queueGuild = await QueueGuildTable.get(guild.id);
          // Verify that stored data is contained within server data

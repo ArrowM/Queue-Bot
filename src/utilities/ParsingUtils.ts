@@ -118,7 +118,7 @@ export abstract class Parsed {
       if (conf.hasChannel) {
          this.queueChannels = await this.getStoredQueueChannels();
          await this.request.guild.channels.fetch(); // Pre-fetch all channels
-         await this.getChannelParam(conf.channelType);
+         await this.populateChannelParam(conf.channelType);
          if (!this.args.channel) {
             const queues: (VoiceChannel | StageChannel | TextChannel)[] = [];
             for await (const storedQueueChannel of this.queueChannels) {
@@ -191,7 +191,7 @@ export abstract class Parsed {
 
    // eslint-disable-next-line no-unused-vars
    protected abstract getStringParam(_commandNameLength: number): Promise<void>;
-   protected abstract getChannelParam(
+   protected abstract populateChannelParam(
    // eslint-disable-next-line no-unused-vars
       _channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]
    ): Promise<void>;
@@ -262,7 +262,7 @@ export class ParsedCommand extends Parsed {
       return accumulator;
    }
 
-   protected async getChannelParam(channelType: string[]): Promise<void> {
+   protected async populateChannelParam(channelType: string[]): Promise<void> {
       let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildChannel;
       if (!channel) {
          const channelId = this.args.text as Snowflake;
@@ -338,7 +338,7 @@ export class ParsedMessage extends Parsed {
 
    private static coll = new Intl.Collator("en", { sensitivity: "base" });
    // Populate this.args.text as well
-   protected async getChannelParam(channelType: string[]): Promise<void> {
+   protected async populateChannelParam(channelType: string[]): Promise<void> {
       if (this.request.mentions.channels.first()) {
          this.args.channel = this.request.mentions.channels.first() as VoiceChannel | StageChannel | TextChannel;
          this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();

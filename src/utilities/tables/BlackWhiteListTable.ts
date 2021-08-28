@@ -23,7 +23,7 @@ export class BlackWhiteListTable {
    }
 
    public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
-      const roleIds = member.roles.cache.map((role) => role?.id);
+      const roleIds = member.roles.cache.map((role) => role.id);
       for (const id of [member.id, ...roleIds]) {
          const memberPerm = await Base.knex<BlackWhiteListEntry>("black_white_list")
             .where("queue_channel_id", queueChannelId)
@@ -80,12 +80,22 @@ export class BlackWhiteListTable {
       for (const type of [0, 1]) {
          const storedEntries = await this.getMany(type, queueChannel.id);
          for await (const entry of storedEntries) {
-            if (
-               (entry.is_role && !roles.find((r) => r.id === entry.role_member_id)) ||
-               (!entry.is_role && !members.find((m: GuildMember) => m.id === entry.role_member_id))
-            ) {
-               await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
-               updateRequired = true;
+            if (entry.is_role) {
+               const role = roles.find((r) => r.id === entry.role_member_id);
+               if (role) {
+                  role.guild.roles.cache.set(role.id, role); // cache
+               } else {
+                  await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
+                  updateRequired = true;
+               }
+            } else {
+               const member = members.find((m) => m.id === entry.role_member_id);
+               if (member) {
+                  member.guild.members.cache.set(member.id, member); // cache
+               } else {
+                  await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
+                  updateRequired = true;
+               }
             }
          }
       }

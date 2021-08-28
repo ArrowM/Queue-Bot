@@ -185,7 +185,10 @@ export class QueueMemberTable {
       let updateRequired = false;
       const storedEntries = await this.getFromQueue(queueChannel);
       for await (const entry of storedEntries) {
-         if (!members.find((m) => m.id === entry.member_id)) {
+         const member = members.find((m) => m.id === entry.member_id);
+         if (member) {
+            member.guild.members.cache.set(member.id, member); // cache
+         } else {
             await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id]);
             updateRequired = true;
          }

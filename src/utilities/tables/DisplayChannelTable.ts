@@ -98,7 +98,10 @@ export class DisplayChannelTable {
       let updateRequired = false;
       const storedEntries = await this.getFromQueue(queueChannel.id);
       for await (const entry of storedEntries) {
-         if (!channels.find((c) => c.id === entry.display_channel_id)) {
+         const channel = channels.find((c) => c.id === entry.display_channel_id);
+         if (channel) {
+            channel.guild.channels.cache.set(channel.id, channel); // cache
+         } else {
             await this.unstore(queueChannel.id, entry.display_channel_id);
             updateRequired = true;
          }

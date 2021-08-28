@@ -269,6 +269,7 @@ export class QueueChannelTable {
          let requireChannelUpdate = false;
          const queueChannel = channels.find((c) => c.id === entry.queue_channel_id);
          if (queueChannel) {
+            queueChannel.guild.channels.cache.set(queueChannel.id, queueChannel); // cache
             const results = await Promise.all([
                BlackWhiteListTable.validate(queueChannel, members, roles),
                DisplayChannelTable.validate(queueChannel, channels),
