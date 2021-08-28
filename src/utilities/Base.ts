@@ -57,7 +57,7 @@ export class Base {
    });
 
    public static isMe(member: GuildMember): boolean {
-      return member.id === member.guild.me.id;
+      return member?.id === member?.guild?.me?.id;
    }
 
    /**

@@ -282,7 +282,6 @@ export class QueueChannelTable {
             requireChannelUpdate = true;
          }
          if (requireGuildUpdate || requireChannelUpdate) {
-            console.log("Validation display update [3]: " + guild.id);
             // If visual data has been unstored, schedule a display update.
             SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
          }

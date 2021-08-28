@@ -48,8 +48,8 @@ export class MessagingUtils {
 
             if (displayChannel) {
                if (
-                  displayChannel.permissionsFor(displayChannel.guild.me).has("SEND_MESSAGES") &&
-                  displayChannel.permissionsFor(displayChannel.guild.me).has("EMBED_LINKS")
+                  displayChannel.permissionsFor(displayChannel.guild.me)?.has("SEND_MESSAGES") &&
+                  displayChannel.permissionsFor(displayChannel.guild.me)?.has("EMBED_LINKS")
                ) {
                   // Retrieved display embed
                   const message = await displayChannel.messages
