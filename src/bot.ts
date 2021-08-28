@@ -1,5 +1,13 @@
 import DBL from "dblapi.js";
-import { ButtonInteraction, Interaction, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import {
+   ButtonInteraction,
+   GuildMember,
+   Interaction,
+   PartialGuildMember,
+   StageChannel,
+   TextChannel,
+   VoiceChannel,
+} from "discord.js";
 import { EventEmitter } from "events";
 import { Commands } from "./Commands";
 import { QueueChannel } from "./utilities/Interfaces";
@@ -485,67 +493,94 @@ client.once("ready", async () => {
    isReady = true;
 });
 
-client.on("shardResume", async () => {
-   console.log("Reconnected!");
-});
-
 client.on("guildCreate", async (guild) => {
    if (!isReady) return;
-   await QueueGuildTable.store(guild);
+   await QueueGuildTable.store(guild).catch(() => null);
 });
 
 client.on("roleUpdate", async (role) => {
-   if (!isReady) return;
-   const queueGuild = await QueueGuildTable.get(role.guild.id);
-   const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
-   for await (const queueChannel of queueChannels) {
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   try {
+      if (!isReady) return;
+      const queueGuild = await QueueGuildTable.get(role.guild.id);
+      const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
+      for await (const queueChannel of queueChannels) {
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      }
+   } catch (e) {
+      // Nothing
    }
 });
 
 client.on("roleDelete", async (role) => {
-   if (!isReady) return;
-   if (await PriorityTable.get(role.guild.id, role.id)) {
-      await PriorityTable.unstore(role.guild.id, role.id);
-      const queueGuild = await QueueGuildTable.get(role.guild.id);
-      const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
-      for (const queueChannel of queueChannels) {
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+   try {
+      if (!isReady) return;
+      if (await PriorityTable.get(role.guild.id, role.id)) {
+         await PriorityTable.unstore(role.guild.id, role.id);
+         const queueGuild = await QueueGuildTable.get(role.guild.id);
+         const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
+         for (const queueChannel of queueChannels) {
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         }
       }
+   } catch (e) {
+      // Nothing
    }
 });
 
-client.on("guildMemberRemove", async (guildMember) => {
-   if (!isReady) return;
-   const queueGuild = await QueueGuildTable.get(guildMember.guild.id);
-   const queueChannels = await QueueChannelTable.fetchFromGuild(guildMember.guild);
-   for await (const queueChannel of queueChannels) {
-      await QueueMemberTable.unstore(queueGuild.guild_id, queueChannel.id, [guildMember.id]);
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+async function memberUpdate(member: GuildMember | PartialGuildMember) {
+   try {
+      if (!isReady) return;
+      const queueGuild = await QueueGuildTable.get(member.guild.id);
+      const queueMembers = await QueueMemberTable.getFromMember(member.id);
+      for await (const queueMember of queueMembers) {
+         const queueChannel = (await member.guild.channels.fetch(queueMember.channel_id).catch(() => null)) as
+            | VoiceChannel
+            | StageChannel
+            | TextChannel;
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      }
+   } catch (e) {
+      // Nothing
    }
+}
+
+client.on("guildMemberUpdate", async (oldMember, newMember) => {
+   await memberUpdate(newMember);
+});
+
+client.on("guildMemberRemove", async (guildMember) => {
+   await memberUpdate(guildMember);
 });
 
 client.on("guildDelete", async (guild) => {
    if (!isReady) return;
-   await QueueGuildTable.unstore(guild.id);
+   await QueueGuildTable.unstore(guild.id).catch(() => null);
 });
 
 client.on("channelDelete", async (channel) => {
-   if (!isReady || channel.type === "DM") return;
-   const deletedQueueChannel = await QueueChannelTable.get(channel.id);
-   if (deletedQueueChannel) {
-      await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
+   try {
+      if (!isReady || channel.type === "DM") return;
+      const deletedQueueChannel = await QueueChannelTable.get(channel.id);
+      if (deletedQueueChannel) {
+         await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
+      }
+      await DisplayChannelTable.getFromQueue(channel.id).delete();
+   } catch (e) {
+      // Nothing
    }
-   await DisplayChannelTable.getFromQueue(channel.id).delete();
 });
 
 client.on("channelUpdate", async (_oldCh, newCh) => {
-   if (!isReady) return;
-   const newChannel = newCh as VoiceChannel | StageChannel | TextChannel;
-   const changedChannel = await QueueChannelTable.get(newCh.id);
-   if (changedChannel) {
-      const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, newChannel);
+   try {
+      if (!isReady) return;
+      const newChannel = newCh as VoiceChannel | StageChannel | TextChannel;
+      const changedChannel = await QueueChannelTable.get(newCh.id);
+      if (changedChannel) {
+         const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, newChannel);
+      }
+   } catch (e) {
+      // Nothing
    }
 });
 

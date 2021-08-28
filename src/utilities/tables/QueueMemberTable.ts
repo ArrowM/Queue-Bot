@@ -62,6 +62,10 @@ export class QueueMemberTable {
       return Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
    }
 
+   public static async getFromMember(memberId: Snowflake) {
+      return Base.knex<QueueMember>("queue_members").where("member_id", memberId);
+   }
+
    /**
     * WARNING THIS MIGHT BE SLOW
     */
@@ -72,7 +76,7 @@ export class QueueMemberTable {
       try {
          return await queueChannel.guild.members.fetch(queueMember.member_id);
       } catch (e: any) {
-         if (e.httpStatus === 404) {
+         if ([403, 404].includes(e.httpStatus)) {
             await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
          }
          return undefined;
@@ -185,7 +189,10 @@ export class QueueMemberTable {
       let updateRequired = false;
       const storedEntries = await this.getFromQueue(queueChannel);
       for await (const entry of storedEntries) {
-         if (!members.some((m) => m.id === entry.member_id)) {
+         const member = members.find((m) => m.id === entry.member_id);
+         if (member) {
+            member.guild.members.cache.set(member.id, member); // cache
+         } else {
             await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id]);
             updateRequired = true;
          }

@@ -86,7 +86,10 @@ export class BlackWhiteListTable {
                   updateRequired = true;
                }
             } else {
-               if (!members.some((m) => m.id === entry.role_member_id)) {
+               const member = members.find((m) => m.id === entry.role_member_id);
+               if (member) {
+                  member.guild.members.cache.set(member.id, member); // cache
+               } else {
                   await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
                   updateRequired = true;
                }

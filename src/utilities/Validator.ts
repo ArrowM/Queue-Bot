@@ -27,6 +27,9 @@ export class Validator {
          )[];
          const members = Array.from((await guild.members.fetch()).values());
          const roles = Array.from((await guild.roles.fetch()).values());
+         const me = guild.me;
+         guild.members.cache.clear();
+         guild.members.cache.set(me.id, me); // Critical
 
          const queueGuild = await QueueGuildTable.get(guild.id);
          // Verify that stored data is contained within server data
