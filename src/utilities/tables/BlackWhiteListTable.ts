@@ -23,8 +23,8 @@ export class BlackWhiteListTable {
    }
 
    public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
-      const roleIds = Array.from(member.roles.cache.keys());
-      for (const id of [member.id, ...roleIds]) {
+      const roleIds = Array.from(member.roles.valueOf().keys());
+      for await (const id of [member.id, ...roleIds]) {
          const memberPerm = await Base.knex<BlackWhiteListEntry>("black_white_list")
             .where("queue_channel_id", queueChannelId)
             .where("role_member_id", id)
@@ -77,7 +77,7 @@ export class BlackWhiteListTable {
 
    public static async validate(queueChannel: GuildChannel, members: GuildMember[], roles: Role[]): Promise<boolean> {
       let updateRequired = false;
-      for (const type of [0, 1]) {
+      for await (const type of [0, 1]) {
          const storedEntries = await this.getMany(type, queueChannel.id);
          for await (const entry of storedEntries) {
             if (entry.is_role) {
