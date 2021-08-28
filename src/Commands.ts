@@ -1117,7 +1117,7 @@ export class Commands {
          })
          .catch(() => null);
       const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
-      for (const storedQueueChannel of storedQueueChannels) {
+      for await (const storedQueueChannel of storedQueueChannels) {
          const queueChannel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
             | VoiceChannel
             | StageChannel
@@ -1252,7 +1252,7 @@ export class Commands {
                .fetch(storedQueueChannel.target_channel_id)
                .catch(() => null)) as VoiceChannel | StageChannel;
             if (targetChannel) {
-               for (const queueMember of queueMembers) {
+               for await (const queueMember of queueMembers) {
                   const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
                   if (!member) continue;
                   SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
@@ -1268,7 +1268,7 @@ export class Commands {
                return;
             }
          } else {
-            for (const queueMember of queueMembers) {
+            for await (const queueMember of queueMembers) {
                const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
                if (!member) continue;
                await member

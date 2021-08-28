@@ -127,7 +127,7 @@ export class QueueChannelTable {
             queueChannelIdsToRemove.push(queueChannelId);
          }
       }
-      for (const queueChannelId of queueChannelIdsToRemove) {
+      for await (const queueChannelId of queueChannelIdsToRemove) {
          await this.unstore(guild.id, queueChannelId);
       }
       return queueChannels;
