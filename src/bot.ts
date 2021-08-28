@@ -523,13 +523,11 @@ client.on("guildMemberRemove", async (guildMember) => {
       await QueueMemberTable.unstore(queueGuild.guild_id, queueChannel.id, [guildMember.id]);
       SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
    }
-   guildMember.guild?.members.cache.delete(guildMember.id);
 });
 
 client.on("guildDelete", async (guild) => {
    if (!isReady) return;
    await QueueGuildTable.unstore(guild.id);
-   Base.client.guilds.cache.delete(guild.id);
 });
 
 client.on("channelDelete", async (channel) => {
@@ -539,7 +537,6 @@ client.on("channelDelete", async (channel) => {
       await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
    }
    await DisplayChannelTable.getFromQueue(channel.id).delete();
-   channel.guild?.members.cache.delete(channel.id);
 });
 
 client.on("channelUpdate", async (_oldCh, newCh) => {
