@@ -78,6 +78,7 @@ export class MessagingUtils {
          } catch (e) {
             console.error(e);
          }
+         Validator.validateGuild(queueChannel.guild).catch(() => null);
       }
    }
 
@@ -110,8 +111,6 @@ export class MessagingUtils {
     * @param queueChannel Discord message object.
     */
    public static async generateEmbed(queueChannel: TextChannel | VoiceChannel | StageChannel): Promise<MessageEmbed[]> {
-      Validator.validateGuild(queueChannel.guild).catch(() => null);
-
       const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       if (!storedQueueChannel) return [];

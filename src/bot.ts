@@ -23,7 +23,6 @@ import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtils } from "./utilities/PatchingUtils";
-import { Validator } from "./utilities/Validator";
 import { SlashCommands } from "./utilities/SlashCommands";
 
 // Setup client
@@ -487,7 +486,7 @@ client.once("ready", async () => {
    await AdminPermissionTable.initTable();
    await PriorityTable.initTable();
    SlashCommands.register(guilds);
-   Validator.validateAtStartup(guilds);
+   // Validator.validateAtStartup(guilds);
    SchedulingUtils.startScheduler();
    console.timeEnd("READY. Bot started in");
    isReady = true;

@@ -43,23 +43,20 @@ export class DisplayChannelTable {
       displayChannel: TextChannel,
       embeds: MessageEmbed[]
    ): Promise<void> {
-      const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
-      if (displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
-         const response = await displayChannel
-            .send({
-               embeds: embeds,
-               components: await MessagingUtils.getButton(queueChannel),
-               allowedMentions: { users: [] },
-            })
-            .catch(() => null as Message);
-         if (!response) return;
+      const response = await displayChannel
+         .send({
+            embeds: embeds,
+            components: await MessagingUtils.getButton(queueChannel),
+            allowedMentions: { users: [] },
+         })
+         .catch(() => null as Message);
+      if (!response) return;
 
-         await Base.knex<DisplayChannel>("display_channels").insert({
-            display_channel_id: displayChannel.id,
-            message_id: response.id,
-            queue_channel_id: queueChannel.id,
-         });
-      }
+      await Base.knex<DisplayChannel>("display_channels").insert({
+         display_channel_id: displayChannel.id,
+         message_id: response.id,
+         queue_channel_id: queueChannel.id,
+      });
    }
 
    public static async unstore(

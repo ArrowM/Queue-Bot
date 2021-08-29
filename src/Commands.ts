@@ -21,6 +21,7 @@ import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { Base } from "./utilities/Base";
+import { Validator } from "./utilities/Validator";
 
 export class Commands {
    // --------------------------------- ENABLE PREFIX ------------------------------- //
@@ -492,6 +493,8 @@ export class Commands {
          const role = await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
          if (role) await QueueChannelTable.updateRoleId(queueChannel, role);
       }
+
+      Validator.validateGuild(queueChannel.guild).catch(() => null);
    }
 
    // --------------------------------- ENQUEUE ------------------------------- //

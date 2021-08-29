@@ -7,12 +7,12 @@ import delay from "delay";
 
 export class Validator {
    private static timestampCache = new Map<Snowflake, number>(); // <guild.id, timestamp>
-   private static HALF_HOUR = 1000 * 60 * 60;
+   private static SIX_HOURS = 1000 * 60 * 60 * 6;
 
    public static async validateGuild(guild: Guild): Promise<void> {
       const cachedTime = this.timestampCache.get(guild.id);
       const now = Date.now();
-      if (cachedTime && now - cachedTime < Validator.HALF_HOUR) return; // Limit validation to once every half hour
+      if (cachedTime && now - cachedTime < Validator.SIX_HOURS) return; // Limit validation to once every 6 hours
       this.timestampCache.set(guild.id, now);
       try {
          // Force fetch server data
