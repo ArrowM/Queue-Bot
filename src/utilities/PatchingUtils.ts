@@ -202,8 +202,7 @@ export class PatchingUtils {
                messages.push(message);
                embeds.push(message.embeds[0]);
             }
-            const response = await messages
-               .shift()
+            const response = await messages[0]
                ?.edit({
                   embeds: embeds,
                   components: await MessagingUtils.getButton(queueChannel),

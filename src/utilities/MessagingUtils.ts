@@ -146,9 +146,8 @@ export class MessagingUtils {
       // Create a list of entries
       let position = 0;
       const entries: string[] = [];
-      while (queueMembers.length) {
-         // Get queue member
-         const queueMember = queueMembers.shift();
+      for (let i = 0; i < queueMembers.length; i++) {
+         const queueMember = queueMembers[i];
          let member: GuildMember;
          if (queueGuild.disable_mentions) {
             member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
@@ -180,8 +179,8 @@ export class MessagingUtils {
       let fields: EmbedFieldData[] = [];
       let field: EmbedFieldData = { name: "\u200b", value: "", inline: true };
 
-      while (entries.length) {
-         const entry = entries.shift();
+      for (let i = 0; i < entries.length; i++) {
+         const entry = entries[i];
          if (embedLength + entry.length >= 6000) {
             // New Message Needed - TODO support multiple messages?
             break;

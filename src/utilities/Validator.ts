@@ -16,7 +16,7 @@ export class Validator {
       this.timestampCache.set(guild.id, now);
       try {
          // Force fetch server data
-         // (Clear potentially delete data)
+         // (Clear potentially deleted data)
          guild.channels.cache.clear();
          guild.members.cache.clear();
          guild.roles.cache.clear();
@@ -41,10 +41,10 @@ export class Validator {
       }
    }
 
-   public static async validateAtStartup(guilds: Guild[]): Promise<void> {
-      for await (const guild of guilds) {
-         this.validateGuild(guild);
-         await delay(400);
-      }
-   }
+   // public static async validateAtStartup(guilds: Guild[]): Promise<void> {
+   //    for await (const guild of guilds) {
+   //       this.validateGuild(guild);
+   //       await delay(400);
+   //    }
+   // }
 }
