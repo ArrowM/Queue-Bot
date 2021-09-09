@@ -7,11 +7,11 @@ import schemaInspector from "knex-schema-inspector";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { MessagingUtils } from "./MessagingUtils";
-import {AdminPermissionTable} from "./tables/AdminPermissionTable";
-import {BlackWhiteListTable} from "./tables/BlackWhiteListTable";
-import {PriorityTable} from "./tables/PriorityTable";
-import {QueueGuildTable} from "./tables/QueueGuildTable";
-import {QueueMemberTable} from "./tables/QueueMemberTable";
+import { AdminPermissionTable } from "./tables/AdminPermissionTable";
+import { BlackWhiteListTable } from "./tables/BlackWhiteListTable";
+import { PriorityTable } from "./tables/PriorityTable";
+import { QueueGuildTable } from "./tables/QueueGuildTable";
+import { QueueMemberTable } from "./tables/QueueMemberTable";
 
 interface note {
    sent: boolean;
@@ -92,25 +92,25 @@ export class PatchingUtils {
    }
 
    private static async initTables(): Promise<void> {
-      if (!await Base.knex.schema.hasTable("admin_permission")) {
+      if (!(await Base.knex.schema.hasTable("admin_permission"))) {
          await AdminPermissionTable.initTable();
       }
-      if (!await Base.knex.schema.hasTable("black_white_list")) {
+      if (!(await Base.knex.schema.hasTable("black_white_list"))) {
          await BlackWhiteListTable.initTable();
       }
-      if (!await Base.knex.schema.hasTable("display_channels")) {
+      if (!(await Base.knex.schema.hasTable("display_channels"))) {
          await DisplayChannelTable.initTable();
       }
-      if (!await Base.knex.schema.hasTable("priority")) {
+      if (!(await Base.knex.schema.hasTable("priority"))) {
          await PriorityTable.initTable();
       }
-      if (!await Base.knex.schema.hasTable("queue_channels")) {
+      if (!(await Base.knex.schema.hasTable("queue_channels"))) {
          await QueueChannelTable.initTable();
       }
-      if (!await Base.knex.schema.hasTable("queue_guilds")) {
+      if (!(await Base.knex.schema.hasTable("queue_guilds"))) {
          await QueueGuildTable.initTable();
       }
-      if (!await Base.knex.schema.hasTable("queue_members")) {
+      if (!(await Base.knex.schema.hasTable("queue_members"))) {
          await QueueMemberTable.initTable();
       }
    }

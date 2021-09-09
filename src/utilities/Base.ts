@@ -54,6 +54,7 @@ export class Base {
          status: "online",
       },
       intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES", "GUILD_MEMBERS"],
+      shards: "auto",
    });
 
    public static isMe(member: GuildMember): boolean {
