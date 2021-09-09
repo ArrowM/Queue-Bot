@@ -7,6 +7,11 @@ import schemaInspector from "knex-schema-inspector";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { MessagingUtils } from "./MessagingUtils";
+import {AdminPermissionTable} from "./tables/AdminPermissionTable";
+import {BlackWhiteListTable} from "./tables/BlackWhiteListTable";
+import {PriorityTable} from "./tables/PriorityTable";
+import {QueueGuildTable} from "./tables/QueueGuildTable";
+import {QueueMemberTable} from "./tables/QueueMemberTable";
 
 interface note {
    sent: boolean;
@@ -16,6 +21,7 @@ interface note {
 
 export class PatchingUtils {
    public static async run(guilds: Guild[]) {
+      await this.initTables();
       await this.tableBlackWhiteList();
       await this.tableQueueMembers();
       await this.tableQueueChannels();
@@ -82,6 +88,30 @@ export class PatchingUtils {
             console.log("FAILED TO SEND TO THE FOLLOWING CHANNEL IDS:");
             console.log(failedChannelIds);
          }
+      }
+   }
+
+   private static async initTables(): Promise<void> {
+      if (!await Base.knex.schema.hasTable("admin_permission")) {
+         await AdminPermissionTable.initTable();
+      }
+      if (!await Base.knex.schema.hasTable("black_white_list")) {
+         await BlackWhiteListTable.initTable();
+      }
+      if (!await Base.knex.schema.hasTable("display_channels")) {
+         await DisplayChannelTable.initTable();
+      }
+      if (!await Base.knex.schema.hasTable("priority")) {
+         await PriorityTable.initTable();
+      }
+      if (!await Base.knex.schema.hasTable("queue_channels")) {
+         await QueueChannelTable.initTable();
+      }
+      if (!await Base.knex.schema.hasTable("queue_guilds")) {
+         await QueueGuildTable.initTable();
+      }
+      if (!await Base.knex.schema.hasTable("queue_members")) {
+         await QueueMemberTable.initTable();
       }
    }
 
@@ -235,39 +265,37 @@ export class PatchingUtils {
    }
 
    private static async tableQueueChannels(): Promise<void> {
-      if (await Base.knex.schema.hasTable("queue_channels")) {
-         // Add max_members
-         if (!(await Base.knex.schema.hasColumn("queue_channels", "max_members"))) {
-            await Base.knex.schema.table("queue_channels", (table) => table.text("max_members"));
-         }
-         // Add target_channel_id
-         if (!(await Base.knex.schema.hasColumn("queue_channels", "target_channel_id"))) {
-            await Base.knex.schema.table("queue_channels", (table) => table.text("target_channel_id"));
-         }
-         // Add auto_fill
-         if (!(await Base.knex.schema.hasColumn("queue_channels", "auto_fill"))) {
-            await Base.knex.schema.table("queue_channels", (table) => table.integer("auto_fill"));
-            await Base.knex<QueueChannel>("queue_channels").update("auto_fill", 1);
-         }
-         // Add pull_num
-         if (!(await Base.knex.schema.hasColumn("queue_channels", "pull_num"))) {
-            await Base.knex.schema.table("queue_channels", (table) => table.integer("pull_num"));
-            await Base.knex<QueueChannel>("queue_channels").update("pull_num", 1);
-         }
-         // Add header
-         if (!(await Base.knex.schema.hasColumn("queue_channels", "header"))) {
-            await Base.knex.schema.table("queue_channels", (table) => table.text("header"));
-         }
+      // Add max_members
+      if (!(await Base.knex.schema.hasColumn("queue_channels", "max_members"))) {
+         await Base.knex.schema.table("queue_channels", (table) => table.text("max_members"));
+      }
+      // Add target_channel_id
+      if (!(await Base.knex.schema.hasColumn("queue_channels", "target_channel_id"))) {
+         await Base.knex.schema.table("queue_channels", (table) => table.text("target_channel_id"));
+      }
+      // Add auto_fill
+      if (!(await Base.knex.schema.hasColumn("queue_channels", "auto_fill"))) {
+         await Base.knex.schema.table("queue_channels", (table) => table.integer("auto_fill"));
+         await Base.knex<QueueChannel>("queue_channels").update("auto_fill", 1);
+      }
+      // Add pull_num
+      if (!(await Base.knex.schema.hasColumn("queue_channels", "pull_num"))) {
+         await Base.knex.schema.table("queue_channels", (table) => table.integer("pull_num"));
+         await Base.knex<QueueChannel>("queue_channels").update("pull_num", 1);
+      }
+      // Add header
+      if (!(await Base.knex.schema.hasColumn("queue_channels", "header"))) {
+         await Base.knex.schema.table("queue_channels", (table) => table.text("header"));
+      }
 
-         const inspector = schemaInspector(Base.knex);
-         if ((await inspector.columnInfo("queue_channels", "queue_channel_id")).data_type === "GUILD_TEXT") {
-            await Base.knex.schema.alterTable("queue_channels", (table) => {
-               // MODIFY DATA TYPES
-               table.bigInteger("guild_id").alter();
-               table.integer("max_members").alter();
-               table.bigInteger("target_channel_id").alter();
-            });
-         }
+      const inspector = schemaInspector(Base.knex);
+      if ((await inspector.columnInfo("queue_channels", "queue_channel_id")).data_type === "GUILD_TEXT") {
+         await Base.knex.schema.alterTable("queue_channels", (table) => {
+            // MODIFY DATA TYPES
+            table.bigInteger("guild_id").alter();
+            table.integer("max_members").alter();
+            table.bigInteger("target_channel_id").alter();
+         });
       }
       // Add Role ID column
       if (!(await Base.knex.schema.hasColumn("queue_channels", "role_id"))) {
@@ -280,48 +308,46 @@ export class PatchingUtils {
    }
 
    private static async tableQueueGuilds(): Promise<void> {
-      if (await Base.knex.schema.hasTable("queue_guilds")) {
-         // Migration of msg_on_update to msg_mode
-         if (await Base.knex.schema.hasColumn("queue_guilds", "msg_on_update")) {
-            await Base.knex.schema.table("queue_guilds", (table) => table.integer("msg_mode"));
-            (await Base.knex<QueueGuild>("queue_guilds")).forEach(async (queueGuild) => {
-               await Base.knex<QueueGuild>("queue_guilds")
-                  .where("guild_id", queueGuild.guild_id)
-                  .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
-            });
-            await Base.knex.schema.table("queue_guilds", (table) => table.dropColumn("msg_on_update"));
+      // Migration of msg_on_update to msg_mode
+      if (await Base.knex.schema.hasColumn("queue_guilds", "msg_on_update")) {
+         await Base.knex.schema.table("queue_guilds", (table) => table.integer("msg_mode"));
+         (await Base.knex<QueueGuild>("queue_guilds")).forEach(async (queueGuild) => {
+            await Base.knex<QueueGuild>("queue_guilds")
+               .where("guild_id", queueGuild.guild_id)
+               .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
+         });
+         await Base.knex.schema.table("queue_guilds", (table) => table.dropColumn("msg_on_update"));
+      }
+      // Add cleanup_commands
+      if (!(await Base.knex.schema.hasColumn("queue_guilds", "cleanup_commands"))) {
+         await Base.knex.schema.table("queue_guilds", (table) => table.text("cleanup_commands"));
+         await Base.knex<QueueGuild>("queue_guilds").update("cleanup_commands", "off");
+      }
+      // Move columns to channel table
+      if (await Base.knex.schema.hasColumn("queue_guilds", "color")) {
+         if (!(await Base.knex.schema.hasColumn("queue_channels", "color"))) {
+            await Base.knex.schema.table("queue_channels", (table) => table.text("color"));
          }
-         // Add cleanup_commands
-         if (!(await Base.knex.schema.hasColumn("queue_guilds", "cleanup_commands"))) {
-            await Base.knex.schema.table("queue_guilds", (table) => table.text("cleanup_commands"));
-            await Base.knex<QueueGuild>("queue_guilds").update("cleanup_commands", "off");
+         if (!(await Base.knex.schema.hasColumn("queue_channels", "grace_period"))) {
+            await Base.knex.schema.table("queue_channels", (table) => table.integer("grace_period"));
          }
-         // Move columns to channel table
-         if (await Base.knex.schema.hasColumn("queue_guilds", "color")) {
-            if (!(await Base.knex.schema.hasColumn("queue_channels", "color"))) {
-               await Base.knex.schema.table("queue_channels", (table) => table.text("color"));
-            }
-            if (!(await Base.knex.schema.hasColumn("queue_channels", "grace_period"))) {
-               await Base.knex.schema.table("queue_channels", (table) => table.integer("grace_period"));
-            }
 
-            const entries = await Base.knex<QueueGuild & { color: string; grace_period: number }>("queue_guilds");
-            console.log("Migrate QueueGuilds to QueueChannels");
-            for await (const entry of entries) {
-               await Base.knex<QueueChannel>("queue_channels")
-                  .where("guild_id", entry.guild_id)
-                  .update("color", entry.color)
-                  .update("grace_period", entry.grace_period);
-               await delay(40);
-            }
-
-            await Base.knex.schema.alterTable("queue_guilds", (table) => {
-               // DROP TABLES
-               table.dropColumn("grace_period");
-               table.dropColumn("color");
-               table.dropColumn("cleanup_commands");
-            });
+         const entries = await Base.knex<QueueGuild & { color: string; grace_period: number }>("queue_guilds");
+         console.log("Migrate QueueGuilds to QueueChannels");
+         for await (const entry of entries) {
+            await Base.knex<QueueChannel>("queue_channels")
+               .where("guild_id", entry.guild_id)
+               .update("color", entry.color)
+               .update("grace_period", entry.grace_period);
+            await delay(40);
          }
+
+         await Base.knex.schema.alterTable("queue_guilds", (table) => {
+            // DROP TABLES
+            table.dropColumn("grace_period");
+            table.dropColumn("color");
+            table.dropColumn("cleanup_commands");
+         });
       }
       //
       if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {

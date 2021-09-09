@@ -86,7 +86,7 @@ If a command that expects a channel name is not given one, the current text chan
 | databaseHost           | Database host url                                                                                                                 | `localhost` |  
 | databaseType           | Type of database for queue storage.                                                                                               | `postgresql` |  
 | gracePeriod            | Default number of seconds a user can leave the queue without being removed                                                        | `0` |  
-| permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default                                          | `\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b` |  
+| permissionsRegexp      | What server roles can use bot commands. Uses RegExp. Accepts "mod" and "mods" by default                                          | |  
 | topGgToken             | Token for updating top.gg server count. This should be left blank                                                                 | |  
 | announcementChannelId  | Channel to send anounncements about bot patches                                                                                   | |  
   
