@@ -3,7 +3,6 @@ import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 import { PriorityTable } from "./tables/PriorityTable";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
-import delay from "delay";
 
 export class Validator {
    private static timestampCache = new Map<Snowflake, number>(); // <guild.id, timestamp>

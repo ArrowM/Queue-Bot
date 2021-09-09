@@ -92,7 +92,7 @@ If a command that expects a channel name is not given one, the current text chan
   
 ![Token Location](docs/token_location.PNG)  
   
-5. [Install NodeJS 12+](https://discordjs.guide/preparations/#installing-node-js)  
+5. [Install NodeJS 16.6+](https://discordjs.guide/preparations/#installing-node-js)  
 6. [Install Node-gyp](https://github.com/nodejs/node-gyp#installation)  
 7. Install Dependencies. Open commmand prompt in project directory (If you have the project open in file explorer, click on the directory bar, enter `cmd`, and hit enter). Enter `npm i` into command prompt. Keep the command prompt open.  
 8. Build the bot. In the same command prompt, enter `npm run build`.  
