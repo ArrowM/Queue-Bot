@@ -42,7 +42,8 @@ If a command that expects a channel name is not given one, the current text chan
 `/shuffle` - Shuffle a queue  
 `/size` - Get / Set size limit of a queue  
 `/start` - Add the bot to a voice queue  
-  
+`/whitelist` - Add / delete / display whitelists of users and roles  
+
 **Bot Management**  
 `/mode` - Set display mode  
 `/permission` - Add / delete / display users and roles with bot permissions  
