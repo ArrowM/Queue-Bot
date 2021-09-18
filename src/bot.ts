@@ -56,7 +56,6 @@ if (config.topGgToken) {
 
 client.on("interactionCreate", async (interaction: Interaction) => {
    try {
-      console.log("TEST");
       if (interaction.isButton()) {
          if (!isReady) return;
          if (!interaction.guild?.id) return;
