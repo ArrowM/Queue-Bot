@@ -16,6 +16,8 @@ export class Validator {
       try {
          // Force fetch server data
          // (Clear potentially deleted data)
+         const me = guild.me;
+         const everyone = guild.roles.everyone;
          guild.channels.cache.clear();
          guild.members.cache.clear();
          guild.roles.cache.clear();
@@ -26,9 +28,9 @@ export class Validator {
          )[];
          const members = Array.from((await guild.members.fetch()).values());
          const roles = Array.from((await guild.roles.fetch()).values());
-         const me = guild.me;
          guild.members.cache.clear();
          guild.members.cache.set(me.id, me); // Critical
+         guild.roles.cache.set(guild.id, everyone); // Critical
 
          const queueGuild = await QueueGuildTable.get(guild.id);
          // Verify that stored data is contained within server data

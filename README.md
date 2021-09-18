@@ -24,11 +24,9 @@ Privileged commands are restricted to the server owner, administrators, and user
 If a command that expects a channel name is not given one, the current text channel will be used.  
   
 **Queue Management**  
-`/altprefix` - Enable or disable alternate prefix `!`
+`/altprefix` - Enable or disable alternate prefix `!`  
 `/autopull` - Get / Set automatic pull from a voice queue  
-`/blacklist add user` & `/blacklist add role` - Blacklist a user or role  
-`/blacklist delete user` & `/blacklist delete role` - Un-blacklist a user or role  
-`/blacklist list` - Display a blacklist  
+`/blacklist` - Add / delete / display blacklists of users and roles  
 `/button` - Get / Set whether a \"Join / Leave\" button appears under a text queue display  
 `/clear` - Clear a queue  
 `/color` - Get / Set color of queue displays  
@@ -40,18 +38,14 @@ If a command that expects a channel name is not given one, the current text chan
 `/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
-`/queues add` - Create a queue  
-`/queues delete` - Delete a queue  
-`/queues list` - List queues  
+`/queues` - Add / delete / display queues  
 `/shuffle` - Shuffle a queue  
 `/size` - Get / Set size limit of a queue  
 `/start` - Add the bot to a voice queue  
   
 **Bot Management**  
 `/mode` - Set display mode  
-`/permission add user` & `/permission add role` - Grant bot permission to a user or role  
-`/permission delete user` & `/permission delete role` - Revoke bot permission from a user or role  
-`/permission list` - List users & roles with bot permission  
+`/permission` - Add / delete / display users and roles with bot permissions  
   
 ![Example of `/start`](docs/example.gif)  
   

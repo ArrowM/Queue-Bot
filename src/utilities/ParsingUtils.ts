@@ -94,10 +94,8 @@ export abstract class Parsed {
    protected constructor() {
       this.args = {};
    }
-   // noinspection JSUnusedLocalSymbols
    // eslint-disable-next-line no-unused-vars
    public abstract reply(_options: ReplyOptions): Promise<Message>;
-   // noinspection JSUnusedLocalSymbols
    // eslint-disable-next-line no-unused-vars
    public abstract edit(_options: ReplyOptions): Promise<Message>;
    public abstract deferReply(): Promise<void>;
