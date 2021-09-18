@@ -42,12 +42,10 @@ export class AdminPermissionTable {
          .catch(() => null);
    }
 
-   public static async unstore(guildId: Snowflake, roleMemberId: Snowflake): Promise<void> {
-      await Base.knex<AdminPermission>("admin_permission")
-         .where("guild_id", guildId)
-         .where("role_member_id", roleMemberId)
-         .first()
-         .delete();
+   public static async unstore(guildId: Snowflake, roleMemberId?: Snowflake): Promise<void> {
+      let query = Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId);
+      if (roleMemberId) query = query.where("role_member_id", roleMemberId);
+      await query.first().delete();
    }
 
    public static async validate(guild: Guild, members: GuildMember[], roles: Role[]): Promise<void> {

@@ -1,6 +1,34 @@
 [
    {
       "sent": false,
+      "date": "2021-09-18",
+      "embeds": [
+         {
+            "title": "Patch Notes for Sept 18, 2021",
+            "color": 6544040
+         },
+         {
+            "title": "New Stuff",
+            "color": 6544040,
+            "fields": [
+               {
+                  "name": "+`/whitelist`",
+                  "value": "You now create whitelisted queues. If a queue has a whitelist (at least 1 user or role), it's blacklist will be ignored. Anyone not on the whitelist will be blocked from joining the queue."
+               },
+               {
+                  "name": "List clearing",
+                  "value": "`/blacklist`, `/permission`, and `/priority` now have a `clear` subcommand."
+               },
+               {
+                  "name": "Support the Bot :heart:",
+                  "value": "Hosting isn't free and development takes lots of time.\n1. [Leave a review on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "sent": true,
       "date": "2021-07-11",
       "embeds": [
          {
@@ -9,7 +37,7 @@
          },
          {
             "title": "Slash Commands",
-            "description": "**IMPORTANT**: The bot needs new permissions. Do not kick the bot (this will delete your data). **Use this [INVITE LINK](https://discord.com/oauth2/authorize?client_id=679018301543677959&permissions=2232511568&scope=bot%20applications.commands) to update the permissions**. After this message is sent, it make take up to an hour for the slash commands to show up for everyone.\n​",
+            "description": "**IMPORTANT**: The bot needs new permissions. Do not kick the bot (this will delete your data). **Use this [INVITE LINK](https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot) to update the permissions**. After this message is sent, it make take up to an hour for the slash commands to show up for everyone.\n​",
             "color": 16711680,
             "fields": [
                {

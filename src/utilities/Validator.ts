@@ -34,9 +34,9 @@ export class Validator {
 
          const queueGuild = await QueueGuildTable.get(guild.id);
          // Verify that stored data is contained within server data
-         AdminPermissionTable.validate(guild, members, roles);
+         AdminPermissionTable.validate(guild, members, roles).then();
          const requireUpdate = await PriorityTable.validate(guild, members, roles);
-         QueueChannelTable.validate(requireUpdate, queueGuild, guild, channels, members, roles);
+         QueueChannelTable.validate(requireUpdate, queueGuild, guild, channels, members, roles).then();
       } catch (e) {
          // Nothing - we don't want to accidentally delete legit data
       }

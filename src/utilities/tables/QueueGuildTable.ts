@@ -2,6 +2,8 @@ import { QueueGuild } from "../Interfaces";
 import { Base } from "../Base";
 import { Guild, Snowflake } from "discord.js";
 import { QueueChannelTable } from "./QueueChannelTable";
+import { AdminPermissionTable } from "./AdminPermissionTable";
+import { PriorityTable } from "./PriorityTable";
 
 export class QueueGuildTable {
    /**
@@ -44,6 +46,8 @@ export class QueueGuildTable {
 
    public static async unstore(guildId: Snowflake): Promise<void> {
       await QueueChannelTable.unstore(guildId);
+      await AdminPermissionTable.unstore(guildId);
+      await PriorityTable.unstore(guildId);
       await Base.knex<QueueGuild>("queue_guilds").where("guild_id", guildId).delete();
    }
 }

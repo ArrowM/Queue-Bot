@@ -128,7 +128,7 @@ export class Commands {
    /**
     * HELPER
     */
-   private static async validateBlacklistWhitelist(
+   private static async validateBWList(
       parsed: ParsedCommand | ParsedMessage,
       type: number,
       storedEntries: BlackWhiteListEntry[]
@@ -159,10 +159,10 @@ export class Commands {
    /**
     * HELPER
     */
-   private static async genBlacklistWhitelist(parsed: ParsedCommand | ParsedMessage, type: number): Promise<string> {
+   private static async genBWList(parsed: ParsedCommand | ParsedMessage, type: number): Promise<string> {
       const typeString = type ? "White" : "Black";
       const storedEntries = await BlackWhiteListTable.getMany(type, parsed.args.channel.id);
-      this.validateBlacklistWhitelist(parsed, type, storedEntries);
+      this.validateBWList(parsed, type, storedEntries).then();
 
       let response = `\n${typeString}list of \`${parsed.args.channel.name}\`: `;
       if (storedEntries?.length) {
@@ -178,7 +178,7 @@ export class Commands {
    /**
     * HELPER
     */
-   private static async blacklistWhitelistAdd(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
+   private static async _bwAdd(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
       const member = parsed.args.member;
@@ -200,7 +200,7 @@ export class Commands {
          response += `Added \`${name}\` to the ${typeString}list of \`${queueChannel.name}\`.`;
       }
 
-      response += await this.genBlacklistWhitelist(parsed, type);
+      response += await this.genBWList(parsed, type);
       await parsed
          .reply({
             content: response,
@@ -209,27 +209,25 @@ export class Commands {
    }
 
    /**
-    * Add a user or role to a queue's blacklist
+    * Add a user or role to blacklist or whitelist
     */
-   public static async blacklistAddUser(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      if ((await parsed.readArgs({ commandNameLength: 18, hasChannel: true, hasMember: true })).length) return;
-
-      this.blacklistWhitelistAdd(parsed, 0);
-   }
-
-   /**
-    * Add a user or role to a queue's blacklist
-    */
-   public static async blacklistAddRole(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      if ((await parsed.readArgs({ commandNameLength: 18, hasChannel: true, hasRole: true })).length) return;
-
-      this.blacklistWhitelistAdd(parsed, 0);
+   public static async bwAdd(
+      parsed: ParsedCommand | ParsedMessage,
+      isRole: boolean,
+      isBlacklist: boolean
+   ): Promise<void> {
+      if (
+         (await parsed.readArgs({ commandNameLength: 18, hasChannel: true, hasRole: isRole, hasMember: !isRole }))
+            .length
+      )
+         return;
+      this._bwAdd(parsed, isBlacklist ? 0 : 1).then();
    }
 
    /**
     * HELPER
     */
-   private static async blacklistWhitelistDelete(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
+   private static async _bwDelete(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
       const member = parsed.args.member;
@@ -247,7 +245,7 @@ export class Commands {
          response += `\`${name}\` was not on the ${typeString}list of \`${queueChannel.name}\`.`;
       }
 
-      response += await this.genBlacklistWhitelist(parsed, type);
+      response += await this.genBWList(parsed, type);
       await parsed
          .reply({
             content: response,
@@ -256,30 +254,28 @@ export class Commands {
    }
 
    /**
-    * Remove a user from a queue's blacklist
+    * Remove a user or role from blacklist or whitelist
     */
-   public static async blacklistDeleteUser(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      if ((await parsed.readArgs({ commandNameLength: 21, hasChannel: true, hasMember: true })).length) return;
-
-      this.blacklistWhitelistDelete(parsed, 0);
-   }
-
-   /**
-    * Remove a role from a queue's blacklist
-    */
-   public static async blacklistDeleteRole(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-      if ((await parsed.readArgs({ commandNameLength: 21, hasChannel: true, hasRole: true })).length) return;
-
-      this.blacklistWhitelistDelete(parsed, 0);
+   public static async bwDelete(
+      parsed: ParsedCommand | ParsedMessage,
+      isRole: boolean,
+      isBlacklist: boolean
+   ): Promise<void> {
+      if (
+         (await parsed.readArgs({ commandNameLength: 18, hasChannel: true, hasRole: isRole, hasMember: !isRole }))
+            .length
+      )
+         return;
+      this._bwDelete(parsed, isBlacklist ? 0 : 1).then();
    }
 
    /**
     * HELPER
     */
-   private static async blacklistWhitelistList(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
+   private static async _bwList(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
       const queueChannel = parsed.args.channel;
       if (!queueChannel?.id) return;
-      const response = await this.genBlacklistWhitelist(parsed, type);
+      const response = await this.genBWList(parsed, type);
       await parsed
          .reply({
             content: response,
@@ -288,12 +284,27 @@ export class Commands {
    }
 
    /**
-    * Display a queue's blacklist
+    * Display a blacklist or whitelist
     */
-   public static async blacklistList(parsed: ParsedCommand | ParsedMessage) {
+   public static async bwList(parsed: ParsedCommand | ParsedMessage, isBlacklist: boolean) {
       if ((await parsed.readArgs({ commandNameLength: 14, hasChannel: true })).length) return;
+      this._bwList(parsed, isBlacklist ? 0 : 1).then();
+   }
 
-      this.blacklistWhitelistList(parsed, 0);
+   /**
+    * Clear a blacklist or whitelist
+    */
+   public static async bwClear(parsed: ParsedCommand | ParsedMessage, isBlacklist: boolean) {
+      if ((await parsed.readArgs({ commandNameLength: 15, hasChannel: true })).length) return;
+
+      const queueChannel = parsed.args.channel;
+      await BlackWhiteListTable.unstore(isBlacklist ? 0 : 1, queueChannel.id);
+      const typeString = isBlacklist ? "black" : "white";
+      await parsed
+         .reply({
+            content: `Cleared the ${typeString}list of \`${queueChannel.name}\`.`,
+         })
+         .catch(() => null);
    }
 
    // --------------------------------- BUTTON ------------------------------- //
@@ -519,10 +530,10 @@ export class Commands {
                .catch(() => null);
             SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
          } catch (e: any) {
-            if (e?.author === "Queue Bot") {
+            if (e.author === "Queue Bot") {
                await parsed
                   .reply({
-                     content: "**ERROR**: " + e?.message,
+                     content: "**ERROR**: " + e.message,
                      commandDisplay: "EPHEMERAL",
                   })
                   .catch(() => null);
@@ -536,8 +547,8 @@ export class Commands {
             try {
                await QueueMemberTable.store(queueChannel, member, customMessage, true);
             } catch (e: any) {
-               if (e?.author === "Queue Bot") {
-                  errorAccumulator += e?.message;
+               if (e.author === "Queue Bot") {
+                  errorAccumulator += e.message;
                } else {
                   throw e;
                }
@@ -737,6 +748,10 @@ export class Commands {
                value: "Display a blacklist",
             },
             {
+               name: "`/blacklist clear`",
+               value: "Clear a blacklist",
+            },
+            {
                name: "`/button`",
                value: 'Get / Set whether a "Join / Leave" button appears under a text queue display',
             },
@@ -808,6 +823,22 @@ export class Commands {
                name: "`/start`",
                value: "Add the bot to a voice queue",
             },
+            {
+               name: "`/whitelist add user` & `/whitelist add role`",
+               value: "whitelist a user or role",
+            },
+            {
+               name: "`/whitelist delete user` & `/whitelist delete role`",
+               value: "Un-whitelist a user or role",
+            },
+            {
+               name: "`/whitelist list`",
+               value: "Display a whitelist",
+            },
+            {
+               name: "`/whitelist clear`",
+               value: "Clear a whitelist",
+            },
          ],
       };
       const content = parsed.hasPermission
@@ -848,6 +879,10 @@ export class Commands {
             {
                name: "`/permission list`",
                value: "List users & roles with bot permission",
+            },
+            {
+               name: "`/permission clear`",
+               value: "Clear users & roles with bot permission",
             },
          ],
       };
@@ -1422,6 +1457,20 @@ export class Commands {
          .catch(() => null);
    }
 
+   /**
+    * Clear roles and users with permission
+    */
+   public static async permissionClear(parsed: ParsedCommand | ParsedMessage) {
+      if ((await parsed.readArgs({ commandNameLength: 21 })).length) return;
+
+      await AdminPermissionTable.unstore(parsed.request.guildId);
+      await parsed
+         .reply({
+            content: `Cleared the bot permissions list.`,
+         })
+         .catch(() => null);
+   }
+
    // --------------------------------- PRIORITY ------------------------------- //
 
    /**
@@ -1457,7 +1506,7 @@ export class Commands {
     */
    private static async genPriorityList(parsed: ParsedCommand | ParsedMessage): Promise<string> {
       const storedEntries = await PriorityTable.getMany(parsed.queueGuild.guild_id);
-      this.validatePriorityList(parsed, storedEntries);
+      this.validatePriorityList(parsed, storedEntries).then();
       let response = "\nPriority list: ";
       if (storedEntries?.length) {
          response += storedEntries
@@ -1491,9 +1540,9 @@ export class Commands {
             // Re-evaluate priority for each member
             const roleIds = queueMember.roles.cache.keys();
             if ([queueMember.id, ...roleIds].some((id) => priorityIds.includes(id))) {
-               QueueMemberTable.setPriority(queueChannel.id, queueMember.id, true);
+               QueueMemberTable.setPriority(queueChannel.id, queueMember.id, true).then();
             } else {
-               QueueMemberTable.setPriority(queueChannel.id, queueMember.id, false);
+               QueueMemberTable.setPriority(queueChannel.id, queueMember.id, false).then();
             }
          }
          // Schedule display update for each queue
@@ -1518,7 +1567,7 @@ export class Commands {
       } else {
          await PriorityTable.store(guildId, id, role != null);
          response += `Added \`${name}\` to the the priority list.`;
-         this.updatePriorities(parsed);
+         this.updatePriorities(parsed).then();
       }
 
       response += await this.genPriorityList(parsed);
@@ -1562,7 +1611,7 @@ export class Commands {
       if (await PriorityTable.get(guildId, id)) {
          await PriorityTable.unstore(guildId, id);
          response += `Removed \`${name}\` from the priority list.`;
-         this.updatePriorities(parsed);
+         this.updatePriorities(parsed).then();
       } else {
          response += `\`${name}\` was not on the priority list.`;
       }
@@ -1603,6 +1652,20 @@ export class Commands {
       await parsed
          .reply({
             content: response,
+         })
+         .catch(() => null);
+   }
+
+   /**
+    * Clear roles and users with permission
+    */
+   public static async priorityClear(parsed: ParsedCommand | ParsedMessage) {
+      if ((await parsed.readArgs({ commandNameLength: 22 })).length) return;
+
+      await PriorityTable.unstore(parsed.request.guildId);
+      await parsed
+         .reply({
+            content: `Cleared the priority list.`,
          })
          .catch(() => null);
    }

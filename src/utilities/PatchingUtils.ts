@@ -28,7 +28,7 @@ export class PatchingUtils {
       await this.tableAdminPermission();
       await this.tableDisplayChannels();
       await this.tableQueueGuilds();
-      this.checknotes(guilds);
+      this.checknotes(guilds).then();
    }
 
    private static async checknotes(guilds: Guild[]) {
@@ -250,7 +250,7 @@ export class PatchingUtils {
          }
          await Base.knex.schema.alterTable("display_channels", (table) => table.dropColumn("embed_ids"));
          // ALSO do some 1 time updates for slash commands and nicknames
-         this.setNickNames();
+         this.setNickNames().then();
       }
    }
 

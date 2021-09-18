@@ -190,7 +190,7 @@ export class SlashCommands {
             });
          }
          if (updateRequired) {
-            this.modifyCommandsForGuild(guild);
+            this.modifyCommandsForGuild(guild).then();
             await delay(6000);
          }
       }
@@ -217,7 +217,7 @@ export class SlashCommands {
    }
 
    public static async register(guild: Guild[]) {
-      this.registerGlobalCommands();
-      this.modifyGuildCommands(guild);
+      this.registerGlobalCommands().then();
+      this.modifyGuildCommands(guild).then();
    }
 }

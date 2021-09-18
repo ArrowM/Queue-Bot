@@ -22,17 +22,34 @@ export class BlackWhiteListTable {
       });
    }
 
-   public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
+   private static async isBWlisted(queueChannelId: Snowflake, member: GuildMember, type: number): Promise<boolean> {
       const roleIds = Array.from(member.roles.valueOf().keys());
       for await (const id of [member.id, ...roleIds]) {
          const memberPerm = await Base.knex<BlackWhiteListEntry>("black_white_list")
             .where("queue_channel_id", queueChannelId)
             .where("role_member_id", id)
-            .where("type", 0)
+            .where("type", type)
             .first();
          if (memberPerm) return true;
       }
       return false;
+   }
+
+   public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
+      return await this.isBWlisted(queueChannelId, member, 0);
+   }
+
+   public static async isWhitelisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
+      return await this.isBWlisted(queueChannelId, member, 1);
+   }
+
+   public static async hasWhitelist(queueChannelId: Snowflake): Promise<boolean> {
+      return (
+         (await Base.knex<BlackWhiteListEntry>("black_white_list")
+            .where("queue_channel_id", queueChannelId)
+            .where("type", 1)
+            .first()) != null
+      );
    }
 
    public static get(type: number, queueChannelId: Snowflake, roleMemberId: Snowflake) {

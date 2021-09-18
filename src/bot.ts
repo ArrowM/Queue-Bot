@@ -44,9 +44,9 @@ client.on("uncaughtException", (err, origin) => {
       })}`
    );
 });
-client.on("rateLimit", (rateLimitInfo) => {
-   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
-});
+// client.on("rateLimit", (rateLimitInfo) => {
+//    console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
+// });
 
 // Top GG integration
 if (config.topGgToken) {
@@ -56,6 +56,7 @@ if (config.topGgToken) {
 
 client.on("interactionCreate", async (interaction: Interaction) => {
    try {
+      console.log("TEST");
       if (interaction.isButton()) {
          if (!isReady) return;
          if (!interaction.guild?.id) return;
@@ -77,37 +78,11 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 
          const parsed = new ParsedCommand(interaction);
          await parsed.setup();
-         // -- EVERYONE COMMANDS --
-         switch (interaction.commandName) {
-            case "help":
-               switch (parsed.request.options.data[0]?.value) {
-                  case undefined:
-                     await Commands.help(parsed);
-                     break;
-                  case "setup":
-                     await Commands.helpSetup(parsed);
-                     break;
-                  case "queues":
-                     await Commands.helpQueue(parsed);
-                     break;
-                  case "bot":
-                     await Commands.helpBot(parsed);
-                     break;
-               }
-               break;
-            case "join":
-               await Commands.join(parsed);
-               break;
-            case "leave":
-               await Commands.leave(parsed);
-               break;
-            case "myqueues":
-               await Commands.myqueues(parsed);
-               break;
-            default:
-               await onAdminCommand(parsed);
-               break;
-         }
+         await processCommand(parsed, [
+            parsed.request.commandName,
+            parsed.request.options?.data?.[0]?.name,
+            parsed.request.options?.data?.[0]?.options?.[0]?.name,
+         ]);
       }
    } catch (e) {
       console.error(e);
@@ -127,15 +102,43 @@ async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<b
    return true;
 }
 
-async function onAdminCommand(parsed: ParsedCommand) {
-   if (!(await checkPermission(parsed))) return false;
+async function processCommand(parsed: ParsedCommand | ParsedMessage, command: string[]) {
+   switch (command[0]) {
+      case "help":
+         switch (command[1]) {
+            case undefined:
+               await Commands.help(parsed);
+               break;
+            case "setup":
+               await Commands.helpSetup(parsed);
+               break;
+            case "queues":
+               await Commands.helpQueue(parsed);
+               break;
+            case "bot":
+               await Commands.helpBot(parsed);
+               break;
+         }
+         break;
+      case "join":
+         await Commands.join(parsed);
+         break;
+      case "leave":
+         await Commands.leave(parsed);
+         break;
+      case "myqueues":
+         await Commands.myqueues(parsed);
+         break;
+   }
+
+   if (!(await checkPermission(parsed))) return;
    // -- ADMIN COMMANDS --
-   switch (parsed.request.commandName) {
+   switch (command[0]) {
       case "altprefix":
          await Commands.altPrefix(parsed);
          break;
       case "autopull":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.autopullGet(parsed);
                break;
@@ -145,34 +148,37 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "blacklist":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "add":
-               switch (parsed.request.options.data[0].options[0].name) {
+               switch (command[2]) {
                   case "user":
-                     await Commands.blacklistAddUser(parsed);
+                     await Commands.bwAdd(parsed, false, true);
                      break;
                   case "role":
-                     await Commands.blacklistAddRole(parsed);
+                     await Commands.bwAdd(parsed, true, true);
                      break;
                }
                break;
             case "delete":
-               switch (parsed.request.options.data[0].options[0].name) {
+               switch (command[2]) {
                   case "user":
-                     await Commands.blacklistDeleteUser(parsed);
+                     await Commands.bwDelete(parsed, false, true);
                      break;
                   case "role":
-                     await Commands.blacklistDeleteRole(parsed);
+                     await Commands.bwDelete(parsed, true, true);
                      break;
                }
                break;
             case "list":
-               await Commands.blacklistList(parsed);
+               await Commands.bwList(parsed, true);
+               break;
+            case "clear":
+               await Commands.bwClear(parsed, true);
                break;
          }
          break;
       case "button":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.buttonGet(parsed);
                break;
@@ -185,7 +191,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.clear(parsed);
          break;
       case "color":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.colorGet(parsed);
                break;
@@ -198,7 +204,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.display(parsed);
          break;
       case "enqueue":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "user":
                await Commands.enqueueUser(parsed);
                break;
@@ -208,7 +214,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "graceperiod":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.graceperiodGet(parsed);
                break;
@@ -218,7 +224,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "header":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.headerGet(parsed);
                break;
@@ -234,7 +240,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.kickAll(parsed);
          break;
       case "mentions":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.mentionsGet(parsed);
                break;
@@ -244,7 +250,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "mode":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.modeGet(parsed);
                break;
@@ -257,9 +263,9 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.next(parsed);
          break;
       case "permission":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "add":
-               switch (parsed.request.options.data[0].options[0].name) {
+               switch (command[2]) {
                   case "user":
                      await Commands.permissionAddUser(parsed);
                      break;
@@ -269,7 +275,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
                }
                break;
             case "delete":
-               switch (parsed.request.options.data[0].options[0].name) {
+               switch (command[2]) {
                   case "user":
                      await Commands.permissionDeleteUser(parsed);
                      break;
@@ -281,12 +287,15 @@ async function onAdminCommand(parsed: ParsedCommand) {
             case "list":
                await Commands.permissionList(parsed);
                break;
+            case "clear":
+               await Commands.permissionClear(parsed);
+               break;
          }
          break;
       case "priority":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "add":
-               switch (parsed.request.options.data[0].options[0].name) {
+               switch (command[2]) {
                   case "user":
                      await Commands.priorityAddUser(parsed);
                      break;
@@ -296,7 +305,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
                }
                break;
             case "delete":
-               switch (parsed.request.options.data[0].options[0].name) {
+               switch (command[2]) {
                   case "user":
                      await Commands.priorityDeleteUser(parsed);
                      break;
@@ -308,10 +317,13 @@ async function onAdminCommand(parsed: ParsedCommand) {
             case "list":
                await Commands.priorityList(parsed);
                break;
+            case "clear":
+               await Commands.priorityClear(parsed);
+               break;
          }
          break;
       case "pullnum":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.pullnumGet(parsed);
                break;
@@ -321,7 +333,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          }
          break;
       case "queues":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "add":
                await Commands.queuesAdd(parsed);
                break;
@@ -337,7 +349,7 @@ async function onAdminCommand(parsed: ParsedCommand) {
          await Commands.shuffle(parsed);
          break;
       case "size":
-         switch (parsed.request.options.data[0].name) {
+         switch (command[1]) {
             case "get":
                await Commands.sizeGet(parsed);
                break;
@@ -349,6 +361,36 @@ async function onAdminCommand(parsed: ParsedCommand) {
       case "start":
          await Commands.start(parsed);
          break;
+      case "whitelist":
+         switch (command[1]) {
+            case "add":
+               switch (command[2]) {
+                  case "user":
+                     await Commands.bwAdd(parsed, false, false);
+                     break;
+                  case "role":
+                     await Commands.bwAdd(parsed, true, false);
+                     break;
+               }
+               break;
+            case "delete":
+               switch (command[2]) {
+                  case "user":
+                     await Commands.bwDelete(parsed, false, false);
+                     break;
+                  case "role":
+                     await Commands.bwDelete(parsed, true, false);
+                     break;
+               }
+               break;
+            case "list":
+               await Commands.bwList(parsed, false);
+               break;
+            case "clear":
+               await Commands.bwClear(parsed, false);
+               break;
+         }
+         break;
    }
 }
 
@@ -359,114 +401,8 @@ client.on("messageCreate", async (message) => {
       // -
       const parsed = new ParsedMessage(message);
       await parsed.setup();
-      const commandName = message.content.substring(1);
       if (parsed.queueGuild.enable_alt_prefix) {
-         // - EVERYONE
-         if (commandName.startsWith("join")) {
-            await Commands.join(parsed);
-         } else if (commandName.startsWith("leave")) {
-            await Commands.leave(parsed);
-         } else if (commandName.startsWith("myqueues")) {
-            await Commands.myqueues(parsed);
-         } else if (commandName === "help") {
-            await Commands.help(parsed);
-         } else if (commandName.startsWith("help setup")) {
-            await Commands.helpSetup(parsed);
-         } else if (commandName.startsWith("help queues")) {
-            await Commands.helpQueue(parsed);
-         } else if (commandName.startsWith("help bot")) {
-            await Commands.helpBot(parsed);
-         }
-         // - ADMIN
-         if (commandName.startsWith("altprefix") && (await checkPermission(parsed))) {
-            await Commands.altPrefix(parsed);
-         } else if (commandName.startsWith("autopull get") && (await checkPermission(parsed))) {
-            await Commands.autopullGet(parsed);
-         } else if (commandName.startsWith("autopull set") && (await checkPermission(parsed))) {
-            await Commands.autopullSet(parsed);
-         } else if (commandName.startsWith("blacklist add user") && (await checkPermission(parsed))) {
-            await Commands.blacklistAddUser(parsed);
-         } else if (commandName.startsWith("blacklist add role") && (await checkPermission(parsed))) {
-            await Commands.blacklistAddRole(parsed);
-         } else if (commandName.startsWith("blacklist delete user") && (await checkPermission(parsed))) {
-            await Commands.blacklistDeleteUser(parsed);
-         } else if (commandName.startsWith("blacklist delete role") && (await checkPermission(parsed))) {
-            await Commands.blacklistDeleteRole(parsed);
-         } else if (commandName.startsWith("blacklist list") && (await checkPermission(parsed))) {
-            await Commands.blacklistList(parsed);
-         } else if (commandName.startsWith("button get") && (await checkPermission(parsed))) {
-            await Commands.buttonGet(parsed);
-         } else if (commandName.startsWith("button set") && (await checkPermission(parsed))) {
-            await Commands.buttonSet(parsed);
-         } else if (commandName.startsWith("clear") && (await checkPermission(parsed))) {
-            await Commands.clear(parsed);
-         } else if (commandName.startsWith("color get") && (await checkPermission(parsed))) {
-            await Commands.colorGet(parsed);
-         } else if (commandName.startsWith("color set") && (await checkPermission(parsed))) {
-            await Commands.colorSet(parsed);
-         } else if (commandName.startsWith("display") && (await checkPermission(parsed))) {
-            await Commands.display(parsed);
-         } else if (commandName.startsWith("enqueue user") && (await checkPermission(parsed))) {
-            await Commands.enqueueUser(parsed);
-         } else if (commandName.startsWith("enqueue role") && (await checkPermission(parsed))) {
-            await Commands.enqueueRole(parsed);
-         } else if (commandName.startsWith("graceperiod get") && (await checkPermission(parsed))) {
-            await Commands.graceperiodGet(parsed);
-         } else if (commandName.startsWith("graceperiod set") && (await checkPermission(parsed))) {
-            await Commands.graceperiodSet(parsed);
-         } else if (commandName.startsWith("header get") && (await checkPermission(parsed))) {
-            await Commands.headerGet(parsed);
-         } else if (commandName.startsWith("header set") && (await checkPermission(parsed))) {
-            await Commands.headerSet(parsed);
-         } else if (commandName.startsWith("kick ") && (await checkPermission(parsed))) {
-            await Commands.kick(parsed);
-         } else if (commandName.startsWith("kickall") && (await checkPermission(parsed))) {
-            await Commands.kickAll(parsed);
-         } else if (commandName.startsWith("mode get") && (await checkPermission(parsed))) {
-            await Commands.modeGet(parsed);
-         } else if (commandName.startsWith("mode set") && (await checkPermission(parsed))) {
-            await Commands.modeSet(parsed);
-         } else if (commandName.startsWith("next") && (await checkPermission(parsed))) {
-            await Commands.next(parsed);
-         } else if (commandName.startsWith("permission add user") && (await checkPermission(parsed))) {
-            await Commands.permissionAddUser(parsed);
-         } else if (commandName.startsWith("permission add role") && (await checkPermission(parsed))) {
-            await Commands.permissionAddRole(parsed);
-         } else if (commandName.startsWith("permission delete user") && (await checkPermission(parsed))) {
-            await Commands.permissionDeleteUser(parsed);
-         } else if (commandName.startsWith("permission delete role") && (await checkPermission(parsed))) {
-            await Commands.permissionDeleteRole(parsed);
-         } else if (commandName.startsWith("permission list") && (await checkPermission(parsed))) {
-            await Commands.permissionList(parsed);
-         } else if (commandName.startsWith("priority add user") && (await checkPermission(parsed))) {
-            await Commands.priorityAddUser(parsed);
-         } else if (commandName.startsWith("priority add role") && (await checkPermission(parsed))) {
-            await Commands.priorityAddRole(parsed);
-         } else if (commandName.startsWith("priority delete user") && (await checkPermission(parsed))) {
-            await Commands.priorityDeleteUser(parsed);
-         } else if (commandName.startsWith("priority delete role") && (await checkPermission(parsed))) {
-            await Commands.priorityDeleteRole(parsed);
-         } else if (commandName.startsWith("priority list") && (await checkPermission(parsed))) {
-            await Commands.priorityList(parsed);
-         } else if (commandName.startsWith("pullnum get") && (await checkPermission(parsed))) {
-            await Commands.pullnumGet(parsed);
-         } else if (commandName.startsWith("pullnum set") && (await checkPermission(parsed))) {
-            await Commands.pullnumSet(parsed);
-         } else if (commandName.startsWith("queues add") && (await checkPermission(parsed))) {
-            await Commands.queuesAdd(parsed);
-         } else if (commandName.startsWith("queues delete") && (await checkPermission(parsed))) {
-            await Commands.queuesDelete(parsed);
-         } else if (commandName.startsWith("queues list") && (await checkPermission(parsed))) {
-            await Commands.queuesList(parsed);
-         } else if (commandName.startsWith("shuffle") && (await checkPermission(parsed))) {
-            await Commands.shuffle(parsed);
-         } else if (commandName.startsWith("size get") && (await checkPermission(parsed))) {
-            await Commands.sizeGet(parsed);
-         } else if (commandName.startsWith("size set") && (await checkPermission(parsed))) {
-            await Commands.sizeSet(parsed);
-         } else if (commandName.startsWith("start") && (await checkPermission(parsed))) {
-            await Commands.start(parsed);
-         }
+         await processCommand(parsed, message.content.substring(1).split(" "));
       }
    } catch (e) {
       console.error(e);
@@ -485,7 +421,7 @@ client.once("ready", async () => {
    await BlackWhiteListTable.initTable();
    await AdminPermissionTable.initTable();
    await PriorityTable.initTable();
-   SlashCommands.register(guilds);
+   SlashCommands.register(guilds).then();
    // Validator.validateAtStartup(guilds);
    SchedulingUtils.startScheduler();
    console.timeEnd("READY. Bot started in");
@@ -742,8 +678,8 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
                .reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true })
                .catch(() => null);
          } catch (e: any) {
-            if (e?.author === "Queue Bot") {
-               await interaction.reply({ content: "**ERROR**: " + e?.message, ephemeral: true }).catch(() => null);
+            if (e.author === "Queue Bot") {
+               await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
                return;
             } else {
                throw e;

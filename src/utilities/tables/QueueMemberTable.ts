@@ -107,7 +107,14 @@ export class QueueMemberTable {
       force?: boolean
    ): Promise<void> {
       if (!force) {
-         if (await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) {
+         if (await BlackWhiteListTable.hasWhitelist(queueChannel.id)) {
+            if (!(await BlackWhiteListTable.isWhitelisted(queueChannel.id, member))) {
+               throw {
+                  author: "Queue Bot",
+                  message: `<@${member.id}> is not on the whitelist for \`${queueChannel.name}\`.\n`,
+               };
+            }
+         } else if (await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) {
             throw {
                author: "Queue Bot",
                message: `<@${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`,
