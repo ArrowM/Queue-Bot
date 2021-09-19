@@ -4,11 +4,16 @@ import { readFileSync } from "fs";
 import { knex } from "knex";
 import { ConfigJson } from "./Interfaces";
 import { MessageCollection } from "./MessageCollection";
+
 export class Base {
    static readonly config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
    static readonly commands = JSON.parse(
       readFileSync("../config/commands-config.json", "utf8")
    ) as ApplicationOptions[];
+   static readonly inviteURL =
+      `https://discord.com/api/oauth2/authorize?client_id=` +
+      Base.config.clientId +
+      `&permissions=2433838096&scope=applications.commands%20bot`;
 
    static readonly knex = knex({
       client: Base.config.databaseType,

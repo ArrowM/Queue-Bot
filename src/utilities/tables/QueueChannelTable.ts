@@ -154,7 +154,7 @@ export class QueueChannelTable {
                      embeds: [
                         {
                            title: "Update Permission",
-                           url: "https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot",
+                           url: Base.inviteURL,
                         },
                      ],
                      commandDisplay: "EPHEMERAL",
@@ -184,7 +184,7 @@ export class QueueChannelTable {
                         embeds: [
                            {
                               title: "Update Permission",
-                              url: "https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot",
+                              url: Base.inviteURL,
                            },
                         ],
                         commandDisplay: "EPHEMERAL",

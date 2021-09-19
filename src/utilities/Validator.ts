@@ -29,7 +29,7 @@ export class Validator {
          // Clear stored caches (they might have deleted data)
          guild.channels.cache.clear();
          guild.members.cache.clear();
-         guild.roles.cache.clear();
+         // Do not clear roles - causes discord.js issues
 
          // Fetch new server data and store it
          const channels = Array.from((await guild.channels.fetch()).values()) as (
@@ -43,7 +43,6 @@ export class Validator {
          // Clear stored cache (we only want to cache relevant info - done below)
          guild.members.cache.clear();
          guild.channels.cache.clear();
-         // Do not clear roles again - causes discord.js issues
 
          // Critical - "me" must be redefined after clearing
          guild.members.cache.set(me.id, me);

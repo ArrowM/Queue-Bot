@@ -165,7 +165,7 @@ export class SlashCommands {
    public static async modifyCommandsForGuild(guild: Guild, parsed?: ParsedCommand | ParsedMessage): Promise<void> {
       try {
          //console.log("Modifying commands for " + guild.id);
-         const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 24);
+         const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
          if (storedChannels.length === 0) {
             await this.modifyForNoQueues(guild.id, parsed);
          } else {
