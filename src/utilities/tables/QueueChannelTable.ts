@@ -9,7 +9,7 @@ import {
    StageChannel,
    GuildMember,
 } from "discord.js";
-import { QueueChannel, QueueGuild } from "../Interfaces";
+import { QueueChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
@@ -19,6 +19,7 @@ import { Commands } from "../../Commands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { SchedulingUtils } from "../SchedulingUtils";
 import { SlashCommands } from "../SlashCommands";
+import { QueueGuildTable } from "./QueueGuildTable";
 
 export class QueueChannelTable {
    /**
@@ -258,7 +259,6 @@ export class QueueChannelTable {
 
    public static async validate(
       requireGuildUpdate: boolean,
-      queueGuild: QueueGuild,
       guild: Guild,
       channels: (VoiceChannel | StageChannel | TextChannel)[],
       members: GuildMember[],
@@ -283,6 +283,7 @@ export class QueueChannelTable {
          }
          if (requireGuildUpdate || requireChannelUpdate) {
             // If visual data has been unstored, schedule a display update.
+            const queueGuild = await QueueGuildTable.get(guild.id);
             SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
          }
       }

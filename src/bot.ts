@@ -7,9 +7,9 @@ import {
    StageChannel,
    TextChannel,
    VoiceChannel,
+   VoiceState,
 } from "discord.js";
 import { EventEmitter } from "events";
-import { Commands } from "./Commands";
 import { QueueChannel } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
@@ -24,6 +24,7 @@ import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
+import { Commands } from "./Commands";
 
 // Setup client
 console.time("READY. Bot started in");
@@ -54,39 +55,169 @@ if (config.topGgToken) {
    dbl.on("error", () => null);
 }
 
+//
+// --- DISCORD EVENTS ---
+//
+
 client.on("interactionCreate", async (interaction: Interaction) => {
    try {
       if (interaction.isButton()) {
-         if (!isReady) return;
-         if (!interaction.guild?.id) return;
-
-         switch (interaction?.customId) {
-            case "joinLeave":
-               await joinLeaveButton(interaction);
-               break;
+         if (isReady && interaction.guild?.id && interaction.customId === "joinLeave") {
+            await joinLeaveButton(interaction);
          }
       } else if (interaction.isCommand()) {
          if (!isReady) {
             await interaction.reply("Bot is starting up. Please try again in 5 seconds...");
-            return;
-         }
-         if (!interaction.guild?.id) {
+         } else if (!interaction.guild?.id) {
             await interaction.reply("Commands can only be used in servers.");
-            return;
+         } else {
+            const parsed = new ParsedCommand(interaction);
+            await parsed.setup();
+            await processCommand(parsed, [
+               parsed.request.commandName,
+               parsed.request.options?.data?.[0]?.name,
+               parsed.request.options?.data?.[0]?.options?.[0]?.name,
+            ]);
          }
-
-         const parsed = new ParsedCommand(interaction);
-         await parsed.setup();
-         await processCommand(parsed, [
-            parsed.request.commandName,
-            parsed.request.options?.data?.[0]?.name,
-            parsed.request.options?.data?.[0]?.options?.[0]?.name,
-         ]);
       }
    } catch (e) {
       console.error(e);
    }
 });
+
+client.on("messageCreate", async (message) => {
+   try {
+      const guildId = message.guild?.id;
+      if (isReady && guildId && message.content[0] === "!") {
+         const parsed = new ParsedMessage(message);
+         await parsed.setup();
+         if (parsed.queueGuild.enable_alt_prefix) {
+            await processCommand(parsed, message.content.substring(1).split(" "));
+         }
+      }
+   } catch (e) {
+      console.error(e);
+   }
+});
+
+// Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
+client.once("ready", async () => {
+   const guilds = Array.from(Base.client.guilds.cache.values());
+   Base.shuffle(guilds);
+   await PatchingUtils.run(guilds);
+   await QueueGuildTable.initTable();
+   await QueueChannelTable.initTable();
+   await DisplayChannelTable.initTable();
+   await QueueMemberTable.initTable();
+   await BlackWhiteListTable.initTable();
+   await AdminPermissionTable.initTable();
+   await PriorityTable.initTable();
+   SlashCommands.register(guilds).then();
+   // Validator.validateAtStartup(guilds);
+   SchedulingUtils.startScheduler();
+   console.timeEnd("READY. Bot started in");
+   isReady = true;
+});
+
+client.on("guildCreate", async (guild) => {
+   if (!isReady) return;
+   await QueueGuildTable.store(guild).catch(() => null);
+});
+
+client.on("roleUpdate", async (role) => {
+   try {
+      if (!isReady) return;
+      const queueGuild = await QueueGuildTable.get(role.guild.id);
+      const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
+      for await (const queueChannel of queueChannels) {
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      }
+   } catch (e) {
+      // Nothing
+   }
+});
+
+client.on("roleDelete", async (role) => {
+   try {
+      if (!isReady) return;
+      if (await PriorityTable.get(role.guild.id, role.id)) {
+         await PriorityTable.unstore(role.guild.id, role.id);
+         const queueGuild = await QueueGuildTable.get(role.guild.id);
+         const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
+         for (const queueChannel of queueChannels) {
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+         }
+      }
+   } catch (e) {
+      // Nothing
+   }
+});
+
+async function memberUpdate(member: GuildMember | PartialGuildMember) {
+   try {
+      if (!isReady) return;
+      const queueGuild = await QueueGuildTable.get(member.guild.id);
+      const queueMembers = await QueueMemberTable.getFromMember(member.id);
+      for await (const queueMember of queueMembers) {
+         const queueChannel = (await member.guild.channels.fetch(queueMember.channel_id).catch(() => null)) as
+            | VoiceChannel
+            | StageChannel
+            | TextChannel;
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      }
+   } catch (e) {
+      // Nothing
+   }
+}
+
+client.on("guildMemberUpdate", async (oldMember, newMember) => {
+   await memberUpdate(newMember);
+});
+
+client.on("guildMemberRemove", async (guildMember) => {
+   await memberUpdate(guildMember);
+});
+
+client.on("guildDelete", async (guild) => {
+   if (!isReady) return;
+   await QueueGuildTable.unstore(guild.id).catch(() => null);
+});
+
+client.on("channelDelete", async (channel) => {
+   try {
+      if (!isReady || channel.type === "DM") return;
+      const deletedQueueChannel = await QueueChannelTable.get(channel.id);
+      if (deletedQueueChannel) {
+         await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
+      }
+      await DisplayChannelTable.getFromQueue(channel.id).delete();
+   } catch (e) {
+      // Nothing
+   }
+});
+
+client.on("channelUpdate", async (_oldCh, newCh) => {
+   try {
+      if (!isReady) return;
+      const newChannel = newCh as VoiceChannel | StageChannel | TextChannel;
+      const changedChannel = await QueueChannelTable.get(newCh.id);
+      if (changedChannel) {
+         const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
+         SchedulingUtils.scheduleDisplayUpdate(queueGuild, newChannel);
+      }
+   } catch (e) {
+      // Nothing
+   }
+});
+
+// Monitor for users joining voice channels
+client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
+   processVoice(oldVoiceState, newVoiceState).then();
+});
+
+//
+// -- Bot Processing Methods ---
+//
 
 async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<boolean> {
    if (!parsed.hasPermission) {
@@ -393,133 +524,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: st
    }
 }
 
-client.on("messageCreate", async (message) => {
-   try {
-      const guildId = message.guild?.id;
-      if (!(isReady && guildId && message.content[0] === "!")) return;
-      // -
-      const parsed = new ParsedMessage(message);
-      await parsed.setup();
-      if (parsed.queueGuild.enable_alt_prefix) {
-         await processCommand(parsed, message.content.substring(1).split(" "));
-      }
-   } catch (e) {
-      console.error(e);
-   }
-});
-
-// Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
-client.once("ready", async () => {
-   const guilds = Array.from(Base.client.guilds.cache.values());
-   Base.shuffle(guilds);
-   await PatchingUtils.run(guilds);
-   await QueueGuildTable.initTable();
-   await QueueChannelTable.initTable();
-   await DisplayChannelTable.initTable();
-   await QueueMemberTable.initTable();
-   await BlackWhiteListTable.initTable();
-   await AdminPermissionTable.initTable();
-   await PriorityTable.initTable();
-   SlashCommands.register(guilds).then();
-   // Validator.validateAtStartup(guilds);
-   SchedulingUtils.startScheduler();
-   console.timeEnd("READY. Bot started in");
-   isReady = true;
-});
-
-client.on("guildCreate", async (guild) => {
-   if (!isReady) return;
-   await QueueGuildTable.store(guild).catch(() => null);
-});
-
-client.on("roleUpdate", async (role) => {
-   try {
-      if (!isReady) return;
-      const queueGuild = await QueueGuildTable.get(role.guild.id);
-      const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
-      for await (const queueChannel of queueChannels) {
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-      }
-   } catch (e) {
-      // Nothing
-   }
-});
-
-client.on("roleDelete", async (role) => {
-   try {
-      if (!isReady) return;
-      if (await PriorityTable.get(role.guild.id, role.id)) {
-         await PriorityTable.unstore(role.guild.id, role.id);
-         const queueGuild = await QueueGuildTable.get(role.guild.id);
-         const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
-         for (const queueChannel of queueChannels) {
-            SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-         }
-      }
-   } catch (e) {
-      // Nothing
-   }
-});
-
-async function memberUpdate(member: GuildMember | PartialGuildMember) {
-   try {
-      if (!isReady) return;
-      const queueGuild = await QueueGuildTable.get(member.guild.id);
-      const queueMembers = await QueueMemberTable.getFromMember(member.id);
-      for await (const queueMember of queueMembers) {
-         const queueChannel = (await member.guild.channels.fetch(queueMember.channel_id).catch(() => null)) as
-            | VoiceChannel
-            | StageChannel
-            | TextChannel;
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-      }
-   } catch (e) {
-      // Nothing
-   }
-}
-
-client.on("guildMemberUpdate", async (oldMember, newMember) => {
-   await memberUpdate(newMember);
-});
-
-client.on("guildMemberRemove", async (guildMember) => {
-   await memberUpdate(guildMember);
-});
-
-client.on("guildDelete", async (guild) => {
-   if (!isReady) return;
-   await QueueGuildTable.unstore(guild.id).catch(() => null);
-});
-
-client.on("channelDelete", async (channel) => {
-   try {
-      if (!isReady || channel.type === "DM") return;
-      const deletedQueueChannel = await QueueChannelTable.get(channel.id);
-      if (deletedQueueChannel) {
-         await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
-      }
-      await DisplayChannelTable.getFromQueue(channel.id).delete();
-   } catch (e) {
-      // Nothing
-   }
-});
-
-client.on("channelUpdate", async (_oldCh, newCh) => {
-   try {
-      if (!isReady) return;
-      const newChannel = newCh as VoiceChannel | StageChannel | TextChannel;
-      const changedChannel = await QueueChannelTable.get(newCh.id);
-      if (changedChannel) {
-         const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, newChannel);
-      }
-   } catch (e) {
-      // Nothing
-   }
-});
-
-// Monitor for users joining voice channels
-client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
+async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState) {
    try {
       if (!isReady) return;
       const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel | StageChannel;
@@ -542,52 +547,56 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
       }
       if (storedNewQueueChannel && !Base.isMe(member)) {
          // Joined queue channel
-         if (storedNewQueueChannel.target_channel_id) {
-            const targetChannel = (await member.guild.channels
-               .fetch(storedNewQueueChannel.target_channel_id)
-               .catch(() => null)) as VoiceChannel | StageChannel;
-            if (targetChannel) {
-               if (
-                  storedNewQueueChannel.auto_fill &&
-                  newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
-                  (!targetChannel.userLimit ||
-                     targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
-               ) {
-                  SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
-                  return;
-               }
-            } else {
-               // Target has been deleted - clean it up
-               await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
-            }
-         }
          try {
+            if (storedNewQueueChannel.target_channel_id) {
+               const targetChannel = (await member.guild.channels
+                  .fetch(storedNewQueueChannel.target_channel_id)
+                  .catch(() => null)) as VoiceChannel | StageChannel;
+               if (targetChannel) {
+                  if (
+                     storedNewQueueChannel.auto_fill &&
+                     newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
+                     (!targetChannel.userLimit ||
+                        targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
+                  ) {
+                     SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+                     return;
+                  }
+               } else {
+                  // Target has been deleted - clean it up
+                  await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
+               }
+            }
             await QueueMemberTable.store(newVoiceChannel, member);
             SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
          } catch (e) {
-            // skip display update if store fails
+            // skip display update if failure
          }
       }
       if (storedOldQueueChannel) {
-         // Left queue channel
-         if (Base.isMe(member) && newVoiceChannel) {
-            await QueueChannelTable.updateTarget(oldVoiceChannel.id, newVoiceChannel.id);
-            // move bot back
-            SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
-            await setTimeout(
-               async () =>
-                  await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel).catch(() => null),
-               1000
-            );
-         } else {
-            await QueueMemberTable.unstore(
-               member.guild.id,
-               oldVoiceChannel.id,
-               [member.id],
-               storedOldQueueChannel.grace_period
-            );
+         try {
+            // Left queue channel
+            if (Base.isMe(member) && newVoiceChannel) {
+               await QueueChannelTable.updateTarget(oldVoiceChannel.id, newVoiceChannel.id);
+               // move bot back
+               SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
+               await setTimeout(
+                  async () =>
+                     await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel).catch(() => null),
+                  1000
+               );
+            } else {
+               await QueueMemberTable.unstore(
+                  member.guild.id,
+                  oldVoiceChannel.id,
+                  [member.id],
+                  storedOldQueueChannel.grace_period
+               );
+            }
+            SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
+         } catch (e) {
+            // skip display update if failure
          }
-         SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
       }
       if (!Base.isMe(member) && oldVoiceChannel) {
          // Check if leaving target channel
@@ -606,9 +615,9 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
    } catch (e) {
       console.error(e);
    }
-});
+}
 
-export async function fillTargetChannel(
+async function fillTargetChannel(
    storedSrcChannel: QueueChannel,
    srcChannel: VoiceChannel | StageChannel,
    dstChannel: VoiceChannel | StageChannel
@@ -659,11 +668,9 @@ export async function fillTargetChannel(
 async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
    try {
       const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
-      if (!storedDisplayChannel) throw "storedDisplayChannel not found";
       const queueChannel = (await interaction.guild.channels
          .fetch(storedDisplayChannel.queue_channel_id)
          .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
-      if (!queueChannel) throw "queueChannel not found";
       const member = await queueChannel.guild.members.fetch(interaction.user.id);
       const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
@@ -671,24 +678,18 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
          await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueueChannel.grace_period);
          await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
       } else {
-         try {
-            await QueueMemberTable.store(queueChannel, member);
-            await interaction
-               .reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true })
-               .catch(() => null);
-         } catch (e: any) {
-            if (e.author === "Queue Bot") {
-               await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
-               return;
-            } else {
-               throw e;
-            }
-         }
+         await QueueMemberTable.store(queueChannel, member);
+         await interaction
+            .reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true })
+            .catch(() => null);
       }
       const queueGuild = await QueueGuildTable.get(interaction.guild.id);
       SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-   } catch (e) {
-      console.error(e);
-      await interaction.reply("An error has occurred").catch(() => null);
+   } catch (e: any) {
+      if (e.author === "Queue Bot") {
+         await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
+      } else {
+         await interaction.reply("An error has occurred").catch(() => null);
+      }
    }
 }
