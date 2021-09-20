@@ -1,32 +1,43 @@
 {
-   "env": {
-      "es6": true,
-      "node": true
-   },
-   "extends": [ "eslint:recommended", "plugin:prettier/recommended" ],
-   "parser": "@typescript-eslint/parser",
-   "parserOptions": {
-      "project": "tsconfig.json",
-      "ecmaVersion": 12
-   },
-   "plugins": [ "node", "promise", "import", "prettier", "@typescript-eslint" ],
-   "root": true,
-   "rules": {
-      "prettier/prettier": [
-         "warn",
-         {
-            "endOfLine": "auto",
-            "printWidth": 120,
-            "tabWidth": 3
-         }
-      ],
-      "no-unused-vars": "warn",
-      "no-unused-expressions": "error",
-      "no-undef": "off"
-   },
-   "overrides": [
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:prettier/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "tsconfig.json",
+    "ecmaVersion": 12
+  },
+  "plugins": [
+    "node",
+    "promise",
+    "import",
+    "prettier",
+    "@typescript-eslint"
+  ],
+  "root": true,
+  "rules": {
+    "prettier/prettier": [
+      "warn",
       {
-         "files": [ "src/**/*.ts" ]
+        "endOfLine": "auto",
+        "printWidth": 120,
+        "tabWidth": 2
       }
-   ]
+    ],
+    "no-unused-vars": "warn",
+    "no-unused-expressions": "error",
+    "no-undef": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/**/*.ts"
+      ]
+    }
+  ]
 }

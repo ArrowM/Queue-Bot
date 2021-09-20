@@ -1,45 +1,45 @@
 {
-   "name": "queue-bot",
-   "version": "1.0.0",
-   "description": "A Discord bot!",
-   "main": "build/bot.js",
-   "scripts": {
-      "build": "tsc -p .",
-      "format": "eslint src/** --fix --no-error-on-unmatched-pattern",
-      "start": "cd build && node bot.js",
-      "restart": "tsc -p . && pm2 stop all && pm2 flush && pm2 start all"
-   },
-   "keywords": [],
-   "author": "Arrow",
-   "license": "ISC",
-   "type": "commonjs",
-   "dependencies": {
-      "@discordjs/voice": "^0.6.0",
-      "bufferutil": "^4.0.3",
-      "dblapi.js": "^2.4.1",
-      "delay": "^5.0.0",
-      "discord-slash-commands-client": "^1.2.1",
-      "discord.js": "^13.1.0",
-      "knex": "^0.95.9",
-      "knex-schema-inspector": "^1.5.8",
-      "libsodium-wrappers": "^0.7.9",
-      "node-gyp": "^8.1.0",
-      "pg": "^8.6.0",
-      "string-similarity": "^4.0.4",
-      "utf-8-validate": "^5.0.5",
-      "zlib-sync": "^0.1.7"
-   },
-   "devDependencies": {
-      "@types/node": "^16.3.1",
-      "@typescript-eslint/eslint-plugin": "^4.28.2",
-      "@typescript-eslint/parser": "^4.23.0",
-      "eslint": "^7.26.0",
-      "eslint-config-prettier": "^8.3.0",
-      "eslint-plugin-import": "^2.22.1",
-      "eslint-plugin-node": "^11.1.0",
-      "eslint-plugin-prettier": "^3.4.0",
-      "eslint-plugin-promise": "^5.1.0",
-      "prettier": "^2.3.0",
-      "typescript": "^4.2.4"
-   }
+  "name": "queue-bot",
+  "version": "1.0.0",
+  "description": "A Discord bot!",
+  "main": "build/bot.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "format": "eslint src/**/*.ts --fix --no-error-on-unmatched-pattern",
+    "start": "cd build && node bot.js",
+    "restart": "tsc -p . && pm2 stop all && pm2 flush && pm2 start all"
+  },
+  "keywords": [],
+  "author": "Arrow",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@discordjs/voice": "^0.6.0",
+    "bufferutil": "^4.0.3",
+    "dblapi.js": "^2.4.1",
+    "delay": "^5.0.0",
+    "discord-slash-commands-client": "^1.2.1",
+    "discord.js": "^13.1.0",
+    "knex": "^0.95.9",
+    "knex-schema-inspector": "^1.5.8",
+    "libsodium-wrappers": "^0.7.9",
+    "node-gyp": "^8.1.0",
+    "pg": "^8.6.0",
+    "string-similarity": "^4.0.4",
+    "utf-8-validate": "^5.0.5",
+    "zlib-sync": "^0.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^16.3.1",
+    "@typescript-eslint/eslint-plugin": "^4.28.2",
+    "@typescript-eslint/parser": "^4.23.0",
+    "eslint": "^7.26.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "eslint-plugin-promise": "^5.1.0",
+    "prettier": "^2.3.0",
+    "typescript": "^4.2.4"
+  }
 }

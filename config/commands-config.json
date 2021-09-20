@@ -1,1096 +1,1096 @@
 [
-   {
-      "name": "altprefix",
-      "description": "altprefix",
-      "options": [
-         {
-            "name": "status",
-            "description": "Enable or disable alternate prefix",
-            "type": 3,
-            "required": true,
-            "choices": [
-               {
-                  "name": "on",
-                  "value": "on"
-               },
-               {
-                  "name": "off",
-                  "value": "off"
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "autopull",
-      "description": "autopull",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get the current autopull settings",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Toggle automatic pull of users from a voice queue",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Voice queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "status",
-                  "description": "On or off",
-                  "type": 3,
-                  "required": true,
-                  "choices": [
-                     {
-                        "name": "on",
-                        "value": "on"
-                     },
-                     {
-                        "name": "off",
-                        "value": "off"
-                     }
-                  ]
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "blacklist",
-      "description": "Add / Delete / List users or roles from a queue's blacklist",
-      "options": [
-         {
-            "name": "add",
-            "description": "Add a user or role to a queue's blacklist",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Add a user to a queue's blacklist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "user",
-                        "description": "User to blacklist",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Add a role to a queue's blacklist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "role",
-                        "description": "Role to blacklist",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
-            ]
-         },
-         {
-            "name": "delete",
-            "description": "Remove a user or role from a queue's blacklist",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Remove a user from a queue's blacklist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "user",
-                        "description": "User to remove from blacklist",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Remove a role from a queue's blacklist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "role",
-                        "description": "Role to remove from blacklist",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
-            ]
-         },
-         {
-            "name": "list",
-            "description": "Display a queue's blacklist",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               }
-            ]
-         },
-         {
-            "name": "clear",
-            "description": "Clear a queue's blacklist",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "button",
-      "description": "button",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get whether a \"Join / Leave\" button appears under a text queue display",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set whether a \"Join / Leave\" button appears under a text queue display",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Text queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "status",
-                  "description": "Enable or disable button",
-                  "type": 3,
-                  "required": true,
-                  "choices": [
-                     {
-                        "name": "on",
-                        "value": "on"
-                     },
-                     {
-                        "name": "off",
-                        "value": "off"
-                     }
-                  ]
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "clear",
-      "description": "Clear a queue",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-         }
-      ]
-   },
-   {
-      "name": "color",
-      "description": "color",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get the current color settings",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set a new color for a queue",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "color",
-                  "description": "New color",
-                  "type": 3,
-                  "required": true,
-                  "choices": [
-                     {
-                        "name": "DEFAULT",
-                        "value": "DEFAULT"
-                     },
-                     {
-                        "name": "WHITE",
-                        "value": "WHITE"
-                     },
-                     {
-                        "name": "AQUA",
-                        "value": "AQUA"
-                     },
-                     {
-                        "name": "GREEN",
-                        "value": "GREEN"
-                     },
-                     {
-                        "name": "BLUE",
-                        "value": "BLUE"
-                     },
-                     {
-                        "name": "YELLOW",
-                        "value": "YELLOW"
-                     },
-                     {
-                        "name": "PURPLE",
-                        "value": "PURPLE"
-                     },
-                     {
-                        "name": "LUMINOUS_VIVID_PINK",
-                        "value": "LUMINOUS_VIVID_PINK"
-                     },
-                     {
-                        "name": "FUCHSIA",
-                        "value": "FUCHSIA"
-                     },
-                     {
-                        "name": "GOLD",
-                        "value": "GOLD"
-                     },
-                     {
-                        "name": "ORANGE",
-                        "value": "ORANGE"
-                     },
-                     {
-                        "name": "RED",
-                        "value": "RED"
-                     },
-                     {
-                        "name": "GREY",
-                        "value": "GREY"
-                     },
-                     {
-                        "name": "DARKER_GREY",
-                        "value": "DARKER_GREY"
-                     },
-                     {
-                        "name": "NAVY",
-                        "value": "NAVY"
-                     },
-                     {
-                        "name": "DARK_AQUA",
-                        "value": "DARK_AQUA"
-                     },
-                     {
-                        "name": "DARK_GREEN",
-                        "value": "DARK_GREEN"
-                     },
-                     {
-                        "name": "DARK_BLUE",
-                        "value": "DARK_BLUE"
-                     },
-                     {
-                        "name": "DARK_PURPLE",
-                        "value": "DARK_PURPLE"
-                     },
-                     {
-                        "name": "DARK_VIVID_PINK",
-                        "value": "DARK_VIVID_PINK"
-                     },
-                     {
-                        "name": "DARK_GOLD",
-                        "value": "DARK_GOLD"
-                     },
-                     {
-                        "name": "DARK_ORANGE",
-                        "value": "DARK_ORANGE"
-                     },
-                     {
-                        "name": "DARK_RED",
-                        "value": "DARK_RED"
-                     },
-                     {
-                        "name": "RANDOM",
-                        "value": "RANDOM"
-                     }
-                  ]
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "display",
-      "description": "Display the users in a queue. These messages stay updated",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-         }
-      ]
-   },
-   {
-      "name": "enqueue",
-      "description": "Add a specified user or role to a queue",
-      "options": [
-         {
-            "name": "user",
-            "description": "Add a specified user to a queue",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Text queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "user",
-                  "description": "User to add",
-                  "type": 6,
-                  "required": true
-               },
-               {
-                  "name": "message",
-                  "description": "Message to display next to the name",
-                  "type": 3,
-                  "required": false
-               }
-            ]
-         },
-         {
-            "name": "role",
-            "description": "Add a specified role to a queue",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Text queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "role",
-                  "description": "Role to add",
-                  "type": 8,
-                  "required": true
-               },
-               {
-                  "name": "message",
-                  "description": "Message to display next to the name",
-                  "type": 3,
-                  "required": false
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "graceperiod",
-      "description": "graceperiod",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get the current grace period settings",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set how long a user can leave a queue before losing their spot",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "graceperiod",
-                  "description": "Grace period in seconds",
-                  "type": 4,
-                  "required": true
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "header",
-      "description": "header",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get the current header settings",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set or remove a header for a queue's display messages",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "message",
-                  "description": "New header message. Leave blank to remove current header",
-                  "type": 3,
-                  "required": false
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "help",
-      "description": "Display help messages",
-      "options": [
-         {
-            "name": "type",
-            "description": "Type of help to display",
-            "type": 3,
-            "required": false,
-            "choices": [
-               {
-                  "name": "setup",
-                  "value": "setup"
-               },
-               {
-                  "name": "queues",
-                  "value": "queues"
-               },
-               {
-                  "name": "bot",
-                  "value": "bot"
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "join",
-      "description": "Join or leave a text queue",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Text queue channel",
-            "type": 7,
-            "required": true
-         },
-         {
-            "name": "message",
-            "description": "Message to display next to your name",
-            "type": 3,
-            "required": false
-         }
-      ]
-   },
-   {
-      "name": "kick",
-      "description": "Kick a user from a specified queue",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-         },
-         {
-            "name": "user",
-            "description": "User to kick",
-            "type": 6,
-            "required": true
-         }
-      ]
-   },
-   {
-      "name": "kickall",
-      "description": "Kick a user from all queues",
-      "options": [
-         {
-            "name": "user",
-            "description": "User to kick",
-            "type": 6,
-            "required": true
-         }
-      ]
-   },
-   {
-      "name": "leave",
-      "description": "Leave a text queue",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Text queue channel",
-            "type": 7,
-            "required": true
-         }
-      ]
-   },
-   {
-      "name": "mentions",
-      "description": "mentions",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get whether users are displayed as mentions (on), or normal text (off)",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set whether users are displayed as mentions (on), or normal text (off)",
-            "type": 1,
-            "options": [
-               {
-                  "name": "status",
-                  "description": "mentions (on), or normal text (off)",
-                  "type": 3,
-                  "required": true,
-                  "choices": [
-                     {
-                        "name": "on",
-                        "value": "on"
-                     },
-                     {
-                        "name": "off",
-                        "value": "off"
-                     }
-                  ]
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "mode",
-      "description": "mode",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get the way queue displays are sent",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set the way queue displays are sent",
-            "type": 1,
-            "options": [
-               {
-                  "name": "mode",
-                  "description": "1 = Edit old msgs. 2 = Send new msgs and delete old ones. 3 = Send new msgs.",
-                  "type": 4,
-                  "required": true,
-                  "choices": [
-                     {
-                        "name": "1",
-                        "value": 1
-                     },
-                     {
-                        "name": "2",
-                        "value": 2
-                     },
-                     {
-                        "name": "3",
-                        "value": 3
-                     }
-                  ]
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "myqueues",
-      "description": "Display the queues you are in with your position"
-   },
-   {
-      "name": "next",
-      "description": "Pull a specified # of user(s) from a queue and display their name(s)",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-         },
-         {
-            "name": "amount",
-            "description": "# of users to pull from the queue. (Default: 1)",
-            "type": 4,
-            "required": false
-         }
-      ]
-   },
-   {
-      "name": "permission",
-      "description": "permission",
-      "options": [
-         {
-            "name": "add",
-            "description": "Grant permission to a role or user to use bot commands",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Grant permission to a user to use bot commands",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "user",
-                        "description": "User receiving permission to use bot commands",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Grant permission to a role to use bot commands",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "role",
-                        "description": "Role receiving permission to use bot commands",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
-            ]
-         },
-         {
-            "name": "delete",
-            "description": "Revoke permission from a role or user to use bot commands",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Grant permission to a user to use bot commands",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "user",
-                        "description": "User receiving permission to use bot commands",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Grant permission to a role to use bot commands",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "role",
-                        "description": "Role receiving permission to use bot commands",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
-            ]
-         },
-         {
-            "name": "list",
-            "description": "List roles and users with permission to use bot commands",
-            "type": 1
-         },
-         {
-            "name": "clear",
-            "description": "Clear roles and users with permission to use bot commands",
-            "type": 1
-         }
-      ]
-   },
-   {
-      "name": "pullnum",
-      "description": "pullnum",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get the current pullnum settings",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set the default # of users to pull when autopull is off or when using the `next` command",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "amount",
-                  "description": "# of users to pull when autopull is off or when using the `next` command. (Default: 1)",
-                  "type": 4,
-                  "required": true
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "priority",
-      "description": "priority",
-      "options": [
-         {
-            "name": "add",
-            "description": "Grant priority in queue to a role or user",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Grant priority in queue to a user",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "user",
-                        "description": "User receiving priority in queue",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Grant priority in queue to a role",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "role",
-                        "description": "Role receiving priority in queue",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
-            ]
-         },
-         {
-            "name": "delete",
-            "description": "Revoke priority in queue from a role or user",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Grant priority in queue to a user",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "user",
-                        "description": "User receiving priority in queue",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Grant priority in queue to a role",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "role",
-                        "description": "Role receiving priority in queue",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
-            ]
-         },
-         {
-            "name": "list",
-            "description": "List roles and users with priority in queue",
-            "type": 1
-         },
-         {
-            "name": "clear",
-            "description": "Clear roles and users with priority in queue",
-            "type": 1
-         }
-      ]
-   },
-   {
-      "name": "queues",
-      "description": "queues",
-      "options": [
-         {
-            "name": "add",
-            "description": "Add a new queue",
-            "type": 1,
-            "options": [
-               {
-                  "name": "channel",
-                  "description": "Channel to turn into a queue",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "size",
-                  "description": "Maximum # of users that can be in the queue at once",
-                  "type": 4,
-                  "required": false
-               }
-            ]
-         },
-         {
-            "name": "delete",
-            "description": "Delete a queue",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel to delete",
-                  "type": 7,
-                  "required": true
-               }
-            ]
-         },
-         {
-            "name": "list",
-            "description": "List queues",
-            "type": 1
-         }
-      ]
-   },
-   {
-      "name": "shuffle",
-      "description": "Shuffle a queue",
-      "options": [
-         {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-         }
-      ]
-   },
-   {
-      "name": "size",
-      "description": "size",
-      "options": [
-         {
-            "name": "get",
-            "description": "Get the current queue sizes",
-            "type": 1,
-            "options": []
-         },
-         {
-            "name": "set",
-            "description": "Set the size of a queue",
-            "type": 1,
-            "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               },
-               {
-                  "name": "size",
-                  "description": "Maximum # of users allowed in the queue",
-                  "type": 4,
-                  "required": true
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "name": "start",
-      "description": "Add the bot to a voice queue",
-      "options": [
-         {
+  {
+    "name": "altprefix",
+    "description": "altprefix",
+    "options": [
+      {
+        "name": "status",
+        "description": "Enable or disable alternate prefix",
+        "type": 3,
+        "required": true,
+        "choices": [
+          {
+            "name": "on",
+            "value": "on"
+          },
+          {
+            "name": "off",
+            "value": "off"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "autopull",
+    "description": "autopull",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current autopull settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Toggle automatic pull of users from a voice queue",
+        "type": 1,
+        "options": [
+          {
             "name": "queue",
             "description": "Voice queue channel",
             "type": 7,
             "required": true
-         }
-      ]
-   },
-   {
-      "name": "whitelist",
-      "description": "Add / Delete / List users or roles from a queue's whitelist",
-      "options": [
-         {
-            "name": "add",
-            "description": "Add a user or role to a queue's whitelist",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Add a user to a queue's whitelist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "user",
-                        "description": "User to whitelist",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Add a role to a queue's whitelist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "role",
-                        "description": "Role to whitelist",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
+          },
+          {
+            "name": "status",
+            "description": "On or off",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
             ]
-         },
-         {
-            "name": "delete",
-            "description": "Remove a user or role from a queue's whitelist",
-            "type": 2,
-            "options": [
-               {
-                  "name": "user",
-                  "description": "Remove a user from a queue's whitelist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "user",
-                        "description": "User to remove from whitelist",
-                        "type": 6,
-                        "required": true
-                     }
-                  ]
-               },
-               {
-                  "name": "role",
-                  "description": "Remove a role from a queue's whitelist",
-                  "type": 1,
-                  "options": [
-                     {
-                        "name": "queue",
-                        "description": "Queue channel",
-                        "type": 7,
-                        "required": true
-                     },
-                     {
-                        "name": "role",
-                        "description": "Role to remove from whitelist",
-                        "type": 8,
-                        "required": true
-                     }
-                  ]
-               }
-            ]
-         },
-         {
-            "name": "list",
-            "description": "Display a queue's whitelist",
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "blacklist",
+    "description": "Add / Delete / List users or roles from a queue's blacklist",
+    "options": [
+      {
+        "name": "add",
+        "description": "Add a user or role to a queue's blacklist",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Add a user to a queue's blacklist",
             "type": 1,
             "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               }
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "user",
+                "description": "User to blacklist",
+                "type": 6,
+                "required": true
+              }
             ]
-         },
-         {
-            "name": "clear",
-            "description": "Clear a queue's whitelist",
+          },
+          {
+            "name": "role",
+            "description": "Add a role to a queue's blacklist",
             "type": 1,
             "options": [
-               {
-                  "name": "queue",
-                  "description": "Queue channel",
-                  "type": 7,
-                  "required": true
-               }
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "role",
+                "description": "Role to blacklist",
+                "type": 8,
+                "required": true
+              }
             ]
-         }
-      ]
-   }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "description": "Remove a user or role from a queue's blacklist",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Remove a user from a queue's blacklist",
+            "type": 1,
+            "options": [
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "user",
+                "description": "User to remove from blacklist",
+                "type": 6,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "role",
+            "description": "Remove a role from a queue's blacklist",
+            "type": 1,
+            "options": [
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "role",
+                "description": "Role to remove from blacklist",
+                "type": 8,
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "description": "Display a queue's blacklist",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "clear",
+        "description": "Clear a queue's blacklist",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "button",
+    "description": "button",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get whether a \"Join / Leave\" button appears under a text queue display",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set whether a \"Join / Leave\" button appears under a text queue display",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Text queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "status",
+            "description": "Enable or disable button",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "clear",
+    "description": "Clear a queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Queue channel",
+        "type": 7,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "color",
+    "description": "color",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current color settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set a new color for a queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "color",
+            "description": "New color",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "DEFAULT",
+                "value": "DEFAULT"
+              },
+              {
+                "name": "WHITE",
+                "value": "WHITE"
+              },
+              {
+                "name": "AQUA",
+                "value": "AQUA"
+              },
+              {
+                "name": "GREEN",
+                "value": "GREEN"
+              },
+              {
+                "name": "BLUE",
+                "value": "BLUE"
+              },
+              {
+                "name": "YELLOW",
+                "value": "YELLOW"
+              },
+              {
+                "name": "PURPLE",
+                "value": "PURPLE"
+              },
+              {
+                "name": "LUMINOUS_VIVID_PINK",
+                "value": "LUMINOUS_VIVID_PINK"
+              },
+              {
+                "name": "FUCHSIA",
+                "value": "FUCHSIA"
+              },
+              {
+                "name": "GOLD",
+                "value": "GOLD"
+              },
+              {
+                "name": "ORANGE",
+                "value": "ORANGE"
+              },
+              {
+                "name": "RED",
+                "value": "RED"
+              },
+              {
+                "name": "GREY",
+                "value": "GREY"
+              },
+              {
+                "name": "DARKER_GREY",
+                "value": "DARKER_GREY"
+              },
+              {
+                "name": "NAVY",
+                "value": "NAVY"
+              },
+              {
+                "name": "DARK_AQUA",
+                "value": "DARK_AQUA"
+              },
+              {
+                "name": "DARK_GREEN",
+                "value": "DARK_GREEN"
+              },
+              {
+                "name": "DARK_BLUE",
+                "value": "DARK_BLUE"
+              },
+              {
+                "name": "DARK_PURPLE",
+                "value": "DARK_PURPLE"
+              },
+              {
+                "name": "DARK_VIVID_PINK",
+                "value": "DARK_VIVID_PINK"
+              },
+              {
+                "name": "DARK_GOLD",
+                "value": "DARK_GOLD"
+              },
+              {
+                "name": "DARK_ORANGE",
+                "value": "DARK_ORANGE"
+              },
+              {
+                "name": "DARK_RED",
+                "value": "DARK_RED"
+              },
+              {
+                "name": "RANDOM",
+                "value": "RANDOM"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "display",
+    "description": "Display the users in a queue. These messages stay updated",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Queue channel",
+        "type": 7,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "enqueue",
+    "description": "Add a specified user or role to a queue",
+    "options": [
+      {
+        "name": "user",
+        "description": "Add a specified user to a queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Text queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "user",
+            "description": "User to add",
+            "type": 6,
+            "required": true
+          },
+          {
+            "name": "message",
+            "description": "Message to display next to the name",
+            "type": 3,
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "role",
+        "description": "Add a specified role to a queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Text queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "role",
+            "description": "Role to add",
+            "type": 8,
+            "required": true
+          },
+          {
+            "name": "message",
+            "description": "Message to display next to the name",
+            "type": 3,
+            "required": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "graceperiod",
+    "description": "graceperiod",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current grace period settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set how long a user can leave a queue before losing their spot",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "graceperiod",
+            "description": "Grace period in seconds",
+            "type": 4,
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "header",
+    "description": "header",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current header settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set or remove a header for a queue's display messages",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "message",
+            "description": "New header message. Leave blank to remove current header",
+            "type": 3,
+            "required": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "help",
+    "description": "Display help messages",
+    "options": [
+      {
+        "name": "type",
+        "description": "Type of help to display",
+        "type": 3,
+        "required": false,
+        "choices": [
+          {
+            "name": "setup",
+            "value": "setup"
+          },
+          {
+            "name": "queues",
+            "value": "queues"
+          },
+          {
+            "name": "bot",
+            "value": "bot"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "join",
+    "description": "Join or leave a text queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Text queue channel",
+        "type": 7,
+        "required": true
+      },
+      {
+        "name": "message",
+        "description": "Message to display next to your name",
+        "type": 3,
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "kick",
+    "description": "Kick a user from a specified queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Queue channel",
+        "type": 7,
+        "required": true
+      },
+      {
+        "name": "user",
+        "description": "User to kick",
+        "type": 6,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "kickall",
+    "description": "Kick a user from all queues",
+    "options": [
+      {
+        "name": "user",
+        "description": "User to kick",
+        "type": 6,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "leave",
+    "description": "Leave a text queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Text queue channel",
+        "type": 7,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "mentions",
+    "description": "mentions",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get whether users are displayed as mentions (on), or normal text (off)",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set whether users are displayed as mentions (on), or normal text (off)",
+        "type": 1,
+        "options": [
+          {
+            "name": "status",
+            "description": "mentions (on), or normal text (off)",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "mode",
+    "description": "mode",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the way queue displays are sent",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set the way queue displays are sent",
+        "type": 1,
+        "options": [
+          {
+            "name": "mode",
+            "description": "1 = Edit old msgs. 2 = Send new msgs and delete old ones. 3 = Send new msgs.",
+            "type": 4,
+            "required": true,
+            "choices": [
+              {
+                "name": "1",
+                "value": 1
+              },
+              {
+                "name": "2",
+                "value": 2
+              },
+              {
+                "name": "3",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "myqueues",
+    "description": "Display the queues you are in with your position"
+  },
+  {
+    "name": "next",
+    "description": "Pull a specified # of user(s) from a queue and display their name(s)",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Queue channel",
+        "type": 7,
+        "required": true
+      },
+      {
+        "name": "amount",
+        "description": "# of users to pull from the queue. (Default: 1)",
+        "type": 4,
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "permission",
+    "description": "permission",
+    "options": [
+      {
+        "name": "add",
+        "description": "Grant permission to a role or user to use bot commands",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Grant permission to a user to use bot commands",
+            "type": 1,
+            "options": [
+              {
+                "name": "user",
+                "description": "User receiving permission to use bot commands",
+                "type": 6,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "role",
+            "description": "Grant permission to a role to use bot commands",
+            "type": 1,
+            "options": [
+              {
+                "name": "role",
+                "description": "Role receiving permission to use bot commands",
+                "type": 8,
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "description": "Revoke permission from a role or user to use bot commands",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Grant permission to a user to use bot commands",
+            "type": 1,
+            "options": [
+              {
+                "name": "user",
+                "description": "User receiving permission to use bot commands",
+                "type": 6,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "role",
+            "description": "Grant permission to a role to use bot commands",
+            "type": 1,
+            "options": [
+              {
+                "name": "role",
+                "description": "Role receiving permission to use bot commands",
+                "type": 8,
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "description": "List roles and users with permission to use bot commands",
+        "type": 1
+      },
+      {
+        "name": "clear",
+        "description": "Clear roles and users with permission to use bot commands",
+        "type": 1
+      }
+    ]
+  },
+  {
+    "name": "pullnum",
+    "description": "pullnum",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current pullnum settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set the default # of users to pull when autopull is off or when using the `next` command",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "amount",
+            "description": "# of users to pull when autopull is off or when using the `next` command. (Default: 1)",
+            "type": 4,
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "priority",
+    "description": "priority",
+    "options": [
+      {
+        "name": "add",
+        "description": "Grant priority in queue to a role or user",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Grant priority in queue to a user",
+            "type": 1,
+            "options": [
+              {
+                "name": "user",
+                "description": "User receiving priority in queue",
+                "type": 6,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "role",
+            "description": "Grant priority in queue to a role",
+            "type": 1,
+            "options": [
+              {
+                "name": "role",
+                "description": "Role receiving priority in queue",
+                "type": 8,
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "description": "Revoke priority in queue from a role or user",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Grant priority in queue to a user",
+            "type": 1,
+            "options": [
+              {
+                "name": "user",
+                "description": "User receiving priority in queue",
+                "type": 6,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "role",
+            "description": "Grant priority in queue to a role",
+            "type": 1,
+            "options": [
+              {
+                "name": "role",
+                "description": "Role receiving priority in queue",
+                "type": 8,
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "description": "List roles and users with priority in queue",
+        "type": 1
+      },
+      {
+        "name": "clear",
+        "description": "Clear roles and users with priority in queue",
+        "type": 1
+      }
+    ]
+  },
+  {
+    "name": "queues",
+    "description": "queues",
+    "options": [
+      {
+        "name": "add",
+        "description": "Add a new queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "channel",
+            "description": "Channel to turn into a queue",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "size",
+            "description": "Maximum # of users that can be in the queue at once",
+            "type": 4,
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "description": "Delete a queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel to delete",
+            "type": 7,
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "description": "List queues",
+        "type": 1
+      }
+    ]
+  },
+  {
+    "name": "shuffle",
+    "description": "Shuffle a queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Queue channel",
+        "type": 7,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "size",
+    "description": "size",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current queue sizes",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set the size of a queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "size",
+            "description": "Maximum # of users allowed in the queue",
+            "type": 4,
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "start",
+    "description": "Add the bot to a voice queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Voice queue channel",
+        "type": 7,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "whitelist",
+    "description": "Add / Delete / List users or roles from a queue's whitelist",
+    "options": [
+      {
+        "name": "add",
+        "description": "Add a user or role to a queue's whitelist",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Add a user to a queue's whitelist",
+            "type": 1,
+            "options": [
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "user",
+                "description": "User to whitelist",
+                "type": 6,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "role",
+            "description": "Add a role to a queue's whitelist",
+            "type": 1,
+            "options": [
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "role",
+                "description": "Role to whitelist",
+                "type": 8,
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "description": "Remove a user or role from a queue's whitelist",
+        "type": 2,
+        "options": [
+          {
+            "name": "user",
+            "description": "Remove a user from a queue's whitelist",
+            "type": 1,
+            "options": [
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "user",
+                "description": "User to remove from whitelist",
+                "type": 6,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "role",
+            "description": "Remove a role from a queue's whitelist",
+            "type": 1,
+            "options": [
+              {
+                "name": "queue",
+                "description": "Queue channel",
+                "type": 7,
+                "required": true
+              },
+              {
+                "name": "role",
+                "description": "Role to remove from whitelist",
+                "type": 8,
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "description": "Display a queue's whitelist",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "clear",
+        "description": "Clear a queue's whitelist",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          }
+        ]
+      }
+    ]
+  }
 ]
