@@ -71,7 +71,7 @@ export class PatchingUtils {
             failedChannelIds.push(displayChannel.id);
             // console.error(e);
           }
-          await delay(150);
+          await delay(100);
 
           if (++i % 20 === 0) {
             console.log(`Patching progress: ${i}/${displayChannels.length}`);
