@@ -4,7 +4,7 @@ import { Guild, GuildMember, Snowflake, StageChannel, TextChannel, VoiceChannel 
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { PriorityTable } from "./PriorityTable";
 import { QueueChannelTable } from "./QueueChannelTable";
-import {QueueGuildTable} from "./QueueGuildTable";
+import { QueueGuildTable } from "./QueueGuildTable";
 
 export class QueueMemberTable {
   /**
@@ -174,7 +174,6 @@ export class QueueMemberTable {
     // Unassign Queue Role
     const storedQueueChannel = await QueueChannelTable.get(channelId).catch(() => null as QueueChannel);
     if (!storedQueueChannel?.role_id) return;
-
 
     const queueGuild = await QueueGuildTable.get(guildId);
     if (!queueGuild.disable_roles) {

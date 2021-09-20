@@ -1,279 +1,279 @@
 [
-   {
-      "sent": false,
-      "date": "2021-09-20",
-      "embeds": [
-         {
-            "title": "Patch Notes for Sept 20, 2021",
-            "color": 6544040
-         },
-         {
-            "title": "Roles",
-            "color": 6544040,
-            "fields": [
-               {
-                  "name": "Option to disable roles (`/roles`)",
-                  "value": "Now you can disable `In Queue: ...` roles without messing with permissions or seeing error messages. Simply use `/roles set off`."
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "sent": true,
-      "date": "2021-09-18",
-      "embeds": [
-         {
-            "title": "Patch Notes for Sept 18, 2021",
-            "color": 6544040
-         },
-         {
-            "title": "New Stuff",
-            "color": 6544040,
-            "fields": [
-               {
-                  "name": "+`/whitelist`",
-                  "value": "You now create whitelisted queues. If a queue has a whitelist (at least 1 user or role), it's blacklist will be ignored. Anyone not on the whitelist will be blocked from joining the queue."
-               },
-               {
-                  "name": "List clearing",
-                  "value": "`/blacklist`, `/permission`, and `/priority` now have a `clear` subcommand."
-               },
-               {
-                  "name": "Support the Bot :heart:",
-                  "value": "Hosting isn't free and development takes lots of time.\n1. [Leave a review on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "sent": true,
-      "date": "2021-07-11",
-      "embeds": [
-         {
-            "title": "Patch Notes for July 11, 2021",
-            "color": 6544040
-         },
-         {
-            "title": "Slash Commands",
-            "description": "**IMPORTANT**: The bot needs new permissions. Do not kick the bot (this will delete your data). **Use this [INVITE LINK](https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot) to update the permissions**. After this message is sent, it make take up to an hour for the slash commands to show up for everyone.\n​",
-            "color": 16711680,
-            "fields": [
-               {
-                  "name": "Old Command Prefixes are Gone",
-                  "value": "The old `!` prefix **and custom prefixes** have been removed. All commands now start with `/`. For example `/help`."
-               },
-               {
-                  "name": "Command Hints",
-                  "value": "You no longer need to remember bot commands. Slash commands provide auto-complete and hints."
-               }
-            ]
-         },
-         {
-            "title": "Renamed Commands",
-            "description": "`!queue` + `!delete` → `/queues`\n`!addrole` + `!deleterole` → `/permission`\n`!limit` → `/size`\n`!autofill` → `/autopull`",
-            "color": 6544040
-         },
-         {
-            "title": "Removed Commands",
-            "description": "- `!prefix`\n- `!cleanup`",
-            "color": 6544040
-         },
-         {
-            "title": "New Commands",
-            "color": 6544040,
-            "fields": [
-               {
-                  "name": "+ `/priority`",
-                  "value": "You can now manage a list of priority users and roles. Priority users skip ahead of other users in queue."
-               },
-               {
-                  "name": "+ `/enqueue`",
-                  "value": "Add other users to a queue. (Previously a part of `!join`)."
-               },
-               {
-                  "name": "+ `/kickall`",
-                  "value": "Kick a user from all queues. (Previously a part of `!kick`)."
-               }
-            ]
-         },
-         {
-            "title": "Other Changes",
-            "color": 6544040,
-            "fields": [
-               {
-                  "name": "`/color`",
-                  "value": "Colors are linked to queues now. If you have multiple queues, they can be different colors."
-               },
-               {
-                  "name": "`/graceperiod`",
-                  "value": "Grace periods are also linked to queues now."
-               },
-               {
-                  "name": "`/help`",
-                  "value": "The help command has been split into sections:\n`/help` - basic commands for everyone\n`/help setup` - setup instructions for admins\n`/help queues` - queue customization commands for admins\n`/help bot` - non-queue customization commands for admins"
-               },
-               {
-                  "name": "`/permission`",
-                  "value": "Before, you could only give access to bot commands to individual users via `!addrole`. Now, the `/permission` commands can be used on users **and roles**."
-               },
-               {
-                  "name": "`/blacklist`",
-                  "value": "Similar to the permissions, you can now blacklist users **and roles**."
-               },
-               {
-                  "name": "Buttons",
-                  "value": "Joining queues via reaction has been replaced with joining via a button."
-               },
-               {
-                  "name": "General Improvements",
-                  "value": "This update also includes some improvements to wording, formatting, and performance, as well as some bug fixes."
-               }
-            ]
-         },
-         {
-            "title": "Final Notes",
-            "description": "This update involved rewriting most of the original code. It also required switching to a beta release of discord.js. So, there will probably be some new bugs. If you find a bug or have a suggestion, please let me know by sending a message in the [Support Server](https://discord.com/invite/RbmfnP3). There is also a link to the support server in the `/help setup` message.",
-            "color": 6544040,
-            "fields": [
-               {
-                  "name": "Support the Bot :heart:",
-                  "value": "Hosting isn't free and development takes lots of time.\n1. [Leave a review on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "sent": true,
-      "date": "2021-04-20",
-      "embeds": [
-         {
-            "title": "Patch Notes for Apr 20, 2021",
-            "description": "Two queue management role commands have been added.",
-            "color": 16727808,
-            "footer": {
-               "text": "Thanks for using Queue Bot :)"
-            },
-            "fields": [
-               {
-                  "name": "+Add a Queue Management Role",
-                  "value": "`!addrole {role name}` enables a role to manage queues. Before, you had to be a mod or admin."
-               },
-               {
-                  "name": "+Revoke a Queue Management Role",
-                  "value": "`!deleterole {role name}` revokes a role's ability to manage queues. Before, you had to be a mod or admin."
-               },
-               {
-                  "name": "Support the Bot :heart:",
-                  "value": "1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "sent": true,
-      "date": "2020-12-21",
-      "embeds": [
-         {
-            "title": "Patch Notes for Dec 21, 2020",
-            "description": "Some core commands have been renamed and a few commands have been added.",
-            "color": 16727808,
-            "footer": {
-               "text": "Thanks for using Queue Bot :)"
-            },
-            "fields": [
-               {
-                  "name": "Renamed Commands",
-                  "value": "`!d` > `!display`\n`!q` > `!queue`\n`!s` > `!start`",
-                  "inline": true
-               },
-               {
-                  "name": "​",
-                  "value": "`!j` > `!join`\n`!k` > `!kick`\n`!n` > `!next`",
-                  "inline": true
-               },
-               {
-                  "name": "​",
-                  "value": "`!h` > `!help`",
-                  "inline": true
-               },
-               {
-                  "name": "+Delete a Queue",
-                  "value": "`!delete {queue name}` deletes a queue. Before, you could delete queues using `!q`. This has been moved to its own command."
-               },
-               {
-                  "name": "+Header",
-                  "value": "`!header {queue name} {message}` adds a message to the top of the queue displays. This is intended for displaying game codes.\nFor example, `!header #Waiting-Room join code: 7GAVD3` for displaying an Among Us game code."
-               },
-               {
-                  "name": "+Mention Queue",
-                  "value": "`!mention {queue name} {OPTIONAL: message}` mentions everyone in a queue. You can add an optional message."
-               },
-               {
-                  "name": "+My Queues",
-                  "value": "`!myqueues` displays your position in each queue they have joined. It is available to everyone. (These messages aren't automatically updated)."
-               },
-               {
-                  "name": "+Blacklist",
-                  "value": "`!blacklist {queue name} @{user 1} @{user 2} ...` blacklists users from a queue. Use again to remove them from a blacklist.\n`!blacklist {queue name}` displays a queue's blacklist."
-               },
-               {
-                  "name": "General Changes",
-                  "value": "Commands will now use the current channel if a channel is not specified. For example, sending `!display` and `!display general` in the `general` channel will do the same thing."
-               },
-               {
-                  "name": "Support the Bot :heart:",
-                  "value": "1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
-               }
-            ]
-         }
-      ]
-   },
-   {
-      "sent": true,
-      "date": "2020-12-06",
-      "embeds": [
-         {
-            "title": "Patch Notes for Dec 5, 2020",
-            "description": "There are some big features changes to highlight.",
-            "color": 16727808,
-            "footer": {
-               "text": "Thanks for using Queue Bot :)"
-            },
-            "fields": [
-               {
-                  "name": "+Autofill (voice)",
-                  "value": "New default behavior. The bot will set a \"target\" when you drag it from a queue to a new channel. If the new channel has a user limit, the bot will automatically move people when spots open up in the target channel. The bot can be disconnected from voice chat after setting a target channel.\nAutofill can be toggled using `!autofill {queue name} {on|off}`."
-               },
-               {
-                  "name": "+Joining via Reaction (text)",
-                  "value": "Users can join text queues by clicking on the reaction under the queue display. `!j` is sticking around, but reactions should be a bit cleaner."
-               },
-               {
-                  "name": "+Pull Amounts (voice & text)",
-                  "value": "`!pullnum {queue name} {#}` sets the default number of people to pull when Autofill is off or when using `!n`."
-               },
-               {
-                  "name": "+Size Limits (voice & text)",
-                  "value": "`!limit {queue name} {#}` sets queue size limit."
-               },
-               {
-                  "name": "+Command Cleanup",
-                  "value": "`!cleanup {on|off}` toggles the automatic deletion Queue Bot commands sent by users. This is off by default."
-               },
-               {
-                  "name": "General Improvements",
-                  "value": "I recently upgraded the hosting solution and fixed a bunch of bugs. The bot is still under active development so please join the [support server](https://discord.gg/RbmfnP3) if you find a bug or have an idea for a new feature."
-               },
-               {
-                  "name": "Support the Bot :heart:",
-                  "value": "Hosting isn't free and development takes a lot of time. There are a couple new ways to support the bot and future development:\n1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
-               }
-            ]
-         }
-      ]
-   }
+  {
+    "sent": false,
+    "date": "2021-09-20",
+    "embeds": [
+      {
+        "title": "Patch Notes for Sept 20, 2021",
+        "color": 6544040
+      },
+      {
+        "title": "Roles",
+        "color": 6544040,
+        "fields": [
+          {
+            "name": "Option to disable roles (`/roles`)",
+            "value": "Now you can disable `In Queue: ...` roles without messing with permissions or seeing error messages. Simply use `/roles set off`."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sent": true,
+    "date": "2021-09-18",
+    "embeds": [
+      {
+        "title": "Patch Notes for Sept 18, 2021",
+        "color": 6544040
+      },
+      {
+        "title": "New Stuff",
+        "color": 6544040,
+        "fields": [
+          {
+            "name": "+`/whitelist`",
+            "value": "You now create whitelisted queues. If a queue has a whitelist (at least 1 user or role), it's blacklist will be ignored. Anyone not on the whitelist will be blocked from joining the queue."
+          },
+          {
+            "name": "List clearing",
+            "value": "`/blacklist`, `/permission`, and `/priority` now have a `clear` subcommand."
+          },
+          {
+            "name": "Support the Bot :heart:",
+            "value": "Hosting isn't free and development takes lots of time.\n1. [Leave a review on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sent": true,
+    "date": "2021-07-11",
+    "embeds": [
+      {
+        "title": "Patch Notes for July 11, 2021",
+        "color": 6544040
+      },
+      {
+        "title": "Slash Commands",
+        "description": "**IMPORTANT**: The bot needs new permissions. Do not kick the bot (this will delete your data). **Use this [INVITE LINK](https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2433838096&scope=applications.commands%20bot) to update the permissions**. After this message is sent, it make take up to an hour for the slash commands to show up for everyone.\n​",
+        "color": 16711680,
+        "fields": [
+          {
+            "name": "Old Command Prefixes are Gone",
+            "value": "The old `!` prefix **and custom prefixes** have been removed. All commands now start with `/`. For example `/help`."
+          },
+          {
+            "name": "Command Hints",
+            "value": "You no longer need to remember bot commands. Slash commands provide auto-complete and hints."
+          }
+        ]
+      },
+      {
+        "title": "Renamed Commands",
+        "description": "`!queue` + `!delete` → `/queues`\n`!addrole` + `!deleterole` → `/permission`\n`!limit` → `/size`\n`!autofill` → `/autopull`",
+        "color": 6544040
+      },
+      {
+        "title": "Removed Commands",
+        "description": "- `!prefix`\n- `!cleanup`",
+        "color": 6544040
+      },
+      {
+        "title": "New Commands",
+        "color": 6544040,
+        "fields": [
+          {
+            "name": "+ `/priority`",
+            "value": "You can now manage a list of priority users and roles. Priority users skip ahead of other users in queue."
+          },
+          {
+            "name": "+ `/enqueue`",
+            "value": "Add other users to a queue. (Previously a part of `!join`)."
+          },
+          {
+            "name": "+ `/kickall`",
+            "value": "Kick a user from all queues. (Previously a part of `!kick`)."
+          }
+        ]
+      },
+      {
+        "title": "Other Changes",
+        "color": 6544040,
+        "fields": [
+          {
+            "name": "`/color`",
+            "value": "Colors are linked to queues now. If you have multiple queues, they can be different colors."
+          },
+          {
+            "name": "`/graceperiod`",
+            "value": "Grace periods are also linked to queues now."
+          },
+          {
+            "name": "`/help`",
+            "value": "The help command has been split into sections:\n`/help` - basic commands for everyone\n`/help setup` - setup instructions for admins\n`/help queues` - queue customization commands for admins\n`/help bot` - non-queue customization commands for admins"
+          },
+          {
+            "name": "`/permission`",
+            "value": "Before, you could only give access to bot commands to individual users via `!addrole`. Now, the `/permission` commands can be used on users **and roles**."
+          },
+          {
+            "name": "`/blacklist`",
+            "value": "Similar to the permissions, you can now blacklist users **and roles**."
+          },
+          {
+            "name": "Buttons",
+            "value": "Joining queues via reaction has been replaced with joining via a button."
+          },
+          {
+            "name": "General Improvements",
+            "value": "This update also includes some improvements to wording, formatting, and performance, as well as some bug fixes."
+          }
+        ]
+      },
+      {
+        "title": "Final Notes",
+        "description": "This update involved rewriting most of the original code. It also required switching to a beta release of discord.js. So, there will probably be some new bugs. If you find a bug or have a suggestion, please let me know by sending a message in the [Support Server](https://discord.com/invite/RbmfnP3). There is also a link to the support server in the `/help setup` message.",
+        "color": 6544040,
+        "fields": [
+          {
+            "name": "Support the Bot :heart:",
+            "value": "Hosting isn't free and development takes lots of time.\n1. [Leave a review on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sent": true,
+    "date": "2021-04-20",
+    "embeds": [
+      {
+        "title": "Patch Notes for Apr 20, 2021",
+        "description": "Two queue management role commands have been added.",
+        "color": 16727808,
+        "footer": {
+          "text": "Thanks for using Queue Bot :)"
+        },
+        "fields": [
+          {
+            "name": "+Add a Queue Management Role",
+            "value": "`!addrole {role name}` enables a role to manage queues. Before, you had to be a mod or admin."
+          },
+          {
+            "name": "+Revoke a Queue Management Role",
+            "value": "`!deleterole {role name}` revokes a role's ability to manage queues. Before, you had to be a mod or admin."
+          },
+          {
+            "name": "Support the Bot :heart:",
+            "value": "1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sent": true,
+    "date": "2020-12-21",
+    "embeds": [
+      {
+        "title": "Patch Notes for Dec 21, 2020",
+        "description": "Some core commands have been renamed and a few commands have been added.",
+        "color": 16727808,
+        "footer": {
+          "text": "Thanks for using Queue Bot :)"
+        },
+        "fields": [
+          {
+            "name": "Renamed Commands",
+            "value": "`!d` > `!display`\n`!q` > `!queue`\n`!s` > `!start`",
+            "inline": true
+          },
+          {
+            "name": "​",
+            "value": "`!j` > `!join`\n`!k` > `!kick`\n`!n` > `!next`",
+            "inline": true
+          },
+          {
+            "name": "​",
+            "value": "`!h` > `!help`",
+            "inline": true
+          },
+          {
+            "name": "+Delete a Queue",
+            "value": "`!delete {queue name}` deletes a queue. Before, you could delete queues using `!q`. This has been moved to its own command."
+          },
+          {
+            "name": "+Header",
+            "value": "`!header {queue name} {message}` adds a message to the top of the queue displays. This is intended for displaying game codes.\nFor example, `!header #Waiting-Room join code: 7GAVD3` for displaying an Among Us game code."
+          },
+          {
+            "name": "+Mention Queue",
+            "value": "`!mention {queue name} {OPTIONAL: message}` mentions everyone in a queue. You can add an optional message."
+          },
+          {
+            "name": "+My Queues",
+            "value": "`!myqueues` displays your position in each queue they have joined. It is available to everyone. (These messages aren't automatically updated)."
+          },
+          {
+            "name": "+Blacklist",
+            "value": "`!blacklist {queue name} @{user 1} @{user 2} ...` blacklists users from a queue. Use again to remove them from a blacklist.\n`!blacklist {queue name}` displays a queue's blacklist."
+          },
+          {
+            "name": "General Changes",
+            "value": "Commands will now use the current channel if a channel is not specified. For example, sending `!display` and `!display general` in the `general` channel will do the same thing."
+          },
+          {
+            "name": "Support the Bot :heart:",
+            "value": "1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sent": true,
+    "date": "2020-12-06",
+    "embeds": [
+      {
+        "title": "Patch Notes for Dec 5, 2020",
+        "description": "There are some big features changes to highlight.",
+        "color": 16727808,
+        "footer": {
+          "text": "Thanks for using Queue Bot :)"
+        },
+        "fields": [
+          {
+            "name": "+Autofill (voice)",
+            "value": "New default behavior. The bot will set a \"target\" when you drag it from a queue to a new channel. If the new channel has a user limit, the bot will automatically move people when spots open up in the target channel. The bot can be disconnected from voice chat after setting a target channel.\nAutofill can be toggled using `!autofill {queue name} {on|off}`."
+          },
+          {
+            "name": "+Joining via Reaction (text)",
+            "value": "Users can join text queues by clicking on the reaction under the queue display. `!j` is sticking around, but reactions should be a bit cleaner."
+          },
+          {
+            "name": "+Pull Amounts (voice & text)",
+            "value": "`!pullnum {queue name} {#}` sets the default number of people to pull when Autofill is off or when using `!n`."
+          },
+          {
+            "name": "+Size Limits (voice & text)",
+            "value": "`!limit {queue name} {#}` sets queue size limit."
+          },
+          {
+            "name": "+Command Cleanup",
+            "value": "`!cleanup {on|off}` toggles the automatic deletion Queue Bot commands sent by users. This is off by default."
+          },
+          {
+            "name": "General Improvements",
+            "value": "I recently upgraded the hosting solution and fixed a bunch of bugs. The bot is still under active development so please join the [support server](https://discord.gg/RbmfnP3) if you find a bug or have an idea for a new feature."
+          },
+          {
+            "name": "Support the Bot :heart:",
+            "value": "Hosting isn't free and development takes a lot of time. There are a couple new ways to support the bot and future development:\n1. [Review the bot on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+          }
+        ]
+      }
+    ]
+  }
 ]
