@@ -139,7 +139,7 @@ export class QueueChannelTable {
     channel: VoiceChannel | StageChannel | TextChannel,
     color: ColorResolvable
   ): Promise<Role> {
-    return await channel.guild.roles
+    const role = await channel.guild.roles
       .create({
         color: color,
         mentionable: true,
@@ -150,7 +150,9 @@ export class QueueChannelTable {
           await parsed
             .reply({
               content:
-                "ERROR: Failed to create server role for queue. Please:\n1. Grant me the Manage Roles permission **or** click the link below\n2. Then use `/display` to create role",
+                "WARNING: I could not create a server role. If you want queue members to receive a role, follow these steps:" +
+                "\n1. Grant me the Manage Roles permission **or** click the link below." +
+                "\n2. Then use `/display` to create role.",
               embeds: [
                 {
                   title: "Update Permission",
@@ -159,10 +161,12 @@ export class QueueChannelTable {
               ],
               commandDisplay: "EPHEMERAL",
             })
-            .catch(console.error);
+            .catch(() => null);
+          return null;
         }
-        return null;
       });
+    if (role) await QueueChannelTable.updateRoleId(channel, role);
+    return role;
   }
 
   public static async deleteQueueRole(

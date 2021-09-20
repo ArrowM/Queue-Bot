@@ -39,6 +39,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
 `/queues` - Add / delete / display queues  
+`/roles` - Enable or disable `In Queue: ...` roles  
 `/shuffle` - Shuffle a queue  
 `/size` - Get / Set size limit of a queue  
 `/start` - Add the bot to a voice queue  

@@ -4,18 +4,31 @@
     "description": "altprefix",
     "options": [
       {
-        "name": "status",
+        "name": "get",
+        "description": "Get the current alternate prefix settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
         "description": "Enable or disable alternate prefix",
-        "type": 3,
-        "required": true,
-        "choices": [
+        "type": 1,
+        "options": [
           {
-            "name": "on",
-            "value": "on"
-          },
-          {
-            "name": "off",
-            "value": "off"
+            "name": "status",
+            "description": "Enable or disable alternate prefix",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
           }
         ]
       }
@@ -913,6 +926,41 @@
         "name": "list",
         "description": "List queues",
         "type": 1
+      }
+    ]
+  },
+  {
+    "name": "roles",
+    "description": "Turn queue roles on or off",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current roles settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Enable or disable \"In Queue: ...\" roles assigned by bot",
+        "type": 1,
+        "options": [
+          {
+            "name": "status",
+            "description": "Enable or disable \"In Queue: ...\" roles assigned by bot",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
+          }
+        ]
       }
     ]
   },

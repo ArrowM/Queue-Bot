@@ -16,6 +16,7 @@ export class QueueGuildTable {
           .createTable("queue_guilds", (table) => {
             table.bigInteger("guild_id").primary();
             table.boolean("disable_mentions");
+            table.boolean("disable_roles");
             table.integer("msg_mode");
             table.boolean("enable_alt_prefix");
           })
@@ -30,6 +31,10 @@ export class QueueGuildTable {
 
   public static async updateDisableMentions(guildId: Snowflake, value: boolean): Promise<void> {
     await this.get(guildId).update("disable_mentions", value);
+  }
+
+  public static async updateDisableRoles(guildId: Snowflake, value: boolean): Promise<void> {
+    await this.get(guildId).update("disable_roles", value);
   }
 
   public static async updateMessageMode(guildId: Snowflake, mode: number): Promise<void> {

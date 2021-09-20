@@ -1,6 +1,26 @@
 [
    {
       "sent": false,
+      "date": "2021-09-20",
+      "embeds": [
+         {
+            "title": "Patch Notes for Sept 20, 2021",
+            "color": 6544040
+         },
+         {
+            "title": "Roles",
+            "color": 6544040,
+            "fields": [
+               {
+                  "name": "Option to disable roles (`/roles`)",
+                  "value": "Now you can disable `In Queue: ...` roles without messing with permissions or seeing error messages. Simply use `/roles set off`."
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "sent": true,
       "date": "2021-09-18",
       "embeds": [
          {

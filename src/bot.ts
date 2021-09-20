@@ -265,7 +265,14 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: st
   // -- ADMIN COMMANDS --
   switch (command[0]) {
     case "altprefix":
-      await Commands.altPrefix(parsed);
+      switch (command[1]) {
+        case "get":
+          await Commands.altPrefixGet(parsed);
+          break;
+        case "set":
+          await Commands.altPrefixSet(parsed);
+          break;
+      }
       break;
     case "autopull":
       switch (command[1]) {
@@ -472,6 +479,16 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: st
           break;
         case "list":
           await Commands.queuesList(parsed);
+          break;
+      }
+      break;
+    case "roles":
+      switch (command[1]) {
+        case "get":
+          await Commands.rolesGet(parsed);
+          break;
+        case "set":
+          await Commands.rolesSet(parsed);
           break;
       }
       break;

@@ -4,6 +4,7 @@ import { Guild, GuildMember, Snowflake, StageChannel, TextChannel, VoiceChannel 
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { PriorityTable } from "./PriorityTable";
 import { QueueChannelTable } from "./QueueChannelTable";
+import {QueueGuildTable} from "./QueueGuildTable";
 
 export class QueueMemberTable {
   /**
@@ -143,9 +144,9 @@ export class QueueMemberTable {
     }
     this.unstoredMembersCache.delete(member.id);
     // Assign Queue Role
-    const StoredQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
-    if (StoredQueueChannel?.role_id) {
-      await member.roles.add(StoredQueueChannel.role_id).catch(() => null);
+    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+    if (storedQueueChannel?.role_id) {
+      await member.roles.add(storedQueueChannel.role_id).catch(() => null);
     }
   }
 
@@ -174,13 +175,16 @@ export class QueueMemberTable {
     const storedQueueChannel = await QueueChannelTable.get(channelId).catch(() => null as QueueChannel);
     if (!storedQueueChannel?.role_id) return;
 
-    const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
-    if (!guild) return;
 
-    for await (const deletedMember of deletedMembers) {
-      const member = await guild.members.fetch(deletedMember.member_id).catch(() => null as GuildMember);
-      if (!member) continue;
-      await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
+    const queueGuild = await QueueGuildTable.get(guildId);
+    if (!queueGuild.disable_roles) {
+      const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
+      if (!guild) return;
+      for await (const deletedMember of deletedMembers) {
+        const member = await guild.members.fetch(deletedMember.member_id).catch(() => null as GuildMember);
+        if (!member) continue;
+        await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
+      }
     }
   }
 

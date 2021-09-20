@@ -27,10 +27,22 @@ export class Commands {
   // --------------------------------- ENABLE PREFIX ------------------------------- //
 
   /**
+   * Get the current alternate settings
+   */
+  public static async altPrefixGet(parsed: ParsedCommand | ParsedMessage) {
+    if ((await parsed.readArgs({ commandNameLength: 13 })).length) return;
+    await parsed
+      .reply({
+        content: "**Alt Prefix** (`!`): " + (parsed.queueGuild.enable_alt_prefix ? "on" : "off"),
+      })
+      .catch(() => null);
+  }
+
+  /**
    * Enable or disable alternate prefix
    */
-  public static async altPrefix(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-    if ((await parsed.readArgs({ commandNameLength: 9, hasText: true })).length) return;
+  public static async altPrefixSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+    if ((await parsed.readArgs({ commandNameLength: 13, hasText: true })).length) return;
 
     if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
       await parsed
@@ -39,9 +51,7 @@ export class Commands {
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
-      return;
-    }
-    if (
+    } else if (
       (parsed.queueGuild.enable_alt_prefix && parsed.args.text === "on") ||
       (!parsed.queueGuild.enable_alt_prefix && parsed.args.text === "off")
     ) {
@@ -107,20 +117,19 @@ export class Commands {
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
-      return;
+    } else {
+      const queueChannel = parsed.args.channel;
+      if (!queueChannel?.id) return;
+
+      const value = parsed.args.text === "off" ? 0 : 1;
+      await QueueChannelTable.updateAutopull(queueChannel.id, value);
+      await parsed
+        .reply({
+          content: `Set autopull of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
+        })
+        .catch(() => null);
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
     }
-
-    const queueChannel = parsed.args.channel;
-    if (!queueChannel?.id) return;
-
-    const value = parsed.args.text === "off" ? 0 : 1;
-    await QueueChannelTable.updateAutopull(queueChannel.id, value);
-    await parsed
-      .reply({
-        content: `Set autopull of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
-      })
-      .catch(() => null);
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- BLACKLIST / WHITELIST ------------------------------- //\
@@ -319,7 +328,7 @@ export class Commands {
         .fetch(storedQueueChannel.queue_channel_id)
         .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
       if (!["GUILD_TEXT"].includes(queueChannel?.type)) continue;
-      response += `\`${queueChannel.name}\`: ${storedQueueChannel.hide_button ? "on" : "off"}\n`;
+      response += `\`${queueChannel.name}\`: ${storedQueueChannel.hide_button ? "off" : "on"}\n`;
     }
     await parsed
       .reply({
@@ -344,16 +353,15 @@ export class Commands {
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
-      return;
+    } else {
+      await QueueChannelTable.updateHideButton(queueChannel.id, parsed.args.text === "off");
+      await parsed
+        .reply({
+          content: `Set button of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
+        })
+        .catch(() => null);
+      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
     }
-
-    await QueueChannelTable.updateHideButton(queueChannel.id, parsed.args.text === "off");
-    await parsed
-      .reply({
-        content: `Set button of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
-      })
-      .catch(() => null);
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- CLEAR ------------------------------- //
@@ -498,9 +506,8 @@ export class Commands {
     }
 
     const storedQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
-    if (!storedQueueChannel?.role_id) {
-      const role = await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
-      if (role) await QueueChannelTable.updateRoleId(queueChannel, role);
+    if (!storedQueueChannel?.role_id && !parsed.queueGuild.disable_roles) {
+      await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
     }
 
     Validator.validateGuild(queueChannel.guild).catch(() => null);
@@ -809,6 +816,10 @@ export class Commands {
         {
           name: "`/queues list`",
           value: "List queues",
+        },
+        {
+          name: "`/roles`",
+          value: "Enable or disable whether members in a queue are given an `In Queue: ...` role",
         },
         {
           name: "`/shuffle`",
@@ -1124,7 +1135,7 @@ export class Commands {
 
     await parsed
       .reply({
-        content: "**Mentions**: " + parsed.queueGuild.disable_mentions ? "off" : "on",
+        content: "**Mentions**: " + (parsed.queueGuild.disable_mentions ? "off" : "on"),
       })
       .catch(() => null);
   }
@@ -1142,24 +1153,33 @@ export class Commands {
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
-      return;
-    }
-
-    const guild = parsed.request.guild;
-    const disableMentions = parsed.args.text !== "on";
-    await QueueGuildTable.updateDisableMentions(guild.id, disableMentions);
-    await parsed
-      .reply({
-        content: `Set mentions to \`${parsed.args.text}\`.`,
-      })
-      .catch(() => null);
-    const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
-    for await (const storedQueueChannel of storedQueueChannels) {
-      const queueChannel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
-        | VoiceChannel
-        | StageChannel
-        | TextChannel;
-      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    } else if (
+      (parsed.queueGuild.disable_mentions && parsed.args.text === "off") ||
+      (!parsed.queueGuild.disable_mentions && parsed.args.text === "on")
+    ) {
+      await parsed
+        .reply({
+          content: `Mentions were already ${parsed.args.text}.`,
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else {
+      const guild = parsed.request.guild;
+      const disableMentions = parsed.args.text !== "on";
+      await QueueGuildTable.updateDisableMentions(guild.id, disableMentions);
+      await parsed
+        .reply({
+          content: `Set mentions to \`${parsed.args.text}\`.`,
+        })
+        .catch(() => null);
+      const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
+      for await (const storedQueueChannel of storedQueueChannels) {
+        const queueChannel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
+          | VoiceChannel
+          | StageChannel
+          | TextChannel;
+        SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      }
     }
   }
 
@@ -1850,6 +1870,77 @@ export class Commands {
         content: response,
       })
       .catch(() => null);
+  }
+
+  // --------------------------------- ROLES ------------------------------- //
+
+  /**
+   * Get the current autopull settings
+   */
+  public static async rolesGet(parsed: ParsedCommand | ParsedMessage) {
+    if ((await parsed.readArgs({ commandNameLength: 9 })).length) return;
+    await parsed
+      .reply({
+        content: "**Queue Roles**: " + (parsed.queueGuild.disable_roles ? "off" : "on"),
+      })
+      .catch(() => null);
+  }
+
+  /**
+   * Enable or disable alternate prefix
+   */
+  public static async rolesSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+    if ((await parsed.readArgs({ commandNameLength: 9, hasText: true })).length) return;
+
+    if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
+      await parsed
+        .reply({
+          content: "**ERROR**: Missing required argument: `on` or `off`.",
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    }
+    if (
+      (parsed.queueGuild.disable_roles && parsed.args.text === "off") ||
+      (!parsed.queueGuild.disable_roles && parsed.args.text === "on")
+    ) {
+      await parsed
+        .reply({
+          content: `Roles were already ${parsed.args.text}.`,
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else {
+      const guild = parsed.request.guild;
+      const disableRoles = parsed.args.text !== "on";
+      await QueueGuildTable.updateDisableRoles(guild.id, disableRoles);
+      await parsed.reply({ content: `Set roles to \`${parsed.args.text}\`.` }).catch(() => null);
+
+      const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
+      for await (const storedQueueChannel of storedQueueChannels) {
+        const channel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
+          | VoiceChannel
+          | StageChannel
+          | TextChannel;
+        if (!channel) continue;
+        if (disableRoles) {
+          // Delete role
+          await guild.roles.fetch(storedQueueChannel.role_id).then((role) => role?.delete().catch(() => null));
+          await QueueChannelTable.updateRoleId(channel, null);
+        } else {
+          // Create role and assign it to members
+          const role = await QueueChannelTable.createQueueRole(parsed, channel, storedQueueChannel.color);
+          if (role) {
+            const queueMembers = await QueueMemberTable.getFromQueue(channel);
+            for await (const queueMember of queueMembers) {
+              await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
+            }
+          } else {
+            break; // Failed to create role, don't attempt to create the others
+          }
+        }
+      }
+    }
   }
 
   // --------------------------------- SHUFFLE ------------------------------- //

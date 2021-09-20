@@ -65,7 +65,7 @@ export class PatchingUtils {
           if (!note.embeds) continue;
           try {
             await displayChannel.send({ embeds: note.embeds });
-            console.log("Sent to " + displayChannel.id);
+            // console.log("Sent to " + displayChannel.id);
           } catch (e) {
             failedChannelIds.push(displayChannel.id);
             console.error(e);
@@ -353,6 +353,10 @@ export class PatchingUtils {
     //
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_mentions"))) {
       await Base.knex.schema.table("queue_guilds", (table) => table.boolean("disable_mentions"));
+    }
+    // Add disable_roles
+    if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_roles"))) {
+      await Base.knex.schema.table("queue_guilds", (table) => table.boolean("disable_roles"));
     }
   }
 
