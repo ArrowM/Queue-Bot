@@ -59,6 +59,7 @@ export class PatchingUtils {
       }
       let sentNote = false;
       const failedChannelIds: Snowflake[] = [];
+      let i = 0;
       // Send notes
       for await (const note of notesToSend) {
         for await (const displayChannel of displayChannels) {
@@ -68,10 +69,16 @@ export class PatchingUtils {
             // console.log("Sent to " + displayChannel.id);
           } catch (e) {
             failedChannelIds.push(displayChannel.id);
-            console.error(e);
+            // console.error(e);
           }
-          await delay(100);
+          await delay(150);
+
+          if (++i % 20 === 0) {
+            console.log(`Patching progress: ${i}/${displayChannels.length}`);
+          }
         }
+
+        // SUPPORT SERVER
         const announcementChannel = (await Base.client.channels
           .fetch(Base.config.announcementChannelId)
           .catch(() => null)) as TextChannel;

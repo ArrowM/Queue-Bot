@@ -196,20 +196,20 @@ export class SlashCommands {
   }
 
   public static async registerGlobalCommands() {
+    // Cleanup
     let liveCommands = (await this.slashClient.getCommands({})) as ApplicationCommand[];
     liveCommands = liveCommands.filter((cmd) => cmd.application_id === Base.client.user.id);
-    for await (const name of ["altprefix", "help", "queues"]) {
-      if (!liveCommands.some((cmd) => cmd.name === name)) {
-        const command = Base.commands.find((cmd) => cmd.name === name);
-        await this.slashClient.createCommand(command).catch(console.error);
-        console.log("Registered global commands: " + command.name);
-        await delay(5000);
-      }
-    }
     for await (const command of liveCommands) {
       if (!["altprefix", "help", "queues"].includes(command.name)) {
         await this.slashClient.deleteCommand(command.id);
+        await delay(5000);
       }
+    }
+    // Register globals
+    for await (const name of ["altprefix", "help", "queues"]) {
+      const command = Base.commands.find((cmd) => cmd.name === name);
+      await this.slashClient.createCommand(command).catch(console.error);
+      console.log("Registered global commands: " + command.name);
       await delay(5000);
     }
   }
