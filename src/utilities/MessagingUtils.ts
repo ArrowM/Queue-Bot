@@ -215,7 +215,7 @@ export class MessagingUtils {
 
    public static async getButton(channel: GuildChannel) {
       const storedQueueChannel = await QueueChannelTable.get(channel.id);
-      if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) && !storedQueueChannel.hide_button) {
+      if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) && !storedQueueChannel?.hide_button) {
          return this.rows;
       } else {
          return [];
