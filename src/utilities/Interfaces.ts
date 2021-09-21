@@ -1,5 +1,10 @@
 import { ColorResolvable, Snowflake } from "discord.js";
 
+export interface CmdArg {
+  name: string;
+  value: string | boolean | number;
+}
+
 export interface QueueChannel {
   id: Snowflake;
   auto_fill: number; // 0 off. 1 on.

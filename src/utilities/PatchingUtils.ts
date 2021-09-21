@@ -74,7 +74,7 @@ export class PatchingUtils {
           await delay(100);
 
           if (++i % 20 === 0) {
-            console.log(`Patching progress: ${i}/${displayChannels.length}`);
+            console.log(`Patching progress: ${i}/${displayChannels.length * notesToSend.length}`);
           }
         }
 

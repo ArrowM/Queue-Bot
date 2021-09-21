@@ -1296,7 +1296,11 @@ export class Commands {
     const storedQueueChannel = parsed.queueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
     if (!storedQueueChannel) return;
 
-    await parsed.deferReply();
+    try {
+      await parsed.deferReply();
+    } catch (e: any) {
+      return;
+    }
 
     // Get the oldest member entries for the queue
     const amount = parsed.args.num || storedQueueChannel.pull_num || 1;
