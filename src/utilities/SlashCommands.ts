@@ -11,16 +11,18 @@ import { Base } from "./Base";
 import { Parsed, ParsedCommand, ParsedMessage } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 
-export interface SlashUpdateMessage {
+interface SlashUpdateMessage {
   resp: Message;
   respText: string;
   progNum: number;
   totalNum: number;
 }
-
 export class SlashCommands {
-  private static slashClient = new SlashClient(Base.config.token, Base.config.clientId);
-  private static commandRegistrationCache = new Map<Snowflake, number>();
+  private static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues"];
+  private static readonly TEXT_COMMANDS = ["button"];
+  private static readonly VOICE_COMMANDS = ["autopull", "start"];
+  private static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
+  private static readonly commandRegistrationCache = new Map<Snowflake, number>();
 
   private static async editProgress(suMsg: SlashUpdateMessage): Promise<void> {
     await suMsg.resp
@@ -33,11 +35,12 @@ export class SlashCommands {
     cmd: ApplicationOptions,
     storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
   ): ApplicationOptions {
-    if (cmd.options) cmd.options = this.modifyQueue(cmd.options, storedChannels);
+    if (cmd.options) cmd.options = this.modifyQueue(cmd.name, cmd.options, storedChannels);
     return cmd;
   }
 
   private static modifyQueue(
+    name: string,
     options: ApplicationCommandOption[],
     storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
   ): ApplicationCommandOption[] {
@@ -45,12 +48,12 @@ export class SlashCommands {
       const option = options[i];
       if (option.type === 1 || option.type === 2) {
         if (option.options?.length) {
-          option.options = this.modifyQueue(option.options, storedChannels);
+          option.options = this.modifyQueue(name, option.options, storedChannels);
         }
       } else if (option.type === 7) {
-        if (option.description.toLowerCase().includes("text queue")) {
+        if (this.TEXT_COMMANDS.includes(name)) {
           storedChannels = storedChannels.filter((ch) => ch.type === "GUILD_TEXT");
-        } else if (option.description.toLowerCase().includes("voice queue")) {
+        } else if (this.VOICE_COMMANDS.includes(name)) {
           storedChannels = storedChannels.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type));
         }
         if (storedChannels.length > 1) {
@@ -82,7 +85,7 @@ export class SlashCommands {
     this.commandRegistrationCache.set(guildId, now);
 
     let commands = JSON.parse(JSON.stringify(Base.commands)) as ApplicationOptions[];
-    commands = commands.filter((c) => !["altprefix", "help", "queues"].includes(c.name));
+    commands = commands.filter((c) => !this.GLOBAL_COMMANDS.includes(c.name));
 
     // Send progress message
     const msgTest = "Registering queue commands. This will take about 2 minutes...";
@@ -94,8 +97,7 @@ export class SlashCommands {
     };
 
     if (!storedChannels.find((ch) => ch.type === "GUILD_TEXT")) {
-      // Delete text queue exclusive commands
-      const excludedTextCommands = ["button", "enqueue", "join", "leave"];
+      const excludedTextCommands = this.TEXT_COMMANDS;
       commands = commands.filter((c) => !excludedTextCommands.includes(c.name));
 
       let liveCommands = (await this.slashClient
@@ -136,7 +138,7 @@ export class SlashCommands {
 
     const commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
     const filteredCommands = commands.filter(
-      (cmd) => !["altprefix", "help", "queues"].includes(cmd.name) && cmd.application_id === Base.client.user.id
+      (cmd) => !this.GLOBAL_COMMANDS.includes(cmd.name) && cmd.application_id === Base.client.user.id
     );
 
     const msgTest = "Unregistering queue commands. This will take about 2 minutes...";
@@ -200,13 +202,13 @@ export class SlashCommands {
     let liveCommands = (await this.slashClient.getCommands({})) as ApplicationCommand[];
     liveCommands = liveCommands.filter((cmd) => cmd.application_id === Base.client.user.id);
     for await (const command of liveCommands) {
-      if (!["altprefix", "help", "queues"].includes(command.name)) {
+      if (!this.GLOBAL_COMMANDS.includes(command.name)) {
         await this.slashClient.deleteCommand(command.id);
         await delay(5000);
       }
     }
     // Register globals
-    for await (const name of ["altprefix", "help", "queues"]) {
+    for await (const name of this.GLOBAL_COMMANDS) {
       const command = Base.commands.find((cmd) => cmd.name === name);
       await this.slashClient.createCommand(command).catch(console.error);
       console.log("Registered global commands: " + command.name);

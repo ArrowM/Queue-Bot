@@ -14,7 +14,7 @@ Create voice and text queues in your discord server. This bot allows you to disp
 ## Commands  
   
 ### Commands for Everyone  
-`/join` - Join a text queue  
+`/join` - Join a text queue / Update queue message after joining  
 `/leave` - Leave a text queue  
 `/myqueues` - Show my queues  
 `/help` - Display help messages
@@ -31,7 +31,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/clear` - Clear a queue  
 `/color` - Get / Set color of queue displays  
 `/display` - Display a queue  
-`/enqueue` - Add another user to a queue  
+`/enqueue` - Add a specified user or role to a text queue / Update queue message  
 `/graceperiod` - Get / Set how long users can leave a queue before losing their position  
 `/header` - Get / Set a header on display messages  
 `/kick` - Kick from a queue  

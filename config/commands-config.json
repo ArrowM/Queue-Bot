@@ -393,7 +393,7 @@
   },
   {
     "name": "enqueue",
-    "description": "Add a specified user or role to a queue",
+    "description": "Add a specified user or role to a text queue / Update queue message",
     "options": [
       {
         "name": "user",
@@ -537,11 +537,11 @@
   },
   {
     "name": "join",
-    "description": "Join or leave a text queue",
+    "description": "Join a text queue / Update queue message after joining",
     "options": [
       {
         "name": "queue",
-        "description": "Text queue channel",
+        "description": "Queue channel",
         "type": 7,
         "required": true
       },

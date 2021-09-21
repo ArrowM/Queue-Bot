@@ -10,7 +10,7 @@ import {
   VoiceState,
 } from "discord.js";
 import { EventEmitter } from "events";
-import { CmdArg, QueueChannel } from "./utilities/Interfaces";
+import { QueueChannel } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
@@ -58,6 +58,11 @@ if (config.topGgToken) {
 //
 // --- DISCORD EVENTS ---
 //
+
+interface CmdArg {
+  name: string;
+  value: string | boolean | number;
+}
 
 client.on("interactionCreate", async (interaction: Interaction) => {
   try {

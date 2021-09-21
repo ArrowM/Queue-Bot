@@ -519,12 +519,24 @@ export class Commands {
    * HELPER
    */
   private static async enqueue(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-    const queueChannel = parsed.args.channel as TextChannel;
+    const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
     if (!queueChannel?.id) return;
-    const customMessage = parsed.args.text?.substring(0, 128);
-
     const member = parsed.args.member;
     const role = parsed.args.role;
+
+    if (queueChannel.type !== "GUILD_TEXT") {
+      if (member.voice?.channel?.id !== queueChannel.id || role) {
+        await parsed
+          .reply({
+            content: `**ERROR**: \`/enqueue ${queueChannel.name}\` can only be used on users who are already in the \`${queueChannel.name}\` voice channel.`,
+            commandDisplay: "EPHEMERAL",
+          })
+          .catch(() => null);
+        return;
+      }
+    }
+
+    const customMessage = parsed.args.text?.substring(0, 128);
     if (member?.id) {
       try {
         await QueueMemberTable.store(queueChannel, member, customMessage, true);
@@ -570,19 +582,19 @@ export class Commands {
   }
 
   /**
-   * Add a specified user to a queue
+   * Add a specified user to a text queue / Update queue message
    */
   public static async enqueueUser(parsed: ParsedCommand | ParsedMessage) {
-    await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: ["GUILD_TEXT"], hasMember: true });
+    await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasMember: true });
 
     await this.enqueue(parsed);
   }
 
   /**
-   * Add a specified role to a queue
+   * Add a specified role to a text queue / Update queue message
    */
   public static async enqueueRole(parsed: ParsedCommand | ParsedMessage) {
-    await parsed.readArgs({ commandNameLength: 12, hasChannel: true, channelType: ["GUILD_TEXT"], hasRole: true });
+    await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasRole: true });
 
     await this.enqueue(parsed);
   }
@@ -697,11 +709,11 @@ export class Commands {
         },
         {
           name: "`/join`" + (alt ? " or `!join`" : ""),
-          value: "Join a text queue",
+          value: "Join a text queue / Update queue message after joining",
         },
         {
           name: "`/leave`" + (alt ? " or `!leave`" : ""),
-          value: "Leave a text queue",
+          value: "Leave a queue",
         },
         {
           name: "`/myqueues`" + (alt ? " or `!myqueues`" : ""),
@@ -983,18 +995,29 @@ export class Commands {
   // --------------------------------- JOIN ------------------------------- //
 
   /**
-   * Join a text queue
+   * Join a text queue / Update queue message after joining
    */
   public static async join(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-    await parsed.readArgs({ commandNameLength: 4, hasChannel: true, channelType: ["GUILD_TEXT"] });
+    await parsed.readArgs({ commandNameLength: 4, hasChannel: true });
 
-    const queueChannel = parsed.args.channel as TextChannel;
+    const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
     if (!queueChannel?.id) return;
     const author = parsed.request.member as GuildMember;
     if (!author?.id) return;
 
-    const customMessage = parsed.args.text?.substring(0, 128);
+    if (queueChannel.type !== "GUILD_TEXT") {
+      if (author.voice?.channel?.id !== queueChannel.id) {
+        await parsed
+          .reply({
+            content: `**ERROR**: \`/join ${queueChannel.name}\` can only be used while you are in the \`${queueChannel.name}\` voice channel.`,
+            commandDisplay: "EPHEMERAL",
+          })
+          .catch(() => null);
+        return;
+      }
+    }
 
+    const customMessage = parsed.args.text?.substring(0, 128);
     try {
       await QueueMemberTable.store(queueChannel, author, customMessage);
       await parsed
@@ -1097,9 +1120,9 @@ export class Commands {
    * Leave a text queue
    */
   public static async leave(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-    await parsed.readArgs({ commandNameLength: 5, hasChannel: true, channelType: ["GUILD_TEXT"] });
+    await parsed.readArgs({ commandNameLength: 5, hasChannel: true });
 
-    const queueChannel = parsed.args.channel as TextChannel;
+    const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
     if (!queueChannel?.id) return;
     const author = parsed.request.member as GuildMember;
     if (!author?.id) return;
