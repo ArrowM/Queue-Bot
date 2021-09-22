@@ -146,7 +146,7 @@ export class MessagingUtils {
     // Create a list of entries
     let position = 0;
     const entries: string[] = [];
-    for (let i = 0; i < queueMembers.length; i++) {
+    for (let i = 0, l = queueMembers.length; i < l; i++) {
       const queueMember = queueMembers[i];
       let member: GuildMember;
       if (queueGuild.disable_mentions) {
@@ -179,7 +179,7 @@ export class MessagingUtils {
     let fields: EmbedFieldData[] = [];
     let field: EmbedFieldData = { name: "\u200b", value: "", inline: true };
 
-    for (let i = 0; i < entries.length; i++) {
+    for (let i = 0, l = entries.length; i < l; i++) {
       const entry = entries[i];
       if (embedLength + entry.length >= 6000) {
         // New Message Needed - TODO support multiple messages?

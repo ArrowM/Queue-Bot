@@ -1984,7 +1984,7 @@ export class Commands {
     const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
     const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
     Base.shuffle(queueMemberTimeStamps);
-    for (let i = 0; i < queueMembers.length; i++) {
+    for (let i = 0, l = queueMembers.length; i < l; i++) {
       await QueueMemberTable.setCreatedAt(queueMembers[i].id, queueMemberTimeStamps[i]);
     }
     SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);

@@ -625,8 +625,8 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             [member.id],
             storedOldQueueChannel.grace_period
           );
+          SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
         }
-        SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
       } catch (e) {
         // skip display update if failure
       }
