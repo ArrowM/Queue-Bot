@@ -49,7 +49,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/mode` - Set display mode  
 `/permission` - Add / delete / display users and roles with bot permissions  
   
-![Example of `/start`](docs/example.gif)  
+https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-83c0-c3b5d0441261.mp4  
   
 ## How to setup your own Queue Bot hosting  
 1. [Create a Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)  
