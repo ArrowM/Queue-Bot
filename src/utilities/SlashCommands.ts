@@ -178,16 +178,18 @@ export class SlashCommands {
 
   public static async modifyGuildCommands(guilds: Guild[]) {
     for await (const guild of guilds) {
-      await guild.channels.fetch(); // Avoid rate limits
+      const channels = Array.from(
+        (await guild.channels.fetch())
+          .filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type))
+          .values()
+      ) as (VoiceChannel | StageChannel | TextChannel)[]; // Pre-fetch all channels
       const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
       let updateRequired = false;
       for await (const storedChannel of storedChannels) {
-        await guild.channels.fetch(storedChannel.queue_channel_id).catch(async (e: DiscordAPIError) => {
-          if ([403, 404].includes(e.httpStatus)) {
-            await QueueChannelTable.unstore(guild.id, storedChannel.queue_channel_id);
-            updateRequired = true;
-          }
-        });
+        if (!channels.some((ch) => ch.id === storedChannel.queue_channel_id)) {
+          await QueueChannelTable.unstore(guild.id, storedChannel.queue_channel_id);
+          updateRequired = true;
+        }
       }
       if (updateRequired) {
         this.modifyCommandsForGuild(guild).then();

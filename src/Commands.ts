@@ -1099,11 +1099,7 @@ export class Commands {
     const storedEntries = await QueueMemberTable.getFromChannels(storedChannelIds, member.id);
 
     for await (const entry of storedEntries) {
-      const queueChannel = (await parsed.request.guild.channels.fetch(entry.channel_id).catch(() => null)) as
-        | VoiceChannel
-        | StageChannel
-        | TextChannel;
-      if (!queueChannel) continue;
+      const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === entry.channel_id);
       channels.push(queueChannel);
       await this.kickFromQueue(parsed.queueGuild, queueChannel, [member]);
     }
@@ -1197,10 +1193,7 @@ export class Commands {
         .catch(() => null);
       const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
       for await (const storedQueueChannel of storedQueueChannels) {
-        const queueChannel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
-          | VoiceChannel
-          | StageChannel
-          | TextChannel;
+        const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === storedQueueChannel.queue_channel_id);
         SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
       }
     }
@@ -1281,10 +1274,7 @@ export class Commands {
       const embed = new MessageEmbed();
       embed.setTitle(`${author.displayName}'s queues`);
       for await (const entry of storedEntries) {
-        const queueChannel = (await author.guild.channels.fetch(entry.channel_id).catch(() => null)) as
-          | VoiceChannel
-          | StageChannel
-          | TextChannel;
+        const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === entry.channel_id);
         if (!queueChannel) continue;
         const memberIds = (await QueueMemberTable.getNext(queueChannel)).map((member) => member.member_id);
         embed.addField(
@@ -1316,7 +1306,7 @@ export class Commands {
 
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
-    const storedQueueChannel = parsed.queueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
+    const storedQueueChannel = parsed.storedQueueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
     if (!storedQueueChannel) return;
 
     try {
@@ -1573,10 +1563,7 @@ export class Commands {
     const priorityIds = (await PriorityTable.getMany(guild.id)).map((entry) => entry.role_member_id);
     // Get all queue channels for guild
     for await (const storedChannel of await parsed.getStoredQueueChannels()) {
-      const queueChannel = (await guild.channels.fetch(storedChannel.queue_channel_id).catch(() => null)) as
-        | VoiceChannel
-        | StageChannel
-        | TextChannel;
+      const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === storedChannel.queue_channel_id);
       if (!queueChannel) continue;
       // Get members for each queue channel
       const storedMembers = await QueueMemberTable.getFromQueue(queueChannel);
@@ -1945,10 +1932,7 @@ export class Commands {
 
       const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
       for await (const storedQueueChannel of storedQueueChannels) {
-        const channel = (await guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)) as
-          | VoiceChannel
-          | StageChannel
-          | TextChannel;
+        const channel = (await parsed.getChannels()).find((ch) => ch.id === storedQueueChannel.queue_channel_id);
         if (!channel) continue;
         if (disableRoles) {
           // Delete role

@@ -28,10 +28,10 @@ export class PatchingUtils {
     await this.tableAdminPermission();
     await this.tableDisplayChannels();
     await this.tableQueueGuilds();
-    this.checknotes(guilds).then();
+    this.checkNotes(guilds).then();
   }
 
-  private static async checknotes(guilds: Guild[]) {
+  private static async checkNotes(guilds: Guild[]) {
     const displayChannels: TextChannel[] = [];
     if (existsSync("../patch_notes/patch_notes.json")) {
       // Collect notes

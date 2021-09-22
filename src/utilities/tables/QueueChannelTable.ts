@@ -109,17 +109,13 @@ export class QueueChannelTable {
     const queueChannelIdsToRemove: Snowflake[] = [];
     // Fetch stored channels
     const storedQueueChannels = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
-    const storedChannels = (await guild.channels.fetch().catch(() => null)) as (
-      | VoiceChannel
-      | StageChannel
-      | TextChannel
-    )[];
+    const channels = (await guild.channels.fetch().catch(() => null)) as (VoiceChannel | StageChannel | TextChannel)[];
     const queueChannels: (VoiceChannel | StageChannel | TextChannel)[] = [];
     // Check for deleted channels
     // Going backwards allows the removal of entries while visiting each one
     for (let i = storedQueueChannels.length - 1; i >= 0; i--) {
       const queueChannelId = storedQueueChannels[i].queue_channel_id;
-      const queueChannel = storedChannels.find((s) => s.id === queueChannelId);
+      const queueChannel = channels.find((s) => s.id === queueChannelId);
       if (queueChannel) {
         // Still exists, add to return list
         queueChannels.push(queueChannel);
