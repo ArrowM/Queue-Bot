@@ -6,7 +6,7 @@ import {
   ApplicationOptions,
   Client as SlashClient,
 } from "discord-slash-commands-client";
-import { DiscordAPIError, Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
 import { Parsed, ParsedCommand, ParsedMessage } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";

@@ -45,9 +45,9 @@ client.on("uncaughtException", (err, origin) => {
     })}`
   );
 });
-client.on("rateLimit", (rateLimitInfo) => {
-  console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
-});
+// client.on("rateLimit", (rateLimitInfo) => {
+//   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
+// });
 
 // Top GG integration
 if (config.topGgToken) {
@@ -716,6 +716,7 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
       await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
     } else {
       await interaction.reply("An error has occurred").catch(() => null);
+      console.log(e);
     }
   }
 }
