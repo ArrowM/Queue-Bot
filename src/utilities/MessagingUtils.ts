@@ -133,7 +133,7 @@ export class MessagingUtils {
 
     let description: string;
     if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
-      description = `Join the **${queueChannel.name}** voice channel to join this queue.`;
+      description = `Join <#${queueChannel.id}> to join this queue.`;
     } else {
       description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
     }
