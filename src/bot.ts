@@ -140,19 +140,6 @@ client.on("guildCreate", async (guild) => {
   await QueueGuildTable.store(guild).catch(() => null);
 });
 
-client.on("roleUpdate", async (role) => {
-  try {
-    if (!isReady) return;
-    const queueGuild = await QueueGuildTable.get(role.guild.id);
-    const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
-    for await (const queueChannel of queueChannels) {
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
-    }
-  } catch (e) {
-    // Nothing
-  }
-});
-
 client.on("roleDelete", async (role) => {
   try {
     if (!isReady) return;
@@ -185,10 +172,6 @@ async function memberUpdate(member: GuildMember | PartialGuildMember) {
     // Nothing
   }
 }
-
-client.on("guildMemberUpdate", async (oldMember, newMember) => {
-  await memberUpdate(newMember);
-});
 
 client.on("guildMemberRemove", async (guildMember) => {
   await memberUpdate(guildMember);
@@ -701,8 +684,8 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
       .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
-    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
     if (storedQueueMember) {
+      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
       await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueueChannel.grace_period);
       await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
     } else {
@@ -716,7 +699,7 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
       await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
     } else {
       await interaction.reply("An error has occurred").catch(() => null);
-      console.log(e);
+      console.error(e);
     }
   }
 }
