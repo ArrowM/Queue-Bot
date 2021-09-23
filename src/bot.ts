@@ -254,27 +254,27 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       switch (command[1].value) {
         case undefined:
           await Commands.help(parsed);
-          break;
+          return;
         case "setup":
           await Commands.helpSetup(parsed);
-          break;
+          return;
         case "queues":
           await Commands.helpQueue(parsed);
-          break;
+          return;
         case "bot":
           await Commands.helpBot(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "join":
       await Commands.join(parsed);
-      break;
+      return;
     case "leave":
       await Commands.leave(parsed);
-      break;
+      return;
     case "myqueues":
       await Commands.myqueues(parsed);
-      break;
+      return;
   }
 
   if (!(await checkPermission(parsed))) return;
@@ -284,276 +284,276 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       switch (command[1].name) {
         case "get":
           await Commands.altPrefixGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.altPrefixSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "autopull":
       switch (command[1].name) {
         case "get":
           await Commands.autopullGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.autopullSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "blacklist":
       switch (command[1].name) {
         case "add":
           switch (command[2].name) {
             case "user":
               await Commands.bwAdd(parsed, false, true);
-              break;
+              return;
             case "role":
               await Commands.bwAdd(parsed, true, true);
-              break;
+              return;
           }
-          break;
+          return;
         case "delete":
           switch (command[2].name) {
             case "user":
               await Commands.bwDelete(parsed, false, true);
-              break;
+              return;
             case "role":
               await Commands.bwDelete(parsed, true, true);
-              break;
+              return;
           }
-          break;
+          return;
         case "list":
           await Commands.bwList(parsed, true);
-          break;
+          return;
         case "clear":
           await Commands.bwClear(parsed, true);
-          break;
+          return;
       }
-      break;
+      return;
     case "button":
       switch (command[1].name) {
         case "get":
           await Commands.buttonGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.buttonSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "clear":
       await Commands.clear(parsed);
-      break;
+      return;
     case "color":
       switch (command[1].name) {
         case "get":
           await Commands.colorGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.colorSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "display":
       await Commands.display(parsed);
-      break;
+      return;
     case "enqueue":
       switch (command[1].name) {
         case "user":
           await Commands.enqueueUser(parsed);
-          break;
+          return;
         case "role":
           await Commands.enqueueRole(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "graceperiod":
       switch (command[1].name) {
         case "get":
           await Commands.graceperiodGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.graceperiodSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "header":
       switch (command[1].name) {
         case "get":
           await Commands.headerGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.headerSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "kick":
       await Commands.kick(parsed);
-      break;
+      return;
     case "kickall":
       await Commands.kickAll(parsed);
-      break;
+      return;
     case "mentions":
       switch (command[1].name) {
         case "get":
           await Commands.mentionsGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.mentionsSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "mode":
       switch (command[1].name) {
         case "get":
           await Commands.modeGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.modeSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "next":
       await Commands.next(parsed);
-      break;
+      return;
     case "permission":
       switch (command[1].name) {
         case "add":
           switch (command[2].name) {
             case "user":
               await Commands.permissionAddUser(parsed);
-              break;
+              return;
             case "role":
               await Commands.permissionAddRole(parsed);
-              break;
+              return;
           }
-          break;
+          return;
         case "delete":
           switch (command[2].name) {
             case "user":
               await Commands.permissionDeleteUser(parsed);
-              break;
+              return;
             case "role":
               await Commands.permissionDeleteRole(parsed);
-              break;
+              return;
           }
-          break;
+          return;
         case "list":
           await Commands.permissionList(parsed);
-          break;
+          return;
         case "clear":
           await Commands.permissionClear(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "priority":
       switch (command[1].name) {
         case "add":
           switch (command[2].name) {
             case "user":
               await Commands.priorityAddUser(parsed);
-              break;
+              return;
             case "role":
               await Commands.priorityAddRole(parsed);
-              break;
+              return;
           }
-          break;
+          return;
         case "delete":
           switch (command[2].name) {
             case "user":
               await Commands.priorityDeleteUser(parsed);
-              break;
+              return;
             case "role":
               await Commands.priorityDeleteRole(parsed);
-              break;
+              return;
           }
-          break;
+          return;
         case "list":
           await Commands.priorityList(parsed);
-          break;
+          return;
         case "clear":
           await Commands.priorityClear(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "pullnum":
       switch (command[1].name) {
         case "get":
           await Commands.pullnumGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.pullnumSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "queues":
       switch (command[1].name) {
         case "add":
           await Commands.queuesAdd(parsed);
-          break;
+          return;
         case "delete":
           await Commands.queuesDelete(parsed);
-          break;
+          return;
         case "list":
           await Commands.queuesList(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "roles":
       switch (command[1].name) {
         case "get":
           await Commands.rolesGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.rolesSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "shuffle":
       await Commands.shuffle(parsed);
-      break;
+      return;
     case "size":
       switch (command[1].name) {
         case "get":
           await Commands.sizeGet(parsed);
-          break;
+          return;
         case "set":
           await Commands.sizeSet(parsed);
-          break;
+          return;
       }
-      break;
+      return;
     case "start":
       await Commands.start(parsed);
-      break;
+      return;
     case "whitelist":
       switch (command[1].name) {
         case "add":
           switch (command[2].name) {
             case "user":
               await Commands.bwAdd(parsed, false, false);
-              break;
+              return;
             case "role":
               await Commands.bwAdd(parsed, true, false);
-              break;
+              return;
           }
-          break;
+          return;
         case "delete":
           switch (command[2].name) {
             case "user":
               await Commands.bwDelete(parsed, false, false);
-              break;
+              return;
             case "role":
               await Commands.bwDelete(parsed, true, false);
-              break;
+              return;
           }
-          break;
+          return;
         case "list":
           await Commands.bwList(parsed, false);
-          break;
+          return;
         case "clear":
           await Commands.bwClear(parsed, false);
-          break;
+          return;
       }
-      break;
+      return;
   }
 }
 
