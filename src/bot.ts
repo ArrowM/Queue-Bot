@@ -679,10 +679,20 @@ async function fillTargetChannel(
 async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
   try {
     const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
-    const queueChannel = (await interaction.guild.channels.fetch(storedDisplayChannel.queue_channel_id)) as
-      | VoiceChannel
-      | StageChannel
-      | TextChannel;
+    let queueChannel = (await interaction.guild.channels
+      .fetch(storedDisplayChannel.queue_channel_id)
+      .catch(async (e) => {
+        if (e.code === 50001) {
+          await interaction
+            .reply({
+              content: `I can't see <#${storedDisplayChannel.queue_channel_id}>. Please give me the \`View Channel\` permission.`,
+            })
+            .catch(() => null);
+          return;
+        } else {
+          throw e;
+        }
+      })) as VoiceChannel | StageChannel | TextChannel;
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
     if (storedQueueMember) {
