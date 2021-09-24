@@ -7,6 +7,7 @@ import {
   ColorResolvable,
   StageChannel,
   DiscordAPIError,
+  Role,
 } from "discord.js";
 import { BlackWhiteListEntry, PriorityEntry, QueueChannel, QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
@@ -1936,7 +1937,8 @@ export class Commands {
         if (!channel) continue;
         if (disableRoles) {
           // Delete role
-          await guild.roles.fetch(storedQueueChannel.role_id).then((role) => role?.delete().catch(() => null));
+          const role = await guild.roles.fetch(storedQueueChannel.role_id).catch(() => null as Role);
+          await role?.delete().catch(() => null);
           await QueueChannelTable.updateRoleId(channel, null);
         } else {
           // Create role and assign it to members
