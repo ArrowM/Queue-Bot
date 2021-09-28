@@ -118,7 +118,7 @@ client.on("messageCreate", async (message) => {
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once("ready", async () => {
-  const guilds = Array.from(Base.client.guilds.cache.values());
+  const guilds = Array.from(Base.client.guilds.cache?.values());
   Base.shuffle(guilds);
   await PatchingUtils.run(guilds);
   await QueueGuildTable.initTable();
@@ -234,7 +234,7 @@ async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<b
 async function processCommand(parsed: ParsedCommand | ParsedMessage, command: CmdArg[]) {
   switch (command[0].name) {
     case "help":
-      switch (command[1].value) {
+      switch (command[1]?.value) {
         case undefined:
           await Commands.help(parsed);
           return;
@@ -679,6 +679,10 @@ async function fillTargetChannel(
 async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
   try {
     const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
+    if (!storedDisplayChannel) {
+      await interaction.reply("An error has occurred").catch(() => null);
+      return;
+    }
     let queueChannel = (await interaction.guild.channels
       .fetch(storedDisplayChannel.queue_channel_id)
       .catch(async (e) => {

@@ -526,7 +526,7 @@ export class Commands {
     const role = parsed.args.role;
 
     if (queueChannel.type !== "GUILD_TEXT") {
-      if (member.voice?.channel?.id !== queueChannel.id || role) {
+      if (member?.voice?.channel?.id !== queueChannel.id || role) {
         await parsed
           .reply({
             content: `**ERROR**: \`/enqueue ${queueChannel.name}\` can only be used on users who are already in the \`${queueChannel.name}\` voice channel.`,
@@ -1370,7 +1370,7 @@ export class Commands {
       SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
     } else {
       await parsed
-        .reply({
+        .edit({
           content: `\`${queueChannel.name}\` is empty.`,
           commandDisplay: "EPHEMERAL",
         })
