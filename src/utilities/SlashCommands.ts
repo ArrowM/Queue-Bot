@@ -18,7 +18,7 @@ interface SlashUpdateMessage {
   totalNum: number;
 }
 export class SlashCommands {
-  private static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues"];
+  private static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues", "permission"];
   private static readonly TEXT_COMMANDS = ["button"];
   private static readonly VOICE_COMMANDS = ["autopull", "start"];
   private static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
