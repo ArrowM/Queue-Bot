@@ -29,6 +29,8 @@ export class Validator {
       // Clear stored caches (they might have deleted data)
       guild.channels.cache.clear();
       guild.members.cache.clear();
+      // Critical - "me" must be redefined after clearing
+      guild.members.cache.set(me.id, me);
       // Do not clear roles - causes discord.js issues
 
       // Fetch new server data and store it
@@ -40,12 +42,12 @@ export class Validator {
       const members = Array.from((await guild.members.fetch()).values());
       const roles = Array.from((await guild.roles.fetch()).values());
 
+      /**
+       * Leaving this disabled - it causes voice channel issues. 10/04/2021
+       */
       // Clear stored cache (we only want to cache relevant info - done below)
-      guild.members.cache.clear();
-      guild.channels.cache.clear();
-
-      // Critical - "me" must be redefined after clearing
-      guild.members.cache.set(me.id, me);
+      // guild.members.cache.clear();
+      // guild.channels.cache.clear();
 
       // Verify that stored data is contained within server data
       AdminPermissionTable.validate(guild, members, roles).then();

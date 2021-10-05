@@ -211,7 +211,7 @@ client.on("channelUpdate", async (_oldCh, newCh) => {
 
 // Monitor for users joining voice channels
 client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
-  processVoice(oldVoiceState, newVoiceState).then();
+  await processVoice(oldVoiceState, newVoiceState);
 });
 
 //

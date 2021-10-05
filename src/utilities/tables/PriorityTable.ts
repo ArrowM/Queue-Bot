@@ -70,7 +70,7 @@ export class PriorityTable {
       } else {
         const member = members.find((m) => m.id === entry.role_member_id);
         if (member) {
-          member.guild.members.cache.set(member.id, member); // cache
+          // member.guild.members.cache.set(member.id, member); // cache
         } else {
           await this.unstore(guild.id, entry.role_member_id);
           updateRequired = true;
