@@ -210,12 +210,11 @@ export class SlashCommands {
       }
     }
     // Register globals
-    // for await (const name of this.GLOBAL_COMMANDS) {
-    //   const command = Base.commands.find((cmd) => cmd.name === name);
-    //   await this.slashClient.createCommand(command).catch(console.error);
-    //   console.log("Registered global commands: " + command.name);
-    //   await delay(5000);
-    // }
+    for await (const name of this.GLOBAL_COMMANDS) {
+      const command = Base.commands.find((cmd) => cmd.name === name);
+      await this.slashClient.createCommand(command).catch(console.error);
+      await delay(5000);
+    }
   }
 
   public static async register(guild: Guild[]) {
