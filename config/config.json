@@ -12,5 +12,5 @@
    "gracePeriod": "0",
    "permissionsRegexp": "\\bmod(erator)?s?\\b|\\badmin(istrator)?s?\\b",
 
-   "announcementChannelId": "723236088126242897"
+   "announcementChannelId": ""
 }
