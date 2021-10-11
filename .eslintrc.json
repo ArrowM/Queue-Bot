@@ -12,13 +12,6 @@
     "project": "tsconfig.json",
     "ecmaVersion": 12
   },
-  "plugins": [
-    "node",
-    "promise",
-    "import",
-    "prettier",
-    "@typescript-eslint"
-  ],
   "root": true,
   "rules": {
     "prettier/prettier": [
