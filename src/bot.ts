@@ -232,7 +232,7 @@ async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<b
 }
 
 async function processCommand(parsed: ParsedCommand | ParsedMessage, command: CmdArg[]) {
-  switch (command[0].name) {
+  switch (command[0]?.name) {
     case "help":
       switch (command[1]?.value) {
         case undefined:
@@ -262,9 +262,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
 
   if (!(await checkPermission(parsed))) return;
   // -- ADMIN COMMANDS --
-  switch (command[0].name) {
+  switch (command[0]?.name) {
     case "altprefix":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.altPrefixGet(parsed);
           return;
@@ -274,7 +274,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "autopull":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.autopullGet(parsed);
           return;
@@ -284,9 +284,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "blacklist":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "add":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.bwAdd(parsed, false, true);
               return;
@@ -296,7 +296,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
           }
           return;
         case "delete":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.bwDelete(parsed, false, true);
               return;
@@ -314,7 +314,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "button":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.buttonGet(parsed);
           return;
@@ -327,7 +327,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       await Commands.clear(parsed);
       return;
     case "color":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.colorGet(parsed);
           return;
@@ -340,7 +340,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       await Commands.display(parsed);
       return;
     case "enqueue":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "user":
           await Commands.enqueueUser(parsed);
           return;
@@ -350,7 +350,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "graceperiod":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.graceperiodGet(parsed);
           return;
@@ -360,7 +360,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "header":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.headerGet(parsed);
           return;
@@ -376,7 +376,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       await Commands.kickAll(parsed);
       return;
     case "mentions":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.mentionsGet(parsed);
           return;
@@ -386,7 +386,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "mode":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.modeGet(parsed);
           return;
@@ -399,9 +399,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       await Commands.next(parsed);
       return;
     case "permission":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "add":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.permissionAddUser(parsed);
               return;
@@ -411,7 +411,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
           }
           return;
         case "delete":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.permissionDeleteUser(parsed);
               return;
@@ -429,9 +429,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "priority":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "add":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.priorityAddUser(parsed);
               return;
@@ -441,7 +441,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
           }
           return;
         case "delete":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.priorityDeleteUser(parsed);
               return;
@@ -459,7 +459,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "pullnum":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.pullnumGet(parsed);
           return;
@@ -469,7 +469,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "queues":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "add":
           await Commands.queuesAdd(parsed);
           return;
@@ -482,7 +482,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       }
       return;
     case "roles":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.rolesGet(parsed);
           return;
@@ -495,7 +495,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       await Commands.shuffle(parsed);
       return;
     case "size":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "get":
           await Commands.sizeGet(parsed);
           return;
@@ -508,9 +508,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       await Commands.start(parsed);
       return;
     case "whitelist":
-      switch (command[1].name) {
+      switch (command[1]?.name) {
         case "add":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.bwAdd(parsed, false, false);
               return;
@@ -520,7 +520,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
           }
           return;
         case "delete":
-          switch (command[2].name) {
+          switch (command[2]?.name) {
             case "user":
               await Commands.bwDelete(parsed, false, false);
               return;
