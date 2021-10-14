@@ -1938,8 +1938,10 @@ export class Commands {
         if (disableRoles) {
           // Delete role
           const role = await guild.roles.fetch(storedQueueChannel.role_id).catch(() => null as Role);
-          await role?.delete().catch(() => null);
-          await QueueChannelTable.updateRoleId(channel, null);
+          if (role) {
+            await role.delete().catch(() => null);
+            await QueueChannelTable.updateRoleId(channel, null);
+          }
         } else {
           // Create role and assign it to members
           const role = await QueueChannelTable.createQueueRole(parsed, channel, storedQueueChannel.color);
