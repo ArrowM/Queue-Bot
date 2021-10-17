@@ -1,4 +1,4 @@
-import DBL from "dblapi.js";
+import { AutoPoster } from "topgg-autoposter";
 import {
   ButtonInteraction,
   GuildMember,
@@ -50,10 +50,7 @@ client.on("uncaughtException", (err, origin) => {
 // });
 
 // Top GG integration
-if (config.topGgToken) {
-  const dbl = new DBL(config.topGgToken, client);
-  dbl.on("error", () => null);
-}
+if (config.topGgToken) AutoPoster(config.topGgToken, client);
 
 //
 // --- DISCORD EVENTS ---
