@@ -5,7 +5,7 @@ import {
   joinVoiceChannel,
   VoiceConnection,
   VoiceConnectionStatus,
-} from "@discordjs/voice/dist";
+} from "@discordjs/voice";
 import { Client, Constants, Guild, Snowflake, StageChannel, VoiceChannel } from "discord.js";
 import { GatewayVoiceServerUpdateDispatchData, GatewayVoiceStateUpdateDispatchData } from "discord-api-types/v9";
 
