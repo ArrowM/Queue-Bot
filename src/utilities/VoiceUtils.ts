@@ -78,7 +78,11 @@ export class Voice {
   }
 
   public static disconnectFromChannel(channel: VoiceChannel | StageChannel): void {
-    Voice.connections.get(channel.id)?.destroy();
+    try {
+      Voice.connections.get(channel.id)?.destroy();
+    } catch (e) {
+      // Empty
+    }
   }
 
   public static async connectToChannel(channel: VoiceChannel | StageChannel): Promise<VoiceConnection> {
