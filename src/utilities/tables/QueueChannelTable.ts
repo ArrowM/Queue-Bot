@@ -96,13 +96,17 @@ export class QueueChannelTable {
   }
 
   public static async updateRoleId(queueChannel: VoiceChannel | StageChannel | TextChannel, role: Role) {
-    await this.get(queueChannel.id).update("role_id", role?.id);
+    await this.get(queueChannel.id).update("role_id", role.id);
     const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
     for await (const queueMember of queueMembers) {
       const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
       if (!member) continue;
       await member.roles.add(role);
     }
+  }
+
+  public static async deleteRoleId(queueChannel: VoiceChannel | StageChannel | TextChannel) {
+    await this.get(queueChannel.id).update("role_id", Base.knex.raw("DEFAULT"));
   }
 
   public static async fetchFromGuild(guild: Guild): Promise<(VoiceChannel | StageChannel | TextChannel)[]> {

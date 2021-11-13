@@ -1927,7 +1927,7 @@ export class Commands {
         .catch(() => null);
     } else {
       const guild = parsed.request.guild;
-      const disableRoles = parsed.args.text !== "on";
+      const disableRoles = parsed.args.text === "off";
       await QueueGuildTable.updateDisableRoles(guild.id, disableRoles);
       await parsed.reply({ content: `Set roles to \`${parsed.args.text}\`.` }).catch(() => null);
 
@@ -1939,12 +1939,8 @@ export class Commands {
           // Delete role
           const role = await guild.roles.fetch(storedQueueChannel.role_id).catch(() => null as Role);
           if (role) {
-            try {
-              await role.delete();
-            } catch (e) {
-              // Empty
-            }
-            await QueueChannelTable.updateRoleId(channel, null);
+            await QueueChannelTable.deleteRoleId(channel).catch(() => null);
+            await role.delete().catch(() => null);
           }
         } else {
           // Create role and assign it to members
