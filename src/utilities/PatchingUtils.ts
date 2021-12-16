@@ -30,7 +30,6 @@ interface note {
 
 export class PatchingUtils {
   public static async run(guilds: Guild[]) {
-    await this.checkCommandsFile();
     await this.initTables();
     await this.tableBlackWhiteList();
     await this.tableQueueMembers();
@@ -39,6 +38,7 @@ export class PatchingUtils {
     await this.tableDisplayChannels();
     await this.tableQueueGuilds();
     this.checkNotes(guilds).then();
+    this.checkCommandsFile().then();
   }
 
   private static async checkCommandsFile(): Promise<void> {
