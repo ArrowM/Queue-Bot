@@ -18,15 +18,22 @@ interface SlashUpdateMessage {
   totalNum: number;
 }
 export class SlashCommands {
-  private static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues", "permission"];
-  private static readonly TEXT_COMMANDS = ["button"];
-  private static readonly VOICE_COMMANDS = ["autopull", "start"];
-  private static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
+  public static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues", "permission"];
+  public static readonly TEXT_COMMANDS = ["button"];
+  public static readonly VOICE_COMMANDS = ["autopull", "start", "to-me"];
+  public static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
+
   private static readonly commandRegistrationCache = new Map<Snowflake, number>();
 
   private static async editProgress(suMsg: SlashUpdateMessage): Promise<void> {
     await suMsg.resp
-      ?.edit(suMsg.respText + "\n[" + "▓".repeat(++suMsg.progNum) + "░".repeat(suMsg.totalNum - suMsg.progNum) + "]")
+      ?.edit(
+        suMsg.respText +
+          "\n[" +
+          "▓".repeat(++suMsg.progNum) +
+          "░".repeat(suMsg.totalNum - suMsg.progNum) +
+          "]"
+      )
       .catch(() => null);
     await delay(5000);
   }
@@ -54,7 +61,9 @@ export class SlashCommands {
         if (this.TEXT_COMMANDS.includes(name)) {
           storedChannels = storedChannels.filter((ch) => ch.type === "GUILD_TEXT");
         } else if (this.VOICE_COMMANDS.includes(name)) {
-          storedChannels = storedChannels.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type));
+          storedChannels = storedChannels.filter((ch) =>
+            ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type)
+          );
         }
         if (storedChannels.length > 1) {
           const choices: ApplicationCommandOptionChoice[] = storedChannels.map((ch) => {
@@ -84,7 +93,7 @@ export class SlashCommands {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
 
-    let commands = JSON.parse(JSON.stringify(Base.commands)) as ApplicationOptions[];
+    let commands = JSON.parse(JSON.stringify(Base.commands)) as ApplicationOptions[]; // copies
     commands = commands.filter((c) => !this.GLOBAL_COMMANDS.includes(c.name));
 
     // Send progress message
@@ -111,7 +120,8 @@ export class SlashCommands {
           return;
         }
         const liveCommand = liveCommands.find((cmd) => cmd.name === excludedTextCommand);
-        if (liveCommand) await this.slashClient.deleteCommand(liveCommand.id, guildId).catch(console.error);
+        if (liveCommand)
+          await this.slashClient.deleteCommand(liveCommand.id, guildId).catch(console.error);
 
         await this.editProgress(slashUpdateMessage);
       }
@@ -129,16 +139,21 @@ export class SlashCommands {
 
       await this.editProgress(slashUpdateMessage);
     }
-    await slashUpdateMessage.resp?.edit({ content: "Done registering queue commands." }).catch(() => null);
+    await slashUpdateMessage.resp
+      ?.edit({ content: "Done registering queue commands." })
+      .catch(() => null);
   }
 
   private static async modifyForNoQueues(guildId: Snowflake, parsed: Parsed): Promise<void> {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
 
-    const commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
+    const commands = (await this.slashClient
+      .getCommands({ guildID: guildId })
+      .catch(() => [])) as ApplicationCommand[];
     const filteredCommands = commands.filter(
-      (cmd) => !this.GLOBAL_COMMANDS.includes(cmd.name) && cmd.application_id === Base.client.user.id
+      (cmd) =>
+        !this.GLOBAL_COMMANDS.includes(cmd.name) && cmd.application_id === Base.client.user.id
     );
 
     const msgTest = "Unregistering queue commands. This will take about 2 minutes...";
@@ -159,10 +174,24 @@ export class SlashCommands {
 
       await this.editProgress(slashUpdateMessage);
     }
-    await slashUpdateMessage.resp?.edit({ content: "Done unregistering queue commands." }).catch(() => null);
+    await slashUpdateMessage.resp
+      ?.edit({ content: "Done unregistering queue commands." })
+      .catch(() => null);
   }
 
-  public static async modifyCommandsForGuild(guild: Guild, parsed?: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async addCommandForGuild(guild: Guild, cmd: ApplicationOptions): Promise<void> {
+    cmd = JSON.parse(JSON.stringify(cmd)) as ApplicationOptions; // copies
+    const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
+    if (storedChannels.length) {
+      cmd = await this.modifyQueueArg(cmd, storedChannels);
+      await SlashCommands.slashClient.createCommand(cmd, guild.id);
+    }
+  }
+
+  public static async modifyCommandsForGuild(
+    guild: Guild,
+    parsed?: ParsedCommand | ParsedMessage
+  ): Promise<void> {
     try {
       //console.log("Modifying commands for " + guild.id);
       const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25

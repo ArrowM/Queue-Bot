@@ -22,7 +22,11 @@ export class BlackWhiteListTable {
     });
   }
 
-  private static async isBWlisted(queueChannelId: Snowflake, member: GuildMember, type: number): Promise<boolean> {
+  private static async isBWlisted(
+    queueChannelId: Snowflake,
+    member: GuildMember,
+    type: number
+  ): Promise<boolean> {
     const roleIds = Array.from(member.roles.valueOf().keys());
     for await (const id of [member.id, ...roleIds]) {
       const memberPerm = await Base.knex<BlackWhiteListEntry>("black_white_list")
@@ -35,11 +39,17 @@ export class BlackWhiteListTable {
     return false;
   }
 
-  public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
+  public static async isBlacklisted(
+    queueChannelId: Snowflake,
+    member: GuildMember
+  ): Promise<boolean> {
     return await this.isBWlisted(queueChannelId, member, 0);
   }
 
-  public static async isWhitelisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
+  public static async isWhitelisted(
+    queueChannelId: Snowflake,
+    member: GuildMember
+  ): Promise<boolean> {
     return await this.isBWlisted(queueChannelId, member, 1);
   }
 
@@ -85,14 +95,25 @@ export class BlackWhiteListTable {
    * @param queueChannelId
    * @param roleMemberId
    */
-  public static async unstore(type: number, queueChannelId: Snowflake, roleMemberId?: Snowflake): Promise<void> {
-    let query = Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannelId);
+  public static async unstore(
+    type: number,
+    queueChannelId: Snowflake,
+    roleMemberId?: Snowflake
+  ): Promise<void> {
+    let query = Base.knex<BlackWhiteListEntry>("black_white_list").where(
+      "queue_channel_id",
+      queueChannelId
+    );
     if (type !== 2) query = query.where("type", type);
     if (roleMemberId) query = query.where("role_member_id", roleMemberId);
     await query.delete();
   }
 
-  public static async validate(queueChannel: GuildChannel, members: GuildMember[], roles: Role[]): Promise<boolean> {
+  public static async validate(
+    queueChannel: GuildChannel,
+    members: GuildMember[],
+    roles: Role[]
+  ): Promise<boolean> {
     let updateRequired = false;
     for await (const type of [0, 1]) {
       const storedEntries = await this.getMany(type, queueChannel.id);

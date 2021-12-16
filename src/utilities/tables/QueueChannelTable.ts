@@ -17,9 +17,9 @@ import { Knex } from "knex";
 import { ParsedCommand, ParsedMessage } from "../ParsingUtils";
 import { Commands } from "../../Commands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
-import { SchedulingUtils } from "../SchedulingUtils";
 import { SlashCommands } from "../SlashCommands";
 import { QueueGuildTable } from "./QueueGuildTable";
+import { MessagingUtils } from "../MessagingUtils";
 
 export class QueueChannelTable {
   /**
@@ -47,7 +47,9 @@ export class QueueChannelTable {
   }
 
   public static get(queueChannelId: Snowflake) {
-    return Base.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannelId).first();
+    return Base.knex<QueueChannel>("queue_channels")
+      .where("queue_channel_id", queueChannelId)
+      .first();
   }
 
   public static getFromGuild(guildId: Snowflake) {
@@ -70,15 +72,23 @@ export class QueueChannelTable {
     await this.get(queueChannelId).update("hide_button", status);
   }
 
-  public static async updateTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw) {
+  public static async updateTarget(
+    queueChannelId: Snowflake,
+    targetChannelId: Snowflake | Knex.Raw
+  ) {
     await this.get(queueChannelId).update("target_channel_id", targetChannelId);
   }
 
-  public static async updateColor(queueChannel: VoiceChannel | StageChannel | TextChannel, value: ColorResolvable) {
+  public static async updateColor(
+    queueChannel: VoiceChannel | StageChannel | TextChannel,
+    value: ColorResolvable
+  ) {
     await this.get(queueChannel.id).update("color", value);
     const storedQueueChannel = await this.get(queueChannel.id);
     if (storedQueueChannel?.role_id) {
-      const role = await queueChannel.guild.roles.fetch(storedQueueChannel.role_id).catch(() => null as Role);
+      const role = await queueChannel.guild.roles
+        .fetch(storedQueueChannel.role_id)
+        .catch(() => null as Role);
       await role?.setColor(value).catch(() => null);
     }
   }
@@ -95,7 +105,10 @@ export class QueueChannelTable {
     await this.get(queueChannelId).update("pull_num", value);
   }
 
-  public static async updateRoleId(queueChannel: VoiceChannel | StageChannel | TextChannel, role: Role) {
+  public static async updateRoleId(
+    queueChannel: VoiceChannel | StageChannel | TextChannel,
+    role: Role
+  ) {
     await this.get(queueChannel.id).update("role_id", role.id);
     const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
     for await (const queueMember of queueMembers) {
@@ -109,11 +122,20 @@ export class QueueChannelTable {
     await this.get(queueChannel.id).update("role_id", Base.knex.raw("DEFAULT"));
   }
 
-  public static async fetchFromGuild(guild: Guild): Promise<(VoiceChannel | StageChannel | TextChannel)[]> {
+  public static async fetchFromGuild(
+    guild: Guild
+  ): Promise<(VoiceChannel | StageChannel | TextChannel)[]> {
     const queueChannelIdsToRemove: Snowflake[] = [];
     // Fetch stored channels
-    const storedQueueChannels = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
-    const channels = (await guild.channels.fetch().catch(() => null)) as (VoiceChannel | StageChannel | TextChannel)[];
+    const storedQueueChannels = await Base.knex<QueueChannel>("queue_channels").where(
+      "guild_id",
+      guild.id
+    );
+    const channels = (await guild.channels.fetch().catch(() => null)) as (
+      | VoiceChannel
+      | StageChannel
+      | TextChannel
+    )[];
     const queueChannels: (VoiceChannel | StageChannel | TextChannel)[] = [];
     // Check for deleted channels
     // Going backwards allows the removal of entries while visiting each one
@@ -225,7 +247,10 @@ export class QueueChannelTable {
     await Commands.display(parsed, channel);
 
     // Timeout for message order
-    setTimeout(() => SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed).catch(() => null), 500);
+    setTimeout(
+      () => SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed).catch(() => null),
+      500
+    );
     if ((await QueueChannelTable.getFromGuild(parsed.request.guild.id)).length > 25) {
       await parsed.reply({
         content:
@@ -288,7 +313,7 @@ export class QueueChannelTable {
       if (requireGuildUpdate || requireChannelUpdate) {
         // If visual data has been unstored, schedule a display update.
         const queueGuild = await QueueGuildTable.get(guild.id);
-        SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+        MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
       }
     }
   }

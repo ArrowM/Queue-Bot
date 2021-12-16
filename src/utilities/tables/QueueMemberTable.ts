@@ -28,11 +28,16 @@ export class QueueMemberTable {
   }
 
   public static get(channelId: Snowflake, memberId: Snowflake) {
-    return Base.knex<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", memberId).first();
+    return Base.knex<QueueMember>("queue_members")
+      .where("channel_id", channelId)
+      .where("member_id", memberId)
+      .first();
   }
 
   public static getFromChannels(queueChannelIds: Snowflake[], memberId: Snowflake) {
-    return Base.knex<QueueMember>("queue_members").whereIn("channel_id", queueChannelIds).where("member_id", memberId);
+    return Base.knex<QueueMember>("queue_members")
+      .whereIn("channel_id", queueChannelIds)
+      .where("member_id", memberId);
   }
 
   public static getFromId(id: Snowflake) {
@@ -43,7 +48,11 @@ export class QueueMemberTable {
     await this.getFromId(memberId).update("created_at", time);
   }
 
-  public static async setPriority(channelId: Snowflake, memberId: Snowflake, isPriority: boolean): Promise<void> {
+  public static async setPriority(
+    channelId: Snowflake,
+    memberId: Snowflake,
+    isPriority: boolean
+  ): Promise<void> {
     await Base.knex<QueueMember>("queue_members")
       .where("channel_id", channelId)
       .where("member_id", memberId)
@@ -73,7 +82,9 @@ export class QueueMemberTable {
       return await queueChannel.guild.members.fetch(queueMember.member_id);
     } catch (e: any) {
       if ([403, 404].includes(e.httpStatus)) {
-        await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
+        await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [
+          queueMember.member_id,
+        ]);
       }
       return undefined;
     }
@@ -165,14 +176,19 @@ export class QueueMemberTable {
         for (const queueMember of await query) {
           this.unstoredMembersCache.set(queueMember.member_id, queueMember.created_at);
           // Schedule cleanup of cached member
-          setTimeout(() => this.unstoredMembersCache.delete(queueMember.member_id), gracePeriod * 1000);
+          setTimeout(
+            () => this.unstoredMembersCache.delete(queueMember.member_id),
+            gracePeriod * 1000
+          );
         }
       }
     }
     const deletedMembers = await query;
     await query.delete();
     // Unassign Queue Role
-    const storedQueueChannel = await QueueChannelTable.get(channelId).catch(() => null as QueueChannel);
+    const storedQueueChannel = await QueueChannelTable.get(channelId).catch(
+      () => null as QueueChannel
+    );
     if (!storedQueueChannel?.role_id) return;
 
     const queueGuild = await QueueGuildTable.get(guildId);
@@ -180,7 +196,9 @@ export class QueueMemberTable {
       const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
       if (!guild) return;
       for await (const deletedMember of deletedMembers) {
-        const member = await guild.members.fetch(deletedMember.member_id).catch(() => null as GuildMember);
+        const member = await guild.members
+          .fetch(deletedMember.member_id)
+          .catch(() => null as GuildMember);
         if (!member) continue;
         await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
       }

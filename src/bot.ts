@@ -16,7 +16,6 @@ import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
-import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import util from "util";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
@@ -25,6 +24,7 @@ import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
 import { Commands } from "./Commands";
+import { MessagingUtils } from "./utilities/MessagingUtils";
 
 // Setup client
 console.time("READY. Bot started in");
@@ -40,9 +40,12 @@ client.on("error", console.error);
 client.on("shardError", console.error);
 client.on("uncaughtException", (err, origin) => {
   console.error(
-    `Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, {
-      depth: null,
-    })}`
+    `Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(
+      origin,
+      {
+        depth: null,
+      }
+    )}`
   );
 });
 // client.on("rateLimit", (rateLimitInfo) => {
@@ -127,7 +130,6 @@ client.once("ready", async () => {
   await PriorityTable.initTable();
   SlashCommands.register(guilds).then();
   // Validator.validateAtStartup(guilds);
-  SchedulingUtils.startScheduler();
   console.timeEnd("READY. Bot started in");
   isReady = true;
 });
@@ -145,7 +147,7 @@ client.on("roleDelete", async (role) => {
       const queueGuild = await QueueGuildTable.get(role.guild.id);
       const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
       for (const queueChannel of queueChannels) {
-        SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+        MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
       }
     }
   } catch (e) {
@@ -159,11 +161,10 @@ async function memberUpdate(member: GuildMember | PartialGuildMember) {
     const queueGuild = await QueueGuildTable.get(member.guild.id);
     const queueMembers = await QueueMemberTable.getFromMember(member.id);
     for await (const queueMember of queueMembers) {
-      const queueChannel = (await member.guild.channels.fetch(queueMember.channel_id).catch(() => null)) as
-        | VoiceChannel
-        | StageChannel
-        | TextChannel;
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+      const queueChannel = (await member.guild.channels
+        .fetch(queueMember.channel_id)
+        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+      MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
     }
   } catch (e) {
     // Nothing
@@ -184,7 +185,10 @@ client.on("channelDelete", async (channel) => {
     if (!isReady || channel.type === "DM") return;
     const deletedQueueChannel = await QueueChannelTable.get(channel.id);
     if (deletedQueueChannel) {
-      await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
+      await QueueChannelTable.unstore(
+        deletedQueueChannel.guild_id,
+        deletedQueueChannel.queue_channel_id
+      );
     }
     await DisplayChannelTable.getFromQueue(channel.id).delete();
   } catch (e) {
@@ -199,7 +203,7 @@ client.on("channelUpdate", async (_oldCh, newCh) => {
     const changedChannel = await QueueChannelTable.get(newCh.id);
     if (changedChannel) {
       const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, newChannel);
+      MessagingUtils.updateDisplay(queueGuild, newChannel).then();
     }
   } catch (e) {
     // Nothing
@@ -504,6 +508,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
     case "start":
       await Commands.start(parsed);
       return;
+    case "to-me":
+      await Commands.toMe(parsed);
+      return;
     case "whitelist":
       switch (command[1]?.name) {
         case "add":
@@ -548,8 +555,12 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
     if (oldVoiceChannel === newVoiceChannel || !member) return;
 
     const queueGuild = await QueueGuildTable.get(member.guild.id);
-    const storedOldQueueChannel = oldVoiceChannel ? await QueueChannelTable.get(oldVoiceChannel.id) : undefined;
-    const storedNewQueueChannel = newVoiceChannel ? await QueueChannelTable.get(newVoiceChannel.id) : undefined;
+    const storedOldQueueChannel = oldVoiceChannel
+      ? await QueueChannelTable.get(oldVoiceChannel.id)
+      : undefined;
+    const storedNewQueueChannel = newVoiceChannel
+      ? await QueueChannelTable.get(newVoiceChannel.id)
+      : undefined;
 
     if (
       Base.isMe(member) &&
@@ -570,9 +581,10 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
               storedNewQueueChannel.auto_fill &&
               newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
               (!targetChannel.userLimit ||
-                targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
+                targetChannel.members.filter((member) => !member.user.bot).size <
+                  targetChannel.userLimit)
             ) {
-              SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+              member.voice.setChannel(targetChannel).catch(() => null);
               return;
             }
           } else {
@@ -581,7 +593,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           }
         }
         await QueueMemberTable.store(newVoiceChannel, member);
-        SchedulingUtils.scheduleDisplayUpdate(queueGuild, newVoiceChannel);
+        MessagingUtils.updateDisplay(queueGuild, newVoiceChannel).then();
       } catch (e) {
         // skip display update if failure
       }
@@ -592,10 +604,14 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
         if (Base.isMe(member) && newVoiceChannel) {
           await QueueChannelTable.updateTarget(oldVoiceChannel.id, newVoiceChannel.id);
           // move bot back
-          SchedulingUtils.scheduleMoveMember(member.voice, oldVoiceChannel);
+          member.voice.setChannel(oldVoiceChannel).catch(() => null);
           await setTimeout(
             async () =>
-              await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel).catch(() => null),
+              await fillTargetChannel(
+                storedOldQueueChannel,
+                oldVoiceChannel,
+                newVoiceChannel
+              ).catch(() => null),
             1000
           );
         } else {
@@ -605,7 +621,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             [member.id],
             storedOldQueueChannel.grace_period
           );
-          SchedulingUtils.scheduleDisplayUpdate(queueGuild, oldVoiceChannel);
+          MessagingUtils.updateDisplay(queueGuild, oldVoiceChannel).then();
         }
       } catch (e) {
         // skip display update if failure
@@ -615,7 +631,8 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
       // Check if leaving target channel
       const storedQueueChannels = await QueueChannelTable.getFromTarget(oldVoiceChannel.id);
       // Randomly pick a queue to pull from
-      const storedQueueChannel = storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
+      const storedQueueChannel =
+        storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
       if (storedQueueChannel && storedQueueChannel.auto_fill) {
         const queueChannel = (await member.guild.channels
           .fetch(storedQueueChannel.queue_channel_id)
@@ -645,13 +662,19 @@ async function fillTargetChannel(
         storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
       }
       if (dstChannel.userLimit) {
-        const num = Math.max(0, dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size);
+        const num = Math.max(
+          0,
+          dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size
+        );
         storedMembers = storedMembers.slice(0, num);
       }
       for await (const storedMember of storedMembers) {
-        const queueMember = await QueueMemberTable.getMemberFromQueueMember(srcChannel, storedMember);
+        const queueMember = await QueueMemberTable.getMemberFromQueueMember(
+          srcChannel,
+          storedMember
+        );
         if (!queueMember) continue;
-        SchedulingUtils.scheduleMoveMember(queueMember.voice, dstChannel);
+        queueMember.voice.setChannel(dstChannel).catch(() => null);
       }
     }
   } else {
@@ -667,7 +690,9 @@ async function fillTargetChannel(
     } else {
       const owner = await guild.fetchOwner();
       owner
-        .send(`I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`)
+        .send(
+          `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
+        )
         .catch(() => null);
     }
   }
@@ -694,21 +719,33 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
           throw e;
         }
       })) as VoiceChannel | StageChannel | TextChannel;
+    if (!queueChannel) throw "Queue channel not found.";
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
     if (storedQueueMember) {
       const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
-      await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueueChannel.grace_period);
-      await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+      await QueueMemberTable.unstore(
+        member.guild.id,
+        queueChannel.id,
+        [member.id],
+        storedQueueChannel.grace_period
+      );
+      await interaction
+        .reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true })
+        .catch(() => null);
     } else {
       await QueueMemberTable.store(queueChannel, member);
-      await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+      await interaction
+        .reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true })
+        .catch(() => null);
     }
     const queueGuild = await QueueGuildTable.get(interaction.guild.id);
-    SchedulingUtils.scheduleDisplayUpdate(queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
   } catch (e: any) {
     if (e.author === "Queue Bot") {
-      await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
+      await interaction
+        .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
+        .catch(() => null);
     } else {
       await interaction.reply("An error has occurred").catch(() => null);
       console.error(e);

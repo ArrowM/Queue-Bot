@@ -44,7 +44,11 @@ export class PriorityTable {
     return false;
   }
 
-  public static async store(guildId: Snowflake, roleMemberId: Snowflake, isRole: boolean): Promise<void> {
+  public static async store(
+    guildId: Snowflake,
+    roleMemberId: Snowflake,
+    isRole: boolean
+  ): Promise<void> {
     await Base.knex<PriorityEntry>("priority").insert({
       guild_id: guildId,
       role_member_id: roleMemberId,
@@ -58,7 +62,11 @@ export class PriorityTable {
     await query.first().delete();
   }
 
-  public static async validate(guild: Guild, members: GuildMember[], roles: Role[]): Promise<boolean> {
+  public static async validate(
+    guild: Guild,
+    members: GuildMember[],
+    roles: Role[]
+  ): Promise<boolean> {
     let updateRequired = false;
     const storedEntries = await this.getMany(guild.id);
     for await (const entry of storedEntries) {

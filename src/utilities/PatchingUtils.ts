@@ -1,6 +1,12 @@
 import { Guild, GuildChannel, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 import { Base } from "./Base";
-import { AdminPermission, BlackWhiteListEntry, DisplayChannel, QueueChannel, QueueGuild } from "./Interfaces";
+import {
+  AdminPermission,
+  BlackWhiteListEntry,
+  DisplayChannel,
+  QueueChannel,
+  QueueGuild,
+} from "./Interfaces";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import delay from "delay";
 import schemaInspector from "knex-schema-inspector";
@@ -12,6 +18,9 @@ import { BlackWhiteListTable } from "./tables/BlackWhiteListTable";
 import { PriorityTable } from "./tables/PriorityTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
+import _ from "lodash";
+import { ApplicationCommand } from "discord-slash-commands-client";
+import { SlashCommands } from "./SlashCommands";
 
 interface note {
   sent: boolean;
@@ -21,6 +30,7 @@ interface note {
 
 export class PatchingUtils {
   public static async run(guilds: Guild[]) {
+    await this.checkCommandsFile();
     await this.initTables();
     await this.tableBlackWhiteList();
     await this.tableQueueMembers();
@@ -31,7 +41,60 @@ export class PatchingUtils {
     this.checkNotes(guilds).then();
   }
 
-  private static async checkNotes(guilds: Guild[]) {
+  private static async checkCommandsFile(): Promise<void> {
+    if (Base.haveCommandsChanged()) {
+      console.log("commands-config.json has changed. Updating commands...");
+
+      let addedCmds = Base.commands.filter((c) => _.findIndex(Base.lastCommands, c) === -1);
+      let removedCmds = Base.lastCommands.filter((c) => _.findIndex(Base.commands, c) === -1);
+
+      if (addedCmds) console.log("Added: " + addedCmds.map((c) => c.name));
+      if (removedCmds) console.log("Removed: " + removedCmds.map((c) => c.name));
+
+      const guilds = Array.from(Base.client.guilds.cache.values());
+      let i = 1;
+      for await (const guild of guilds) {
+        if (addedCmds) {
+          for await (let cmd of addedCmds) {
+            if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
+              await SlashCommands.slashClient.createCommand(cmd);
+            } else {
+              await SlashCommands.addCommandForGuild(guild, cmd);
+            }
+            await delay(100);
+          }
+        }
+        if (removedCmds) {
+          for await (const cmd of removedCmds) {
+            if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
+              const globalCmd = (
+                (await SlashCommands.slashClient.getCommands()) as ApplicationCommand[]
+              ).find((c) => c.name === cmd.name);
+              await SlashCommands.slashClient.deleteCommand(globalCmd.id);
+            } else {
+              const guildCommands = (await SlashCommands.slashClient.getCommands({
+                guildID: guild.id,
+              })) as ApplicationCommand[];
+              for await (const guildCommand of guildCommands) {
+                if (cmd.name === guildCommand.name) {
+                  await SlashCommands.slashClient.deleteCommand(guildCommand.id, guild.id);
+                  break;
+                }
+              }
+            }
+            await delay(100);
+          }
+        }
+        if ((i = i + (1 % 100)) === 0) {
+          console.log("Updating commands... [" + i + "/" + guilds.length + "]");
+        }
+      }
+      console.log("Done updating commands");
+      Base.archiveCommands();
+    }
+  }
+
+  private static async checkNotes(guilds: Guild[]): Promise<void> {
     const displayChannels: TextChannel[] = [];
     if (existsSync("../patch_notes/patch_notes.json")) {
       // Collect notes
@@ -45,10 +108,13 @@ export class PatchingUtils {
           const queueChannelId = (await QueueChannelTable.fetchFromGuild(guild))[0]?.id;
           if (!queueChannelId) continue;
 
-          const displayChannelId = (await DisplayChannelTable.getFromQueue(queueChannelId).first())?.display_channel_id;
+          const displayChannelId = (await DisplayChannelTable.getFromQueue(queueChannelId).first())
+            ?.display_channel_id;
           if (!displayChannelId) continue;
 
-          const displayChannel = (await guild.channels.fetch(displayChannelId).catch(() => null)) as TextChannel;
+          const displayChannel = (await guild.channels
+            .fetch(displayChannelId)
+            .catch(() => null)) as TextChannel;
           if (!displayChannel) continue;
 
           displayChannels.push(displayChannel);
@@ -125,7 +191,9 @@ export class PatchingUtils {
     if (await Base.knex.schema.hasTable("queue_manager_roles")) {
       // RENAME
       await Base.knex.schema.renameTable("queue_manager_roles", "admin_permission");
-      await Base.knex.schema.raw("ALTER SEQUENCE queue_manager_roles_id_seq RENAME TO admin_permission_id_seq");
+      await Base.knex.schema.raw(
+        "ALTER SEQUENCE queue_manager_roles_id_seq RENAME TO admin_permission_id_seq"
+      );
       await delay(1000);
       await Base.knex.schema.alterTable("admin_permission", (table) => {
         // NEW COLUMNS
@@ -160,7 +228,10 @@ export class PatchingUtils {
             .update("role_member_id", newId)
             .update("is_role", isRole);
         } catch (e) {
-          await Base.knex<AdminPermission>("admin_permission").where("id", entry.id).first().delete();
+          await Base.knex<AdminPermission>("admin_permission")
+            .where("id", entry.id)
+            .first()
+            .delete();
         }
         await delay(40);
       }
@@ -176,7 +247,9 @@ export class PatchingUtils {
     if (await Base.knex.schema.hasTable("member_perms")) {
       // RENAME
       await Base.knex.schema.renameTable("member_perms", "black_white_list");
-      await Base.knex.schema.raw("ALTER SEQUENCE member_perms_id_seq RENAME TO black_white_list_id_seq");
+      await Base.knex.schema.raw(
+        "ALTER SEQUENCE member_perms_id_seq RENAME TO black_white_list_id_seq"
+      );
       await delay(100);
       await Base.knex.schema.alterTable("black_white_list", (table) => {
         // NEW COLUMNS
@@ -218,7 +291,9 @@ export class PatchingUtils {
     }
     // Migration from embed_ids to message_id
     if (await Base.knex.schema.hasColumn("display_channels", "embed_ids")) {
-      await Base.knex.schema.alterTable("display_channels", (table) => table.bigInteger("message_id"));
+      await Base.knex.schema.alterTable("display_channels", (table) =>
+        table.bigInteger("message_id")
+      );
       console.log("Display Channel updates");
       for await (const entry of await Base.knex<DisplayChannel>("display_channels")) {
         const displayChannel = (await Base.client.channels
@@ -246,13 +321,17 @@ export class PatchingUtils {
           })
           .catch(() => null as Message);
         if (response) {
-          await Base.knex<DisplayChannel>("display_channels").where("id", entry.id).update("message_id", response.id);
+          await Base.knex<DisplayChannel>("display_channels")
+            .where("id", entry.id)
+            .update("message_id", response.id);
         } else {
           await Base.knex<DisplayChannel>("display_channels").where("id", entry.id).delete();
         }
         await delay(40);
       }
-      await Base.knex.schema.alterTable("display_channels", (table) => table.dropColumn("embed_ids"));
+      await Base.knex.schema.alterTable("display_channels", (table) =>
+        table.dropColumn("embed_ids")
+      );
       // ALSO do some 1 time updates for slash commands and nicknames
       this.setNickNames().then();
     }
@@ -293,7 +372,9 @@ export class PatchingUtils {
     }
 
     const inspector = schemaInspector(Base.knex);
-    if ((await inspector.columnInfo("queue_channels", "queue_channel_id")).data_type === "GUILD_TEXT") {
+    if (
+      (await inspector.columnInfo("queue_channels", "queue_channel_id")).data_type === "GUILD_TEXT"
+    ) {
       await Base.knex.schema.alterTable("queue_channels", (table) => {
         // MODIFY DATA TYPES
         table.bigInteger("guild_id").alter();
@@ -336,7 +417,9 @@ export class PatchingUtils {
         await Base.knex.schema.table("queue_channels", (table) => table.integer("grace_period"));
       }
 
-      const entries = await Base.knex<QueueGuild & { color: string; grace_period: number }>("queue_guilds");
+      const entries = await Base.knex<QueueGuild & { color: string; grace_period: number }>(
+        "queue_guilds"
+      );
       console.log("Migrate QueueGuilds to QueueChannels");
       for await (const entry of entries) {
         await Base.knex<QueueChannel>("queue_channels")

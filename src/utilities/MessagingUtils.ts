@@ -7,6 +7,7 @@ import {
   MessageActionRow,
   MessageButton,
   MessageEmbed,
+  Snowflake,
   StageChannel,
   TextChannel,
   VoiceChannel,
@@ -18,22 +19,37 @@ import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
 import { Validator } from "./Validator";
-
-export interface QueueUpdateRequest {
-  queueGuild: QueueGuild;
-  queueChannel: VoiceChannel | StageChannel | TextChannel;
-}
+import { RateLimiter } from "limiter";
 
 export class MessagingUtils {
   private static gracePeriodCache = new Map<number, string>();
+  private static limiterMap = new Map<Snowflake, RateLimiter>(); // <guild id, timestamps>
+
+  public static async updateDisplay(
+    queueGuild: QueueGuild,
+    queueChannel: VoiceChannel | StageChannel | TextChannel
+  ): Promise<void> {
+    let limiter = this.limiterMap.get(queueGuild.guild_id);
+    if (!limiter) {
+      limiter = new RateLimiter({
+        tokensPerInterval: 5,
+        interval: 5 * 1000,
+      });
+      this.limiterMap.set(queueGuild.guild_id, limiter);
+    }
+    await limiter.removeTokens(1);
+    await this.internalUpdateDisplay(queueGuild, queueChannel);
+  }
 
   /**
    * Update a server's display messages
-   * @param updateRequest
+   * @param queueGuild
+   * @param queueChannel
    */
-  public static async updateQueueDisplays(updateRequest: QueueUpdateRequest): Promise<void> {
-    const queueGuild = updateRequest.queueGuild;
-    const queueChannel = updateRequest.queueChannel;
+  private static async internalUpdateDisplay(
+    queueGuild: QueueGuild,
+    queueChannel: VoiceChannel | StageChannel | TextChannel
+  ): Promise<void> {
     const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);
     if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
@@ -67,13 +83,20 @@ export class MessagingUtils {
                 .catch(() => null as Message);
             } else {
               /* Replace */
-              await DisplayChannelTable.unstore(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
+              await DisplayChannelTable.unstore(
+                queueChannel.id,
+                displayChannel.id,
+                queueGuild.msg_mode !== 3
+              );
               await DisplayChannelTable.store(queueChannel, displayChannel, embeds);
             }
           }
         } else {
           // Handled deleted display channels
-          await DisplayChannelTable.unstore(queueChannel.id, storedDisplayChannel.display_channel_id);
+          await DisplayChannelTable.unstore(
+            queueChannel.id,
+            storedDisplayChannel.display_channel_id
+          );
         }
       } catch (e) {
         console.error(e);
@@ -110,12 +133,15 @@ export class MessagingUtils {
    *
    * @param queueChannel Discord message object.
    */
-  public static async generateEmbed(queueChannel: TextChannel | VoiceChannel | StageChannel): Promise<MessageEmbed[]> {
+  public static async generateEmbed(
+    queueChannel: TextChannel | VoiceChannel | StageChannel
+  ): Promise<MessageEmbed[]> {
     const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
     const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
     if (!storedQueueChannel) return [];
     let queueMembers = await QueueMemberTable.getNext(queueChannel);
-    if (storedQueueChannel.max_members) queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
+    if (storedQueueChannel.max_members)
+      queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
 
     // Setup embed variables
     let title = queueChannel.name;
@@ -138,9 +164,11 @@ export class MessagingUtils {
       description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
     }
     const timeString = this.getGracePeriodString(storedQueueChannel.grace_period);
-    if (timeString) description += `\nIf you leave, you have ** ${timeString}** to rejoin to reclaim your spot.`;
+    if (timeString)
+      description += `\nIf you leave, you have ** ${timeString}** to rejoin to reclaim your spot.`;
 
-    if (queueMembers.some((member) => member.is_priority)) description += `\nPriority users are marked with a ⋆.`;
+    if (queueMembers.some((member) => member.is_priority))
+      description += `\nPriority users are marked with a ⋆.`;
     if (storedQueueChannel.header) description += `\n\n${storedQueueChannel.header}`;
 
     // Create a list of entries
@@ -150,12 +178,16 @@ export class MessagingUtils {
       const queueMember = queueMembers[i];
       let member: GuildMember;
       if (queueGuild.disable_mentions) {
-        member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
-          if ([403, 404].includes(e.httpStatus)) {
-            await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
-          }
-          return null;
-        });
+        member = await queueChannel.guild.members
+          .fetch(queueMember.member_id)
+          .catch(async (e: DiscordAPIError) => {
+            if ([403, 404].includes(e.httpStatus)) {
+              await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [
+                queueMember.member_id,
+              ]);
+            }
+            return null;
+          });
         if (!member) continue;
       }
       // Create entry string
@@ -209,13 +241,18 @@ export class MessagingUtils {
 
   private static rows: MessageActionRow[] = [
     new MessageActionRow({
-      components: [new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY")],
+      components: [
+        new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY"),
+      ],
     }),
   ];
 
   public static async getButton(channel: GuildChannel) {
     const storedQueueChannel = await QueueChannelTable.get(channel.id);
-    if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) && !storedQueueChannel?.hide_button) {
+    if (
+      !["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) &&
+      !storedQueueChannel?.hide_button
+    ) {
       return this.rows;
     } else {
       return [];

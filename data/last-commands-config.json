@@ -1020,24 +1020,6 @@
     ]
   },
   {
-    "name": "to-me",
-    "description": "Pull user(s) from a voice queue to you and display their name(s)",
-    "options": [
-      {
-        "name": "queue",
-        "description": "Voice queue channel",
-        "type": 7,
-        "required": true
-      },
-      {
-        "name": "amount",
-        "description": "# of users to pull from the queue. (Default: 1)",
-        "type": 4,
-        "required": false
-      }
-    ]
-  },
-  {
     "name": "whitelist",
     "description": "Add / Delete / List users or roles from a queue's whitelist",
     "options": [

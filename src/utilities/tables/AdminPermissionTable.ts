@@ -32,7 +32,11 @@ export class AdminPermissionTable {
     return Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId);
   }
 
-  public static async store(guildId: Snowflake, roleMemberId: Snowflake, isRole: boolean): Promise<void> {
+  public static async store(
+    guildId: Snowflake,
+    roleMemberId: Snowflake,
+    isRole: boolean
+  ): Promise<void> {
     await Base.knex<AdminPermission>("admin_permission")
       .insert({
         guild_id: guildId,

@@ -1,4 +1,12 @@
-import { GuildChannel, Message, MessageEmbed, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import {
+  GuildChannel,
+  Message,
+  MessageEmbed,
+  Snowflake,
+  StageChannel,
+  TextChannel,
+  VoiceChannel,
+} from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { MessagingUtils } from "../MessagingUtils";
@@ -23,7 +31,9 @@ export class DisplayChannelTable {
   }
 
   public static get(displayChannelId: Snowflake) {
-    return Base.knex<DisplayChannel>("display_channels").where("display_channel_id", displayChannelId).first();
+    return Base.knex<DisplayChannel>("display_channels")
+      .where("display_channel_id", displayChannelId)
+      .first();
   }
 
   public static getFromQueue(queueChannelId: Snowflake) {
@@ -31,7 +41,9 @@ export class DisplayChannelTable {
   }
 
   public static getFirstFromQueue(queueChannelId: Snowflake) {
-    return Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first();
+    return Base.knex<DisplayChannel>("display_channels")
+      .where("queue_channel_id", queueChannelId)
+      .first();
   }
 
   public static getFromMessage(messageId: Snowflake) {
@@ -64,7 +76,10 @@ export class DisplayChannelTable {
     displayChannelId?: Snowflake,
     deleteOldDisplays = true
   ): Promise<void> {
-    let query = Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
+    let query = Base.knex<DisplayChannel>("display_channels").where(
+      "queue_channel_id",
+      queueChannelId
+    );
     if (displayChannelId) query = query.where("display_channel_id", displayChannelId);
     const storedDisplayChannels = await query;
     await query.delete();
@@ -86,12 +101,17 @@ export class DisplayChannelTable {
         await displayMessage.delete().catch(() => null);
       } else {
         // Remove button
-        await displayMessage.edit({ embeds: displayMessage.embeds, components: [] }).catch(() => null);
+        await displayMessage
+          .edit({ embeds: displayMessage.embeds, components: [] })
+          .catch(() => null);
       }
     }
   }
 
-  public static async validate(queueChannel: GuildChannel, channels: GuildChannel[]): Promise<boolean> {
+  public static async validate(
+    queueChannel: GuildChannel,
+    channels: GuildChannel[]
+  ): Promise<boolean> {
     let updateRequired = false;
     const storedEntries = await this.getFromQueue(queueChannel.id);
     for await (const entry of storedEntries) {

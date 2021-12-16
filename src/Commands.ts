@@ -6,16 +6,19 @@ import {
   MessageEmbedOptions,
   ColorResolvable,
   StageChannel,
-  DiscordAPIError,
   Role,
 } from "discord.js";
-import { BlackWhiteListEntry, PriorityEntry, QueueChannel, QueueGuild } from "./utilities/Interfaces";
+import {
+  BlackWhiteListEntry,
+  PriorityEntry,
+  QueueChannel,
+  QueueGuild,
+} from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
-import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import { Voice } from "./utilities/VoiceUtils";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
@@ -129,7 +132,7 @@ export class Commands {
           content: `Set autopull of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
         })
         .catch(() => null);
-      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     }
   }
 
@@ -146,19 +149,23 @@ export class Commands {
     let removedAny = false;
     for await (const entry of storedEntries) {
       let manager = entry.is_role ? parsed.request.guild.roles : parsed.request.guild.members;
-      await manager.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
+      try {
+        await manager.fetch(entry.role_member_id);
+      } catch (e: any) {
         if ([403, 404].includes(e.httpStatus)) {
           await BlackWhiteListTable.unstore(type, entry.queue_channel_id, entry.role_member_id);
           removedAny = true;
         }
-      });
+      }
     }
     if (removedAny) {
       setTimeout(
         async () =>
           await parsed
             .reply({
-              content: `Removed 1 or more invalid members/roles from the ${type ? "white" : "black"}list.`,
+              content: `Removed 1 or more invalid members/roles from the ${
+                type ? "white" : "black"
+              }list.`,
             })
             .catch(() => null),
         1000
@@ -169,7 +176,10 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async genBWList(parsed: ParsedCommand | ParsedMessage, type: number): Promise<string> {
+  private static async genBWList(
+    parsed: ParsedCommand | ParsedMessage,
+    type: number
+  ): Promise<string> {
     const typeString = type ? "White" : "Black";
     const storedEntries = await BlackWhiteListTable.getMany(type, parsed.args.channel.id);
     this.validateBWList(parsed, type, storedEntries).then();
@@ -227,7 +237,14 @@ export class Commands {
     isBlacklist: boolean
   ): Promise<void> {
     if (
-      (await parsed.readArgs({ commandNameLength: 18, hasChannel: true, hasRole: isRole, hasMember: !isRole })).length
+      (
+        await parsed.readArgs({
+          commandNameLength: 18,
+          hasChannel: true,
+          hasRole: isRole,
+          hasMember: !isRole,
+        })
+      ).length
     )
       return;
     this._bwAdd(parsed, isBlacklist ? 0 : 1).then();
@@ -236,7 +253,10 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async _bwDelete(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
+  private static async _bwDelete(
+    parsed: ParsedCommand | ParsedMessage,
+    type: number
+  ): Promise<void> {
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
     const member = parsed.args.member;
@@ -271,7 +291,14 @@ export class Commands {
     isBlacklist: boolean
   ): Promise<void> {
     if (
-      (await parsed.readArgs({ commandNameLength: 18, hasChannel: true, hasRole: isRole, hasMember: !isRole })).length
+      (
+        await parsed.readArgs({
+          commandNameLength: 18,
+          hasChannel: true,
+          hasRole: isRole,
+          hasMember: !isRole,
+        })
+      ).length
     )
       return;
     this._bwDelete(parsed, isBlacklist ? 0 : 1).then();
@@ -342,7 +369,12 @@ export class Commands {
    * Enable or disable the "Join / Leave" button for a queue
    */
   public static async buttonSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-    await parsed.readArgs({ commandNameLength: 10, hasChannel: true, channelType: ["GUILD_TEXT"], hasText: true });
+    await parsed.readArgs({
+      commandNameLength: 10,
+      hasChannel: true,
+      channelType: ["GUILD_TEXT"],
+      hasText: true,
+    });
 
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
@@ -361,7 +393,7 @@ export class Commands {
           content: `Set button of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
         })
         .catch(() => null);
-      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     }
   }
 
@@ -377,7 +409,7 @@ export class Commands {
     if (!queueChannel?.id) return;
 
     await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id);
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     await parsed
       .reply({
         content: `\`${queueChannel.name}\` queue cleared.`,
@@ -453,13 +485,16 @@ export class Commands {
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
 
-    await QueueChannelTable.updateColor(queueChannel, parsed.args.text.toUpperCase() as ColorResolvable);
+    await QueueChannelTable.updateColor(
+      queueChannel,
+      parsed.args.text.toUpperCase() as ColorResolvable
+    );
     await parsed
       .reply({
         content: `Set color of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
       })
       .catch(() => null);
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
   }
 
   // --------------------------------- DISPLAY ------------------------------- //
@@ -506,8 +541,10 @@ export class Commands {
         .catch(() => null);
     }
 
-    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
-    if (!storedQueueChannel?.role_id && !parsed.queueGuild.disable_roles) {
+    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(
+      () => null as QueueChannel
+    );
+    if (storedQueueChannel && !(storedQueueChannel?.role_id || parsed.queueGuild.disable_roles)) {
       await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueueChannel.color);
     }
 
@@ -546,7 +583,7 @@ export class Commands {
             content: `Added <@${member.id}> to \`${queueChannel.name}\`.`,
           })
           .catch(() => null);
-        SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+        MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
       } catch (e: any) {
         if (e.author === "Queue Bot") {
           await parsed
@@ -572,13 +609,15 @@ export class Commands {
           }
         }
       }
-      const errorText = errorAccumulator ? "However, failed to add 1 or more members:\n" + errorAccumulator : "";
+      const errorText = errorAccumulator
+        ? "However, failed to add 1 or more members:\n" + errorAccumulator
+        : "";
       await parsed
         .reply({
           content: `Added <@&${role.id}> to \`${queueChannel.name}\`.` + errorText,
         })
         .catch(() => null);
-      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     }
   }
 
@@ -642,10 +681,12 @@ export class Commands {
     const timeString = MessagingUtils.getGracePeriodString(parsed.args.num);
     await parsed
       .reply({
-        content: `Set grace period of \`${queueChannel.name}\` to \`${timeString || "0 seconds"}\`.`,
+        content: `Set grace period of \`${queueChannel.name}\` to \`${
+          timeString || "0 seconds"
+        }\`.`,
       })
       .catch(() => null);
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
   }
 
   // --------------------------------- HEADER ------------------------------- //
@@ -687,7 +728,7 @@ export class Commands {
         content: `Updated \`${queueChannel.name}\` header.`,
       })
       .catch(() => null);
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
   }
 
   // --------------------------------- HELP ------------------------------- //
@@ -1038,8 +1079,7 @@ export class Commands {
         return;
       }
     }
-
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
   }
 
   // --------------------------------- KICK ------------------------------- //
@@ -1049,20 +1089,19 @@ export class Commands {
    */
   private static async kickFromQueue(
     queueGuild: QueueGuild,
-    channel: TextChannel | VoiceChannel | StageChannel,
+    queueChannel: TextChannel | VoiceChannel | StageChannel,
     members: GuildMember[]
   ): Promise<void> {
-    if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
+    if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
       for await (const member of members) {
         await member?.voice?.disconnect().catch(() => null);
       }
     } else {
       await QueueMemberTable.unstore(
         queueGuild.guild_id,
-        channel.id,
+        queueChannel.id,
         members.map((m) => m.id)
       );
-      SchedulingUtils.scheduleDisplayUpdate(queueGuild, channel);
     }
   }
 
@@ -1096,7 +1135,9 @@ export class Commands {
     if (!member?.id) return;
 
     const channels: (VoiceChannel | StageChannel | TextChannel)[] = [];
-    const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map((ch) => ch.queue_channel_id);
+    const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map(
+      (ch) => ch.queue_channel_id
+    );
     const storedEntries = await QueueMemberTable.getFromChannels(storedChannelIds, member.id);
 
     for await (const entry of storedEntries) {
@@ -1106,7 +1147,10 @@ export class Commands {
     }
     await parsed
       .reply({
-        content: `Kicked <@${member.id}> from ` + channels.map((ch) => `\`${ch.name}\``).join(", ") + " queues.",
+        content:
+          `Kicked <@${member.id}> from ` +
+          channels.map((ch) => `\`${ch.name}\``).join(", ") +
+          " queues.",
       })
       .catch(() => null);
   }
@@ -1141,8 +1185,7 @@ export class Commands {
         })
         .catch(() => null);
     }
-
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
   }
 
   // --------------------------------- MENTIONS ------------------------------- //
@@ -1194,8 +1237,10 @@ export class Commands {
         .catch(() => null);
       const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
       for await (const storedQueueChannel of storedQueueChannels) {
-        const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === storedQueueChannel.queue_channel_id);
-        SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+        const queueChannel = (await parsed.getChannels()).find(
+          (ch) => ch.id === storedQueueChannel.queue_channel_id
+        );
+        MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
       }
     }
   }
@@ -1231,7 +1276,11 @@ export class Commands {
    * Toggle automatic pull of users from a queue
    */
   public static async modeSet(parsed: ParsedCommand | ParsedMessage) {
-    await parsed.readArgs({ commandNameLength: 8, hasNumber: true, numberArgs: { min: 1, max: 3, defaultValue: 1 } });
+    await parsed.readArgs({
+      commandNameLength: 8,
+      hasNumber: true,
+      numberArgs: { min: 1, max: 3, defaultValue: 1 },
+    });
 
     if (![1, 2, 3].includes(parsed.args.num)) {
       await parsed
@@ -1262,8 +1311,12 @@ export class Commands {
     const author = parsed.request.member as GuildMember;
     if (!author?.id) return;
 
-    const storedChannelIds = (await QueueChannelTable.getFromGuild(author.guild.id)).map((ch) => ch.queue_channel_id);
-    const storedEntries = (await QueueMemberTable.getFromChannels(storedChannelIds, author.id)).slice(0, 25);
+    const storedChannelIds = (await QueueChannelTable.getFromGuild(author.guild.id)).map(
+      (ch) => ch.queue_channel_id
+    );
+    const storedEntries = (
+      await QueueMemberTable.getFromChannels(storedChannelIds, author.id)
+    ).slice(0, 25);
     if (storedEntries?.length < 1) {
       await parsed
         .reply({
@@ -1277,7 +1330,9 @@ export class Commands {
       for await (const entry of storedEntries) {
         const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === entry.channel_id);
         if (!queueChannel) continue;
-        const memberIds = (await QueueMemberTable.getNext(queueChannel)).map((member) => member.member_id);
+        const memberIds = (await QueueMemberTable.getNext(queueChannel)).map(
+          (member) => member.member_id
+        );
         embed.addField(
           queueChannel.name,
           `${memberIds.indexOf(author.id) + 1} <@${author.id}>` +
@@ -1296,7 +1351,7 @@ export class Commands {
   // --------------------------------- NEXT ------------------------------- //
 
   /**
-   * Pull a specified # of user(s) from a queue and display their name(s)
+   * Pull user(s) from a queue and display their name(s)
    */
   public static async next(parsed: ParsedCommand | ParsedMessage): Promise<void> {
     await parsed.readArgs({
@@ -1307,7 +1362,27 @@ export class Commands {
 
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
-    const storedQueueChannel = parsed.storedQueueChannels.find((ch) => ch.queue_channel_id === queueChannel.id);
+    const storedQueueChannel = parsed.storedQueueChannels.find(
+      (ch) => ch.queue_channel_id === queueChannel.id
+    );
+    if (!storedQueueChannel) return;
+
+    const targetChannel = (await queueChannel.guild.channels
+      .fetch(storedQueueChannel.target_channel_id)
+      .catch(() => null)) as VoiceChannel | StageChannel;
+
+    await this.pullMembers(parsed, targetChannel);
+  }
+
+  private static async pullMembers(
+    parsed: ParsedCommand | ParsedMessage,
+    targetChannel: VoiceChannel | StageChannel
+  ): Promise<void> {
+    const queueChannel = parsed.args.channel;
+    if (!queueChannel?.id) return;
+    const storedQueueChannel = parsed.storedQueueChannels.find(
+      (ch) => ch.queue_channel_id === queueChannel.id
+    );
     if (!storedQueueChannel) return;
 
     try {
@@ -1321,16 +1396,16 @@ export class Commands {
     let queueMembers = await QueueMemberTable.getNext(queueChannel, amount);
 
     if (queueMembers.length > 0) {
-      // Display and remove member from the the queue
+      // Display and remove member from the queue
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
-        const targetChannel = (await queueChannel.guild.channels
-          .fetch(storedQueueChannel.target_channel_id)
-          .catch(() => null)) as VoiceChannel | StageChannel;
         if (targetChannel) {
           for await (const queueMember of queueMembers) {
-            const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
+            const member = await QueueMemberTable.getMemberFromQueueMember(
+              queueChannel,
+              queueMember
+            );
             if (!member) continue;
-            SchedulingUtils.scheduleMoveMember(member.voice, targetChannel);
+            member.voice.setChannel(targetChannel).catch(() => null);
           }
         } else {
           await parsed
@@ -1367,7 +1442,7 @@ export class Commands {
         queueChannel.id,
         queueMembers.map((member) => member.member_id)
       );
-      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     } else {
       await parsed
         .edit({
@@ -1387,7 +1462,9 @@ export class Commands {
     const perms = await AdminPermissionTable.getMany(parsed.request.guild.id);
     let response = "\nRoles and users with bot permission: ";
     if (perms?.length) {
-      response += perms.map((status) => "<@" + (status.is_role ? "&" : "") + status.role_member_id + ">").join(", ");
+      response += perms
+        .map((status) => "<@" + (status.is_role ? "&" : "") + status.role_member_id + ">")
+        .join(", ");
     } else {
       response += "Empty";
     }
@@ -1513,17 +1590,22 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async validatePriorityList(parsed: ParsedCommand | ParsedMessage, storedEntries: PriorityEntry[]) {
+  private static async validatePriorityList(
+    parsed: ParsedCommand | ParsedMessage,
+    storedEntries: PriorityEntry[]
+  ) {
     let removedAny = false;
     for await (const entry of storedEntries) {
       if (entry.is_role) continue;
       let manager = entry.is_role ? parsed.request.guild.roles : parsed.request.guild.members;
-      await manager.fetch(entry.role_member_id).catch(async (e: DiscordAPIError) => {
+      try {
+        await manager.fetch(entry.role_member_id);
+      } catch (e: any) {
         if ([403, 404].includes(e.httpStatus)) {
           await PriorityTable.unstore(parsed.queueGuild.guild_id, entry.role_member_id);
           removedAny = true;
         }
-      });
+      }
     }
     if (removedAny) {
       setTimeout(
@@ -1561,15 +1643,22 @@ export class Commands {
   private static async updatePriorities(parsed: ParsedCommand | ParsedMessage): Promise<void> {
     const guild = parsed.request.guild;
     // Get all priority Ids for guild
-    const priorityIds = (await PriorityTable.getMany(guild.id)).map((entry) => entry.role_member_id);
+    const priorityIds = (await PriorityTable.getMany(guild.id)).map(
+      (entry) => entry.role_member_id
+    );
     // Get all queue channels for guild
     for await (const storedChannel of await parsed.getStoredQueueChannels()) {
-      const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === storedChannel.queue_channel_id);
+      const queueChannel = (await parsed.getChannels()).find(
+        (ch) => ch.id === storedChannel.queue_channel_id
+      );
       if (!queueChannel) continue;
       // Get members for each queue channel
       const storedMembers = await QueueMemberTable.getFromQueue(queueChannel);
       for await (const storedMember of storedMembers) {
-        const queueMember = await QueueMemberTable.getMemberFromQueueMember(queueChannel, storedMember);
+        const queueMember = await QueueMemberTable.getMemberFromQueueMember(
+          queueChannel,
+          storedMember
+        );
         if (!queueMember) continue;
         // Re-evaluate priority for each member
         const roleIds = queueMember.roles.cache.keys();
@@ -1580,7 +1669,7 @@ export class Commands {
         }
       }
       // Schedule display update for each queue
-      SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     }
   }
 
@@ -1600,7 +1689,7 @@ export class Commands {
       response += `\`${name}\` is already on the priority list.`;
     } else {
       await PriorityTable.store(guildId, id, role != null);
-      response += `Added \`${name}\` to the the priority list.`;
+      response += `Added \`${name}\` to the priority list.`;
       this.updatePriorities(parsed).then();
     }
 
@@ -1748,7 +1837,7 @@ export class Commands {
         content: `Set pull number of \`${queueChannel.name}\` to \`${value}\`.`,
       })
       .catch(() => null);
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
   }
 
   // --------------------------------- QUEUES ------------------------------- //
@@ -1855,7 +1944,8 @@ export class Commands {
     const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
     if (storedQueueChannel) {
       await QueueChannelTable.unstore(parsed.request.guild.id, queueChannel.id, parsed);
-      const response = `Deleted queue for \`${queueChannel.name}\`.` + (await this.genQueuesList(parsed));
+      const response =
+        `Deleted queue for \`${queueChannel.name}\`.` + (await this.genQueuesList(parsed));
       await parsed
         .reply({
           content: response,
@@ -1863,7 +1953,8 @@ export class Commands {
         .catch(() => null);
       Voice.disconnectFromChannel(queueChannel as VoiceChannel | StageChannel);
     } else {
-      const response = `\`${queueChannel.name}\` is not a queue.` + (await this.genQueuesList(parsed));
+      const response =
+        `\`${queueChannel.name}\` is not a queue.` + (await this.genQueuesList(parsed));
       await parsed
         .reply({
           content: response,
@@ -1933,22 +2024,32 @@ export class Commands {
 
       const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
       for await (const storedQueueChannel of storedQueueChannels) {
-        const channel = (await parsed.getChannels()).find((ch) => ch.id === storedQueueChannel.queue_channel_id);
+        const channel = (await parsed.getChannels()).find(
+          (ch) => ch.id === storedQueueChannel.queue_channel_id
+        );
         if (!channel) continue;
         if (disableRoles) {
           // Delete role
-          const role = await guild.roles.fetch(storedQueueChannel.role_id).catch(() => null as Role);
+          const role = await guild.roles
+            .fetch(storedQueueChannel.role_id)
+            .catch(() => null as Role);
           if (role) {
             await QueueChannelTable.deleteRoleId(channel).catch(() => null);
             await role.delete().catch(() => null);
           }
         } else {
           // Create role and assign it to members
-          const role = await QueueChannelTable.createQueueRole(parsed, channel, storedQueueChannel.color);
+          const role = await QueueChannelTable.createQueueRole(
+            parsed,
+            channel,
+            storedQueueChannel.color
+          );
           if (role) {
             const queueMembers = await QueueMemberTable.getFromQueue(channel);
             for await (const queueMember of queueMembers) {
-              await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
+              await guild.members
+                .fetch(queueMember.member_id)
+                .then((member) => member.roles.add(role));
             }
           } else {
             break; // Failed to create role, don't attempt to create the others
@@ -1975,7 +2076,7 @@ export class Commands {
     for (let i = 0, l = queueMembers.length; i < l; i++) {
       await QueueMemberTable.setCreatedAt(queueMembers[i].id, queueMemberTimeStamps[i]);
     }
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     await parsed
       .reply({
         content: `\`${queueChannel.name}\` queue shuffled.`,
@@ -2021,7 +2122,7 @@ export class Commands {
     if (!queueChannel?.id) return;
     let max = parsed.args.num;
 
-    SchedulingUtils.scheduleDisplayUpdate(parsed.queueGuild, queueChannel);
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
     await QueueChannelTable.updateMaxMembers(queueChannel.id, max);
     await parsed
       .reply({
@@ -2084,5 +2185,32 @@ export class Commands {
         })
         .catch(() => null);
     }
+  }
+
+  // --------------------------------- TO-ME ------------------------------- //
+
+  /**
+   * Pull user(s) from a queue and display their name(s)
+   */
+  public static async toMe(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+    await parsed.readArgs({
+      commandNameLength: 5,
+      hasChannel: true,
+      channelType: ["GUILD_VOICE"],
+      numberArgs: { min: 1, max: 99, defaultValue: null },
+    });
+
+    const targetChannel = (parsed.request.member as GuildMember).voice.channel;
+    if (!targetChannel) {
+      await parsed
+        .reply({
+          content: "**ERROR**: You must be in a voice channel to use `/to-me`",
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+      return;
+    }
+
+    await this.pullMembers(parsed, targetChannel);
   }
 }
