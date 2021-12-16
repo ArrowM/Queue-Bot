@@ -85,7 +85,7 @@ export class PatchingUtils {
             await delay(100);
           }
         }
-        if ((i = i + (1 % 100)) === 0) {
+        if (++i % 100 === 0) {
           console.log("Updating commands... [" + i + "/" + guilds.length + "]");
         }
       }
