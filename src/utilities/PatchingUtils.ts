@@ -57,9 +57,9 @@ export class PatchingUtils {
         if (addedCmds) {
           for await (let cmd of addedCmds) {
             if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
-              await SlashCommands.slashClient.createCommand(cmd);
+              await SlashCommands.slashClient.createCommand(cmd).catch(() => null);
             } else {
-              await SlashCommands.addCommandForGuild(guild, cmd);
+              await SlashCommands.addCommandForGuild(guild, cmd).catch(() => null);
             }
             await delay(100);
           }
@@ -68,16 +68,16 @@ export class PatchingUtils {
           for await (const cmd of removedCmds) {
             if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
               const globalCmd = (
-                (await SlashCommands.slashClient.getCommands()) as ApplicationCommand[]
+                (await SlashCommands.slashClient.getCommands().catch(() => [])) as ApplicationCommand[]
               ).find((c) => c.name === cmd.name);
-              await SlashCommands.slashClient.deleteCommand(globalCmd.id);
+              await SlashCommands.slashClient.deleteCommand(globalCmd.id).catch(() => null);
             } else {
               const guildCommands = (await SlashCommands.slashClient.getCommands({
                 guildID: guild.id,
-              })) as ApplicationCommand[];
+              }).catch(() => [])) as ApplicationCommand[];
               for await (const guildCommand of guildCommands) {
                 if (cmd.name === guildCommand.name) {
-                  await SlashCommands.slashClient.deleteCommand(guildCommand.id, guild.id);
+                  await SlashCommands.slashClient.deleteCommand(guildCommand.id, guild.id).catch(() => null);
                   break;
                 }
               }
