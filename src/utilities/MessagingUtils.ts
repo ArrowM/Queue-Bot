@@ -29,6 +29,10 @@ export class MessagingUtils {
     queueGuild: QueueGuild,
     queueChannel: VoiceChannel | StageChannel | TextChannel
   ): Promise<void> {
+    if (!queueChannel) {
+      console.trace("null queueChannel");
+      return;
+    }
     let limiter = this.limiterMap.get(queueGuild.guild_id);
     if (!limiter) {
       limiter = new RateLimiter({
