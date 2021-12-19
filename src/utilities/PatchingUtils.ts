@@ -52,7 +52,7 @@ export class PatchingUtils {
       if (removedCmds) console.log("Removed: " + removedCmds.map((c) => c.name));
 
       const guilds = Array.from(Base.client.guilds.cache.values());
-      let i = 1;
+      let i = 0;
       for await (const guild of guilds) {
         if (addedCmds) {
           for await (let cmd of addedCmds) {
@@ -85,7 +85,7 @@ export class PatchingUtils {
             await delay(100);
           }
         }
-        if (i++ % 50 === 0) {
+        if (++i % 50 === 0) {
           console.log("Updating commands... [" + i + "/" + guilds.length + "]");
         }
       }

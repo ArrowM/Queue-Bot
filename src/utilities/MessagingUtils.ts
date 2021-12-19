@@ -20,11 +20,28 @@ import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
 import { Validator } from "./Validator";
 import { RateLimiter } from "limiter";
+import delay from "delay";
 
 export class MessagingUtils {
   private static gracePeriodCache = new Map<number, string>();
   private static limiterMap = new Map<Snowflake, RateLimiter>(); // <guild id, timestamps>
 
+  /**
+   * Rate limited queue display updating.
+   * Discord's backend rate limits to 5 edits every 5 seconds.
+   * This can be problematic for the bot. Imagine the following scenario:
+   *    11 people join a queue in 1 second.
+   *    The first 5 people show up almost immediately, but person 6 through 10 take 5 seconds
+   *    to show up because Discord's backend queues each of the requests.
+   *    Person 11 doesn't show up until 10 seconds after they have joined.
+   * Solution:
+   *    We rate limit our outgoing updates to 5 updates every 5 second, fetching the latest queue data
+   *    each time before sending the request. In the implementation below you'll see we actually use a
+   *    RateLimiter with 6 tokens so that can dump any request where the remaining tokens are below 1
+   *    (meaning an update is already queued).
+   * @param queueGuild
+   * @param queueChannel
+   */
   public static async updateDisplay(
     queueGuild: QueueGuild,
     queueChannel: VoiceChannel | StageChannel | TextChannel
@@ -32,12 +49,20 @@ export class MessagingUtils {
     let limiter = this.limiterMap.get(queueGuild.guild_id);
     if (!limiter) {
       limiter = new RateLimiter({
-        tokensPerInterval: 5,
-        interval: 5 * 1000,
+        tokensPerInterval: 6,
+        interval: 6 * 1000,
+        fireImmediately: true
       });
       this.limiterMap.set(queueGuild.guild_id, limiter);
     }
+    let remainingRequests = limiter.getTokensRemaining();
+    if (remainingRequests < 1) return; // Update already queued. See *** below
     await limiter.removeTokens(1);
+    if (remainingRequests < 2) {
+      // *** - 5 tokens are already taken out of the bucket (limit met).
+      // Queue the next update instead of doing it immediately.
+      await delay(remainingRequests * 1000);
+    }
     await this.internalUpdateDisplay(queueGuild, queueChannel).catch(console.trace);
   }
 
@@ -50,6 +75,9 @@ export class MessagingUtils {
     queueGuild: QueueGuild,
     queueChannel: VoiceChannel | StageChannel | TextChannel
   ): Promise<void> {
+    // Refresh queueChannel
+    queueChannel = await queueChannel.guild.channels.fetch(queueChannel.id) as VoiceChannel | StageChannel | TextChannel;
+
     const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);
     if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 
