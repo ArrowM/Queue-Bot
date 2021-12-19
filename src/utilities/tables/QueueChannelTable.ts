@@ -313,7 +313,7 @@ export class QueueChannelTable {
       if (requireGuildUpdate || requireChannelUpdate) {
         // If visual data has been unstored, schedule a display update.
         const queueGuild = await QueueGuildTable.get(guild.id);
-        MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
+        MessagingUtils.updateDisplay(queueGuild, queueChannel);
       }
     }
   }

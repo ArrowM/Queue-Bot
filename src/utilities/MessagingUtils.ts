@@ -7,7 +7,6 @@ import {
   MessageActionRow,
   MessageButton,
   MessageEmbed,
-  Snowflake,
   StageChannel,
   TextChannel,
   VoiceChannel,
@@ -19,65 +18,52 @@ import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
 import { Validator } from "./Validator";
-import { RateLimiter } from "limiter";
-import delay from "delay";
+
+interface QueueUpdateRequest {
+  queueGuild: QueueGuild;
+  queueChannel: VoiceChannel | StageChannel | TextChannel;
+}
 
 export class MessagingUtils {
   private static gracePeriodCache = new Map<number, string>();
-  private static limiterMap = new Map<Snowflake, RateLimiter>(); // <guild id, timestamps>
+  private static pendingQueueUpdates: Map<string, QueueUpdateRequest> = new Map(); // <queue id, QueueUpdateRequest>
 
   /**
-   * Rate limited queue display updating.
-   * Discord's backend rate limits to 5 edits every 5 seconds.
-   * This can be problematic for the bot. Imagine the following scenario:
-   *    11 people join a queue in 1 second.
-   *    The first 5 people show up almost immediately, but person 6 through 10 take 5 seconds
-   *    to show up because Discord's backend queues each of the requests.
-   *    Person 11 doesn't show up until 10 seconds after they have joined.
-   * Solution:
-   *    We rate limit our outgoing updates to 5 updates every 5 second, fetching the latest queue data
-   *    each time before sending the request. In the implementation below you'll see we actually use a
-   *    RateLimiter with 6 tokens so that can dump any request where the remaining tokens are below 1
-   *    (meaning an update is already queued).
-   * @param queueGuild
-   * @param queueChannel
+   * Send scheduled display updates every second
+   * Necessary to comply with Discord API rate limits
    */
-  public static async updateDisplay(
+  public static startScheduler() {
+    // Edit displays
+    setInterval(() => {
+      if (this.pendingQueueUpdates) {
+        for (const request of this.pendingQueueUpdates.values()) {
+          // noinspection JSIgnoredPromiseFromCall
+          this.internalUpdateDisplay(request);
+        }
+        this.pendingQueueUpdates.clear();
+      }
+    }, 1000);
+  }
+
+  public static updateDisplay(
     queueGuild: QueueGuild,
     queueChannel: VoiceChannel | StageChannel | TextChannel
-  ): Promise<void> {
-    let limiter = this.limiterMap.get(queueGuild.guild_id);
-    if (!limiter) {
-      limiter = new RateLimiter({
-        tokensPerInterval: 6,
-        interval: 6 * 1000,
-        fireImmediately: true
+  ): void {
+    if (queueChannel) {
+      this.pendingQueueUpdates.set(queueChannel.id, {
+        queueGuild: queueGuild,
+        queueChannel: queueChannel,
       });
-      this.limiterMap.set(queueGuild.guild_id, limiter);
     }
-    let remainingRequests = limiter.getTokensRemaining();
-    if (remainingRequests < 1) return; // Update already queued. See *** below
-    await limiter.removeTokens(1);
-    if (remainingRequests < 2) {
-      // *** - 5 tokens are already taken out of the bucket (limit met).
-      // Queue the next update instead of doing it immediately.
-      await delay(remainingRequests * 1000);
-    }
-    await this.internalUpdateDisplay(queueGuild, queueChannel).catch(console.trace);
   }
 
   /**
    * Update a server's display messages
-   * @param queueGuild
-   * @param queueChannel
+   * @param request
    */
-  private static async internalUpdateDisplay(
-    queueGuild: QueueGuild,
-    queueChannel: VoiceChannel | StageChannel | TextChannel
-  ): Promise<void> {
-    // Refresh queueChannel
-    queueChannel = await queueChannel.guild.channels.fetch(queueChannel.id, {force: true}) as VoiceChannel | StageChannel | TextChannel;
-
+  private static async internalUpdateDisplay(request: QueueUpdateRequest): Promise<void> {
+    const queueGuild = request.queueGuild;
+    const queueChannel = request.queueChannel;
     const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);
     if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
 

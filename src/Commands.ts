@@ -132,7 +132,7 @@ export class Commands {
           content: `Set autopull of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
         })
         .catch(() => null);
-      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     }
   }
 
@@ -393,7 +393,7 @@ export class Commands {
           content: `Set button of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
         })
         .catch(() => null);
-      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     }
   }
 
@@ -409,7 +409,7 @@ export class Commands {
     if (!queueChannel?.id) return;
 
     await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id);
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     await parsed
       .reply({
         content: `\`${queueChannel.name}\` queue cleared.`,
@@ -494,7 +494,7 @@ export class Commands {
         content: `Set color of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
       })
       .catch(() => null);
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- DISPLAY ------------------------------- //
@@ -583,7 +583,7 @@ export class Commands {
             content: `Added <@${member.id}> to \`${queueChannel.name}\`.`,
           })
           .catch(() => null);
-        MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+        MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
       } catch (e: any) {
         if (e.author === "Queue Bot") {
           await parsed
@@ -617,7 +617,7 @@ export class Commands {
           content: `Added <@&${role.id}> to \`${queueChannel.name}\`.` + errorText,
         })
         .catch(() => null);
-      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     }
   }
 
@@ -686,7 +686,7 @@ export class Commands {
         }\`.`,
       })
       .catch(() => null);
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- HEADER ------------------------------- //
@@ -728,7 +728,7 @@ export class Commands {
         content: `Updated \`${queueChannel.name}\` header.`,
       })
       .catch(() => null);
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- HELP ------------------------------- //
@@ -1079,7 +1079,7 @@ export class Commands {
         return;
       }
     }
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- KICK ------------------------------- //
@@ -1185,7 +1185,7 @@ export class Commands {
         })
         .catch(() => null);
     }
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- MENTIONS ------------------------------- //
@@ -1240,7 +1240,7 @@ export class Commands {
         const queueChannel = (await parsed.getChannels()).find(
           (ch) => ch.id === storedQueueChannel.queue_channel_id
         );
-        MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+        MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
       }
     }
   }
@@ -1442,7 +1442,7 @@ export class Commands {
         queueChannel.id,
         queueMembers.map((member) => member.member_id)
       );
-      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     } else {
       await parsed
         .edit({
@@ -1669,7 +1669,7 @@ export class Commands {
         }
       }
       // Schedule display update for each queue
-      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     }
   }
 
@@ -1837,7 +1837,7 @@ export class Commands {
         content: `Set pull number of \`${queueChannel.name}\` to \`${value}\`.`,
       })
       .catch(() => null);
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
   }
 
   // --------------------------------- QUEUES ------------------------------- //
@@ -2076,7 +2076,7 @@ export class Commands {
     for (let i = 0, l = queueMembers.length; i < l; i++) {
       await QueueMemberTable.setCreatedAt(queueMembers[i].id, queueMemberTimeStamps[i]);
     }
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     await parsed
       .reply({
         content: `\`${queueChannel.name}\` queue shuffled.`,
@@ -2122,7 +2122,7 @@ export class Commands {
     if (!queueChannel?.id) return;
     let max = parsed.args.num;
 
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     await QueueChannelTable.updateMaxMembers(queueChannel.id, max);
     await parsed
       .reply({

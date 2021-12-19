@@ -157,7 +157,10 @@ export class QueueMemberTable {
     // Assign Queue Role
     const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
     if (storedQueueChannel?.role_id) {
-      member.roles.add(storedQueueChannel.role_id).catch(() => null).then();
+      member.roles
+        .add(storedQueueChannel.role_id)
+        .catch(() => null)
+        .then();
     }
   }
 

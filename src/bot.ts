@@ -130,6 +130,7 @@ client.once("ready", async () => {
   await PriorityTable.initTable();
   SlashCommands.register(guilds).then();
   // Validator.validateAtStartup(guilds);
+  MessagingUtils.startScheduler();
   console.timeEnd("READY. Bot started in");
   isReady = true;
 });
@@ -147,7 +148,7 @@ client.on("roleDelete", async (role) => {
       const queueGuild = await QueueGuildTable.get(role.guild.id);
       const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
       for (const queueChannel of queueChannels) {
-        MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
+        MessagingUtils.updateDisplay(queueGuild, queueChannel);
       }
     }
   } catch (e) {
@@ -164,7 +165,7 @@ async function memberUpdate(member: GuildMember | PartialGuildMember) {
       const queueChannel = (await member.guild.channels
         .fetch(queueMember.channel_id)
         .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
-      MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
+      MessagingUtils.updateDisplay(queueGuild, queueChannel);
     }
   } catch (e) {
     // Nothing
@@ -203,7 +204,7 @@ client.on("channelUpdate", async (_oldCh, newCh) => {
     const changedChannel = await QueueChannelTable.get(newCh.id);
     if (changedChannel) {
       const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
-      MessagingUtils.updateDisplay(queueGuild, newChannel).then();
+      MessagingUtils.updateDisplay(queueGuild, newChannel);
     }
   } catch (e) {
     // Nothing
@@ -593,7 +594,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           }
         }
         await QueueMemberTable.store(newVoiceChannel, member);
-        MessagingUtils.updateDisplay(queueGuild, newVoiceChannel).then();
+        MessagingUtils.updateDisplay(queueGuild, newVoiceChannel);
       } catch (e) {
         // skip display update if failure
       }
@@ -621,7 +622,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             [member.id],
             storedOldQueueChannel.grace_period
           );
-          MessagingUtils.updateDisplay(queueGuild, oldVoiceChannel).then();
+          MessagingUtils.updateDisplay(queueGuild, oldVoiceChannel);
         }
       } catch (e) {
         // skip display update if failure
@@ -740,7 +741,7 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
         .catch(() => null);
     }
     const queueGuild = await QueueGuildTable.get(interaction.guild.id);
-    MessagingUtils.updateDisplay(queueGuild, queueChannel).then();
+    MessagingUtils.updateDisplay(queueGuild, queueChannel);
   } catch (e: any) {
     if (e.author === "Queue Bot") {
       await interaction
