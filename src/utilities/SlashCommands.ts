@@ -205,7 +205,7 @@ export class SlashCommands {
     }
   }
 
-  public static async modifyGuildCommands(guilds: Guild[]) {
+  public static async updateCommandsForOfflineGuildChanges(guilds: Guild[]) {
     for await (const guild of guilds) {
       const channels = Array.from(
         (await guild.channels.fetch())
@@ -225,7 +225,7 @@ export class SlashCommands {
         await delay(6000);
       }
     }
-    console.log("Done modifying commands.");
+    console.log("Done updating commands for offline guild changes.");
   }
 
   public static async registerGlobalCommands() {
@@ -248,6 +248,6 @@ export class SlashCommands {
 
   public static async register(guild: Guild[]) {
     this.registerGlobalCommands().then();
-    this.modifyGuildCommands(guild).then();
+    this.updateCommandsForOfflineGuildChanges(guild).then();
   }
 }

@@ -596,6 +596,18 @@
     ]
   },
   {
+    "name": "lock",
+    "description": "Lock a queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Queue channel",
+        "type": 7,
+        "required": true
+      }
+    ]
+  },
+  {
     "name": "mentions",
     "description": "mentions",
     "options": [

@@ -847,6 +847,10 @@ export class Commands {
           value: "Kick a user from all queue",
         },
         {
+          name: "`/lock`",
+          value: "Lock or unlock a queue",
+        },
+        {
           name: "`/mentions`",
           value:
             "Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
@@ -886,6 +890,10 @@ export class Commands {
         {
           name: "`/start`",
           value: "Add the bot to a voice queue",
+        },
+        {
+          name: "`/to-me`",
+          value: "Pull user(s) from a voice queue to you and display their name(s)",
         },
         {
           name: "`/whitelist add user` & `/whitelist add role`",
@@ -1186,6 +1194,20 @@ export class Commands {
         .catch(() => null);
     }
     MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
+  }
+
+  // --------------------------------- LOCK ------------------------------- //
+
+  /**
+   * Get the current mentions settings
+   */
+  public static async lock(parsed: ParsedCommand | ParsedMessage) {
+    await parsed.readArgs({ commandNameLength: 4, hasChannel: true });
+
+    const queueChannel = parsed.args.channel;
+    if (!queueChannel?.id) return;
+
+    // TODO
   }
 
   // --------------------------------- MENTIONS ------------------------------- //

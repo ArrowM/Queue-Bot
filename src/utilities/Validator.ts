@@ -8,12 +8,12 @@ export class Validator {
   private static SIX_HOURS = 1000 * 60 * 60 * 6;
 
   /**
-   * This bot stores info about channels, members, and roles in it's database.
-   * It's necessary to occasionally verify this data so we don't store info that has been deleted on the user side.
+   * This bot stores info about channels, members, and roles in its database.
+   * It's necessary to occasionally verify this data, so we don't store info that has been deleted on the user side.
    * We fetch the live data, then send it to the Table classes validate function to check the DB info.
    * Q: Then what is the cache code below?
-   * A: Fetching all of the live data for channels, members, and roles populates the caches in the discord.js lib.
-   * To my knowledge, these caches never get swept, so the bots memory usage would be very high.
+   * A: Fetching all the live data for channels, members, and roles populates the caches in the discord.js lib.
+   * To my knowledge, these caches never get swept, so the bots' memory usage would be very high.
    * The cache related code below clears the local cache, stored the lived data in local variables, then clears the
    * cache again. Then we send the local variables to the validate methods, which re-cache info that is stored in
    * the databases.

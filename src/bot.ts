@@ -377,6 +377,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
     case "kickall":
       await Commands.kickAll(parsed);
       return;
+    case "lock":
+      await Commands.lock(parsed);
+      return;
     case "mentions":
       switch (command[1]?.name) {
         case "get":

@@ -287,12 +287,12 @@ export class PatchingUtils {
         table.bigInteger("display_channel_id").alter();
       });
 
-      (await Base.knex<DisplayChannel>("display_channels")).forEach(async (displayChannel) => {
+      for await (const displayChannel of await Base.knex<DisplayChannel>("display_channels")) {
         await Base.knex<DisplayChannel>("display_channels")
           .where("queue_channel_id", displayChannel.queue_channel_id)
           .where("display_channel_id", displayChannel.display_channel_id)
           .update("embed_ids", [displayChannel["embed_id"]]);
-      });
+      }
       await Base.knex.schema.table("display_channels", (table) => table.dropColumn("embed_id"));
     }
     // Migration from embed_ids to message_id
@@ -402,11 +402,11 @@ export class PatchingUtils {
     // Migration of msg_on_update to msg_mode
     if (await Base.knex.schema.hasColumn("queue_guilds", "msg_on_update")) {
       await Base.knex.schema.table("queue_guilds", (table) => table.integer("msg_mode"));
-      (await Base.knex<QueueGuild>("queue_guilds")).forEach(async (queueGuild) => {
+      for await (const queueGuild of await Base.knex<QueueGuild>("queue_guilds")) {
         await Base.knex<QueueGuild>("queue_guilds")
           .where("guild_id", queueGuild.guild_id)
           .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
-      });
+      }
       await Base.knex.schema.table("queue_guilds", (table) => table.dropColumn("msg_on_update"));
     }
     // Add cleanup_commands
