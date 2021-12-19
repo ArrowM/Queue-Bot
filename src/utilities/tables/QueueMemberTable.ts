@@ -157,7 +157,23 @@ export class QueueMemberTable {
     // Assign Queue Role
     const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
     if (storedQueueChannel?.role_id) {
-      await member.roles.add(storedQueueChannel.role_id).catch(() => null);
+      member.roles.add(storedQueueChannel.role_id).catch(() => null).then();
+    }
+  }
+
+  private static async unstoreRoles(
+    guildId: Snowflake,
+    deletedMembers: QueueMember[],
+    storedQueueChannel: QueueChannel
+  ): Promise<void> {
+    const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
+    if (!guild) return;
+    for await (const deletedMember of deletedMembers) {
+      const member = await guild.members
+        .fetch(deletedMember.member_id)
+        .catch(() => null as GuildMember);
+      if (!member) continue;
+      await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
     }
   }
 
@@ -167,7 +183,7 @@ export class QueueMemberTable {
     memberIds?: Snowflake[],
     gracePeriod?: number
   ): Promise<void> {
-    // Retreive list of stored embeds for display channel
+    // Retrieve list of stored embeds for display channel
     let query = Base.knex<QueueMember>("queue_members").where("channel_id", channelId);
     if (memberIds) {
       query = query.whereIn("member_id", memberIds);
@@ -193,15 +209,7 @@ export class QueueMemberTable {
 
     const queueGuild = await QueueGuildTable.get(guildId);
     if (!queueGuild.disable_roles) {
-      const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
-      if (!guild) return;
-      for await (const deletedMember of deletedMembers) {
-        const member = await guild.members
-          .fetch(deletedMember.member_id)
-          .catch(() => null as GuildMember);
-        if (!member) continue;
-        await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
-      }
+      this.unstoreRoles(guildId, deletedMembers, storedQueueChannel).then();
     }
   }
 

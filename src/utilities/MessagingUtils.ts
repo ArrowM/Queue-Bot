@@ -76,7 +76,7 @@ export class MessagingUtils {
     queueChannel: VoiceChannel | StageChannel | TextChannel
   ): Promise<void> {
     // Refresh queueChannel
-    queueChannel = await queueChannel.guild.channels.fetch(queueChannel.id) as VoiceChannel | StageChannel | TextChannel;
+    queueChannel = await queueChannel.guild.channels.fetch(queueChannel.id, {force: true}) as VoiceChannel | StageChannel | TextChannel;
 
     const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);
     if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
