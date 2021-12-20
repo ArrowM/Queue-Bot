@@ -37,6 +37,7 @@ export class QueueChannelTable {
             table.bigInteger("guild_id");
             table.text("header");
             table.boolean("hide_button");
+            table.boolean("is_locked");
             table.integer("max_members");
             table.integer("pull_num");
             table.bigInteger("target_channel_id");
@@ -60,26 +61,27 @@ export class QueueChannelTable {
     return Base.knex<QueueChannel>("queue_channels").where("target_channel_id", targetChannelId);
   }
 
-  public static async updateMaxMembers(queueChannelId: Snowflake, max: number) {
-    await this.get(queueChannelId).update("max_members", max);
-  }
-
-  public static async updateHeader(queueChannelId: Snowflake, message: string) {
+  public static async setHeader(queueChannelId: Snowflake, message: string) {
     await this.get(queueChannelId).update("header", message);
   }
 
-  public static async updateHideButton(queueChannelId: Snowflake, status: boolean) {
-    await this.get(queueChannelId).update("hide_button", status);
+  public static async setHideButton(queueChannelId: Snowflake, hidden: boolean) {
+    await this.get(queueChannelId).update("hide_button", hidden);
   }
 
-  public static async updateTarget(
-    queueChannelId: Snowflake,
-    targetChannelId: Snowflake | Knex.Raw
-  ) {
+  public static async setLock(queueChannelId: Snowflake, is_locked: boolean) {
+    await this.get(queueChannelId).update("is_locked", is_locked);
+  }
+
+  public static async setMaxMembers(queueChannelId: Snowflake, max: number) {
+    await this.get(queueChannelId).update("max_members", max);
+  }
+
+  public static async setTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw) {
     await this.get(queueChannelId).update("target_channel_id", targetChannelId);
   }
 
-  public static async updateColor(
+  public static async setColor(
     queueChannel: VoiceChannel | StageChannel | TextChannel,
     value: ColorResolvable
   ) {
@@ -93,19 +95,19 @@ export class QueueChannelTable {
     }
   }
 
-  public static async updateGraceperiod(queueChannelId: Snowflake, value: number) {
+  public static async setGraceperiod(queueChannelId: Snowflake, value: number) {
     await this.get(queueChannelId).update("grace_period", value);
   }
 
-  public static async updateAutopull(queueChannelId: Snowflake, value: number) {
+  public static async setAutopull(queueChannelId: Snowflake, value: number) {
     await this.get(queueChannelId).update("auto_fill", value);
   }
 
-  public static async updatePullnum(queueChannelId: Snowflake, value: number) {
+  public static async setPullnum(queueChannelId: Snowflake, value: number) {
     await this.get(queueChannelId).update("pull_num", value);
   }
 
-  public static async updateRoleId(
+  public static async setRoleId(
     queueChannel: VoiceChannel | StageChannel | TextChannel,
     role: Role
   ) {
@@ -187,7 +189,7 @@ export class QueueChannelTable {
           return null;
         }
       });
-    if (role) await QueueChannelTable.updateRoleId(channel, role);
+    if (role) await QueueChannelTable.setRoleId(channel, role);
     return role;
   }
 

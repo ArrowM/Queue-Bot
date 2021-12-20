@@ -114,6 +114,14 @@ export class QueueMemberTable {
     force?: boolean
   ): Promise<void> {
     if (!force) {
+      const storedChannel = await QueueChannelTable.get(queueChannel.id);
+      if (storedChannel.is_locked) {
+        throw {
+          author: "Queue Bot",
+          message: `Failed to join to \`${queueChannel.name}\`. Queue is locked!\n`,
+        };
+      }
+
       if (await BlackWhiteListTable.hasWhitelist(queueChannel.id)) {
         if (!(await BlackWhiteListTable.isWhitelisted(queueChannel.id, member))) {
           throw {
@@ -127,7 +135,6 @@ export class QueueMemberTable {
           message: `<@${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`,
         };
       }
-      const storedChannel = await QueueChannelTable.get(queueChannel.id);
       if (storedChannel.max_members) {
         const storedQueueMembers = await this.getFromQueue(queueChannel);
         if (storedChannel.max_members <= storedQueueMembers?.length) {

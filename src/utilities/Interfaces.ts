@@ -8,6 +8,7 @@ export interface QueueChannel {
   grace_period: number;
   header: string;
   hide_button: boolean;
+  is_locked: boolean;
   max_members: number;
   pull_num: number;
   queue_channel_id: Snowflake;

@@ -158,7 +158,7 @@ export class MessagingUtils {
       queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
 
     // Setup embed variables
-    let title = queueChannel.name;
+    let title = (storedQueueChannel.is_locked ? "🔒 " : "") + queueChannel.name;
     if (storedQueueChannel.target_channel_id) {
       const targetChannel = (await queueChannel.guild.channels
         .fetch(storedQueueChannel.target_channel_id)
@@ -167,19 +167,23 @@ export class MessagingUtils {
         title += `  ->  ${targetChannel.name}`;
       } else {
         // Target has been deleted - clean it up
-        await QueueChannelTable.updateTarget(queueChannel.id, Base.knex.raw("DEFAULT"));
+        await QueueChannelTable.setTarget(queueChannel.id, Base.knex.raw("DEFAULT"));
       }
     }
 
     let description: string;
-    if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
-      description = `Join <#${queueChannel.id}> to join this queue.`;
+    if (storedQueueChannel.is_locked) {
+      description = "Queue is locked.";
     } else {
-      description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
+      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
+        description = `Join <#${queueChannel.id}> to join this queue.`;
+      } else {
+        description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
+      }
+      const timeString = this.getGracePeriodString(storedQueueChannel.grace_period);
+      if (timeString)
+        description += `\nIf you leave, you have ** ${timeString}** to rejoin to reclaim your spot.`;
     }
-    const timeString = this.getGracePeriodString(storedQueueChannel.grace_period);
-    if (timeString)
-      description += `\nIf you leave, you have ** ${timeString}** to rejoin to reclaim your spot.`;
 
     if (queueMembers.some((member) => member.is_priority))
       description += `\nPriority users are marked with a ⋆.`;
@@ -261,7 +265,7 @@ export class MessagingUtils {
     }),
   ];
 
-  public static async getButton(channel: GuildChannel) {
+  public static async getButton(channel: GuildChannel): Promise<MessageActionRow[]> {
     const storedQueueChannel = await QueueChannelTable.get(channel.id);
     if (
       !["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) &&

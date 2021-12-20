@@ -59,7 +59,7 @@ if (config.topGgToken) AutoPoster(config.topGgToken, client);
 // --- DISCORD EVENTS ---
 //
 
-interface CmdArg {
+interface CommandArg {
   name: string;
   value: string | boolean | number;
 }
@@ -79,7 +79,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         const parsed = new ParsedCommand(interaction);
         await parsed.setup();
 
-        const commands: CmdArg[] = [{ name: parsed.request.commandName, value: undefined }];
+        const commands: CommandArg[] = [{ name: parsed.request.commandName, value: undefined }];
         let obj = parsed.request.options?.data;
         while (obj) {
           commands.push({ name: obj?.[0]?.name, value: obj?.[0]?.value });
@@ -233,7 +233,7 @@ async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<b
   return true;
 }
 
-async function processCommand(parsed: ParsedCommand | ParsedMessage, command: CmdArg[]) {
+async function processCommand(parsed: ParsedCommand | ParsedMessage, command: CommandArg[]) {
   switch (command[0]?.name) {
     case "help":
       switch (command[1]?.value) {
@@ -378,7 +378,14 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Cm
       await Commands.kickAll(parsed);
       return;
     case "lock":
-      await Commands.lock(parsed);
+      switch (command[1]?.name) {
+        case "get":
+          await Commands.lockGet(parsed);
+          return;
+        case "set":
+          await Commands.lockSet(parsed);
+          return;
+      }
       return;
     case "mentions":
       switch (command[1]?.name) {
@@ -593,7 +600,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             }
           } else {
             // Target has been deleted - clean it up
-            await QueueChannelTable.updateTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
+            await QueueChannelTable.setTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
           }
         }
         await QueueMemberTable.store(newVoiceChannel, member);
@@ -606,7 +613,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
       try {
         // Left queue channel
         if (Base.isMe(member) && newVoiceChannel) {
-          await QueueChannelTable.updateTarget(oldVoiceChannel.id, newVoiceChannel.id);
+          await QueueChannelTable.setTarget(oldVoiceChannel.id, newVoiceChannel.id);
           // move bot back
           member.voice.setChannel(oldVoiceChannel).catch(() => null);
           await setTimeout(

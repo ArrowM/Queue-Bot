@@ -597,13 +597,49 @@
   },
   {
     "name": "lock",
-    "description": "Lock a queue",
+    "description": "Lock or unlock a queue. Locked queues can still be left",
     "options": [
       {
-        "name": "queue",
-        "description": "Queue channel",
-        "type": 7,
-        "required": true
+        "name": "get",
+        "description": "Get whether a queue is locked or unlocked",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "set",
+        "description": "Lock or unlock a queue. Locked queues can still be left",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "status",
+            "description": "Locked or unlocked.",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "lock",
+                "value": "lock"
+              },
+              {
+                "name": "unlock",
+                "value": "unlock"
+              }
+            ]
+          }
+        ]
       }
     ]
   },

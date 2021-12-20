@@ -66,7 +66,7 @@ export class Commands {
         })
         .catch(() => null);
     } else {
-      await QueueGuildTable.updateAltPrefix(parsed.request.guild.id, parsed.args.text === "on");
+      await QueueGuildTable.setAltPrefix(parsed.request.guild.id, parsed.args.text === "on");
       await parsed
         .reply({
           content: `Alternative prefixes have been turned ${parsed.args.text}.`,
@@ -126,7 +126,7 @@ export class Commands {
       if (!queueChannel?.id) return;
 
       const value = parsed.args.text === "off" ? 0 : 1;
-      await QueueChannelTable.updateAutopull(queueChannel.id, value);
+      await QueueChannelTable.setAutopull(queueChannel.id, value);
       await parsed
         .reply({
           content: `Set autopull of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
@@ -387,7 +387,7 @@ export class Commands {
         })
         .catch(() => null);
     } else {
-      await QueueChannelTable.updateHideButton(queueChannel.id, parsed.args.text === "off");
+      await QueueChannelTable.setHideButton(queueChannel.id, parsed.args.text === "off");
       await parsed
         .reply({
           content: `Set button of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
@@ -485,7 +485,7 @@ export class Commands {
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
 
-    await QueueChannelTable.updateColor(
+    await QueueChannelTable.setColor(
       queueChannel,
       parsed.args.text.toUpperCase() as ColorResolvable
     );
@@ -677,7 +677,7 @@ export class Commands {
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
 
-    await QueueChannelTable.updateGraceperiod(queueChannel.id, parsed.args.num);
+    await QueueChannelTable.setGraceperiod(queueChannel.id, parsed.args.num);
     const timeString = MessagingUtils.getGracePeriodString(parsed.args.num);
     await parsed
       .reply({
@@ -722,7 +722,7 @@ export class Commands {
     if (!queueChannel?.id) return;
     const message = parsed.args.text || "";
 
-    await QueueChannelTable.updateHeader(queueChannel.id, message);
+    await QueueChannelTable.setHeader(queueChannel.id, message);
     await parsed
       .reply({
         content: `Updated \`${queueChannel.name}\` header.`,
@@ -848,7 +848,7 @@ export class Commands {
         },
         {
           name: "`/lock`",
-          value: "Lock or unlock a queue",
+          value: "Lock or unlock a queue. Locked queues can still be left",
         },
         {
           name: "`/mentions`",
@@ -1198,16 +1198,69 @@ export class Commands {
 
   // --------------------------------- LOCK ------------------------------- //
 
-  /**
-   * Get the current mentions settings
-   */
-  public static async lock(parsed: ParsedCommand | ParsedMessage) {
-    await parsed.readArgs({ commandNameLength: 4, hasChannel: true });
+  public static async lockGet(parsed: ParsedCommand | ParsedMessage) {
+    await parsed.readArgs({ commandNameLength: 8, hasChannel: true });
 
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
+    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(
+      () => null as QueueChannel
+    );
+    if (!storedQueueChannel) return;
 
-    // TODO
+    await parsed
+      .reply({
+        content: `\`${queueChannel.name}\` is **${
+          storedQueueChannel.is_locked ? "locked" : "unlocked"
+        }**.`,
+      })
+      .catch(() => null);
+  }
+
+  /**
+   * Get the current mentions settings
+   */
+  public static async lockSet(parsed: ParsedCommand | ParsedMessage) {
+    await parsed.readArgs({ commandNameLength: 8, hasChannel: true, hasText: true });
+
+    const queueChannel = parsed.args.channel;
+    if (!queueChannel?.id) return;
+    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id).catch(
+      () => null as QueueChannel
+    );
+    if (!storedQueueChannel) return;
+
+    if (!["lock", "unlock"].includes(parsed.args.text.toLowerCase())) {
+      await parsed
+        .reply({
+          content: "**ERROR**: Missing required argument: `lock` or `unlock`.",
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else if (
+      (storedQueueChannel.is_locked && parsed.args.text === "lock") ||
+      (!storedQueueChannel.is_locked && parsed.args.text === "unlock")
+    ) {
+      await parsed
+        .reply({
+          content: `Queue was already ${parsed.args.text}ed.`,
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else {
+      await QueueChannelTable.setLock(queueChannel.id, parsed.args.text === "lock");
+      if (parsed.args.text === "unlock" && queueChannel.type === "GUILD_VOICE") {
+        queueChannel.members.each((member) => QueueMemberTable.store(queueChannel, member));
+      }
+      await parsed
+        .reply({
+          content: `${parsed.args.text === "lock" ? "Locked " : "Unlocked "} \`${
+            queueChannel.name
+          }\`.`,
+        })
+        .catch(() => null);
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
+    }
   }
 
   // --------------------------------- MENTIONS ------------------------------- //
@@ -1251,7 +1304,7 @@ export class Commands {
     } else {
       const guild = parsed.request.guild;
       const disableMentions = parsed.args.text !== "on";
-      await QueueGuildTable.updateDisableMentions(guild.id, disableMentions);
+      await QueueGuildTable.setDisableMentions(guild.id, disableMentions);
       await parsed
         .reply({
           content: `Set mentions to \`${parsed.args.text}\`.`,
@@ -1314,7 +1367,7 @@ export class Commands {
       return;
     }
 
-    await QueueGuildTable.updateMessageMode(parsed.request.guild.id, parsed.args.num);
+    await QueueGuildTable.setMessageMode(parsed.request.guild.id, parsed.args.num);
     await parsed
       .reply({
         content: `Set messaging mode to \`${parsed.args.num}\`.`,
@@ -1853,7 +1906,7 @@ export class Commands {
     if (!queueChannel?.id) return;
 
     const value = parsed.args.num;
-    await QueueChannelTable.updatePullnum(queueChannel.id, value);
+    await QueueChannelTable.setPullnum(queueChannel.id, value);
     await parsed
       .reply({
         content: `Set pull number of \`${queueChannel.name}\` to \`${value}\`.`,
@@ -2041,7 +2094,7 @@ export class Commands {
     } else {
       const guild = parsed.request.guild;
       const disableRoles = parsed.args.text === "off";
-      await QueueGuildTable.updateDisableRoles(guild.id, disableRoles);
+      await QueueGuildTable.setDisableRoles(guild.id, disableRoles);
       await parsed.reply({ content: `Set roles to \`${parsed.args.text}\`.` }).catch(() => null);
 
       const storedQueueChannels = await QueueChannelTable.getFromGuild(guild.id);
@@ -2145,7 +2198,7 @@ export class Commands {
     let max = parsed.args.num;
 
     MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
-    await QueueChannelTable.updateMaxMembers(queueChannel.id, max);
+    await QueueChannelTable.setMaxMembers(queueChannel.id, max);
     await parsed
       .reply({
         content: `Set \`${queueChannel.name}\` size to \`${max ? max : "unlimited"}\` users.`,

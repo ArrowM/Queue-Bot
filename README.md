@@ -35,7 +35,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/graceperiod` - Get / Set how long users can leave a queue before losing their position  
 `/header` - Get / Set a header on display messages  
 `/kick` - Kick from a queue  
-`/lock` - Lock or unlock a queue  
+`/lock` - Lock or unlock a queue. Locked queues can still be left  
 `/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  

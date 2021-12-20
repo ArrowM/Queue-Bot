@@ -29,19 +29,19 @@ export class QueueGuildTable {
     return Base.knex<QueueGuild>("queue_guilds").where("guild_id", guildId).first();
   }
 
-  public static async updateDisableMentions(guildId: Snowflake, value: boolean): Promise<void> {
+  public static async setDisableMentions(guildId: Snowflake, value: boolean): Promise<void> {
     await this.get(guildId).update("disable_mentions", value);
   }
 
-  public static async updateDisableRoles(guildId: Snowflake, value: boolean): Promise<void> {
+  public static async setDisableRoles(guildId: Snowflake, value: boolean): Promise<void> {
     await this.get(guildId).update("disable_roles", value);
   }
 
-  public static async updateMessageMode(guildId: Snowflake, mode: number): Promise<void> {
+  public static async setMessageMode(guildId: Snowflake, mode: number): Promise<void> {
     await this.get(guildId).update("msg_mode", mode);
   }
 
-  public static async updateAltPrefix(guildId: Snowflake, value: boolean): Promise<void> {
+  public static async setAltPrefix(guildId: Snowflake, value: boolean): Promise<void> {
     await this.get(guildId).update("enable_alt_prefix", value);
   }
 

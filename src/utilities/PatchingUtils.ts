@@ -43,19 +43,26 @@ export class PatchingUtils {
 
   private static async checkCommandsFile(): Promise<void> {
     if (Base.haveCommandsChanged()) {
-      console.log("commands-config.json has changed. Updating commands...");
+      let addedCommands = Base.commands.filter((c) => _.findIndex(Base.lastCommands, c) === -1);
+      let removedCommands = Base.lastCommands.filter((c) => _.findIndex(Base.commands, c) === -1);
+      if (addedCommands.length > 0) {
+        console.log(
+          "commands-config.json has changed. Added: " + addedCommands.map((c) => c.name).join(", ")
+        );
+      }
+      if (removedCommands.length > 0) {
+        console.log(
+          "commands-config.json has changed. Removed: " +
+            removedCommands.map((c) => c.name).join(", ")
+        );
+      }
 
-      let addedCmds = Base.commands.filter((c) => _.findIndex(Base.lastCommands, c) === -1);
-      let removedCmds = Base.lastCommands.filter((c) => _.findIndex(Base.commands, c) === -1);
-
-      if (addedCmds) console.log("Added: " + addedCmds.map((c) => c.name));
-      if (removedCmds) console.log("Removed: " + removedCmds.map((c) => c.name));
-
+      let progressCnt = 0;
       const guilds = Array.from(Base.client.guilds.cache.values());
-      let i = 0;
+      console.log("Updating commands for command-config.json change... [1/" + guilds.length + "]");
       for await (const guild of guilds) {
-        if (addedCmds) {
-          for await (let cmd of addedCmds) {
+        if (addedCommands) {
+          for await (let cmd of addedCommands) {
             if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
               await SlashCommands.slashClient.createCommand(cmd).catch(() => null);
             } else {
@@ -64,15 +71,15 @@ export class PatchingUtils {
             await delay(100);
           }
         }
-        if (removedCmds) {
-          for await (const cmd of removedCmds) {
+        if (removedCommands) {
+          for await (const cmd of removedCommands) {
             if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
-              const globalCmd = (
+              const globalCommand = (
                 (await SlashCommands.slashClient
                   .getCommands()
                   .catch(() => [])) as ApplicationCommand[]
               ).find((c) => c.name === cmd.name);
-              await SlashCommands.slashClient.deleteCommand(globalCmd.id).catch(() => null);
+              await SlashCommands.slashClient.deleteCommand(globalCommand.id).catch(() => null);
             } else {
               const guildCommands = (await SlashCommands.slashClient
                 .getCommands({
@@ -91,11 +98,17 @@ export class PatchingUtils {
             await delay(100);
           }
         }
-        if (++i % 50 === 0) {
-          console.log("Updating commands... [" + i + "/" + guilds.length + "]");
+        if (++progressCnt % 50 === 0) {
+          console.log(
+            "Updating commands for command-config.json change... [" +
+              progressCnt +
+              "/" +
+              guilds.length +
+              "]"
+          );
         }
       }
-      console.log("Done updating commands");
+      console.log("Done updating commands for command-config.json change.");
       Base.archiveCommands();
     }
   }
@@ -392,9 +405,13 @@ export class PatchingUtils {
     if (!(await Base.knex.schema.hasColumn("queue_channels", "role_id"))) {
       await Base.knex.schema.table("queue_channels", (table) => table.bigInteger("role_id"));
     }
-    //
+    // Add hide button column
     if (!(await Base.knex.schema.hasColumn("queue_channels", "hide_button"))) {
       await Base.knex.schema.table("queue_channels", (table) => table.boolean("hide_button"));
+    }
+    // Add is_locked column
+    if (!(await Base.knex.schema.hasColumn("queue_channels", "is_locked"))) {
+      await Base.knex.schema.table("queue_channels", (table) => table.boolean("is_locked"));
     }
   }
 
