@@ -7,7 +7,6 @@ import {
   Message,
   MessageEmbedOptions,
   MessageMentionOptions,
-  ReplyMessageOptions,
   Role,
   Snowflake,
   StageChannel,
@@ -73,7 +72,6 @@ export interface ParsedArguments {
 }
 
 export interface ParsedOptions {
-  commandNameLength: number;
   hasChannel?: boolean;
   hasMember?: boolean;
   hasRole?: boolean;
@@ -87,8 +85,8 @@ export interface ParsedOptions {
   };
 }
 
-export abstract class Parsed {
-  public request: CommandInteraction | Message;
+export class ParsedCommand {
+  public request: CommandInteraction;
   public storedQueueChannels: QueueChannel[];
   public channels: (VoiceChannel | StageChannel | TextChannel)[];
   public queueGuild: QueueGuild;
@@ -96,26 +94,22 @@ export abstract class Parsed {
   public args: ParsedArguments;
   public missingArgs?: string[];
 
-  protected constructor() {
+  constructor(command: CommandInteraction) {
     this.args = {};
+    this.request = command;
   }
-  // eslint-disable-next-line no-unused-vars
-  public abstract reply(_options: ReplyOptions): Promise<Message>;
-  // eslint-disable-next-line no-unused-vars
-  public abstract edit(_options: ReplyOptions): Promise<Message>;
-  public abstract deferReply(): Promise<void>;
 
   /**
    * Return missing fields
    */
-  public async readArgs(conf: ParsedOptions): Promise<string[]> {
+  public async readArgs(conf = {} as ParsedOptions): Promise<string[]> {
     if (this.missingArgs === undefined) {
       this.missingArgs = [];
     } else {
       return this.missingArgs;
     }
-
-    await this.getStringParam(conf.commandNameLength); // must call before channel or number
+    this.args.rawStrings = this.findArgs(this.request.options.data, "STRING") as string[];
+    this.args.text = this.args.rawStrings[0];
 
     // Required - channel, role, member
     if (conf.hasChannel) {
@@ -146,16 +140,16 @@ export abstract class Parsed {
       }
     }
     if (conf.hasRole) {
-      await this.getRoleParam();
+      this.args.role = this.findArgs(this.request.options.data, "ROLE")[0] as Role;
       if (!this.args.role) this.missingArgs.push("role");
     }
     if (conf.hasMember) {
-      await this.getMemberParam();
+      this.args.member = this.findArgs(this.request.options.data, "USER")[0] as GuildMember;
       if (!this.args.member) this.missingArgs.push("member");
     }
     // OPTIONAL - number & text
     if (conf.numberArgs) {
-      await this.getNumberParam();
+      this.args.num = this.findArgs(this.request.options.data, "INTEGER")[0] as number;
       this.verifyNumber(conf.numberArgs.min, conf.numberArgs.max, conf.numberArgs.defaultValue);
     }
     if (conf.hasNumber && this.args.num === undefined) this.missingArgs.push("number");
@@ -202,35 +196,6 @@ export abstract class Parsed {
       this.queueGuild = await QueueGuildTable.get(this.request.guild.id);
     }
     this.hasPermission = await ParsingUtils.checkPermission(this.request);
-  }
-
-  // eslint-disable-next-line no-unused-vars
-  protected abstract getStringParam(_commandNameLength: number): Promise<void>;
-  protected abstract populateChannelParam(
-  // eslint-disable-next-line no-unused-vars
-    _channels: (VoiceChannel | StageChannel | TextChannel)[],
-    // eslint-disable-next-line no-unused-vars
-    _channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]
-  ): Promise<void>;
-  protected abstract getRoleParam(): Promise<void>;
-  protected abstract getMemberParam(): Promise<void>;
-  protected abstract getNumberParam(): Promise<void>;
-
-  protected verifyNumber(min: number, max: number, defaultValue: number): void {
-    if (this.args.num) {
-      this.args.num = Math.max(Math.min(this.args.num as number, max), min);
-    } else {
-      this.args.num = defaultValue;
-    }
-  }
-}
-
-export class ParsedCommand extends Parsed {
-  public request: CommandInteraction;
-
-  constructor(command: CommandInteraction) {
-    super();
-    this.request = command;
   }
 
   public async reply(options: ReplyOptions): Promise<Message> {
@@ -310,110 +275,11 @@ export class ParsedCommand extends Parsed {
     this.args.channel = channel as VoiceChannel | StageChannel | TextChannel;
   }
 
-  protected async getMemberParam(): Promise<void> {
-    this.args.member = this.findArgs(this.request.options.data, "USER")[0] as GuildMember;
-  }
-
-  protected async getRoleParam(): Promise<void> {
-    this.args.role = this.findArgs(this.request.options.data, "ROLE")[0] as Role;
-  }
-
-  protected async getStringParam(): Promise<void> {
-    this.args.rawStrings = this.findArgs(this.request.options.data, "STRING") as string[];
-    this.args.text = this.args.rawStrings[0];
-  }
-
-  protected async getNumberParam(): Promise<void> {
-    this.args.num = this.findArgs(this.request.options.data, "INTEGER")[0] as number;
-  }
-}
-
-export class ParsedMessage extends Parsed {
-  public request: Message;
-  private lastResponse: Message;
-
-  constructor(message: Message) {
-    super();
-    this.request = message;
-  }
-
-  public async reply(options: ReplyOptions): Promise<Message> {
-    const mentions: MessageMentionOptions = options.allowMentions ? null : { parse: [] };
-    const message: ReplyMessageOptions = {
-      content: options.content,
-      embeds: options.embeds,
-      allowedMentions: mentions,
-    };
-    if (options.messageDisplay === "DM") {
-      return (this.lastResponse = (await this.request.author.send(message)) as Message);
-    } else if (options.messageDisplay !== "NONE") {
-      return (this.lastResponse = (await this.request.reply(message)) as Message);
-    }
-  }
-
-  public async edit(options: ReplyOptions): Promise<Message> {
-    if (this.lastResponse && this.lastResponse.editable) {
-      return (await this.lastResponse.edit(options)) as Message;
+  protected verifyNumber(min: number, max: number, defaultValue: number): void {
+    if (this.args.num) {
+      this.args.num = Math.max(Math.min(this.args.num as number, max), min);
     } else {
-      return await this.reply(options);
+      this.args.num = defaultValue;
     }
-  }
-
-  public async deferReply(): Promise<void> {
-    this.lastResponse = await this.request.reply("Thinking...");
-  }
-
-  private static coll = new Intl.Collator("en", { sensitivity: "base" });
-  // Populate this.args.text as well
-  protected async populateChannelParam(
-    channels: (VoiceChannel | StageChannel | TextChannel)[],
-    channelType: string[]
-  ): Promise<void> {
-    if (this.request.mentions.channels.first()) {
-      this.args.channel = this.request.mentions.channels.first() as
-        | VoiceChannel
-        | StageChannel
-        | TextChannel;
-      this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();
-    } else {
-      if (channelType) {
-        channels = channels.filter((ch) => channelType.includes(ch.type));
-      }
-      let channelName = this.args.text;
-      // Search for largest matching channel name
-      while (channelName) {
-        for (const channel of channels.values()) {
-          if (ParsedMessage.coll.compare(channelName, channel.name) === 0) {
-            this.args.channel = channel;
-            this.args.text = this.args.text.substring(channelName.length + 1);
-            break;
-          }
-        }
-        if (this.args.channel) break;
-        channelName = channelName.substring(0, channelName.lastIndexOf(" "));
-      }
-    }
-  }
-
-  protected async getMemberParam(): Promise<void> {
-    this.args.member = (await this.request.mentions.members).first();
-    if (this.args.member) {
-      this.args.text = this.args.text.replace(`<#${this.args.member.id}>`, "").trim();
-    }
-  }
-
-  protected async getRoleParam(): Promise<void> {
-    this.args.role = (await this.request.mentions.roles).first();
-    if (this.args.role) {
-      this.args.text = this.args.text.replace(`<#${this.args.role.id}>`, "").trim();
-    }
-  }
-
-  protected async getStringParam(commandNameLength: number): Promise<void> {
-    this.args.text = this.request.content.substring(commandNameLength + 2).trim(); // +2 for slash and space
-  }
-
-  protected async getNumberParam(): Promise<void> {
-    this.args.num = +this.args.text.replace(/\D/g, "");
   }
 }

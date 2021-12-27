@@ -18,7 +18,6 @@ export class QueueGuildTable {
             table.boolean("disable_mentions");
             table.boolean("disable_roles");
             table.integer("msg_mode");
-            table.boolean("enable_alt_prefix");
           })
           .catch((e) => console.error(e));
       }
@@ -39,10 +38,6 @@ export class QueueGuildTable {
 
   public static async setMessageMode(guildId: Snowflake, mode: number): Promise<void> {
     await this.get(guildId).update("msg_mode", mode);
-  }
-
-  public static async setAltPrefix(guildId: Snowflake, value: boolean): Promise<void> {
-    await this.get(guildId).update("enable_alt_prefix", value);
   }
 
   public static async store(guild: Guild): Promise<void> {

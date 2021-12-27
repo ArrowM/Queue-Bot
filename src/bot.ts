@@ -19,7 +19,7 @@ import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import util from "util";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
-import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
+import { ParsedCommand } from "./utilities/ParsingUtils";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
@@ -60,7 +60,7 @@ if (config.topGgToken) AutoPoster(config.topGgToken, client);
 //
 
 interface CommandArg {
-  name: string;
+  key: string;
   value: string | boolean | number;
 }
 
@@ -78,37 +78,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       } else {
         const parsed = new ParsedCommand(interaction);
         await parsed.setup();
-
-        const commands: CommandArg[] = [{ name: parsed.request.commandName, value: undefined }];
-        let obj = parsed.request.options?.data;
-        while (obj) {
-          commands.push({ name: obj?.[0]?.name, value: obj?.[0]?.value });
-          obj = obj?.[0]?.options;
-        }
-        await processCommand(parsed, commands);
-      }
-    }
-  } catch (e) {
-    console.error(e);
-  }
-});
-
-client.on("messageCreate", async (message) => {
-  try {
-    const guildId = message.guild?.id;
-    if (isReady && guildId && message.content[0] === "!") {
-      const parsed = new ParsedMessage(message);
-      await parsed.setup();
-      if (parsed.queueGuild.enable_alt_prefix) {
-        await processCommand(
-          parsed,
-          message.content
-            .substring(1)
-            .split(" ")
-            .map((str) => {
-              return { name: str, value: undefined };
-            })
-        );
+        await processCommand(parsed);
       }
     }
   } catch (e) {
@@ -220,7 +190,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
 // -- Bot Processing Methods ---
 //
 
-async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<boolean> {
+async function checkPermission(parsed: ParsedCommand): Promise<boolean> {
   if (!parsed.hasPermission) {
     await parsed
       .reply({
@@ -233,8 +203,15 @@ async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<b
   return true;
 }
 
-async function processCommand(parsed: ParsedCommand | ParsedMessage, command: CommandArg[]) {
-  switch (command[0]?.name) {
+async function processCommand(parsed: ParsedCommand) {
+  // Process command into key/value pairs
+  const command: CommandArg[] = [{ key: parsed.request.commandName, value: undefined }];
+  let obj = parsed.request.options?.data;
+  while (obj) {
+    command.push({ key: obj?.[0]?.name, value: obj?.[0]?.value });
+    obj = obj?.[0]?.options;
+  }
+  switch (command[0]?.key) {
     case "help":
       switch (command[1]?.value) {
         case undefined:
@@ -264,19 +241,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
 
   if (!(await checkPermission(parsed))) return;
   // -- ADMIN COMMANDS --
-  switch (command[0]?.name) {
-    case "altprefix":
-      switch (command[1]?.name) {
-        case "get":
-          await Commands.altPrefixGet(parsed);
-          return;
-        case "set":
-          await Commands.altPrefixSet(parsed);
-          return;
-      }
-      return;
+  switch (command[0]?.key) {
     case "autopull":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.autopullGet(parsed);
           return;
@@ -286,9 +253,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "blacklist":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "add":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.bwAdd(parsed, false, true);
               return;
@@ -298,7 +265,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           }
           return;
         case "delete":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.bwDelete(parsed, false, true);
               return;
@@ -316,7 +283,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "button":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.buttonGet(parsed);
           return;
@@ -329,7 +296,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       await Commands.clear(parsed);
       return;
     case "color":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.colorGet(parsed);
           return;
@@ -342,7 +309,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       await Commands.display(parsed);
       return;
     case "enqueue":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "user":
           await Commands.enqueueUser(parsed);
           return;
@@ -352,7 +319,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "graceperiod":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.graceperiodGet(parsed);
           return;
@@ -362,7 +329,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "header":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.headerGet(parsed);
           return;
@@ -378,7 +345,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       await Commands.kickAll(parsed);
       return;
     case "lock":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.lockGet(parsed);
           return;
@@ -388,7 +355,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "mentions":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.mentionsGet(parsed);
           return;
@@ -398,7 +365,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "mode":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.modeGet(parsed);
           return;
@@ -411,9 +378,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       await Commands.next(parsed);
       return;
     case "permission":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "add":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.permissionAddUser(parsed);
               return;
@@ -423,7 +390,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           }
           return;
         case "delete":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.permissionDeleteUser(parsed);
               return;
@@ -441,9 +408,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "priority":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "add":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.priorityAddUser(parsed);
               return;
@@ -453,7 +420,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           }
           return;
         case "delete":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.priorityDeleteUser(parsed);
               return;
@@ -471,7 +438,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "pullnum":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.pullnumGet(parsed);
           return;
@@ -481,7 +448,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "queues":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "add":
           await Commands.queuesAdd(parsed);
           return;
@@ -494,7 +461,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       }
       return;
     case "roles":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.rolesGet(parsed);
           return;
@@ -507,7 +474,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       await Commands.shuffle(parsed);
       return;
     case "size":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "get":
           await Commands.sizeGet(parsed);
           return;
@@ -523,9 +490,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       await Commands.toMe(parsed);
       return;
     case "whitelist":
-      switch (command[1]?.name) {
+      switch (command[1]?.key) {
         case "add":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.bwAdd(parsed, false, false);
               return;
@@ -535,7 +502,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           }
           return;
         case "delete":
-          switch (command[2]?.name) {
+          switch (command[2]?.key) {
             case "user":
               await Commands.bwDelete(parsed, false, false);
               return;

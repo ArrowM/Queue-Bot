@@ -56,7 +56,6 @@ export class PatchingUtils {
             removedCommands.map((c) => c.name).join(", ")
         );
       }
-
       let progressCnt = 0;
       const guilds = Array.from(Base.client.guilds.cache.values());
       console.log("Updating commands for command-config.json change... [1/" + guilds.length + "]");
@@ -460,16 +459,16 @@ export class PatchingUtils {
       });
     }
     //
-    if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {
-      await Base.knex.schema.alterTable("queue_guilds", (t) => t.boolean("enable_alt_prefix"));
-    }
-    //
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_mentions"))) {
       await Base.knex.schema.table("queue_guilds", (table) => table.boolean("disable_mentions"));
     }
     // Add disable_roles
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_roles"))) {
       await Base.knex.schema.table("queue_guilds", (table) => table.boolean("disable_roles"));
+    }
+    // Remove enable_alt_prefix
+    if (await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix")) {
+      await Base.knex.schema.alterTable("queue_guilds", (t) => t.dropColumn("enable_alt_prefix"));
     }
   }
 
