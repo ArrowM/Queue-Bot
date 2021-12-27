@@ -72,7 +72,6 @@ export interface ParsedArguments {
 }
 
 export interface ParsedOptions {
-  commandNameLength: number;
   hasChannel?: boolean;
   hasMember?: boolean;
   hasRole?: boolean;
@@ -103,7 +102,7 @@ export class ParsedCommand {
   /**
    * Return missing fields
    */
-  public async readArgs(conf: ParsedOptions): Promise<string[]> {
+  public async readArgs(conf = {} as ParsedOptions): Promise<string[]> {
     if (this.missingArgs === undefined) {
       this.missingArgs = [];
     } else {
