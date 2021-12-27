@@ -14,7 +14,7 @@ import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
 import { Knex } from "knex";
-import { ParsedCommand, ParsedMessage } from "../ParsingUtils";
+import { ParsedCommand } from "../ParsingUtils";
 import { Commands } from "../../Commands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { SlashCommands } from "../SlashCommands";
@@ -159,7 +159,7 @@ export class QueueChannelTable {
   }
 
   public static async createQueueRole(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     channel: VoiceChannel | StageChannel | TextChannel,
     color: ColorResolvable
   ): Promise<Role> {
@@ -196,7 +196,7 @@ export class QueueChannelTable {
   public static async deleteQueueRole(
     guildId: Snowflake,
     channel: QueueChannel,
-    parsed: ParsedCommand | ParsedMessage
+    parsed: ParsedCommand
   ): Promise<void> {
     await this.get(channel.queue_channel_id).update("role_id", Base.knex.raw("DEFAULT"));
     const roleId = channel?.role_id;
@@ -225,7 +225,7 @@ export class QueueChannelTable {
   }
 
   public static async store(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     channel: VoiceChannel | StageChannel | TextChannel,
     maxMembers?: number
   ): Promise<void> {
@@ -257,7 +257,7 @@ export class QueueChannelTable {
       await parsed.reply({
         content:
           `WARNING: \`${channel.name}\` will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
-          ` To interact with this new queue, you must use the alternate prefix (\`/altprefix on\`) or delete another queue.`,
+          ` To interact with this new queue, you must delete another queue.`,
       });
     }
   }
@@ -265,7 +265,7 @@ export class QueueChannelTable {
   public static async unstore(
     guildId: Snowflake,
     channelId?: Snowflake,
-    parsed?: ParsedCommand | ParsedMessage
+    parsed?: ParsedCommand
   ): Promise<void> {
     let query = Base.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
     // Delete store db entries

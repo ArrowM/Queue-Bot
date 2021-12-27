@@ -15,7 +15,7 @@ import {
   QueueGuild,
 } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
-import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
+import { ParsedCommand } from "./utilities/ParsingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
@@ -28,59 +28,12 @@ import { Base } from "./utilities/Base";
 import { Validator } from "./utilities/Validator";
 
 export class Commands {
-  // --------------------------------- ENABLE PREFIX ------------------------------- //
-
-  /**
-   * Get the current alternate settings
-   */
-  public static async altPrefixGet(parsed: ParsedCommand | ParsedMessage) {
-    if ((await parsed.readArgs({ commandNameLength: 13 })).length) return;
-    await parsed
-      .reply({
-        content: "**Alt Prefix** (`!`): " + (parsed.queueGuild.enable_alt_prefix ? "on" : "off"),
-      })
-      .catch(() => null);
-  }
-
-  /**
-   * Enable or disable alternate prefix
-   */
-  public static async altPrefixSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
-    if ((await parsed.readArgs({ commandNameLength: 13, hasText: true })).length) return;
-
-    if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
-      await parsed
-        .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    } else if (
-      (parsed.queueGuild.enable_alt_prefix && parsed.args.text === "on") ||
-      (!parsed.queueGuild.enable_alt_prefix && parsed.args.text === "off")
-    ) {
-      await parsed
-        .reply({
-          content: `Alternative prefixes were already ${parsed.args.text}.`,
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    } else {
-      await QueueGuildTable.setAltPrefix(parsed.request.guild.id, parsed.args.text === "on");
-      await parsed
-        .reply({
-          content: `Alternative prefixes have been turned ${parsed.args.text}.`,
-        })
-        .catch(() => null);
-    }
-  }
-
   // --------------------------------- AUTOPULL ------------------------------- //
 
   /**
    * Get the current autopull settings
    */
-  public static async autopullGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async autopullGet(parsed: ParsedCommand) {
     if ((await parsed.readArgs({ commandNameLength: 12 })).length) return;
 
     let response = "**Autopull**:\n";
@@ -101,7 +54,7 @@ export class Commands {
   /**
    * Toggle automatic pull of users from a queue
    */
-  public static async autopullSet(parsed: ParsedCommand | ParsedMessage) {
+  public static async autopullSet(parsed: ParsedCommand) {
     if (
       (
         await parsed.readArgs({
@@ -142,7 +95,7 @@ export class Commands {
    * HELPER
    */
   private static async validateBWList(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     type: number,
     storedEntries: BlackWhiteListEntry[]
   ) {
@@ -176,10 +129,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async genBWList(
-    parsed: ParsedCommand | ParsedMessage,
-    type: number
-  ): Promise<string> {
+  private static async genBWList(parsed: ParsedCommand, type: number): Promise<string> {
     const typeString = type ? "White" : "Black";
     const storedEntries = await BlackWhiteListTable.getMany(type, parsed.args.channel.id);
     this.validateBWList(parsed, type, storedEntries).then();
@@ -198,7 +148,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async _bwAdd(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
+  private static async _bwAdd(parsed: ParsedCommand, type: number): Promise<void> {
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
     const member = parsed.args.member;
@@ -232,7 +182,7 @@ export class Commands {
    * Add a user or role to blacklist or whitelist
    */
   public static async bwAdd(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     isRole: boolean,
     isBlacklist: boolean
   ): Promise<void> {
@@ -253,10 +203,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async _bwDelete(
-    parsed: ParsedCommand | ParsedMessage,
-    type: number
-  ): Promise<void> {
+  private static async _bwDelete(parsed: ParsedCommand, type: number): Promise<void> {
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
     const member = parsed.args.member;
@@ -286,7 +233,7 @@ export class Commands {
    * Remove a user or role from blacklist or whitelist
    */
   public static async bwDelete(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     isRole: boolean,
     isBlacklist: boolean
   ): Promise<void> {
@@ -307,7 +254,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async _bwList(parsed: ParsedCommand | ParsedMessage, type: number): Promise<void> {
+  private static async _bwList(parsed: ParsedCommand, type: number): Promise<void> {
     const queueChannel = parsed.args.channel;
     if (!queueChannel?.id) return;
     const response = await this.genBWList(parsed, type);
@@ -321,7 +268,7 @@ export class Commands {
   /**
    * Display a blacklist or whitelist
    */
-  public static async bwList(parsed: ParsedCommand | ParsedMessage, isBlacklist: boolean) {
+  public static async bwList(parsed: ParsedCommand, isBlacklist: boolean) {
     if ((await parsed.readArgs({ commandNameLength: 14, hasChannel: true })).length) return;
     this._bwList(parsed, isBlacklist ? 0 : 1).then();
   }
@@ -329,7 +276,7 @@ export class Commands {
   /**
    * Clear a blacklist or whitelist
    */
-  public static async bwClear(parsed: ParsedCommand | ParsedMessage, isBlacklist: boolean) {
+  public static async bwClear(parsed: ParsedCommand, isBlacklist: boolean) {
     if ((await parsed.readArgs({ commandNameLength: 15, hasChannel: true })).length) return;
 
     const queueChannel = parsed.args.channel;
@@ -347,7 +294,7 @@ export class Commands {
   /**
    * Get button settings
    */
-  public static async buttonGet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async buttonGet(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 10 });
 
     let response = "**Buttons**:\n";
@@ -368,7 +315,7 @@ export class Commands {
   /**
    * Enable or disable the "Join / Leave" button for a queue
    */
-  public static async buttonSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async buttonSet(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({
       commandNameLength: 10,
       hasChannel: true,
@@ -402,7 +349,7 @@ export class Commands {
   /**
    * Clear a queue
    */
-  public static async clear(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async clear(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 5, hasChannel: true });
 
     const queueChannel = parsed.args.channel;
@@ -422,7 +369,7 @@ export class Commands {
   /**
    * Get the current color settings
    */
-  public static async colorGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async colorGet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 9 });
 
     let response = "**Colors**:\n";
@@ -443,7 +390,7 @@ export class Commands {
   /**
    * Set a new color for a queue
    */
-  public static async colorSet(parsed: ParsedCommand | ParsedMessage) {
+  public static async colorSet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 9, hasChannel: true, hasText: true });
     if (
       ![
@@ -503,7 +450,7 @@ export class Commands {
    * Display the users in a queue. These messages stay updated
    */
   public static async display(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     channel?: VoiceChannel | StageChannel | TextChannel
   ): Promise<void> {
     await parsed.readArgs({ commandNameLength: 7, hasChannel: true });
@@ -556,7 +503,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async enqueue(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  private static async enqueue(parsed: ParsedCommand): Promise<void> {
     const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
     if (!queueChannel?.id) return;
     const member = parsed.args.member;
@@ -624,7 +571,7 @@ export class Commands {
   /**
    * Add a specified user to a text queue / Update queue message
    */
-  public static async enqueueUser(parsed: ParsedCommand | ParsedMessage) {
+  public static async enqueueUser(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasMember: true });
 
     await this.enqueue(parsed);
@@ -633,7 +580,7 @@ export class Commands {
   /**
    * Add a specified role to a text queue / Update queue message
    */
-  public static async enqueueRole(parsed: ParsedCommand | ParsedMessage) {
+  public static async enqueueRole(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasRole: true });
 
     await this.enqueue(parsed);
@@ -644,7 +591,7 @@ export class Commands {
   /**
    * Get the current grace period settings
    */
-  public static async graceperiodGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async graceperiodGet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 15 });
 
     let response = "**Grace Periods**:\n";
@@ -666,7 +613,7 @@ export class Commands {
   /**
    * Set how long a user can leave a queue before losing their spot
    */
-  public static async graceperiodSet(parsed: ParsedCommand | ParsedMessage) {
+  public static async graceperiodSet(parsed: ParsedCommand) {
     await parsed.readArgs({
       commandNameLength: 15,
       hasChannel: true,
@@ -694,7 +641,7 @@ export class Commands {
   /**
    * Set or remove a header for a queue's display messages
    */
-  public static async headerGet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async headerGet(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 10 });
 
     let response = "**Headers**:\n";
@@ -715,7 +662,7 @@ export class Commands {
   /**
    * Set or remove a header for a queue's display messages
    */
-  public static async headerSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async headerSet(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 10, hasChannel: true });
 
     const queueChannel = parsed.args.channel;
@@ -736,9 +683,8 @@ export class Commands {
   /**
    * Display general help messages
    */
-  public static async help(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async help(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 4 });
-    const alt = parsed.queueGuild.enable_alt_prefix;
 
     const response: MessageEmbedOptions = {
       title: "Commands for Everyone",
@@ -750,19 +696,19 @@ export class Commands {
             "**VOICE**: Join the matching voice channel.",
         },
         {
-          name: "`/join`" + (alt ? " or `!join`" : ""),
+          name: "`/join`",
           value: "Join a text queue / Update queue message after joining",
         },
         {
-          name: "`/leave`" + (alt ? " or `!leave`" : ""),
+          name: "`/leave`",
           value: "Leave a queue",
         },
         {
-          name: "`/myqueues`" + (alt ? " or `!myqueues`" : ""),
+          name: "`/myqueues`",
           value: "Show my queues",
         },
         {
-          name: "`/help setup`" + (alt ? " or `!help setup`" : ""),
+          name: "`/help setup`",
           value: "Setup & admin commands",
         },
       ],
@@ -779,17 +725,13 @@ export class Commands {
   /**
    * Display help messages for queues
    */
-  public static async helpQueue(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async helpQueue(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 10 });
 
     const response: MessageEmbedOptions = {
       author: { name: "Privileged Commands" },
       title: "Queue Management",
       fields: [
-        {
-          name: "`/altprefix`",
-          value: "Enable or disable alternate prefix `!`",
-        },
         {
           name: "`/autopull`",
           value: "Get / Set automatic pull from a voice queue",
@@ -929,7 +871,7 @@ export class Commands {
   /**
    * Display help messages for bot settings
    */
-  public static async helpBot(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async helpBot(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 8 });
 
     const response: MessageEmbedOptions = {
@@ -974,7 +916,7 @@ export class Commands {
   /**
    *
    */
-  public static async helpSetup(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async helpSetup(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 10 });
 
     const response: MessageEmbedOptions = {
@@ -1047,7 +989,7 @@ export class Commands {
   /**
    * Join a text queue / Update queue message after joining
    */
-  public static async join(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async join(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 4, hasChannel: true });
 
     const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
@@ -1116,7 +1058,7 @@ export class Commands {
   /**
    * Kick a user from a specified queue
    */
-  public static async kick(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async kick(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 4, hasChannel: true, hasMember: true });
 
     const member = parsed.args.member;
@@ -1136,7 +1078,7 @@ export class Commands {
   /**
    * Kick a user from all queues
    */
-  public static async kickAll(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async kickAll(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 7, hasMember: true });
 
     const member = parsed.args.member;
@@ -1168,7 +1110,7 @@ export class Commands {
   /**
    * Leave a text queue
    */
-  public static async leave(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async leave(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 5, hasChannel: true });
 
     const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
@@ -1198,7 +1140,7 @@ export class Commands {
 
   // --------------------------------- LOCK ------------------------------- //
 
-  public static async lockGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async lockGet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 8, hasChannel: true });
 
     const queueChannel = parsed.args.channel;
@@ -1220,7 +1162,7 @@ export class Commands {
   /**
    * Get the current mentions settings
    */
-  public static async lockSet(parsed: ParsedCommand | ParsedMessage) {
+  public static async lockSet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 8, hasChannel: true, hasText: true });
 
     const queueChannel = parsed.args.channel;
@@ -1268,7 +1210,7 @@ export class Commands {
   /**
    * Get the current mentions settings
    */
-  public static async mentionsGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async mentionsGet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 12 });
 
     await parsed
@@ -1281,7 +1223,7 @@ export class Commands {
   /**
    * Enable or disable mentions in queue displays
    */
-  public static async mentionsSet(parsed: ParsedCommand | ParsedMessage) {
+  public static async mentionsSet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 12, hasText: true });
 
     if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
@@ -1325,7 +1267,7 @@ export class Commands {
   /**
    * Get the current autopull settings
    */
-  public static async modeGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async modeGet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 8 });
 
     let response = "**Messaging Mode**:\n";
@@ -1350,7 +1292,7 @@ export class Commands {
   /**
    * Toggle automatic pull of users from a queue
    */
-  public static async modeSet(parsed: ParsedCommand | ParsedMessage) {
+  public static async modeSet(parsed: ParsedCommand) {
     await parsed.readArgs({
       commandNameLength: 8,
       hasNumber: true,
@@ -1380,7 +1322,7 @@ export class Commands {
   /**
    * Display the queues you are in with your position
    */
-  public static async myqueues(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async myqueues(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 8 });
 
     const author = parsed.request.member as GuildMember;
@@ -1428,7 +1370,7 @@ export class Commands {
   /**
    * Pull user(s) from a queue and display their name(s)
    */
-  public static async next(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async next(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({
       commandNameLength: 4,
       hasChannel: true,
@@ -1450,7 +1392,7 @@ export class Commands {
   }
 
   private static async pullMembers(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     targetChannel: VoiceChannel | StageChannel
   ): Promise<void> {
     const queueChannel = parsed.args.channel;
@@ -1533,7 +1475,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async genPermissionList(parsed: ParsedCommand | ParsedMessage): Promise<string> {
+  private static async genPermissionList(parsed: ParsedCommand): Promise<string> {
     const perms = await AdminPermissionTable.getMany(parsed.request.guild.id);
     let response = "\nRoles and users with bot permission: ";
     if (perms?.length) {
@@ -1549,7 +1491,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async permissionAdd(parsed: ParsedCommand | ParsedMessage) {
+  private static async permissionAdd(parsed: ParsedCommand) {
     const member = parsed.args.member;
     const role = parsed.args.role;
     const id = member?.id || role?.id;
@@ -1574,7 +1516,7 @@ export class Commands {
   /**
    * Grant permission to a user to use bot commands
    */
-  public static async permissionAddUser(parsed: ParsedCommand | ParsedMessage) {
+  public static async permissionAddUser(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 19, hasMember: true });
 
     await this.permissionAdd(parsed);
@@ -1583,7 +1525,7 @@ export class Commands {
   /**
    * Grant permission to a role to use bot commands
    */
-  public static async permissionAddRole(parsed: ParsedCommand | ParsedMessage) {
+  public static async permissionAddRole(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 19, hasRole: true });
 
     await this.permissionAdd(parsed);
@@ -1592,7 +1534,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async permissionDelete(parsed: ParsedCommand | ParsedMessage) {
+  private static async permissionDelete(parsed: ParsedCommand) {
     const member = parsed.args.member;
     const role = parsed.args.role;
     const id = member?.id || role?.id;
@@ -1617,7 +1559,7 @@ export class Commands {
   /**
    * Revoke permission from a user to use bot commands
    */
-  public static async permissionDeleteUser(parsed: ParsedCommand | ParsedMessage) {
+  public static async permissionDeleteUser(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 22, hasMember: true });
 
     await this.permissionDelete(parsed);
@@ -1626,7 +1568,7 @@ export class Commands {
   /**
    * Revoke permission from a role to use bot commands
    */
-  public static async permissionDeleteRole(parsed: ParsedCommand | ParsedMessage) {
+  public static async permissionDeleteRole(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 22, hasRole: true });
 
     await this.permissionDelete(parsed);
@@ -1635,7 +1577,7 @@ export class Commands {
   /**
    * List roles and users with permission
    */
-  public static async permissionList(parsed: ParsedCommand | ParsedMessage) {
+  public static async permissionList(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 20 });
 
     const response = await this.genPermissionList(parsed);
@@ -1649,7 +1591,7 @@ export class Commands {
   /**
    * Clear roles and users with permission
    */
-  public static async permissionClear(parsed: ParsedCommand | ParsedMessage) {
+  public static async permissionClear(parsed: ParsedCommand) {
     if ((await parsed.readArgs({ commandNameLength: 21 })).length) return;
 
     await AdminPermissionTable.unstore(parsed.request.guildId);
@@ -1665,10 +1607,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async validatePriorityList(
-    parsed: ParsedCommand | ParsedMessage,
-    storedEntries: PriorityEntry[]
-  ) {
+  private static async validatePriorityList(parsed: ParsedCommand, storedEntries: PriorityEntry[]) {
     let removedAny = false;
     for await (const entry of storedEntries) {
       if (entry.is_role) continue;
@@ -1698,7 +1637,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async genPriorityList(parsed: ParsedCommand | ParsedMessage): Promise<string> {
+  private static async genPriorityList(parsed: ParsedCommand): Promise<string> {
     const storedEntries = await PriorityTable.getMany(parsed.queueGuild.guild_id);
     this.validatePriorityList(parsed, storedEntries).then();
     let response = "\nPriority list: ";
@@ -1715,7 +1654,7 @@ export class Commands {
   /**
    * HELPER. Re-evaluate all. This can be slow
    */
-  private static async updatePriorities(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  private static async updatePriorities(parsed: ParsedCommand): Promise<void> {
     const guild = parsed.request.guild;
     // Get all priority Ids for guild
     const priorityIds = (await PriorityTable.getMany(guild.id)).map(
@@ -1751,7 +1690,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async priorityAdd(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  private static async priorityAdd(parsed: ParsedCommand): Promise<void> {
     const member = parsed.args.member;
     const role = parsed.args.role;
     const id = member?.id || role?.id;
@@ -1779,7 +1718,7 @@ export class Commands {
   /**
    * Grant priority in queue to a user
    */
-  public static async priorityAddUser(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async priorityAddUser(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 17, hasMember: true });
 
     await this.priorityAdd(parsed);
@@ -1788,7 +1727,7 @@ export class Commands {
   /**
    * Grant priority in queue to a role
    */
-  public static async priorityAddRole(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async priorityAddRole(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 17, hasRole: true });
 
     await this.priorityAdd(parsed);
@@ -1797,7 +1736,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async priorityDelete(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  private static async priorityDelete(parsed: ParsedCommand): Promise<void> {
     const member = parsed.args.member;
     const role = parsed.args.role;
     const id = member?.id || role?.id;
@@ -1825,7 +1764,7 @@ export class Commands {
   /**
    * Revoke priority in queue from a user
    */
-  public static async priorityDeleteUser(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async priorityDeleteUser(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 17, hasMember: true });
 
     await this.priorityDelete(parsed);
@@ -1834,7 +1773,7 @@ export class Commands {
   /**
    * Revoke priority in queue from a role
    */
-  public static async priorityDeleteRole(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async priorityDeleteRole(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 17, hasRole: true });
 
     await this.priorityDelete(parsed);
@@ -1843,7 +1782,7 @@ export class Commands {
   /**
    * List roles and users with priority in queue
    */
-  public static async priorityList(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async priorityList(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 13 });
 
     const response = await this.genPriorityList(parsed);
@@ -1857,7 +1796,7 @@ export class Commands {
   /**
    * Clear roles and users with permission
    */
-  public static async priorityClear(parsed: ParsedCommand | ParsedMessage) {
+  public static async priorityClear(parsed: ParsedCommand) {
     if ((await parsed.readArgs({ commandNameLength: 22 })).length) return;
 
     await PriorityTable.unstore(parsed.request.guildId);
@@ -1873,7 +1812,7 @@ export class Commands {
   /**
    * Get the current pullnum settings
    */
-  public static async pullnumGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async pullnumGet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 11 });
 
     let response = "**Pull nums**:\n";
@@ -1894,7 +1833,7 @@ export class Commands {
   /**
    * Set the default # of users to pull when autopull is off or when using the `next` command
    */
-  public static async pullnumSet(parsed: ParsedCommand | ParsedMessage) {
+  public static async pullnumSet(parsed: ParsedCommand) {
     await parsed.readArgs({
       commandNameLength: 11,
       hasChannel: true,
@@ -1920,7 +1859,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async genQueuesList(parsed: ParsedCommand | ParsedMessage): Promise<string> {
+  private static async genQueuesList(parsed: ParsedCommand): Promise<string> {
     const storedChannels = await QueueChannelTable.fetchFromGuild(parsed.request.guild);
     if (storedChannels?.length) {
       return "\nQueues: " + storedChannels.map((ch) => `\`${ch.name}\``).join(", ");
@@ -1933,7 +1872,7 @@ export class Commands {
    * HELPER
    */
   private static async storeQueue(
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     channel: VoiceChannel | StageChannel | TextChannel,
     size: number
   ): Promise<void> {
@@ -1948,7 +1887,7 @@ export class Commands {
   /**
    * Add a new queue
    */
-  public static async queuesAdd(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async queuesAdd(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({
       commandNameLength: 10,
       hasChannel: true,
@@ -2010,7 +1949,7 @@ export class Commands {
   /**
    * Delete a queue
    */
-  public static async queuesDelete(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async queuesDelete(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 13, hasChannel: true });
 
     const queueChannel = parsed.args.channel;
@@ -2042,7 +1981,7 @@ export class Commands {
   /**
    * List queues
    */
-  public static async queuesList(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async queuesList(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 11 });
 
     const response = await this.genQueuesList(parsed);
@@ -2058,7 +1997,7 @@ export class Commands {
   /**
    * Get the current autopull settings
    */
-  public static async rolesGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async rolesGet(parsed: ParsedCommand) {
     if ((await parsed.readArgs({ commandNameLength: 9 })).length) return;
     await parsed
       .reply({
@@ -2068,9 +2007,9 @@ export class Commands {
   }
 
   /**
-   * Enable or disable alternate prefix
+   * Enable or disable autopull
    */
-  public static async rolesSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async rolesSet(parsed: ParsedCommand): Promise<void> {
     if ((await parsed.readArgs({ commandNameLength: 9, hasText: true })).length) return;
 
     if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
@@ -2139,7 +2078,7 @@ export class Commands {
   /**
    * Shuffle a queue
    */
-  public static async shuffle(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async shuffle(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({ commandNameLength: 7, hasChannel: true });
 
     const queueChannel = parsed.args.channel;
@@ -2164,7 +2103,7 @@ export class Commands {
   /**
    * Get the current queue sizes
    */
-  public static async sizeGet(parsed: ParsedCommand | ParsedMessage) {
+  public static async sizeGet(parsed: ParsedCommand) {
     await parsed.readArgs({ commandNameLength: 8 });
 
     let response = "**Sizes**:\n";
@@ -2185,7 +2124,7 @@ export class Commands {
   /**
    * Set the size of a queue
    */
-  public static async sizeSet(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async sizeSet(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({
       commandNameLength: 8,
       hasChannel: true,
@@ -2213,7 +2152,7 @@ export class Commands {
             content:
               "I can automatically change the user limit of voice channels, but I need a new permission:\n" +
               "`Server Settings` > `Roles` > `Queue Bot` > `Permissions` tab > enable `Manage Channels`.\n" +
-              "If that does'nt work, check the channel-specific permissions.",
+              "If that doesn't work, check the channel-specific permissions.",
             commandDisplay: "EPHEMERAL",
           })
           .catch(() => null);
@@ -2226,7 +2165,7 @@ export class Commands {
   /**
    * Add the bot to a voice queue
    */
-  public static async start(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async start(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({
       commandNameLength: 5,
       hasChannel: true,
@@ -2267,7 +2206,7 @@ export class Commands {
   /**
    * Pull user(s) from a queue and display their name(s)
    */
-  public static async toMe(parsed: ParsedCommand | ParsedMessage): Promise<void> {
+  public static async toMe(parsed: ParsedCommand): Promise<void> {
     await parsed.readArgs({
       commandNameLength: 5,
       hasChannel: true,

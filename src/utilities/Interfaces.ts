@@ -27,7 +27,6 @@ export interface QueueGuild {
   id: Snowflake;
   disable_mentions: boolean;
   disable_roles: boolean;
-  enable_alt_prefix: boolean;
   guild_id: Snowflake;
   msg_mode: number;
   prefix?: string;

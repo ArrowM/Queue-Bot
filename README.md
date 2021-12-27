@@ -24,7 +24,6 @@ Privileged commands are restricted to the server owner, administrators, and user
 If a command that expects a channel name is not given one, the current text channel will be used.  
   
 **Queue Management**  
-`/altprefix` - Enable or disable alternate prefix `!`  
 `/autopull` - Get / Set automatic pull from a voice queue  
 `/blacklist` - Add / delete / display blacklists of users and roles  
 `/button` - Get / Set whether a \"Join / Leave\" button appears under a text queue display  

@@ -8,17 +8,17 @@ import {
 } from "discord-slash-commands-client";
 import { Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
 import { Base } from "./Base";
-import { Parsed, ParsedCommand, ParsedMessage } from "./ParsingUtils";
+import { ParsedCommand } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 
 interface SlashUpdateMessage {
   resp: Message;
   respText: string;
-  progNum: number;
+  progressCnt: number;
   totalNum: number;
 }
 export class SlashCommands {
-  public static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues", "permission"];
+  public static readonly GLOBAL_COMMANDS = ["help", "queues", "permission"];
   public static readonly TEXT_COMMANDS = ["button"];
   public static readonly VOICE_COMMANDS = ["autopull", "start", "to-me"];
   public static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
@@ -30,8 +30,8 @@ export class SlashCommands {
       ?.edit(
         suMsg.respText +
           "\n[" +
-          "▓".repeat(++suMsg.progNum) +
-          "░".repeat(suMsg.totalNum - suMsg.progNum) +
+          "▓".repeat(++suMsg.progressCnt) +
+          "░".repeat(suMsg.totalNum - suMsg.progressCnt) +
           "]"
       )
       .catch(() => null);
@@ -87,7 +87,7 @@ export class SlashCommands {
 
   private static async modify(
     guildId: Snowflake,
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: ParsedCommand,
     storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
   ): Promise<ApplicationOptions[]> {
     const now = Date.now();
@@ -101,7 +101,7 @@ export class SlashCommands {
     const slashUpdateMessage = {
       resp: await parsed?.reply({ content: msgTest }).catch(() => null as Message),
       respText: msgTest,
-      progNum: 0,
+      progressCnt: 0,
       totalNum: commands.length,
     };
 
@@ -144,7 +144,7 @@ export class SlashCommands {
       .catch(() => null);
   }
 
-  private static async modifyForNoQueues(guildId: Snowflake, parsed: Parsed): Promise<void> {
+  private static async modifyForNoQueues(guildId: Snowflake, parsed: ParsedCommand): Promise<void> {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
 
@@ -160,7 +160,7 @@ export class SlashCommands {
     const slashUpdateMessage = {
       resp: await parsed?.reply({ content: msgTest }).catch(() => null as Message),
       respText: msgTest,
-      progNum: 0,
+      progressCnt: 0,
       totalNum: commands.length,
     };
 
@@ -188,10 +188,7 @@ export class SlashCommands {
     }
   }
 
-  public static async modifyCommandsForGuild(
-    guild: Guild,
-    parsed?: ParsedCommand | ParsedMessage
-  ): Promise<void> {
+  public static async modifyCommandsForGuild(guild: Guild, parsed?: ParsedCommand): Promise<void> {
     try {
       //console.log("Modifying commands for " + guild.id);
       const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
