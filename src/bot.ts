@@ -697,7 +697,10 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
           throw e;
         }
       })) as VoiceChannel | StageChannel | TextChannel;
-    if (!queueChannel) throw "Queue channel not found.";
+    if (!queueChannel) {
+      await handleJoinLeaveError("Queue channel not found.");
+      return;
+    }
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
     if (storedQueueMember) {
@@ -720,6 +723,10 @@ async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
     const queueGuild = await QueueGuildTable.get(interaction.guild.id);
     MessagingUtils.updateDisplay(queueGuild, queueChannel);
   } catch (e: any) {
+    await handleJoinLeaveError(e);
+  }
+
+  async function handleJoinLeaveError(e: any): Promise<void> {
     if (e.author === "Queue Bot") {
       await interaction
         .reply({ content: "**ERROR**: " + e.message, ephemeral: true })

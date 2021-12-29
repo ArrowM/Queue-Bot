@@ -9,6 +9,7 @@ import {
 } from "./Interfaces";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import delay from "delay";
+import assert from "assert/strict";
 import schemaInspector from "knex-schema-inspector";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
@@ -223,10 +224,8 @@ export class PatchingUtils {
       const entries = await Base.knex<AdminPermission>("admin_permission");
       console.log("Admin Table updates");
       for await (const entry of entries) {
+        const guild = await Base.client.guilds.fetch(entry.guild_id).catch(() => null as Guild);
         try {
-          const guild = await Base.client.guilds.fetch(entry.guild_id).catch(() => null as Guild);
-          if (!guild) throw "GUILD NOT FOUND";
-
           let newId: Snowflake;
           let isRole = false;
           if (entry.role_member_id.startsWith("<@")) {
@@ -240,7 +239,7 @@ export class PatchingUtils {
             newId = guild.roles.cache.find((role) => role.name === entry.role_member_id)?.id;
             isRole = true;
           }
-          if (!newId) throw "ID NOT FOUND";
+          assert.notEqual(newId, undefined);
           await Base.knex<AdminPermission>("admin_permission")
             .where("id", entry.id)
             .update("role_member_id", newId)
