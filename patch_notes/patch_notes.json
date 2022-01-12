@@ -1,6 +1,34 @@
 [
    {
       "sent": false,
+      "date": "2022-01-11",
+      "embeds": [
+         {
+            "title": "Patch Notes for Jan 11, 2021",
+            "color": 6544040
+         },
+         {
+            "title": "News + New Command: Notifications",
+            "color": 6544040,
+            "fields": [
+               {
+                  "name": "Notifications (`/notifications`)",
+                  "value": "Change whether users are DM-ed when they are pulled out of a queue. Notifications are ON by default."
+               },
+               {
+                  "name": "News: Alternative prefixes will be removed in April",
+                  "value": "Support for non-slash commands is going to be removed sometime in April due to a Discord policy update (https://dis.gd/mcpolicy)."
+               },
+               {
+                  "name": "Support the Bot :heart:",
+                  "value": "Hosting isn't free and development takes lots of time.\n1. [Leave a review on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "sent": true,
       "date": "2021-12-20",
       "embeds": [
          {

@@ -25,7 +25,7 @@ export class SlashCommands {
 
   private static readonly commandRegistrationCache = new Map<Snowflake, number>();
 
-  private static async editProgress(suMsg: SlashUpdateMessage): Promise<void> {
+  private static async editProgress(suMsg: SlashUpdateMessage) {
     await suMsg.resp
       ?.edit(
         suMsg.respText +
@@ -144,7 +144,7 @@ export class SlashCommands {
       .catch(() => null);
   }
 
-  private static async modifyForNoQueues(guildId: Snowflake, parsed: Parsed): Promise<void> {
+  private static async modifyForNoQueues(guildId: Snowflake, parsed: Parsed) {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
 
@@ -179,7 +179,7 @@ export class SlashCommands {
       .catch(() => null);
   }
 
-  public static async addCommandForGuild(guild: Guild, cmd: ApplicationOptions): Promise<void> {
+  public static async addCommandForGuild(guild: Guild, cmd: ApplicationOptions) {
     cmd = JSON.parse(JSON.stringify(cmd)) as ApplicationOptions; // copies
     const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
     if (storedChannels.length) {
@@ -188,10 +188,7 @@ export class SlashCommands {
     }
   }
 
-  public static async modifyCommandsForGuild(
-    guild: Guild,
-    parsed?: ParsedCommand | ParsedMessage
-  ): Promise<void> {
+  public static async modifyCommandsForGuild(guild: Guild, parsed?: ParsedCommand | ParsedMessage) {
     try {
       //console.log("Modifying commands for " + guild.id);
       const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25

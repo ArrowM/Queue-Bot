@@ -410,6 +410,16 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
     case "next":
       await Commands.next(parsed);
       return;
+    case "notifications":
+      switch (command[1]?.name) {
+        case "get":
+          await Commands.notificationsGet(parsed);
+          return;
+        case "set":
+          await Commands.notificationsSet(parsed);
+          return;
+      }
+      return;
     case "permission":
       switch (command[1]?.name) {
         case "add":
@@ -662,7 +672,7 @@ async function fillTargetChannel(
   storedSrcChannel: QueueChannel,
   srcChannel: VoiceChannel | StageChannel,
   dstChannel: VoiceChannel | StageChannel
-): Promise<void> {
+) {
   const guild = srcChannel.guild;
   // Check to see if I have perms to drag other users into this channel.
   if (dstChannel.permissionsFor(guild.me).has("CONNECT")) {
@@ -709,7 +719,7 @@ async function fillTargetChannel(
   }
 }
 
-async function joinLeaveButton(interaction: ButtonInteraction): Promise<void> {
+async function joinLeaveButton(interaction: ButtonInteraction) {
   try {
     const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
     if (!storedDisplayChannel) {

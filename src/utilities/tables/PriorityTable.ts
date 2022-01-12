@@ -6,7 +6,7 @@ export class PriorityTable {
   /**
    * Create & update QueueGuild database table if necessary
    */
-  public static async initTable(): Promise<void> {
+  public static async initTable() {
     await Base.knex.schema.hasTable("priority").then(async (exists) => {
       if (!exists) {
         await Base.knex.schema
@@ -44,11 +44,7 @@ export class PriorityTable {
     return false;
   }
 
-  public static async store(
-    guildId: Snowflake,
-    roleMemberId: Snowflake,
-    isRole: boolean
-  ): Promise<void> {
+  public static async store(guildId: Snowflake, roleMemberId: Snowflake, isRole: boolean) {
     await Base.knex<PriorityEntry>("priority").insert({
       guild_id: guildId,
       role_member_id: roleMemberId,
@@ -56,7 +52,7 @@ export class PriorityTable {
     });
   }
 
-  public static async unstore(guildId: Snowflake, roleMemberId?: Snowflake): Promise<void> {
+  public static async unstore(guildId: Snowflake, roleMemberId?: Snowflake) {
     let query = Base.knex<PriorityEntry>("priority").where("guild_id", guildId);
     if (roleMemberId) query = query.where("role_member_id", roleMemberId);
     await query.first().delete();

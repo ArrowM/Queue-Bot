@@ -26,6 +26,7 @@ export interface DisplayChannel {
 export interface QueueGuild {
   id: Snowflake;
   disable_mentions: boolean;
+  disable_notifications: boolean;
   disable_roles: boolean;
   enable_alt_prefix: boolean;
   guild_id: Snowflake;

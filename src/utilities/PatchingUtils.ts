@@ -41,7 +41,7 @@ export class PatchingUtils {
     this.checkCommandsFile().then();
   }
 
-  private static async checkCommandsFile(): Promise<void> {
+  private static async checkCommandsFile() {
     if (Base.haveCommandsChanged()) {
       let addedCommands = Base.commands.filter((c) => _.findIndex(Base.lastCommands, c) === -1);
       let removedCommands = Base.lastCommands.filter((c) => _.findIndex(Base.commands, c) === -1);
@@ -113,7 +113,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async checkNotes(guilds: Guild[]): Promise<void> {
+  private static async checkNotes(guilds: Guild[]) {
     const displayChannels: TextChannel[] = [];
     if (existsSync("../patch_notes/patch_notes.json")) {
       // Collect notes
@@ -182,7 +182,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async initTables(): Promise<void> {
+  private static async initTables() {
     if (!(await Base.knex.schema.hasTable("admin_permission"))) {
       await AdminPermissionTable.initTable();
     }
@@ -206,7 +206,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async tableAdminPermission(): Promise<void> {
+  private static async tableAdminPermission() {
     if (await Base.knex.schema.hasTable("queue_manager_roles")) {
       // RENAME
       await Base.knex.schema.renameTable("queue_manager_roles", "admin_permission");
@@ -262,7 +262,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async tableBlackWhiteList(): Promise<void> {
+  private static async tableBlackWhiteList() {
     if (await Base.knex.schema.hasTable("member_perms")) {
       // RENAME
       await Base.knex.schema.renameTable("member_perms", "black_white_list");
@@ -287,7 +287,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async tableDisplayChannels(): Promise<void> {
+  private static async tableDisplayChannels() {
     // Migration of embed_id to embed_ids
     if (await Base.knex.schema.hasColumn("display_channels", "embed_id")) {
       await Base.knex.schema.alterTable("display_channels", (table) => {
@@ -366,7 +366,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async tableQueueChannels(): Promise<void> {
+  private static async tableQueueChannels() {
     // Add max_members
     if (!(await Base.knex.schema.hasColumn("queue_channels", "max_members"))) {
       await Base.knex.schema.table("queue_channels", (table) => table.text("max_members"));
@@ -415,7 +415,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async tableQueueGuilds(): Promise<void> {
+  private static async tableQueueGuilds() {
     // Migration of msg_on_update to msg_mode
     if (await Base.knex.schema.hasColumn("queue_guilds", "msg_on_update")) {
       await Base.knex.schema.table("queue_guilds", (table) => table.integer("msg_mode"));
@@ -459,11 +459,11 @@ export class PatchingUtils {
         table.dropColumn("cleanup_commands");
       });
     }
-    //
+    // add enable_alt_prefix
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {
       await Base.knex.schema.alterTable("queue_guilds", (t) => t.boolean("enable_alt_prefix"));
     }
-    //
+    // add disable_mentions
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_mentions"))) {
       await Base.knex.schema.table("queue_guilds", (table) => table.boolean("disable_mentions"));
     }
@@ -471,9 +471,15 @@ export class PatchingUtils {
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_roles"))) {
       await Base.knex.schema.table("queue_guilds", (table) => table.boolean("disable_roles"));
     }
+    // Add disable_notifications
+    if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_notifications"))) {
+      await Base.knex.schema.table("queue_guilds", (table) =>
+        table.boolean("disable_notifications")
+      );
+    }
   }
 
-  private static async tableQueueMembers(): Promise<void> {
+  private static async tableQueueMembers() {
     if (await Base.knex.schema.hasColumn("queue_members", "queue_channel_id")) {
       await Base.knex.schema.alterTable("queue_members", (table) => {
         // NEW COLUMNS

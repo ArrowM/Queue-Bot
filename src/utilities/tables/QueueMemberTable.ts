@@ -10,7 +10,7 @@ export class QueueMemberTable {
   /**
    * Create & update QueueGuild database table if necessary
    */
-  public static async initTable(): Promise<void> {
+  public static async initTable() {
     await Base.knex.schema.hasTable("queue_members").then(async (exists) => {
       if (!exists) {
         await Base.knex.schema
@@ -44,15 +44,11 @@ export class QueueMemberTable {
     return Base.knex<QueueMember>("queue_members").where("id", id).first();
   }
 
-  public static async setCreatedAt(memberId: Snowflake, time: string): Promise<void> {
+  public static async setCreatedAt(memberId: Snowflake, time: string) {
     await this.getFromId(memberId).update("created_at", time);
   }
 
-  public static async setPriority(
-    channelId: Snowflake,
-    memberId: Snowflake,
-    isPriority: boolean
-  ): Promise<void> {
+  public static async setPriority(channelId: Snowflake, memberId: Snowflake, isPriority: boolean) {
     await Base.knex<QueueMember>("queue_members")
       .where("channel_id", channelId)
       .where("member_id", memberId)
@@ -112,7 +108,7 @@ export class QueueMemberTable {
     member: GuildMember,
     customMessage?: string,
     force?: boolean
-  ): Promise<void> {
+  ) {
     if (!force) {
       const storedChannel = await QueueChannelTable.get(queueChannel.id);
       if (storedChannel.is_locked) {
@@ -175,7 +171,7 @@ export class QueueMemberTable {
     guildId: Snowflake,
     deletedMembers: QueueMember[],
     storedQueueChannel: QueueChannel
-  ): Promise<void> {
+  ) {
     const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
     if (!guild) return;
     for await (const deletedMember of deletedMembers) {
@@ -192,7 +188,7 @@ export class QueueMemberTable {
     channelId: Snowflake,
     memberIds?: Snowflake[],
     gracePeriod?: number
-  ): Promise<void> {
+  ) {
     // Retrieve list of stored embeds for display channel
     let query = Base.knex<QueueMember>("queue_members").where("channel_id", channelId);
     if (memberIds) {

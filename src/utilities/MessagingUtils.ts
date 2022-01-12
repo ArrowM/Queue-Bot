@@ -61,7 +61,7 @@ export class MessagingUtils {
    * Update a server's display messages
    * @param request
    */
-  private static async internalUpdateDisplay(request: QueueUpdateRequest): Promise<void> {
+  private static async internalUpdateDisplay(request: QueueUpdateRequest) {
     const queueGuild = request.queueGuild;
     const queueChannel = request.queueChannel;
     const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);

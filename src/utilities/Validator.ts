@@ -19,7 +19,7 @@ export class Validator {
    * the databases.
    * @param guild
    */
-  public static async validateGuild(guild: Guild): Promise<void> {
+  public static async validateGuild(guild: Guild) {
     const cachedTime = this.timestampCache.get(guild.id);
     const now = Date.now();
     if (cachedTime && now - cachedTime < Validator.SIX_HOURS) return; // Limit validation to once every 6 hours
@@ -58,7 +58,7 @@ export class Validator {
     }
   }
 
-  // public static async validateAtStartup(guilds: Guild[]): Promise<void> {
+  // public static async validateAtStartup(guilds: Guild[]) {
   //    for await (const guild of guilds) {
   //       this.validateGuild(guild);
   //       await delay(400);

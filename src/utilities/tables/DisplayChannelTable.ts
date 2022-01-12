@@ -15,7 +15,7 @@ export class DisplayChannelTable {
   /**
    * Create & update DisplayChannel database table if necessary
    */
-  public static async initTable(): Promise<void> {
+  public static async initTable() {
     await Base.knex.schema.hasTable("display_channels").then(async (exists) => {
       if (!exists) {
         await Base.knex.schema
@@ -54,7 +54,7 @@ export class DisplayChannelTable {
     queueChannel: VoiceChannel | StageChannel | TextChannel,
     displayChannel: TextChannel,
     embeds: MessageEmbed[]
-  ): Promise<void> {
+  ) {
     const response = await displayChannel
       .send({
         embeds: embeds,
@@ -75,7 +75,7 @@ export class DisplayChannelTable {
     queueChannelId: Snowflake,
     displayChannelId?: Snowflake,
     deleteOldDisplays = true
-  ): Promise<void> {
+  ) {
     let query = Base.knex<DisplayChannel>("display_channels").where(
       "queue_channel_id",
       queueChannelId

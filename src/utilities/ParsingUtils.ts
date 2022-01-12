@@ -195,7 +195,7 @@ export abstract class Parsed {
     return this.channels;
   }
 
-  public async setup(): Promise<void> {
+  public async setup() {
     this.queueGuild = await QueueGuildTable.get(this.request.guild.id);
     if (!this.queueGuild) {
       await QueueGuildTable.store(this.request.guild);
@@ -256,7 +256,7 @@ export class ParsedCommand extends Parsed {
     return (await this.request.editReply(options)) as Message;
   }
 
-  public async deferReply(): Promise<void> {
+  public async deferReply() {
     await this.request.deferReply();
   }
 
@@ -289,7 +289,7 @@ export class ParsedCommand extends Parsed {
   protected async populateChannelParam(
     channels: (VoiceChannel | StageChannel | TextChannel)[],
     channelType: string[]
-  ): Promise<void> {
+  ) {
     let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildChannel;
     if (!channel) {
       const channelId = this.args.text as Snowflake;
@@ -310,20 +310,20 @@ export class ParsedCommand extends Parsed {
     this.args.channel = channel as VoiceChannel | StageChannel | TextChannel;
   }
 
-  protected async getMemberParam(): Promise<void> {
+  protected async getMemberParam() {
     this.args.member = this.findArgs(this.request.options.data, "USER")[0] as GuildMember;
   }
 
-  protected async getRoleParam(): Promise<void> {
+  protected async getRoleParam() {
     this.args.role = this.findArgs(this.request.options.data, "ROLE")[0] as Role;
   }
 
-  protected async getStringParam(): Promise<void> {
+  protected async getStringParam() {
     this.args.rawStrings = this.findArgs(this.request.options.data, "STRING") as string[];
     this.args.text = this.args.rawStrings[0];
   }
 
-  protected async getNumberParam(): Promise<void> {
+  protected async getNumberParam() {
     this.args.num = this.findArgs(this.request.options.data, "INTEGER")[0] as number;
   }
 }
@@ -359,7 +359,7 @@ export class ParsedMessage extends Parsed {
     }
   }
 
-  public async deferReply(): Promise<void> {
+  public async deferReply() {
     this.lastResponse = await this.request.reply("Thinking...");
   }
 
@@ -368,7 +368,7 @@ export class ParsedMessage extends Parsed {
   protected async populateChannelParam(
     channels: (VoiceChannel | StageChannel | TextChannel)[],
     channelType: string[]
-  ): Promise<void> {
+  ) {
     if (this.request.mentions.channels.first()) {
       this.args.channel = this.request.mentions.channels.first() as
         | VoiceChannel
@@ -395,25 +395,25 @@ export class ParsedMessage extends Parsed {
     }
   }
 
-  protected async getMemberParam(): Promise<void> {
+  protected async getMemberParam() {
     this.args.member = (await this.request.mentions.members).first();
     if (this.args.member) {
       this.args.text = this.args.text.replace(`<#${this.args.member.id}>`, "").trim();
     }
   }
 
-  protected async getRoleParam(): Promise<void> {
+  protected async getRoleParam() {
     this.args.role = (await this.request.mentions.roles).first();
     if (this.args.role) {
       this.args.text = this.args.text.replace(`<#${this.args.role.id}>`, "").trim();
     }
   }
 
-  protected async getStringParam(commandNameLength: number): Promise<void> {
+  protected async getStringParam(commandNameLength: number) {
     this.args.text = this.request.content.substring(commandNameLength + 2).trim(); // +2 for slash and space
   }
 
-  protected async getNumberParam(): Promise<void> {
+  protected async getNumberParam() {
     this.args.num = +this.args.text.replace(/\D/g, "");
   }
 }

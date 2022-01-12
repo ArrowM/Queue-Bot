@@ -25,7 +25,7 @@ export class QueueChannelTable {
   /**
    * Create & update QueueChannel database table if necessary
    */
-  public static async initTable(): Promise<void> {
+  public static async initTable() {
     await Base.knex.schema.hasTable("queue_channels").then(async (exists) => {
       if (!exists) {
         await Base.knex.schema
@@ -197,7 +197,7 @@ export class QueueChannelTable {
     guildId: Snowflake,
     channel: QueueChannel,
     parsed: ParsedCommand | ParsedMessage
-  ): Promise<void> {
+  ) {
     await this.get(channel.queue_channel_id).update("role_id", Base.knex.raw("DEFAULT"));
     const roleId = channel?.role_id;
     if (roleId) {
@@ -228,7 +228,7 @@ export class QueueChannelTable {
     parsed: ParsedCommand | ParsedMessage,
     channel: VoiceChannel | StageChannel | TextChannel,
     maxMembers?: number
-  ): Promise<void> {
+  ) {
     // Store
     await Base.knex<QueueChannel>("queue_channels")
       .insert({
@@ -266,7 +266,7 @@ export class QueueChannelTable {
     guildId: Snowflake,
     channelId?: Snowflake,
     parsed?: ParsedCommand | ParsedMessage
-  ): Promise<void> {
+  ) {
     let query = Base.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
     // Delete store db entries
     if (channelId) query = query.where("queue_channel_id", channelId);
@@ -294,7 +294,7 @@ export class QueueChannelTable {
     channels: (VoiceChannel | StageChannel | TextChannel)[],
     members: GuildMember[],
     roles: Role[]
-  ): Promise<void> {
+  ) {
     const storedEntries = await this.getFromGuild(guild.id);
     for await (const entry of storedEntries) {
       let requireChannelUpdate = false;

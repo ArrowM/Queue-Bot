@@ -6,7 +6,7 @@ export class BlackWhiteListTable {
   /**
    * Create & update DisplayChannel database table if necessary
    */
-  public static async initTable(): Promise<void> {
+  public static async initTable() {
     await Base.knex.schema.hasTable("black_white_list").then(async (exists) => {
       if (!exists) {
         await Base.knex.schema
@@ -81,7 +81,7 @@ export class BlackWhiteListTable {
     queueChannelId: Snowflake,
     roleMemberId: Snowflake,
     isRole: boolean
-  ): Promise<void> {
+  ) {
     await Base.knex<BlackWhiteListEntry>("black_white_list").insert({
       queue_channel_id: queueChannelId,
       role_member_id: roleMemberId,
@@ -95,11 +95,7 @@ export class BlackWhiteListTable {
    * @param queueChannelId
    * @param roleMemberId
    */
-  public static async unstore(
-    type: number,
-    queueChannelId: Snowflake,
-    roleMemberId?: Snowflake
-  ): Promise<void> {
+  public static async unstore(type: number, queueChannelId: Snowflake, roleMemberId?: Snowflake) {
     let query = Base.knex<BlackWhiteListEntry>("black_white_list").where(
       "queue_channel_id",
       queueChannelId

@@ -6,7 +6,7 @@ export class AdminPermissionTable {
   /**
    * Create & update AdminPermission database table if necessary
    */
-  public static async initTable(): Promise<void> {
+  public static async initTable() {
     await Base.knex.schema.hasTable("admin_permission").then(async (exists) => {
       if (!exists) {
         await Base.knex.schema
@@ -32,11 +32,7 @@ export class AdminPermissionTable {
     return Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId);
   }
 
-  public static async store(
-    guildId: Snowflake,
-    roleMemberId: Snowflake,
-    isRole: boolean
-  ): Promise<void> {
+  public static async store(guildId: Snowflake, roleMemberId: Snowflake, isRole: boolean) {
     await Base.knex<AdminPermission>("admin_permission")
       .insert({
         guild_id: guildId,
@@ -46,13 +42,13 @@ export class AdminPermissionTable {
       .catch(() => null);
   }
 
-  public static async unstore(guildId: Snowflake, roleMemberId?: Snowflake): Promise<void> {
+  public static async unstore(guildId: Snowflake, roleMemberId?: Snowflake) {
     let query = Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId);
     if (roleMemberId) query = query.where("role_member_id", roleMemberId);
     await query.first().delete();
   }
 
-  public static async validate(guild: Guild, members: GuildMember[], roles: Role[]): Promise<void> {
+  public static async validate(guild: Guild, members: GuildMember[], roles: Role[]) {
     const storedEntries = await this.getMany(guild.id);
     for await (const entry of storedEntries) {
       if (entry.is_role) {
