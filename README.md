@@ -4,9 +4,9 @@
 [![TopGG](https://top.gg/api/widget/status/679018301543677959.svg?noavatar=true)](https://top.gg/bot/679018301543677959)  
 [![BuyMeACoffee](https://img.shields.io/badge/BuyMeACoffee-Donate-ff9004.svg?logo=CoffeeScript&style=flat-square)](https://www.buymeacoffee.com/Arroww)  
 [![Discord Support Server](https://img.shields.io/discord/678645128755150863?label=Discord&style=flat-square)](https://discord.gg/RbmfnP3)  
-  
-Create voice and text queues in your discord server. This bot allows you to display the order of people waiting and easily pull them to another channel.  
-  
+
+Create voice & text channel queues. Queue Bot provides live queue displays in chat, assists in removing users in order, and allows for customization.  
+
 ## Getting Started  
 1. Invite the bot to your server: **[INVITE LINK](https://discord.com/oauth2/authorize?client_id=679018301543677959&permissions=2232511568&scope=bot%20applications.commands)**  
 2. Use `/help setup` and follow the instructions  
