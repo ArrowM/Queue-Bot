@@ -740,6 +740,41 @@
     ]
   },
   {
+    "name": "notifications",
+    "description": "notifications",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get notification status (on = DM users when they are pulled out. off = no DMS)",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set notification status (on = DM users when they are pulled out. off = no DMS)",
+        "type": 1,
+        "options": [
+          {
+            "name": "status",
+            "description": "Status of notifications (on = DM users when they are pulled out. off = no DMS)",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "permission",
     "description": "permission",
     "options": [

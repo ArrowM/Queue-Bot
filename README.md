@@ -13,44 +13,44 @@ Create voice and text queues in your discord server. This bot allows you to disp
   
 ## Commands  
   
-### Commands for Everyone  
+### Commands for Everyone
+`/display` - Display a queue  
+`/help` - Display help messages  
 `/join` - Join a text queue / Update queue message after joining  
 `/leave` - Leave a text queue  
 `/myqueues` - Show my queues  
-`/help` - Display help messages
   
 ### Privileged Commands  
 Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Users or roles can be granted permission to use privileged commands with `/permission add`.  
 If a command that expects a channel name is not given one, the current text channel will be used.  
   
 **Queue Management**  
-`/altprefix` - Enable or disable alternate prefix `!`  
 `/autopull` - Get / Set automatic pull from a voice queue  
 `/blacklist` - Add / delete / display blacklists of users and roles  
 `/button` - Get / Set whether a \"Join / Leave\" button appears under a text queue display  
 `/clear` - Clear a queue  
 `/color` - Get / Set color of queue displays  
-`/display` - Display a queue  
 `/enqueue` - Add a specified user or role to a text queue / Update queue message  
 `/graceperiod` - Get / Set how long users can leave a queue before losing their position  
 `/header` - Get / Set a header on display messages  
-`/kick` - Kick from a queue  
-`/lock` - Lock or unlock a queue. Locked queues can still be left  
-`/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
+`/kick` - Kick a user from a queue  
+`/lock` - Lock or unlock a queue. Locked queues can still be left  `/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
 `/queues` - Add / delete / display queues  
 `/roles` - Enable or disable `In Queue: ...` roles  
 `/shuffle` - Shuffle a queue  
 `/size` - Get / Set size limit of a queue  
-`/start` - Add the bot to a voice queue  
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
 `/whitelist` - Add / delete / display whitelists of users and roles  
 
-**Bot Management**  
+**Bot Management**
+`/altprefix` - Enable or disable alternate prefix `!`  
 `/mode` - Set display mode  
-`/permission` - Add / delete / display users and roles with bot permissions  
-  
+`/notifications` - Get / Set notification status (on = DM users when they are pulled out. off = no DMS)
+`/permission` - Add / delete / display users and roles with bot permissions
+`/start` - Add the bot to a voice queue
+
 https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-83c0-c3b5d0441261.mp4  
   
 ## How to set up your own hosting  

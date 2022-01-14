@@ -235,6 +235,9 @@ async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<b
 
 async function processCommand(parsed: ParsedCommand | ParsedMessage, command: CommandArg[]) {
   switch (command[0]?.name) {
+    case "display":
+      await Commands.display(parsed);
+      return;
     case "help":
       switch (command[1]?.value) {
         case undefined:
@@ -337,9 +340,6 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           await Commands.colorSet(parsed);
           return;
       }
-      return;
-    case "display":
-      await Commands.display(parsed);
       return;
     case "enqueue":
       switch (command[1]?.name) {

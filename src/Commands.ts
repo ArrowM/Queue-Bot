@@ -747,6 +747,10 @@ export class Commands {
             "**VOICE**: Join the matching voice channel.",
         },
         {
+          name: "`/display`",
+          value: "Display a queue",
+        },
+        {
           name: "`/join`" + (alt ? " or `!join`" : ""),
           value: "Join a text queue / Update queue message after joining",
         },
@@ -784,10 +788,6 @@ export class Commands {
       title: "Queue Management",
       fields: [
         {
-          name: "`/altprefix`",
-          value: "Enable or disable alternate prefix `!`",
-        },
-        {
           name: "`/autopull`",
           value: "Get / Set automatic pull from a voice queue",
         },
@@ -818,10 +818,6 @@ export class Commands {
         {
           name: "`/color`",
           value: "Get / Set color of queue displays",
-        },
-        {
-          name: "`/display`",
-          value: "Display a queue",
         },
         {
           name: "`/enqueue user` & `/enqueue role`",
@@ -885,10 +881,6 @@ export class Commands {
           value: "Get / Set the size limits of queues",
         },
         {
-          name: "`/start`",
-          value: "Add the bot to a voice queue",
-        },
-        {
           name: "`/to-me`",
           value: "Pull user(s) from a voice queue to you and display their name(s)",
         },
@@ -934,8 +926,16 @@ export class Commands {
       title: "Bot Management",
       fields: [
         {
+          name: "`/altprefix`",
+          value: "Enable or disable alternate prefix `!`",
+        },
+        {
           name: "`/mode`",
           value: "Set display mode",
+        },
+        {
+          name: "`/notifications`",
+          value: "Get / Set notification status (on = DM users when they are pulled out. off = no DMS)",
         },
         {
           name: "`/permission add user` & `/permission add role`",
@@ -952,6 +952,10 @@ export class Commands {
         {
           name: "`/permission clear`",
           value: "Clear users & roles with bot permission",
+        },
+        {
+          name: "`/start`",
+          value: "Add the bot to a voice queue",
         },
       ],
     };
