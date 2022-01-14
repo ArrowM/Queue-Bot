@@ -34,7 +34,8 @@ If a command that expects a channel name is not given one, the current text chan
 `/graceperiod` - Get / Set how long users can leave a queue before losing their position  
 `/header` - Get / Set a header on display messages  
 `/kick` - Kick a user from a queue  
-`/lock` - Lock or unlock a queue. Locked queues can still be left  `/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
+`/lock` - Lock or unlock a queue. Locked queues can still be left  
+`/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/next` - Pull from a text queue  
 `/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
 `/queues` - Add / delete / display queues  
@@ -44,12 +45,12 @@ If a command that expects a channel name is not given one, the current text chan
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
 `/whitelist` - Add / delete / display whitelists of users and roles  
 
-**Bot Management**
+**Bot Management**  
 `/altprefix` - Enable or disable alternate prefix `!`  
 `/mode` - Set display mode  
 `/notifications` - Get / Set notification status (on = DM users when they are pulled out. off = no DMS)
 `/permission` - Add / delete / display users and roles with bot permissions
-`/start` - Add the bot to a voice queue
+`/start` - Add the bot to a voice queue  
 
 https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-83c0-c3b5d0441261.mp4  
   
