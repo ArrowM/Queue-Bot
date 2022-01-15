@@ -1421,10 +1421,10 @@ export class Commands {
     queueMembers = queueMembers.slice(min, max + 1);
     const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
     if (memberPosition > min) {
-      queueMemberTimeStamps.unshift(queueMemberTimeStamps[queueMembers.length - 1]);
+        queueMemberTimeStamps.push(queueMemberTimeStamps[0]);
+        queueMemberTimeStamps.shift();
     } else {
-      queueMemberTimeStamps.push(queueMemberTimeStamps[0]);
-      queueMemberTimeStamps.shift();
+        queueMemberTimeStamps.unshift(queueMemberTimeStamps[queueMembers.length - 1]);
     }
     const promises = [];
     for (let i = 0; i < queueMembers.length; i++) {
