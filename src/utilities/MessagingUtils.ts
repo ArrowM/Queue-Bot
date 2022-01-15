@@ -153,7 +153,7 @@ export class MessagingUtils {
     const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
     const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
     if (!storedQueueChannel) return [];
-    let queueMembers = await QueueMemberTable.getNext(queueChannel);
+    let queueMembers = await QueueMemberTable.getFromQueueOrdered(queueChannel);
     if (storedQueueChannel.max_members)
       queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
 

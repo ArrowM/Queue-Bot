@@ -407,6 +407,9 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           return;
       }
       return;
+    case "move":
+      await Commands.move(parsed);
+      return;
     case "next":
       await Commands.next(parsed);
       return;
@@ -677,7 +680,7 @@ async function fillTargetChannel(
   // Check to see if I have perms to drag other users into this channel.
   if (dstChannel.permissionsFor(guild.me).has("CONNECT")) {
     // Swap bot with nextQueueMember. If the destination has a user limit, swap and add enough users to fill the limit.
-    let storedMembers = await QueueMemberTable.getNext(srcChannel);
+    let storedMembers = await QueueMemberTable.getFromQueueOrdered(srcChannel);
     if (storedMembers.length > 0) {
       if (!storedSrcChannel.auto_fill) {
         storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
@@ -689,14 +692,15 @@ async function fillTargetChannel(
         );
         storedMembers = storedMembers.slice(0, num);
       }
-      for await (const storedMember of storedMembers) {
-        const queueMember = await QueueMemberTable.getMemberFromQueueMember(
-          srcChannel,
-          storedMember
+      const promises = [];
+      for (const storedMember of storedMembers) {
+        promises.push(
+          QueueMemberTable.getMemberFromQueueMember(srcChannel, storedMember).then((m) =>
+            m?.voice.setChannel(dstChannel).catch(() => null)
+          )
         );
-        if (!queueMember) continue;
-        queueMember.voice.setChannel(dstChannel).catch(() => null);
       }
+      await Promise.all(promises);
     }
   } else {
     // Request perms in display channel chat

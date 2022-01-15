@@ -40,12 +40,8 @@ export class QueueMemberTable {
       .where("member_id", memberId);
   }
 
-  public static getFromId(id: Snowflake) {
-    return Base.knex<QueueMember>("queue_members").where("id", id).first();
-  }
-
-  public static async setCreatedAt(memberId: Snowflake, time: string) {
-    await this.getFromId(memberId).update("created_at", time);
+  public static async setCreatedAt(channelId: Snowflake, memberId: Snowflake, time: string) {
+    await this.get(channelId, memberId).update("created_at", time);
   }
 
   public static async setPriority(channelId: Snowflake, memberId: Snowflake, isPriority: boolean) {
@@ -59,7 +55,9 @@ export class QueueMemberTable {
   /**
    * UNORDERED. Fetch members for channel, filter out users who have left the guild.
    */
-  public static async getFromQueue(queueChannel: VoiceChannel | StageChannel | TextChannel) {
+  public static async getFromQueueUnordered(
+    queueChannel: VoiceChannel | StageChannel | TextChannel
+  ) {
     return Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
   }
 
@@ -89,7 +87,7 @@ export class QueueMemberTable {
   /**
    *
    */
-  public static async getNext(
+  public static async getFromQueueOrdered(
     queueChannel: VoiceChannel | StageChannel | TextChannel,
     amount?: number
   ): Promise<QueueMember[]> {
@@ -132,7 +130,7 @@ export class QueueMemberTable {
         };
       }
       if (storedChannel.max_members) {
-        const storedQueueMembers = await this.getFromQueue(queueChannel);
+        const storedQueueMembers = await this.getFromQueueUnordered(queueChannel);
         if (storedChannel.max_members <= storedQueueMembers?.length) {
           throw {
             author: "Queue Bot",
@@ -224,7 +222,7 @@ export class QueueMemberTable {
     members: GuildMember[]
   ): Promise<boolean> {
     let updateRequired = false;
-    const storedEntries = await this.getFromQueue(queueChannel);
+    const storedEntries = await this.getFromQueueUnordered(queueChannel);
     for await (const entry of storedEntries) {
       const member = members.find((m) => m.id === entry.member_id);
       if (member) {

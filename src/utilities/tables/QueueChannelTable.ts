@@ -112,7 +112,7 @@ export class QueueChannelTable {
     role: Role
   ) {
     await this.get(queueChannel.id).update("role_id", role.id);
-    const queueMembers = await QueueMemberTable.getFromQueue(queueChannel);
+    const queueMembers = await QueueMemberTable.getFromQueueUnordered(queueChannel);
     for await (const queueMember of queueMembers) {
       const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
       if (!member) continue;

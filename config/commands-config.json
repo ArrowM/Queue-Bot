@@ -718,6 +718,30 @@
     ]
   },
   {
+    "name": "move",
+    "description": "Move a user to a new position in a queue",
+    "options": [
+      {
+        "name": "queue",
+        "description": "Queue channel",
+        "type": 7,
+        "required": true
+      },
+      {
+        "name": "user",
+        "description": "User to move",
+        "type": 6,
+        "required": true
+      },
+      {
+        "name": "position",
+        "description": "New position",
+        "type": 4,
+        "required": true
+      }
+    ]
+  },
+  {
     "name": "myqueues",
     "description": "Display the queues you are in with your position"
   },
