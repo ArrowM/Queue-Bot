@@ -152,13 +152,13 @@ export class Commands {
       promises.push(
         (entry.is_role ? parsed.request.guild.roles : parsed.request.guild.members)
           .fetch(entry.role_member_id)
-          .catch(e => {
+          .catch((e) => {
             if ([403, 404].includes(e.httpStatus)) {
               BlackWhiteListTable.unstore(type, entry.queue_channel_id, entry.role_member_id);
               removedAny = true;
             }
           })
-        );
+      );
     }
     await Promise.all(promises);
     if (removedAny) {
@@ -599,12 +599,11 @@ export class Commands {
       const promises = [];
       for (const member of role.members.values()) {
         promises.push(
-          QueueMemberTable.store(queueChannel, member, customMessage, true)
-            .catch(e => {
-              if (e.author === "Queue Bot") {
-                errorAccumulator += e.message;
-              }
-            })
+          QueueMemberTable.store(queueChannel, member, customMessage, true).catch((e) => {
+            if (e.author === "Queue Bot") {
+              errorAccumulator += e.message;
+            }
+          })
         );
       }
       await Promise.all(promises);
@@ -1166,7 +1165,7 @@ export class Commands {
             channels.push(ch);
             this.kickFromQueue(parsed.queueGuild, ch, [member]);
           })
-      )
+      );
     }
     await Promise.all(promises);
     await parsed
@@ -1550,8 +1549,8 @@ export class Commands {
           for (const queueMember of queueMembers) {
             promises.push(
               QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember)
-                  .then((m) => m.voice.setChannel(targetChannel))
-                  .catch(() => null)
+                .then((m) => m.voice.setChannel(targetChannel))
+                .catch(() => null)
             );
           }
           await Promise.all(promises);
@@ -1569,17 +1568,16 @@ export class Commands {
         const promises = [];
         for (const queueMember of queueMembers) {
           promises.push(
-              QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember)
-                  .then((member) => {
-                    if (member && !parsed.queueGuild.disable_notifications) {
-                      member
-                          .send(
-                              `You were just pulled from the \`${queueChannel.name}\` queue ` +
-                              `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
-                          )
-                          .catch(() => null);
-                    }
-                  })
+            QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember).then((member) => {
+              if (member && !parsed.queueGuild.disable_notifications) {
+                member
+                  .send(
+                    `You were just pulled from the \`${queueChannel.name}\` queue ` +
+                      `in \`${queueChannel.guild.name}\`. Thanks for waiting!`
+                  )
+                  .catch(() => null);
+              }
+            })
           );
         }
         await Promise.all(promises);
@@ -1797,8 +1795,8 @@ export class Commands {
     const promises = [];
     for (const entry of storedEntries) {
       promises.push(
-        (entry.is_role ? parsed.request.guild.roles : parsed.request.guild.members
-        ).fetch(entry.role_member_id)
+        (entry.is_role ? parsed.request.guild.roles : parsed.request.guild.members)
+          .fetch(entry.role_member_id)
           .catch((e) => {
             if ([403, 404].includes(e.httpStatus)) {
               PriorityTable.unstore(parsed.queueGuild.guild_id, entry.role_member_id);
