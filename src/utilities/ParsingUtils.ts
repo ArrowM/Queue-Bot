@@ -38,13 +38,14 @@ export class ParsingUtils {
         return true;
       // Check IDs
       const roleIds = Array.from(member.roles.cache.keys());
-      for await (const entry of await AdminPermissionTable.getMany(request.guild.id)) {
+      const permissionEntries = await AdminPermissionTable.getMany(request.guild.id);
+      for (const entry of permissionEntries) {
         if (roleIds.includes(entry.role_member_id) || member.id === entry.role_member_id)
           return true;
       }
       // Check role names
       const roles = member.roles.cache.values();
-      for await (const role of roles) {
+      for (const role of roles) {
         if (this.regEx.test(role.name)) return true;
       }
     } catch (e) {
@@ -123,15 +124,14 @@ export abstract class Parsed {
       const channels = await this.getChannels();
       await this.populateChannelParam(channels, conf.channelType);
       if (!this.args.channel) {
-        const queues: (VoiceChannel | StageChannel | TextChannel)[] = [];
-        for await (const storedQueueChannel of this.storedQueueChannels) {
-          const queueChannel = (await this.request.guild.channels
-            .fetch(storedQueueChannel.queue_channel_id)
-            .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
-          if (!queueChannel) continue; // No channel
-          if (conf.channelType && !conf.channelType.includes(queueChannel.type)) continue; // Wrong type
-          queues.push(queueChannel);
+        const promises = [];
+        for (const storedQueueChannel of this.storedQueueChannels) {
+          promises.push(
+            this.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)
+          );
         }
+        const queues = await Promise.all(promises);
+        queues.filter((ch) => ch && conf.channelType && conf.channelType.includes(ch.type));
         if (queues.length === 1) this.args.channel = queues[0];
       }
       if (!this.args.channel?.guild?.id) {

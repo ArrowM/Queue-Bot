@@ -114,7 +114,7 @@ export class SlashCommands {
         .catch(() => [])) as ApplicationCommand[];
       liveCommands = liveCommands.filter((cmd) => cmd.application_id === Base.client.user.id);
 
-      for await (const excludedTextCommand of excludedTextCommands) {
+      for (const excludedTextCommand of excludedTextCommands) {
         if (this.commandRegistrationCache.get(guildId) !== now) {
           slashUpdateMessage.resp?.delete().catch(() => null);
           return;
@@ -127,7 +127,7 @@ export class SlashCommands {
       }
     }
 
-    for await (let command of commands) {
+    for (let command of commands) {
       // Register remaining commands
       if (this.commandRegistrationCache.get(guildId) !== now) {
         slashUpdateMessage.resp?.delete().catch(() => null);
@@ -164,7 +164,7 @@ export class SlashCommands {
       totalNum: commands.length,
     };
 
-    for await (let command of filteredCommands) {
+    for (let command of filteredCommands) {
       if (this.commandRegistrationCache.get(guildId) !== now) {
         slashUpdateMessage.resp?.delete().catch(() => null);
         return;

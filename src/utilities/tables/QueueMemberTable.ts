@@ -172,13 +172,19 @@ export class QueueMemberTable {
   ) {
     const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
     if (!guild) return;
-    for await (const deletedMember of deletedMembers) {
-      const member = await guild.members
-        .fetch(deletedMember.member_id)
-        .catch(() => null as GuildMember);
-      if (!member) continue;
-      await member.roles.remove(storedQueueChannel.role_id).catch(() => null);
+    const promises = [];
+    for (const deletedMember of deletedMembers) {
+      promises.push(
+        await guild.members
+          .fetch(deletedMember.member_id)
+          .catch(() => null as GuildMember)
+          .then((m) => {
+            m?.roles.remove(storedQueueChannel.role_id);
+          })
+          .catch(() => null)
+      );
     }
+    await Promise.all(promises);
   }
 
   public static async unstore(
@@ -221,17 +227,17 @@ export class QueueMemberTable {
     queueChannel: VoiceChannel | StageChannel | TextChannel,
     members: GuildMember[]
   ): Promise<boolean> {
-    let updateRequired = false;
     const storedEntries = await this.getFromQueueUnordered(queueChannel);
+    const promises = [];
     for await (const entry of storedEntries) {
       const member = members.find((m) => m.id === entry.member_id);
-      if (member) {
-        // member.guild.members.cache.set(member.id, member); // cache
-      } else {
-        await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id]);
-        updateRequired = true;
+      if (!member) {
+        promises.push(
+          await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id])
+        );
       }
     }
-    return updateRequired;
+    await Promise.all(promises);
+    return promises.length > 0;
   }
 }

@@ -28,15 +28,18 @@ export class BlackWhiteListTable {
     type: number
   ): Promise<boolean> {
     const roleIds = Array.from(member.roles.valueOf().keys());
-    for await (const id of [member.id, ...roleIds]) {
-      const memberPerm = await Base.knex<BlackWhiteListEntry>("black_white_list")
-        .where("queue_channel_id", queueChannelId)
-        .where("role_member_id", id)
-        .where("type", type)
-        .first();
-      if (memberPerm) return true;
+    const promises = [];
+    for (const id of [member.id, ...roleIds]) {
+      promises.push(
+        Base.knex<BlackWhiteListEntry>("black_white_list")
+          .where("queue_channel_id", queueChannelId)
+          .where("role_member_id", id)
+          .where("type", type)
+          .first()
+          .then((r) => r != null)
+      );
     }
-    return false;
+    return (await Promise.all(promises)).includes(true);
   }
 
   public static async isBlacklisted(
@@ -110,26 +113,23 @@ export class BlackWhiteListTable {
     members: GuildMember[],
     roles: Role[]
   ): Promise<boolean> {
-    let updateRequired = false;
+    const promises = [];
     for await (const type of [0, 1]) {
       const storedEntries = await this.getMany(type, queueChannel.id);
-      for await (const entry of storedEntries) {
+      for (const entry of storedEntries) {
         if (entry.is_role) {
           if (!roles.some((r) => r.id === entry.role_member_id)) {
-            await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
-            updateRequired = true;
+            promises.push(this.unstore(type, entry.queue_channel_id, entry.role_member_id));
           }
         } else {
           const member = members.find((m) => m.id === entry.role_member_id);
-          if (member) {
-            // member.guild.members.cache.set(member.id, member); // cache
-          } else {
-            await this.unstore(type, entry.queue_channel_id, entry.role_member_id);
-            updateRequired = true;
+          if (!member) {
+            promises.push(this.unstore(type, entry.queue_channel_id, entry.role_member_id));
           }
         }
       }
     }
-    return updateRequired;
+    await Promise.all(promises);
+    return promises.length > 0;
   }
 }

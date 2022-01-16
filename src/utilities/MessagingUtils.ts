@@ -115,8 +115,8 @@ export class MessagingUtils {
       } catch (e) {
         console.error(e);
       }
-      Validator.validateGuild(queueChannel.guild).catch(() => null);
     }
+    Validator.validateGuild(queueChannel.guild).catch(() => null);
   }
 
   /**

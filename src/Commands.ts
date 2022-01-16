@@ -221,7 +221,7 @@ export class Commands {
       }
       response += `Added \`${name}\` to the ${typeString}list of \`${queueChannel.name}\`.`;
     }
-
+    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     response += await this.genBWList(parsed, type);
     await parsed
       .reply({
@@ -1131,6 +1131,7 @@ export class Commands {
     if (!member?.id || !channel?.id) return;
 
     await this.kickFromQueue(parsed.queueGuild, channel, [member]);
+    MessagingUtils.updateDisplay(parsed.queueGuild, channel);
     await parsed
       .reply({
         content: `Kicked <@${member.id}> from \`${channel.name}\` queue.`,
@@ -1168,6 +1169,9 @@ export class Commands {
       );
     }
     await Promise.all(promises);
+    for (const channel of channels) {
+      MessagingUtils.updateDisplay(parsed.queueGuild, channel);
+    }
     await parsed
       .reply({
         content:
@@ -1421,10 +1425,10 @@ export class Commands {
     queueMembers = queueMembers.slice(min, max + 1);
     const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
     if (memberPosition > min) {
-        queueMemberTimeStamps.push(queueMemberTimeStamps[0]);
-        queueMemberTimeStamps.shift();
+      queueMemberTimeStamps.push(queueMemberTimeStamps[0]);
+      queueMemberTimeStamps.shift();
     } else {
-        queueMemberTimeStamps.unshift(queueMemberTimeStamps[queueMembers.length - 1]);
+      queueMemberTimeStamps.unshift(queueMemberTimeStamps[queueMembers.length - 1]);
     }
     const promises = [];
     for (let i = 0; i < queueMembers.length; i++) {

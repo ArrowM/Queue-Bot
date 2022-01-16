@@ -161,12 +161,16 @@ async function memberUpdate(member: GuildMember | PartialGuildMember) {
     if (!isReady) return;
     const queueGuild = await QueueGuildTable.get(member.guild.id);
     const queueMembers = await QueueMemberTable.getFromMember(member.id);
-    for await (const queueMember of queueMembers) {
-      const queueChannel = (await member.guild.channels
-        .fetch(queueMember.channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
-      MessagingUtils.updateDisplay(queueGuild, queueChannel);
+    const promises = [];
+    for (const queueMember of queueMembers) {
+      promises.push(
+        member.guild.channels
+          .fetch(queueMember.channel_id)
+          .catch(() => null)
+          .then((ch) => MessagingUtils.updateDisplay(queueGuild, ch))
+      );
     }
+    await Promise.all(promises);
   } catch (e) {
     // Nothing
   }

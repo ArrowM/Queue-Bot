@@ -50,19 +50,19 @@ export class AdminPermissionTable {
 
   public static async validate(guild: Guild, members: GuildMember[], roles: Role[]) {
     const storedEntries = await this.getMany(guild.id);
-    for await (const entry of storedEntries) {
+    const promises = [];
+    for (const entry of storedEntries) {
       if (entry.is_role) {
         if (!roles.some((r) => r.id === entry.role_member_id)) {
-          await this.unstore(guild.id, entry.role_member_id);
+          promises.push(await AdminPermissionTable.unstore(guild.id, entry.role_member_id));
         }
       } else {
         const member = members.find((m) => m.id === entry.role_member_id);
-        if (member) {
-          // member.guild.members.cache.set(member.id, member); // cache
-        } else {
-          await this.unstore(guild.id, entry.role_member_id);
+        if (!member) {
+          promises.push(AdminPermissionTable.unstore(guild.id, entry.role_member_id));
         }
       }
     }
+    await Promise.all(promises);
   }
 }
