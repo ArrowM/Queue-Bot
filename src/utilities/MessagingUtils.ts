@@ -94,7 +94,7 @@ export class MessagingUtils {
                   components: await MessagingUtils.getButton(queueChannel),
                   allowedMentions: { users: [] },
                 })
-                .catch(() => null as Message);
+                .catch(() => null);
             } else {
               /* Replace */
               await DisplayChannelTable.unstore(

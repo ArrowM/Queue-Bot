@@ -272,13 +272,16 @@ export class QueueChannelTable {
     if (channelId) query = query.where("queue_channel_id", channelId);
     const queueChannels = await query;
 
-    for await (const queueChannel of queueChannels) {
-      // Delete role
-      await this.deleteQueueRole(guildId, queueChannel, parsed);
-      await BlackWhiteListTable.unstore(2, queueChannel.queue_channel_id);
-      await DisplayChannelTable.unstore(queueChannel.queue_channel_id);
-      await QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id);
+    const promises = [];
+    for (const queueChannel of queueChannels) {
+        promises.push(
+          this.deleteQueueRole(guildId, queueChannel, parsed),
+          BlackWhiteListTable.unstore(2, queueChannel.queue_channel_id),
+          DisplayChannelTable.unstore(queueChannel.queue_channel_id),
+          QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id)
+        );
     }
+    await Promise.all(promises);
     await query.delete();
 
     // Timeout for message order
