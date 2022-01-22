@@ -274,12 +274,12 @@ export class QueueChannelTable {
 
     const promises = [];
     for (const queueChannel of queueChannels) {
-        promises.push(
-          this.deleteQueueRole(guildId, queueChannel, parsed),
-          BlackWhiteListTable.unstore(2, queueChannel.queue_channel_id),
-          DisplayChannelTable.unstore(queueChannel.queue_channel_id),
-          QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id)
-        );
+      promises.push(
+        this.deleteQueueRole(guildId, queueChannel, parsed),
+        BlackWhiteListTable.unstore(2, queueChannel.queue_channel_id),
+        DisplayChannelTable.unstore(queueChannel.queue_channel_id),
+        QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id)
+      );
     }
     await Promise.all(promises);
     await query.delete();

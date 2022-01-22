@@ -129,8 +129,8 @@ export class PatchingUtils {
 
           const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannelId);
           if (!storedDisplayChannels.length) continue;
-          const displayChannelId = storedDisplayChannels[storedDisplayChannels.length - 1]
-            ?.display_channel_id;
+          const displayChannelId =
+            storedDisplayChannels[storedDisplayChannels.length - 1]?.display_channel_id;
           if (!displayChannelId) continue;
 
           const displayChannel = (await guild.channels

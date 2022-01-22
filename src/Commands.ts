@@ -513,7 +513,11 @@ export class Commands {
 
     const displayChannel = parsed.request.channel as TextChannel;
     const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
-    if (displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
+    if (
+      displayPermission.has("VIEW_CHANNEL") &&
+      displayPermission.has("SEND_MESSAGES") &&
+      displayPermission.has("EMBED_LINKS")
+    ) {
       const embeds = await MessagingUtils.generateEmbed(queueChannel);
 
       // Remove old display
