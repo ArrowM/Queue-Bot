@@ -209,9 +209,9 @@ export class MessagingUtils {
         if (!member) continue;
       }
       // Create entry string
-      const idxStr = "`" + (++position < 10 ? position + " " : position) + "`";
+      const idxStr = "`" + (++position < 10 ? position + " " : position) + "` ";
       const timeStr = queueGuild.enable_timestamps
-        ? `<t:${Math.floor(queueMember.display_time.getTime() / 1000)}:t>`
+        ? `<t:${Math.floor(queueMember.display_time.getTime() / 1000)}:t> `
         : "";
       const prioStr = `${queueMember.is_priority ? "⋆" : ""}`;
       const nameStr =
