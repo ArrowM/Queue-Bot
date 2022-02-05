@@ -536,6 +536,16 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
     case "start":
       await Commands.start(parsed);
       return;
+    case "timestamps":
+      switch (command[1]?.name) {
+        case "get":
+          await Commands.timestampsGet(parsed);
+          return;
+        case "set":
+          await Commands.timestampsSet(parsed);
+          return;
+      }
+      return;
     case "to-me":
       await Commands.toMe(parsed);
       return;

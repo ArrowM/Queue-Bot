@@ -19,7 +19,8 @@ export class QueueMemberTable {
             table.bigInteger("channel_id");
             table.bigInteger("member_id");
             table.text("personal_message");
-            table.timestamp("created_at").defaultTo(Base.knex.fn.now());
+            table.timestamp("created_at").defaultTo(Base.knex.fn.now()); // Used for queue position
+            table.timestamp("display_time").defaultTo(Base.knex.fn.now()); // Used for displayed timestamp
             table.boolean("is_priority");
           })
           .catch((e) => console.error(e));
@@ -148,6 +149,7 @@ export class QueueMemberTable {
     } else {
       await Base.knex<QueueMember>("queue_members").insert({
         created_at: this.unstoredMembersCache.get(member.id),
+        display_time: this.unstoredMembersCache.get(member.id),
         is_priority: await PriorityTable.isPriority(queueChannel.guild.id, member),
         personal_message: customMessage,
         channel_id: queueChannel.id,

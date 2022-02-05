@@ -209,15 +209,18 @@ export class MessagingUtils {
         if (!member) continue;
       }
       // Create entry string
-      entries.push(
-        `\`${++position < 10 ? position + " " : position}\` ` +
-          `${queueMember.is_priority ? "⋆" : ""}` +
-          (queueGuild.disable_mentions && member?.displayName
-            ? `\`${member.displayName}#${member?.user?.discriminator}\``
-            : `<@${queueMember.member_id}>`) +
-          (queueMember.personal_message ? " -- " + queueMember.personal_message : "") +
-          "\n"
-      );
+      const idxStr = "`" + (++position < 10 ? position + " " : position) + "`";
+      const timeStr = queueGuild.enable_timestamps
+        ? `<t:${Math.floor(queueMember.display_time.getTime() / 1000)}:t>`
+        : "";
+      const prioStr = `${queueMember.is_priority ? "⋆" : ""}`;
+      const nameStr =
+        queueGuild.disable_mentions && member?.displayName
+          ? `\`${member.displayName}#${member?.user?.discriminator}\``
+          : `<@${queueMember.member_id}>`;
+      const msgStr = queueMember.personal_message ? " -- " + queueMember.personal_message : "";
+
+      entries.push(idxStr + timeStr + prioStr + nameStr + msgStr + "\n");
     }
 
     const firstFieldName = storedQueueChannel.max_members

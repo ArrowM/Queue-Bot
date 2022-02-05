@@ -6,6 +6,7 @@ import {
   DisplayChannel,
   QueueChannel,
   QueueGuild,
+  QueueMember,
 } from "./Interfaces";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import delay from "delay";
@@ -479,6 +480,10 @@ export class PatchingUtils {
         table.boolean("disable_notifications")
       );
     }
+    // add enable_alt_prefix
+    if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_timestamps"))) {
+      await Base.knex.schema.alterTable("queue_guilds", (t) => t.boolean("enable_timestamps"));
+    }
   }
 
   private static async tableQueueMembers() {
@@ -494,6 +499,16 @@ export class PatchingUtils {
         table.bigInteger("channel_id").alter({});
         table.bigInteger("member_id").alter({});
       });
+    }
+    // add display_time
+    if (!(await Base.knex.schema.hasColumn("queue_members", "display_time"))) {
+      await Base.knex.schema.alterTable("queue_members", (t) => t.timestamp("display_time").defaultTo(Base.knex.fn.now()));
+      // Initialize display_time
+      for await (const entry of await Base.knex("queue_members")) {
+        await Base.knex<QueueMember>("queue_members")
+          .where("id", entry.id)
+          .update("display_time", entry.created_at);
+      }
     }
   }
 }

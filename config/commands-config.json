@@ -1127,6 +1127,41 @@
     ]
   },
   {
+    "name": "timestamps",
+    "description": "Turn timestamps on or off",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the timestamps settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Enable or disable a joined-at timestamps next to each user in queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "status",
+            "description": "Enable or disable a joined-at timestamps next to each user in queue",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "to-me",
     "description": "Pull user(s) from a voice queue to you and display their name(s)",
     "options": [

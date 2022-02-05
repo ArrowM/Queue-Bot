@@ -29,6 +29,7 @@ export interface QueueGuild {
   disable_notifications: boolean;
   disable_roles: boolean;
   enable_alt_prefix: boolean;
+  enable_timestamps: boolean;
   guild_id: Snowflake;
   msg_mode: number;
   prefix?: string;
@@ -36,7 +37,8 @@ export interface QueueGuild {
 
 export interface QueueMember {
   id: Snowflake;
-  created_at: Date; // timestamp
+  created_at: Date; // Used for queue position
+  display_time: Date; // Used for displayed timestamp
   is_priority: boolean;
   personal_message: string;
   channel_id: Snowflake;

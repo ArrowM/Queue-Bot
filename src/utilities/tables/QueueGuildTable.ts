@@ -19,6 +19,7 @@ export class QueueGuildTable {
             table.boolean("disable_notifications");
             table.boolean("disable_roles");
             table.boolean("enable_alt_prefix");
+            table.boolean("enable_timestamps");
             table.integer("msg_mode");
           })
           .catch((e) => console.error(e));
@@ -48,6 +49,10 @@ export class QueueGuildTable {
 
   public static async setAltPrefix(guildId: Snowflake, value: boolean) {
     await this.get(guildId).update("enable_alt_prefix", value);
+  }
+
+  public static async setTimestamps(guildId: Snowflake, value: boolean) {
+    await this.get(guildId).update("enable_timestamps", value);
   }
 
   public static async store(guild: Guild) {

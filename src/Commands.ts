@@ -2398,6 +2398,64 @@ export class Commands {
     }
   }
 
+  // --------------------------------- TIMESTAMPS ------------------------------- //
+
+  /**
+   * Get the timestamps settings
+   */
+  public static async timestampsGet(parsed: ParsedCommand | ParsedMessage) {
+    if ((await parsed.readArgs({ commandNameLength: 14 })).length) return;
+
+    await parsed
+      .reply({
+        content: "**Timestamps** : " + (parsed.queueGuild.enable_timestamps ? "on" : "off"),
+      })
+      .catch(() => null);
+  }
+
+  /**
+   * Enable or disable a joined-at timestamps next to each user in queue
+   */
+  public static async timestampsSet(parsed: ParsedCommand | ParsedMessage) {
+    await parsed.readArgs({ commandNameLength: 14, hasText: true });
+    if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
+      await parsed
+        .reply({
+          content: "**ERROR**: Missing required argument: `on` or `off`.",
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else if (
+      (parsed.queueGuild.enable_timestamps && parsed.args.text === "on") ||
+      (!parsed.queueGuild.enable_timestamps && parsed.args.text === "off")
+    ) {
+      await parsed
+        .reply({
+          content: `Timestamps were already ${parsed.args.text}.`,
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else {
+      await QueueGuildTable.setTimestamps(parsed.request.guild.id, parsed.args.text === "on");
+      await parsed
+        .reply({
+          content: `Timestamps have been turned **${parsed.args.text}**.`,
+        })
+        .catch(() => null);
+      // Update displays
+      const channelIds = (await QueueChannelTable.getFromGuild(parsed.queueGuild.guild_id)).map(
+        (c) => c.queue_channel_id
+      );
+      for await (const chId of channelIds) {
+        const channel = (await parsed.request.guild.channels.fetch(chId).catch(() => null)) as
+          | VoiceChannel
+          | StageChannel
+          | TextChannel;
+        MessagingUtils.updateDisplay(parsed.queueGuild, channel);
+      }
+    }
+  }
+
   // --------------------------------- TO-ME ------------------------------- //
 
   /**
