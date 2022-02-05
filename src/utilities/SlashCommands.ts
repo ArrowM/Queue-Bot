@@ -206,8 +206,8 @@ export class SlashCommands {
     for await (const guild of guilds) {
       const channels = Array.from(
         (await guild.channels.fetch())
-          .filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type))
-          .values()
+          ?.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type))
+          ?.values()
       ) as (VoiceChannel | StageChannel | TextChannel)[]; // Pre-fetch all channels
       const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
       let updateRequired = false;

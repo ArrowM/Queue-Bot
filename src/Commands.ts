@@ -2280,10 +2280,10 @@ export class Commands {
     const queueMembers = await QueueMemberTable.getFromQueueUnordered(queueChannel);
     const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
     Base.shuffle(queueMemberTimeStamps);
-    for (let i = 0, l = queueMembers.length; i < l; i++) {
+    for (let i = 0; i < queueMembers.length; i++) {
       await QueueMemberTable.setCreatedAt(
         queueChannel.id,
-        queueMembers[i].id,
+        queueMembers[i].member_id,
         queueMemberTimeStamps[i]
       );
     }

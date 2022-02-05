@@ -40,7 +40,7 @@ export class QueueMemberTable {
       .where("member_id", memberId);
   }
 
-  public static async setCreatedAt(channelId: Snowflake, memberId: Snowflake, time: string) {
+  public static async setCreatedAt(channelId: Snowflake, memberId: Snowflake, time: Date) {
     await this.get(channelId, memberId).update("created_at", time);
   }
 
@@ -99,7 +99,7 @@ export class QueueMemberTable {
     return query;
   }
 
-  private static unstoredMembersCache = new Map<Snowflake, string>();
+  private static unstoredMembersCache = new Map<Snowflake, Date>();
 
   public static async store(
     queueChannel: VoiceChannel | StageChannel | TextChannel,
@@ -172,6 +172,8 @@ export class QueueMemberTable {
   ) {
     const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
     if (!guild) return;
+    const role = await guild.roles.fetch(storedQueueChannel.role_id);
+    if (!role) return;
     const promises = [];
     for (const deletedMember of deletedMembers) {
       promises.push(
@@ -179,9 +181,8 @@ export class QueueMemberTable {
           .fetch(deletedMember.member_id)
           .catch(() => null as GuildMember)
           .then((m) => {
-            m?.roles.remove(storedQueueChannel.role_id);
+            m?.roles.remove(role.id).catch(() => null);
           })
-          .catch(() => null)
       );
     }
     await Promise.all(promises);

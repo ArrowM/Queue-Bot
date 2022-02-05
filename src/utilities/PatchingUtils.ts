@@ -258,8 +258,8 @@ export class PatchingUtils {
       }
       await Base.knex.schema.alterTable("admin_permission", (table) => {
         // MODIFY DATA TYPES
-        table.bigInteger("guild_id").alter();
-        table.bigInteger("role_member_id").alter();
+        table.bigInteger("guild_id").alter({});
+        table.bigInteger("role_member_id").alter({});
       });
     }
   }
@@ -280,8 +280,8 @@ export class PatchingUtils {
       });
       await Base.knex.schema.alterTable("black_white_list", (table) => {
         // MODIFY DATA TYPES
-        table.bigInteger("queue_channel_id").alter();
-        table.bigInteger("role_member_id").alter();
+        table.bigInteger("queue_channel_id").alter({});
+        table.bigInteger("role_member_id").alter({});
       });
 
       // Update data for new columns
@@ -298,8 +298,8 @@ export class PatchingUtils {
       });
       await Base.knex.schema.alterTable("display_channels", (table) => {
         // MODIFY DATA TYPES
-        table.bigInteger("queue_channel_id").alter();
-        table.bigInteger("display_channel_id").alter();
+        table.bigInteger("queue_channel_id").alter({});
+        table.bigInteger("display_channel_id").alter({});
       });
 
       for await (const displayChannel of await Base.knex<DisplayChannel>("display_channels")) {
@@ -398,9 +398,9 @@ export class PatchingUtils {
     ) {
       await Base.knex.schema.alterTable("queue_channels", (table) => {
         // MODIFY DATA TYPES
-        table.bigInteger("guild_id").alter();
-        table.integer("max_members").alter();
-        table.bigInteger("target_channel_id").alter();
+        table.bigInteger("guild_id").alter({});
+        table.integer("max_members").alter({});
+        table.bigInteger("target_channel_id").alter({});
       });
     }
     // Add Role ID column
@@ -491,8 +491,8 @@ export class PatchingUtils {
       });
       await Base.knex.schema.alterTable("queue_members", (table) => {
         // MODIFY DATA TYPES
-        table.bigInteger("channel_id").alter();
-        table.bigInteger("member_id").alter();
+        table.bigInteger("channel_id").alter({});
+        table.bigInteger("member_id").alter({});
       });
     }
   }

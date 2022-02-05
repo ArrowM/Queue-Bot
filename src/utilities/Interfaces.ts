@@ -36,7 +36,7 @@ export interface QueueGuild {
 
 export interface QueueMember {
   id: Snowflake;
-  created_at: string; // timestamp
+  created_at: Date; // timestamp
   is_priority: boolean;
   personal_message: string;
   channel_id: Snowflake;
