@@ -2408,7 +2408,7 @@ export class Commands {
 
     await parsed
       .reply({
-        content: "**Timestamps** : " + (parsed.queueGuild.enable_timestamps ? "on" : "off"),
+        content: "**Timestamps**: " + parsed.queueGuild.timestamps,
       })
       .catch(() => null);
   }
@@ -2418,28 +2418,28 @@ export class Commands {
    */
   public static async timestampsSet(parsed: ParsedCommand | ParsedMessage) {
     await parsed.readArgs({ commandNameLength: 14, hasText: true });
-    if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
-      await parsed
-        .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    } else if (
-      (parsed.queueGuild.enable_timestamps && parsed.args.text === "on") ||
-      (!parsed.queueGuild.enable_timestamps && parsed.args.text === "off")
+    if (
+      !["date", "time", "date+time", "relative", "off"].includes(parsed.args.text.toLowerCase())
     ) {
       await parsed
         .reply({
-          content: `Timestamps were already ${parsed.args.text}.`,
+          content:
+            "**ERROR**: Missing required argument: **date**, **time**, **date+time**, **relative**, **off**.",
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else if (parsed.queueGuild.timestamps === parsed.args.text) {
+      await parsed
+        .reply({
+          content: `Timestamps were already set to **${parsed.args.text}**.`,
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
     } else {
-      await QueueGuildTable.setTimestamps(parsed.request.guild.id, parsed.args.text === "on");
+      await QueueGuildTable.setTimestamps(parsed.request.guild.id, parsed.args.text);
       await parsed
         .reply({
-          content: `Timestamps have been turned **${parsed.args.text}**.`,
+          content: `Timestamps have been set to **${parsed.args.text}**.`,
         })
         .catch(() => null);
       // Update displays

@@ -135,7 +135,7 @@ export class SlashCommands {
       }
 
       command = await this.modifyQueueArg(command, storedChannels);
-      await this.slashClient.createCommand(command, guildId).catch(() => null);
+      await this.slashClient.createCommand(command, guildId).catch(console.error);
 
       await this.editProgress(slashUpdateMessage);
     }
@@ -184,7 +184,7 @@ export class SlashCommands {
     const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
     if (storedChannels.length) {
       cmd = await this.modifyQueueArg(cmd, storedChannels);
-      await SlashCommands.slashClient.createCommand(cmd, guild.id);
+      await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(console.error);;
     }
   }
 
@@ -206,8 +206,8 @@ export class SlashCommands {
     for await (const guild of guilds) {
       const channels = Array.from(
         (await guild.channels.fetch())
-          ?.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type))
-          ?.values()
+          ?.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type))
+          .values()
       ) as (VoiceChannel | StageChannel | TextChannel)[]; // Pre-fetch all channels
       const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
       let updateRequired = false;

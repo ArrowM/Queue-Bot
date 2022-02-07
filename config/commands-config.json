@@ -1143,13 +1143,25 @@
         "options": [
           {
             "name": "status",
-            "description": "Enable or disable a joined-at timestamps next to each user in queue",
+            "description": "date: January 1, 2022.  time: 5:13 PM.  date+time: January 1, 2022 5:13 PM.  relative: an hour ago.",
             "type": 3,
             "required": true,
             "choices": [
               {
-                "name": "on",
-                "value": "on"
+                "name": "date",
+                "value": "date"
+              },
+              {
+                "name": "time",
+                "value": "time"
+              },
+              {
+                "name": "date+time",
+                "value": "date+time"
+              },
+              {
+                "name": "relative",
+                "value": "relative"
               },
               {
                 "name": "off",

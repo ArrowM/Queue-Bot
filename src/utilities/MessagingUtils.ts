@@ -143,6 +143,21 @@ export class MessagingUtils {
     return this.gracePeriodCache.get(gracePeriod);
   }
 
+  private static getTimestampFormat(queueGuild: QueueGuild): string {
+    switch (queueGuild.timestamps) {
+      case "time":
+        return "t";
+      case "date":
+        return "D";
+      case "date+time":
+        return "f";
+      case "relative":
+        return "R";
+      default:
+        return "off";
+    }
+  }
+
   /**
    *
    * @param queueChannel Discord message object.
@@ -210,9 +225,12 @@ export class MessagingUtils {
       }
       // Create entry string
       const idxStr = "`" + (++position < 10 ? position + " " : position) + "` ";
-      const timeStr = queueGuild.enable_timestamps
-        ? `<t:${Math.floor(queueMember.display_time.getTime() / 1000)}:t> `
-        : "";
+      const timeStr =
+        queueGuild.timestamps !== "off"
+          ? `<t:${Math.floor(queueMember.display_time.getTime() / 1000)}:${this.getTimestampFormat(
+              queueGuild
+            )}> `
+          : "";
       const prioStr = `${queueMember.is_priority ? "⋆" : ""}`;
       const nameStr =
         queueGuild.disable_mentions && member?.displayName

@@ -29,10 +29,10 @@ export interface QueueGuild {
   disable_notifications: boolean;
   disable_roles: boolean;
   enable_alt_prefix: boolean;
-  enable_timestamps: boolean;
   guild_id: Snowflake;
   msg_mode: number;
   prefix?: string;
+  timestamps: string;
 }
 
 export interface QueueMember {
