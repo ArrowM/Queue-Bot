@@ -477,7 +477,7 @@ export class PatchingUtils {
     // add timestamps column
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "timestamps"))) {
       await Base.knex.schema.alterTable("queue_guilds", (t) =>
-        t.string("timestamps").defaultTo("off")
+        t.text("timestamps").defaultTo("off")
       );
       // Initialize timestamps
       for await (const entry of await Base.knex<QueueGuild & { enable_timestamps: string }>(
@@ -491,6 +491,10 @@ export class PatchingUtils {
       if (await Base.knex.schema.hasColumn("queue_guilds", "enable_timestamps")) {
         await Base.knex.schema.alterTable("queue_guilds", (t) => t.dropColumn("enable_timestamps"));
       }
+    }
+    // Delete enable_timestamps
+    if (await Base.knex.schema.hasColumn("queue_guilds", "enable_timestamps")) {
+      await Base.knex.schema.alterTable("queue_guilds", (t) => t.dropColumn("enable_timestamps"));
     }
   }
 

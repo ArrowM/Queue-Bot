@@ -20,7 +20,7 @@ export class QueueGuildTable {
             table.boolean("disable_roles");
             table.boolean("enable_alt_prefix");
             table.integer("msg_mode");
-            table.string("timestamps").defaultTo("off");
+            table.text("timestamps").defaultTo("off");
           })
           .catch((e) => console.error(e));
       }
