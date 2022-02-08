@@ -6,7 +6,7 @@ import {
   ApplicationOptions,
   Client as SlashClient,
 } from "discord-slash-commands-client";
-import { Guild, Message, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Collection, Guild, GuildBasedChannel, Message, Snowflake } from "discord.js";
 import { Base } from "./Base";
 import { Parsed, ParsedCommand, ParsedMessage } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
@@ -40,7 +40,7 @@ export class SlashCommands {
 
   private static modifyQueueArg(
     cmd: ApplicationOptions,
-    storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
+    storedChannels: GuildBasedChannel[]
   ): ApplicationOptions {
     if (cmd.options) cmd.options = this.modifyQueue(cmd.name, cmd.options, storedChannels);
     return cmd;
@@ -49,7 +49,7 @@ export class SlashCommands {
   private static modifyQueue(
     name: string,
     options: ApplicationCommandOption[],
-    storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
+    storedChannels: GuildBasedChannel[]
   ): ApplicationCommandOption[] {
     for (let i = options.length - 1; i >= 0; i--) {
       const option = options[i];
@@ -88,7 +88,7 @@ export class SlashCommands {
   private static async modify(
     guildId: Snowflake,
     parsed: ParsedCommand | ParsedMessage,
-    storedChannels: (VoiceChannel | StageChannel | TextChannel)[]
+    storedChannels: GuildBasedChannel[]
   ): Promise<ApplicationOptions[]> {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
@@ -181,7 +181,9 @@ export class SlashCommands {
 
   public static async addCommandForGuild(guild: Guild, cmd: ApplicationOptions) {
     cmd = JSON.parse(JSON.stringify(cmd)) as ApplicationOptions; // copies
-    const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
+    const storedChannels = Array.from(
+      (await QueueChannelTable.fetchFromGuild(guild)).values()
+    ).slice(0, 25); // max # of options is 25
     if (storedChannels.length) {
       cmd = await this.modifyQueueArg(cmd, storedChannels);
       await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(() => null);
@@ -191,7 +193,9 @@ export class SlashCommands {
   public static async modifyCommandsForGuild(guild: Guild, parsed?: ParsedCommand | ParsedMessage) {
     try {
       //console.log("Modifying commands for " + guild.id);
-      const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
+      const storedChannels = Array.from(
+        (await QueueChannelTable.fetchFromGuild(guild)).values()
+      ).slice(0, 25); // max # of options is 25
       if (storedChannels.length === 0) {
         await this.modifyForNoQueues(guild.id, parsed);
       } else {
@@ -202,13 +206,11 @@ export class SlashCommands {
     }
   }
 
-  public static async updateCommandsForOfflineGuildChanges(guilds: Guild[]) {
-    for await (const guild of guilds) {
-      const channels = Array.from(
-        (await guild.channels.fetch())
-          ?.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type))
-          .values()
-      ) as (VoiceChannel | StageChannel | TextChannel)[]; // Pre-fetch all channels
+  public static async updateCommandsForOfflineGuildChanges(guilds: Collection<Snowflake, Guild>) {
+    for await (const guild of guilds.values()) {
+      const channels = guild.channels.cache?.filter((ch) =>
+        ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type)
+      );
       const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
       let updateRequired = false;
       for await (const storedChannel of storedChannels) {
@@ -243,7 +245,7 @@ export class SlashCommands {
     }
   }
 
-  public static async register(guild: Guild[]) {
+  public static async register(guild: Collection<Snowflake, Guild>) {
     this.registerGlobalCommands().then();
     this.updateCommandsForOfflineGuildChanges(guild).then();
   }

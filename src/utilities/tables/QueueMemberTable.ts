@@ -1,6 +1,6 @@
 import { QueueChannel, QueueMember } from "../Interfaces";
 import { Base } from "../Base";
-import { Guild, GuildMember, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Collection, Guild, GuildBasedChannel, GuildMember, Snowflake } from "discord.js";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { PriorityTable } from "./PriorityTable";
 import { QueueChannelTable } from "./QueueChannelTable";
@@ -56,9 +56,7 @@ export class QueueMemberTable {
   /**
    * UNORDERED. Fetch members for channel, filter out users who have left the guild.
    */
-  public static async getFromQueueUnordered(
-    queueChannel: VoiceChannel | StageChannel | TextChannel
-  ) {
+  public static async getFromQueueUnordered(queueChannel: GuildBasedChannel) {
     return Base.knex<QueueMember>("queue_members").where("channel_id", queueChannel.id);
   }
 
@@ -70,7 +68,7 @@ export class QueueMemberTable {
    * WARNING THIS MIGHT BE SLOW
    */
   public static async getMemberFromQueueMember(
-    queueChannel: VoiceChannel | StageChannel | TextChannel,
+    queueChannel: GuildBasedChannel,
     queueMember: QueueMember
   ): Promise<GuildMember> {
     try {
@@ -89,7 +87,7 @@ export class QueueMemberTable {
    *
    */
   public static async getFromQueueOrdered(
-    queueChannel: VoiceChannel | StageChannel | TextChannel,
+    queueChannel: GuildBasedChannel,
     amount?: number
   ): Promise<QueueMember[]> {
     let query = Base.knex<QueueMember>("queue_members")
@@ -103,7 +101,7 @@ export class QueueMemberTable {
   private static unstoredMembersCache = new Map<Snowflake, Date>();
 
   public static async store(
-    queueChannel: VoiceChannel | StageChannel | TextChannel,
+    queueChannel: GuildBasedChannel,
     member: GuildMember,
     customMessage?: string,
     force?: boolean
@@ -227,8 +225,8 @@ export class QueueMemberTable {
   }
 
   public static async validate(
-    queueChannel: VoiceChannel | StageChannel | TextChannel,
-    members: GuildMember[]
+    queueChannel: GuildBasedChannel,
+    members: Collection<Snowflake, GuildMember>
   ): Promise<boolean> {
     const storedEntries = await this.getFromQueueUnordered(queueChannel);
     const promises = [];

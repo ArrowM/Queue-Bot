@@ -1,11 +1,12 @@
 import {
-  GuildChannel,
+  Collection,
+  Guild,
+  GuildBasedChannel,
   Message,
   MessageEmbed,
+  NonThreadGuildBasedChannel,
   Snowflake,
-  StageChannel,
   TextChannel,
-  VoiceChannel,
 } from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
@@ -51,7 +52,7 @@ export class DisplayChannelTable {
   }
 
   public static async store(
-    queueChannel: VoiceChannel | StageChannel | TextChannel,
+    queueChannel: GuildBasedChannel,
     displayChannel: TextChannel,
     embeds: MessageEmbed[]
   ) {
@@ -109,13 +110,18 @@ export class DisplayChannelTable {
   }
 
   public static async validate(
-    queueChannel: GuildChannel,
-    channels: GuildChannel[]
+    guild: Guild,
+    queueChannel: GuildBasedChannel,
+    channels: Collection<Snowflake, NonThreadGuildBasedChannel>
   ): Promise<boolean> {
     let updateRequired = false;
     const storedEntries = await this.getFromQueue(queueChannel.id);
     for await (const entry of storedEntries) {
-      if (!channels.some((c) => c.id === entry.display_channel_id)) {
+      if (channels.some((c) => c.id === entry.display_channel_id)) {
+        Base.client.guilds.cache
+          .get(guild.id)
+          .channels.cache.set(entry.display_channel_id, channels.get(entry.display_channel_id)); // cache
+      } else {
         await this.unstore(queueChannel.id, entry.display_channel_id);
         updateRequired = true;
       }

@@ -1,6 +1,6 @@
 import { AdminPermission } from "../Interfaces";
 import { Base } from "../Base";
-import { Guild, GuildMember, Role, Snowflake } from "discord.js";
+import { Collection, Guild, GuildMember, Role, Snowflake } from "discord.js";
 
 export class AdminPermissionTable {
   /**
@@ -48,7 +48,11 @@ export class AdminPermissionTable {
     await query.first().delete();
   }
 
-  public static async validate(guild: Guild, members: GuildMember[], roles: Role[]) {
+  public static async validate(
+    guild: Guild,
+    members: Collection<Snowflake, GuildMember>,
+    roles: Collection<Snowflake, Role>
+  ) {
     const storedEntries = await this.getMany(guild.id);
     const promises = [];
     for (const entry of storedEntries) {

@@ -1,4 +1,4 @@
-import { GuildChannel, GuildMember, Role, Snowflake } from "discord.js";
+import { Collection, GuildBasedChannel, GuildMember, Role, Snowflake } from "discord.js";
 import { Base } from "../Base";
 import { BlackWhiteListEntry } from "../Interfaces";
 
@@ -27,7 +27,7 @@ export class BlackWhiteListTable {
     member: GuildMember,
     type: number
   ): Promise<boolean> {
-    const roleIds = Array.from(member.roles.valueOf().keys());
+    const roleIds = Array.from(member.roles.cache.keys());
     const promises = [];
     for (const id of [member.id, ...roleIds]) {
       promises.push(
@@ -109,9 +109,9 @@ export class BlackWhiteListTable {
   }
 
   public static async validate(
-    queueChannel: GuildChannel,
-    members: GuildMember[],
-    roles: Role[]
+    queueChannel: GuildBasedChannel,
+    members: Collection<Snowflake, GuildMember>,
+    roles: Collection<Snowflake, Role>
   ): Promise<boolean> {
     const promises = [];
     for await (const type of [0, 1]) {

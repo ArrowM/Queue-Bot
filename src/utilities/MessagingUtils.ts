@@ -1,15 +1,13 @@
 import {
   DiscordAPIError,
   EmbedFieldData,
-  GuildChannel,
+  GuildBasedChannel,
   GuildMember,
   Message,
   MessageActionRow,
   MessageButton,
   MessageEmbed,
-  StageChannel,
   TextChannel,
-  VoiceChannel,
 } from "discord.js";
 import { Base } from "./Base";
 import { QueueGuild } from "./Interfaces";
@@ -21,7 +19,7 @@ import { Validator } from "./Validator";
 
 interface QueueUpdateRequest {
   queueGuild: QueueGuild;
-  queueChannel: VoiceChannel | StageChannel | TextChannel;
+  queueChannel: GuildBasedChannel;
 }
 
 export class MessagingUtils {
@@ -45,10 +43,7 @@ export class MessagingUtils {
     }, 1000);
   }
 
-  public static updateDisplay(
-    queueGuild: QueueGuild,
-    queueChannel: VoiceChannel | StageChannel | TextChannel
-  ): void {
+  public static updateDisplay(queueGuild: QueueGuild, queueChannel: GuildBasedChannel): void {
     if (queueChannel) {
       this.pendingQueueUpdates.set(queueChannel.id, {
         queueGuild: queueGuild,
@@ -116,6 +111,7 @@ export class MessagingUtils {
         console.error(e);
       }
     }
+    // setTimeout(() => Validator.validateGuild(queueChannel.guild).catch(() => null), 1000);
     Validator.validateGuild(queueChannel.guild).catch(() => null);
   }
 
@@ -162,9 +158,7 @@ export class MessagingUtils {
    *
    * @param queueChannel Discord message object.
    */
-  public static async generateEmbed(
-    queueChannel: TextChannel | VoiceChannel | StageChannel
-  ): Promise<MessageEmbed[]> {
+  public static async generateEmbed(queueChannel: GuildBasedChannel): Promise<MessageEmbed[]> {
     const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
     const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
     if (!storedQueueChannel) return [];
@@ -177,7 +171,7 @@ export class MessagingUtils {
     if (storedQueueChannel.target_channel_id) {
       const targetChannel = (await queueChannel.guild.channels
         .fetch(storedQueueChannel.target_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (targetChannel) {
         title += `  ->  ${targetChannel.name}`;
       } else {
@@ -286,7 +280,7 @@ export class MessagingUtils {
     }),
   ];
 
-  public static async getButton(channel: GuildChannel): Promise<MessageActionRow[]> {
+  public static async getButton(channel: GuildBasedChannel): Promise<MessageActionRow[]> {
     const storedQueueChannel = await QueueChannelTable.get(channel.id);
     if (
       !["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) &&

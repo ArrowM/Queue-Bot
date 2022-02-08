@@ -1,7 +1,8 @@
 import {
+  Collection,
   CommandInteraction,
   CommandInteractionOption,
-  GuildChannel,
+  GuildBasedChannel,
   GuildMember,
   InteractionReplyOptions,
   Message,
@@ -30,17 +31,12 @@ export class ParsingUtils {
       const member = request.member as GuildMember;
       if (!member) return false;
       // Check if ADMIN
-      if (
-        member
-          .permissionsIn(request.channel as TextChannel | VoiceChannel | StageChannel)
-          .has("ADMINISTRATOR")
-      )
+      if (member.permissionsIn(request.channel as GuildBasedChannel).has("ADMINISTRATOR"))
         return true;
       // Check IDs
-      const roleIds = Array.from(member.roles.cache.keys());
       const permissionEntries = await AdminPermissionTable.getMany(request.guild.id);
       for (const entry of permissionEntries) {
-        if (roleIds.includes(entry.role_member_id) || member.id === entry.role_member_id)
+        if (member.roles.cache.has(entry.role_member_id) || member.id === entry.role_member_id)
           return true;
       }
       // Check role names
@@ -65,7 +61,7 @@ export interface ReplyOptions {
 }
 
 export interface ParsedArguments {
-  channel?: VoiceChannel | StageChannel | TextChannel;
+  channel?: GuildBasedChannel;
   member?: GuildMember;
   role?: Role;
   text?: string;
@@ -91,7 +87,7 @@ export interface ParsedOptions {
 export abstract class Parsed {
   public request: CommandInteraction | Message;
   public storedQueueChannels: QueueChannel[];
-  public channels: (VoiceChannel | StageChannel | TextChannel)[];
+  public _channels: Collection<string, GuildBasedChannel>;
   public queueGuild: QueueGuild;
   public hasPermission: boolean;
   public args: ParsedArguments;
@@ -120,19 +116,18 @@ export abstract class Parsed {
 
     // Required - channel, role, member
     if (conf.hasChannel) {
-      this.storedQueueChannels = await this.getStoredQueueChannels();
-      const channels = await this.getChannels();
-      await this.populateChannelParam(channels, conf.channelType);
+      const storedQueueChannelIds = (await this.getStoredQueueChannels()).map(
+        (ch) => ch.queue_channel_id
+      );
+      await this.populateChannelParam(conf.channelType);
       if (!this.args.channel) {
-        const promises = [];
-        for (const storedQueueChannel of this.storedQueueChannels) {
-          promises.push(
-            this.request.guild.channels.fetch(storedQueueChannel.queue_channel_id).catch(() => null)
-          );
-        }
-        const queues = await Promise.all(promises);
-        queues.filter((ch) => ch && conf.channelType && conf.channelType.includes(ch.type));
-        if (queues.length === 1) this.args.channel = queues[0];
+        const queues = (await this.getChannels()).filter(
+          (ch) =>
+            storedQueueChannelIds.includes(ch.id) &&
+            conf.channelType &&
+            (conf.channelType as string[])?.includes(ch.type)
+        );
+        if (queues.size === 1) this.args.channel = queues.first();
       }
       if (!this.args.channel?.guild?.id) {
         const channelText =
@@ -185,15 +180,24 @@ export abstract class Parsed {
   }
 
   public async getChannels() {
-    if (this.channels === undefined) {
-      this.channels = Array.from(
-        (await this.request.guild.channels.fetch())
-          .filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type))
-          .values()
-      ) as (VoiceChannel | StageChannel | TextChannel)[]; // Pre-fetch all channels
-    }
-    return this.channels;
+    return (this._channels =
+      this._channels ||
+      (await this.request.guild.channels.fetch()).filter((ch) =>
+        ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
+      ));
   }
+
+  // public get channels() {
+  //   return (this._channels =
+  //     this._channels ||
+  //     this.request.guild.channels.cache.filter((ch) =>
+  //       ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
+  //     ));
+  // }
+
+  // public set channels(channels: Collection<string, GuildBasedChannel>) {
+  //   this._channels = channels;
+  // }
 
   public async setup() {
     this.queueGuild = await QueueGuildTable.get(this.request.guild.id);
@@ -208,8 +212,6 @@ export abstract class Parsed {
   protected abstract getStringParam(_commandNameLength: number): Promise<void>;
   protected abstract populateChannelParam(
   // eslint-disable-next-line no-unused-vars
-    _channels: (VoiceChannel | StageChannel | TextChannel)[],
-    // eslint-disable-next-line no-unused-vars
     _channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]
   ): Promise<void>;
   protected abstract getRoleParam(): Promise<void>;
@@ -286,11 +288,8 @@ export class ParsedCommand extends Parsed {
     return accumulator;
   }
 
-  protected async populateChannelParam(
-    channels: (VoiceChannel | StageChannel | TextChannel)[],
-    channelType: string[]
-  ) {
-    let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildChannel;
+  protected async populateChannelParam(channelType: string[]) {
+    let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildBasedChannel;
     if (!channel) {
       const channelId = this.args.text as Snowflake;
       if (channelId) {
@@ -307,7 +306,7 @@ export class ParsedCommand extends Parsed {
     ) {
       channel = null;
     }
-    this.args.channel = channel as VoiceChannel | StageChannel | TextChannel;
+    this.args.channel = channel as GuildBasedChannel;
   }
 
   protected async getMemberParam() {
@@ -365,10 +364,7 @@ export class ParsedMessage extends Parsed {
 
   private static coll = new Intl.Collator("en", { sensitivity: "base" });
   // Populate this.args.text as well
-  protected async populateChannelParam(
-    channels: (VoiceChannel | StageChannel | TextChannel)[],
-    channelType: string[]
-  ) {
+  protected async populateChannelParam(channelType: string[]) {
     if (this.request.mentions.channels.first()) {
       this.args.channel = this.request.mentions.channels.first() as
         | VoiceChannel
@@ -376,6 +372,7 @@ export class ParsedMessage extends Parsed {
         | TextChannel;
       this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();
     } else {
+      let channels = await this.getChannels();
       if (channelType) {
         channels = channels.filter((ch) => channelType.includes(ch.type));
       }
@@ -384,7 +381,7 @@ export class ParsedMessage extends Parsed {
       while (channelName) {
         for (const channel of channels.values()) {
           if (ParsedMessage.coll.compare(channelName, channel.name) === 0) {
-            this.args.channel = channel;
+            this.args.channel = channel as GuildBasedChannel;
             this.args.text = this.args.text.substring(channelName.length + 1);
             break;
           }

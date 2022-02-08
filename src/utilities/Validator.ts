@@ -1,4 +1,4 @@
-import { Guild, Snowflake, StageChannel, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, Snowflake } from "discord.js";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 import { PriorityTable } from "./tables/PriorityTable";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
@@ -33,27 +33,22 @@ export class Validator {
       guild.members.cache.set(me.id, me);
       // Do not clear roles - causes discord.js issues
 
-      // Fetch new server data and store it
-      const channels = Array.from((await guild.channels.fetch()).values()) as (
-        | TextChannel
-        | VoiceChannel
-        | StageChannel
-      )[];
-      const members = Array.from((await guild.members.fetch()).values());
-      const roles = Array.from((await guild.roles.fetch()).values());
+      // Fetch new server data and move it to temp storage
+      const channels = await guild.channels.fetch();
+      const members = await guild.members.fetch();
+      const roles = await guild.roles.fetch();
 
-      /**
-       * Leaving this disabled - it causes voice channel issues. 10/04/2021
-       */
-      // Clear stored cache (we only want to cache relevant info - done below)
-      // guild.members.cache.clear();
-      // guild.channels.cache.clear();
+      // Clear caches again
+      guild.channels.cache.clear();
+      guild.members.cache.clear();
+      guild.members.cache.set(me.id, me);
 
-      // Verify that stored data is contained within server data
+      // Verify data in temp storage. Once verified, cache the channels again.
       AdminPermissionTable.validate(guild, members, roles).then();
       const requireUpdate = await PriorityTable.validate(guild, members, roles);
       QueueChannelTable.validate(requireUpdate, guild, channels, members, roles).then();
     } catch (e) {
+      // console.error(e);
       // Nothing - we don't want to accidentally delete legit data
     }
   }

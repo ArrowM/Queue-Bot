@@ -1,6 +1,7 @@
 import { AutoPoster } from "topgg-autoposter";
 import {
   ButtonInteraction,
+  GuildBasedChannel,
   GuildMember,
   Interaction,
   PartialGuildMember,
@@ -118,7 +119,7 @@ client.on("messageCreate", async (message) => {
 
 // Cleanup deleted guilds and channels at startup. Then read in members inside tracked queues.
 client.once("ready", async () => {
-  const guilds = Array.from(Base.client.guilds.cache?.values());
+  const guilds = Base.client.guilds.cache;
   Base.shuffle(guilds);
   await PatchingUtils.run(guilds);
   await QueueGuildTable.initTable();
@@ -147,7 +148,7 @@ client.on("roleDelete", async (role) => {
       await PriorityTable.unstore(role.guild.id, role.id);
       const queueGuild = await QueueGuildTable.get(role.guild.id);
       const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
-      for (const queueChannel of queueChannels) {
+      for (const queueChannel of queueChannels.values()) {
         MessagingUtils.updateDisplay(queueGuild, queueChannel);
       }
     }
@@ -204,7 +205,7 @@ client.on("channelDelete", async (channel) => {
 client.on("channelUpdate", async (_oldCh, newCh) => {
   try {
     if (!isReady) return;
-    const newChannel = newCh as VoiceChannel | StageChannel | TextChannel;
+    const newChannel = newCh as GuildBasedChannel;
     const changedChannel = await QueueChannelTable.get(newCh.id);
     if (changedChannel) {
       const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
@@ -757,7 +758,7 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
         } else {
           throw e;
         }
-      })) as VoiceChannel | StageChannel | TextChannel;
+      })) as GuildBasedChannel;
     if (!queueChannel) throw "Queue channel not found.";
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);

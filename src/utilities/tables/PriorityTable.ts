@@ -1,4 +1,4 @@
-import { Guild, GuildMember, Role, Snowflake } from "discord.js";
+import { Collection, Guild, GuildMember, Role, Snowflake } from "discord.js";
 import { Base } from "../Base";
 import { PriorityEntry } from "../Interfaces";
 
@@ -60,8 +60,8 @@ export class PriorityTable {
 
   public static async validate(
     guild: Guild,
-    members: GuildMember[],
-    roles: Role[]
+    members: Collection<Snowflake, GuildMember>,
+    roles: Collection<Snowflake, Role>
   ): Promise<boolean> {
     let updateRequired = false;
     const storedEntries = await this.getMany(guild.id);
@@ -73,9 +73,7 @@ export class PriorityTable {
         }
       } else {
         const member = members.find((m) => m.id === entry.role_member_id);
-        if (member) {
-          // member.guild.members.cache.set(member.id, member); // cache
-        } else {
+        if (!member) {
           await this.unstore(guild.id, entry.role_member_id);
           updateRequired = true;
         }

@@ -1,4 +1,4 @@
-import { Guild, GuildChannel, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
+import { Collection, Guild, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 import { Base } from "./Base";
 import {
   AdminPermission,
@@ -30,7 +30,7 @@ interface note {
 }
 
 export class PatchingUtils {
-  public static async run(guilds: Guild[]) {
+  public static async run(guilds: Collection<Snowflake, Guild>) {
     await this.initTables();
     await this.tableBlackWhiteList();
     await this.tableQueueMembers();
@@ -59,9 +59,9 @@ export class PatchingUtils {
       }
 
       let progressCnt = 0;
-      const guilds = Array.from(Base.client.guilds.cache.values());
-      console.log("Updating commands for command-config.json change... [1/" + guilds.length + "]");
-      for await (const guild of guilds) {
+      const guilds = Base.client.guilds.cache;
+      console.log("Updating commands for command-config.json change... [1/" + guilds.size + "]");
+      for await (const guild of guilds.values()) {
         if (addedCommands) {
           for await (let cmd of addedCommands) {
             if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
@@ -104,7 +104,7 @@ export class PatchingUtils {
             "Updating commands for command-config.json change... [" +
               progressCnt +
               "/" +
-              guilds.length +
+              guilds.size +
               "]"
           );
         }
@@ -114,7 +114,7 @@ export class PatchingUtils {
     }
   }
 
-  private static async checkNotes(guilds: Guild[]) {
+  private static async checkNotes(guilds: Collection<Snowflake, Guild>) {
     const displayChannels: TextChannel[] = [];
     if (existsSync("../patch_notes/patch_notes.json")) {
       // Collect notes
@@ -122,8 +122,7 @@ export class PatchingUtils {
       const notesToSend = notes.filter((p) => !p.sent);
       if (!notesToSend?.length) return;
       // Collect channel destinations
-      for await (const guild of guilds) {
-        await guild.channels.fetch(); // Avoid rate limits
+      for await (const guild of guilds.values()) {
         try {
           const queueChannelId = (await QueueChannelTable.fetchFromGuild(guild))[0]?.id;
           if (!queueChannelId) continue;
@@ -319,9 +318,9 @@ export class PatchingUtils {
         const displayChannel = (await Base.client.channels
           .fetch(entry.display_channel_id)
           .catch(() => null)) as TextChannel;
-        const queueChannel = (await Base.client.channels
+        const queueChannel = await Base.client.channels
           .fetch(entry.queue_channel_id)
-          .catch(() => null)) as GuildChannel;
+          .catch(() => null);
         if (!displayChannel || !queueChannel) continue;
         const embedIds = entry["embed_ids"] as Snowflake[];
         const messages: Message[] = [];

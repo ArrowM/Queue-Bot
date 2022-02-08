@@ -7,6 +7,7 @@ import {
   ColorResolvable,
   StageChannel,
   Role,
+  GuildBasedChannel,
 } from "discord.js";
 import {
   BlackWhiteListEntry,
@@ -87,7 +88,7 @@ export class Commands {
     for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
       const queueChannel = (await parsed.request.guild.channels
         .fetch(storedQueueChannel.queue_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel?.type)) continue;
       response += `\`${queueChannel.name}\`: ${storedQueueChannel.auto_fill ? "on" : "off"}\n`;
     }
@@ -352,7 +353,7 @@ export class Commands {
     for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
       const queueChannel = (await parsed.request.guild.channels
         .fetch(storedQueueChannel.queue_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (!["GUILD_TEXT"].includes(queueChannel?.type)) continue;
       response += `\`${queueChannel.name}\`: ${storedQueueChannel.hide_button ? "off" : "on"}\n`;
     }
@@ -427,7 +428,7 @@ export class Commands {
     for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
       const queueChannel = (await parsed.request.guild.channels
         .fetch(storedQueueChannel.queue_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueueChannel.color}\n`;
     }
@@ -500,10 +501,7 @@ export class Commands {
   /**
    * Display the users in a queue. These messages stay updated
    */
-  public static async display(
-    parsed: ParsedCommand | ParsedMessage,
-    channel?: VoiceChannel | StageChannel | TextChannel
-  ) {
+  public static async display(parsed: ParsedCommand | ParsedMessage, channel?: GuildBasedChannel) {
     await parsed.readArgs({ commandNameLength: 7, hasChannel: true });
 
     const queueChannel = channel || parsed.args.channel;
@@ -559,7 +557,7 @@ export class Commands {
    * HELPER
    */
   private static async enqueue(parsed: ParsedCommand | ParsedMessage) {
-    const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
+    const queueChannel = parsed.args.channel as GuildBasedChannel;
     const member = parsed.args.member;
     const role = parsed.args.role;
     if (!queueChannel?.id || !(member || role)) return;
@@ -653,7 +651,7 @@ export class Commands {
     for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
       const queueChannel = (await parsed.request.guild.channels
         .fetch(storedQueueChannel.queue_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (!queueChannel) continue;
       const timeString = MessagingUtils.getGracePeriodString(storedQueueChannel.grace_period);
       response += `\`${queueChannel.name}\`: ${timeString || "0 seconds"}\n`;
@@ -703,7 +701,7 @@ export class Commands {
     for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
       const queueChannel = (await parsed.request.guild.channels
         .fetch(storedQueueChannel.queue_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueueChannel.header || "none"}\n`;
     }
@@ -1061,7 +1059,7 @@ export class Commands {
   public static async join(parsed: ParsedCommand | ParsedMessage) {
     await parsed.readArgs({ commandNameLength: 4, hasChannel: true });
 
-    const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
+    const queueChannel = parsed.args.channel as GuildBasedChannel;
     if (!queueChannel?.id) return;
     const author = parsed.request.member as GuildMember;
     if (!author?.id) return;
@@ -1108,7 +1106,7 @@ export class Commands {
    */
   private static async kickFromQueue(
     queueGuild: QueueGuild,
-    queueChannel: TextChannel | VoiceChannel | StageChannel,
+    queueChannel: GuildBasedChannel,
     members: GuildMember[]
   ) {
     if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
@@ -1154,7 +1152,7 @@ export class Commands {
     const member = parsed.args.member;
     if (!member?.id) return;
 
-    const channels: (VoiceChannel | StageChannel | TextChannel)[] = [];
+    const channels: GuildBasedChannel[] = [];
     const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map(
       (ch) => ch.queue_channel_id
     );
@@ -1194,7 +1192,7 @@ export class Commands {
   public static async leave(parsed: ParsedCommand | ParsedMessage) {
     await parsed.readArgs({ commandNameLength: 5, hasChannel: true });
 
-    const queueChannel = parsed.args.channel as VoiceChannel | StageChannel | TextChannel;
+    const queueChannel = parsed.args.channel as GuildBasedChannel;
     if (!queueChannel?.id) return;
     const author = parsed.request.member as GuildMember;
     if (!author?.id) return;
@@ -2012,7 +2010,7 @@ export class Commands {
     for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
       const queueChannel = (await parsed.request.guild.channels
         .fetch(storedQueueChannel.queue_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueueChannel.pull_num}\n`;
     }
@@ -2054,7 +2052,7 @@ export class Commands {
    */
   private static async genQueuesList(parsed: ParsedCommand | ParsedMessage): Promise<string> {
     const storedChannels = await QueueChannelTable.fetchFromGuild(parsed.request.guild);
-    if (storedChannels?.length) {
+    if (storedChannels.size) {
       return "\nQueues: " + storedChannels.map((ch) => `\`${ch.name}\``).join(", ");
     } else {
       return "\nNo queue channels set. Set a new queue channel using `/queues add`.";
@@ -2066,7 +2064,7 @@ export class Commands {
    */
   private static async storeQueue(
     parsed: ParsedCommand | ParsedMessage,
-    channel: VoiceChannel | StageChannel | TextChannel,
+    channel: GuildBasedChannel,
     size: number
   ) {
     await QueueChannelTable.store(parsed, channel, size);
@@ -2075,6 +2073,8 @@ export class Commands {
         content: `Created \`${channel.name}\` queue.` + (await this.genQueuesList(parsed)),
       })
       .catch(() => null);
+
+    await Commands.display(parsed, channel);
   }
 
   /**
@@ -2307,7 +2307,7 @@ export class Commands {
     for await (const storedQueueChannel of await parsed.getStoredQueueChannels()) {
       const queueChannel = (await parsed.request.guild.channels
         .fetch(storedQueueChannel.queue_channel_id)
-        .catch(() => null)) as VoiceChannel | StageChannel | TextChannel;
+        .catch(() => null)) as GuildBasedChannel;
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueueChannel.max_members || "none"}\n`;
     }
@@ -2446,11 +2446,8 @@ export class Commands {
       const channelIds = (await QueueChannelTable.getFromGuild(parsed.queueGuild.guild_id)).map(
         (c) => c.queue_channel_id
       );
-      for await (const chId of channelIds) {
-        const channel = (await parsed.request.guild.channels.fetch(chId).catch(() => null)) as
-          | VoiceChannel
-          | StageChannel
-          | TextChannel;
+      for (const chId of channelIds) {
+        const channel = parsed.request.guild.channels.cache.find((ch) => ch.id === chId);
         MessagingUtils.updateDisplay(parsed.queueGuild, channel);
       }
     }
