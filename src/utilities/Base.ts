@@ -7,13 +7,15 @@ import { MessageCollection } from "./MessageCollection";
 import _ from "lodash";
 
 export class Base {
-  static readonly config: ConfigJson = JSON.parse(readFileSync("../config/config.json", "utf8"));
-  static readonly commands = JSON.parse(
-    readFileSync("../config/commands-config.json", "utf8")
-  ) as ApplicationOptions[];
-  static readonly lastCommands = JSON.parse(
-    readFileSync("../data/last-commands-config.json", "utf8")
-  ) as ApplicationOptions[];
+  static readonly config: ConfigJson = this.getJSON("../config/config.json") as ConfigJson;
+  static readonly commands = (this.getJSON("../config/commands-config.json") ||
+    []) as ApplicationOptions[];
+  static readonly lastCommands = (this.getJSON("../data/last-commands-config.json") ||
+    []) as ApplicationOptions[];
+  private static getJSON(path: string): any {
+    const str = readFileSync(path, "utf8");
+    return str ? JSON.parse(str) : undefined;
+  }
   static readonly inviteURL =
     `https://discord.com/api/oauth2/authorize?client_id=` +
     Base.config.clientId +
@@ -75,7 +77,7 @@ export class Base {
   public static archiveCommands(): void {
     writeFileSync(
       "../data/last-commands-config.json",
-      readFileSync("../config/commands-config.json", "utf8")
+      readFileSync("../config/commands-config.json", { encoding: "utf8" })
     );
   }
 
