@@ -135,8 +135,7 @@ export class SlashCommands {
       }
 
       command = await this.modifyQueueArg(command, storedChannels);
-      await this.slashClient.createCommand(command, guildId);
-      // .catch(console.error);
+      await this.slashClient.createCommand(command, guildId).catch(() => null);
 
       await this.editProgress(slashUpdateMessage);
     }
@@ -185,8 +184,7 @@ export class SlashCommands {
     const storedChannels = (await QueueChannelTable.fetchFromGuild(guild))?.slice(0, 25); // max # of options is 25
     if (storedChannels.length) {
       cmd = await this.modifyQueueArg(cmd, storedChannels);
-      await SlashCommands.slashClient.createCommand(cmd, guild.id);
-      // .catch(console.error);
+      await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(() => null);
     }
   }
 
@@ -240,8 +238,7 @@ export class SlashCommands {
     // Register globals
     for await (const name of this.GLOBAL_COMMANDS) {
       const command = Base.commands.find((cmd) => cmd.name === name);
-      await this.slashClient.createCommand(command);
-      // .catch(console.error);
+      await this.slashClient.createCommand(command).catch(() => null);
       await delay(5000);
     }
   }
