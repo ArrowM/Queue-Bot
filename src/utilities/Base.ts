@@ -13,7 +13,7 @@ export class Base {
   static readonly lastCommands = (this.getJSON("../data/last-commands-config.json") ||
     []) as ApplicationOptions[];
   private static getJSON(path: string): any {
-    const str = readFileSync(path, "utf8");
+    const str = readFileSync(path, { encoding: "utf8", flag: "as+"});
     return str ? JSON.parse(str) : undefined;
   }
   static readonly inviteURL =
