@@ -888,6 +888,10 @@ export class Commands {
           value: "Get / Set the size limits of queues",
         },
         {
+          name: "`/timestamps`",
+          value: "Display timestamps next to users",
+        },
+        {
           name: "`/to-me`",
           value: "Pull user(s) from a voice queue to you and display their name(s)",
         },

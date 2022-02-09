@@ -43,6 +43,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/roles` - Enable or disable `In Queue: ...` roles  
 `/shuffle` - Shuffle a queue  
 `/size` - Get / Set size limit of a queue  
+`/timestamps` - Get / Set whether to display timestamps next to users
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
 `/whitelist` - Add / delete / display whitelists of users and roles  
 
