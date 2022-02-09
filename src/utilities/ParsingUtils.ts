@@ -124,8 +124,7 @@ export abstract class Parsed {
         const queues = (await this.getChannels()).filter(
           (ch) =>
             storedQueueChannelIds.includes(ch.id) &&
-            conf.channelType &&
-            (conf.channelType as string[])?.includes(ch.type)
+            (!conf.channelType || (conf.channelType as string[])?.includes(ch.type))
         );
         if (queues.size === 1) this.args.channel = queues.first();
       }
