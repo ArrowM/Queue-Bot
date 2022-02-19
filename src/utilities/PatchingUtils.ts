@@ -8,7 +8,7 @@ import {
   QueueGuild,
   QueueMember,
 } from "./Interfaces";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 import delay from "delay";
 import schemaInspector from "knex-schema-inspector";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
@@ -23,7 +23,7 @@ import _ from "lodash";
 import { ApplicationCommand } from "discord-slash-commands-client";
 import { SlashCommands } from "./SlashCommands";
 
-interface note {
+interface Note {
   sent: boolean;
   date: Date;
   embeds: MessageEmbed[];
@@ -45,17 +45,17 @@ export class PatchingUtils {
   private static async checkCommandsFile() {
     if (Base.haveCommandsChanged()) {
       let addedCommands = Base.commands.filter((c) => _.findIndex(Base.lastCommands, c) === -1);
-      let removedCommands = Base.lastCommands.filter((c) => _.findIndex(Base.commands, c) === -1);
-      if (addedCommands.length > 0) {
-        console.log(
-          "commands-config.json has changed. Added: " + addedCommands.map((c) => c.name).join(", ")
-        );
+      let addedNames = addedCommands.map((c) => c.name);
+      let removedCommands = Base.lastCommands.filter(
+        (c) => _.findIndex(Base.commands, c) === -1 && !addedNames.includes(c.name)
+      );
+      let removedNames = removedCommands.map((c) => c.name);
+
+      if (addedNames.length) {
+        console.log("commands-config.json has changed. Added/Updated: " + addedNames.join(", "));
       }
-      if (removedCommands.length > 0) {
-        console.log(
-          "commands-config.json has changed. Removed: " +
-            removedCommands.map((c) => c.name).join(", ")
-        );
+      if (removedNames.length) {
+        console.log("commands-config.json has changed. Removed: " + removedNames.join(", "));
       }
 
       let progressCnt = 0;
@@ -118,19 +118,18 @@ export class PatchingUtils {
     const displayChannels: TextChannel[] = [];
     if (existsSync("../patch_notes/patch_notes.json")) {
       // Collect notes
-      const notes: note[] = JSON.parse(readFileSync("../patch_notes/patch_notes.json", "utf8"));
+      const notes = Base.getJSON("../patch_notes/patch_notes.json") as Note[];
       const notesToSend = notes.filter((p) => !p.sent);
       if (!notesToSend?.length) return;
       // Collect channel destinations
       for await (const guild of guilds.values()) {
         try {
-          const queueChannelId = (await QueueChannelTable.fetchFromGuild(guild))[0]?.id;
+          const queueChannelId = (await QueueChannelTable.fetchFromGuild(guild)).first()?.id;
           if (!queueChannelId) continue;
 
-          const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannelId);
-          if (!storedDisplayChannels.length) continue;
-          const displayChannelId =
-            storedDisplayChannels[storedDisplayChannels.length - 1]?.display_channel_id;
+          const storedDisplays = await DisplayChannelTable.getFromQueue(queueChannelId);
+          if (!storedDisplays.length) continue;
+          const displayChannelId = storedDisplays[storedDisplays.length - 1]?.display_channel_id;
           if (!displayChannelId) continue;
 
           const displayChannel = (await guild.channels
@@ -411,6 +410,13 @@ export class PatchingUtils {
     if (!(await Base.knex.schema.hasColumn("queue_channels", "is_locked"))) {
       await Base.knex.schema.table("queue_channels", (t) => t.boolean("is_locked"));
     }
+    // Add clear_schedule & clearTimezone
+    if (!(await Base.knex.schema.hasColumn("queue_channels", "clear_schedule"))) {
+      await Base.knex.schema.table("queue_channels", (t) => {
+        t.text("clear_schedule");
+        t.integer("clear_utc_offset");
+      });
+    }
   }
 
   private static async tableQueueGuilds() {
@@ -490,10 +496,6 @@ export class PatchingUtils {
       if (await Base.knex.schema.hasColumn("queue_guilds", "enable_timestamps")) {
         await Base.knex.schema.alterTable("queue_guilds", (t) => t.dropColumn("enable_timestamps"));
       }
-    }
-    // Delete enable_timestamps
-    if (await Base.knex.schema.hasColumn("queue_guilds", "enable_timestamps")) {
-      await Base.knex.schema.alterTable("queue_guilds", (t) => t.dropColumn("enable_timestamps"));
     }
   }
 

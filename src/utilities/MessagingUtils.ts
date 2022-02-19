@@ -16,6 +16,8 @@ import { QueueChannelTable } from "./tables/QueueChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
 import { Validator } from "./Validator";
+import { schedule as cronSchedule } from "node-cron";
+import cronstrue from "cronstrue";
 
 interface QueueUpdateRequest {
   queueGuild: QueueGuild;
@@ -43,6 +45,26 @@ export class MessagingUtils {
     }, 1000);
   }
 
+  public static async startClearScheduler() {
+    const storedQueues = await QueueChannelTable.getScheduledClears();
+    for (const storedQueue of storedQueues) {
+      const timezone = Base.getTimezone(+storedQueue.clear_utc_offset).timezone;
+      const queueGuild = await QueueGuildTable.get(storedQueue.guild_id);
+      const guild = Base.client.guilds.cache.get(storedQueue.guild_id);
+      const queue = guild.channels.cache.get(storedQueue.queue_channel_id);
+      cronSchedule(
+        storedQueue.clear_schedule,
+        async () => {
+          await QueueMemberTable.unstore(storedQueue.guild_id, storedQueue.queue_channel_id);
+          MessagingUtils.updateDisplay(queueGuild, queue);
+        },
+        {
+          timezone: timezone,
+        }
+      );
+    }
+  }
+
   public static updateDisplay(queueGuild: QueueGuild, queueChannel: GuildBasedChannel): void {
     if (queueChannel) {
       this.pendingQueueUpdates.set(queueChannel.id, {
@@ -59,17 +81,17 @@ export class MessagingUtils {
   private static async internalUpdateDisplay(request: QueueUpdateRequest) {
     const queueGuild = request.queueGuild;
     const queueChannel = request.queueChannel;
-    const storedDisplayChannels = await DisplayChannelTable.getFromQueue(queueChannel.id);
-    if (!storedDisplayChannels || storedDisplayChannels.length === 0) return;
+    const storedDisplays = await DisplayChannelTable.getFromQueue(queueChannel.id);
+    if (!storedDisplays || storedDisplays.length === 0) return;
 
     // Create an embed list
     const embeds = await this.generateEmbed(queueChannel);
-    for await (const storedDisplayChannel of storedDisplayChannels) {
+    for await (const storedDisplay of storedDisplays) {
       // For each embed list of the queue
       try {
-        const displayChannel = (await Base.client.channels
-          .fetch(storedDisplayChannel.display_channel_id)
-          .catch(() => null)) as TextChannel;
+        const displayChannel = Base.client.channels.cache.get(
+          storedDisplay.display_channel_id
+        ) as TextChannel;
 
         if (displayChannel) {
           if (
@@ -78,7 +100,7 @@ export class MessagingUtils {
           ) {
             // Retrieved display embed
             const message = await displayChannel.messages
-              .fetch(storedDisplayChannel.message_id)
+              .fetch(storedDisplay.message_id)
               .catch(() => null as Message);
             if (!message) continue;
             if (queueGuild.msg_mode === 1) {
@@ -102,10 +124,7 @@ export class MessagingUtils {
           }
         } else {
           // Handled deleted display channels
-          await DisplayChannelTable.unstore(
-            queueChannel.id,
-            storedDisplayChannel.display_channel_id
-          );
+          await DisplayChannelTable.unstore(queueChannel.id, storedDisplay.display_channel_id);
         }
       } catch (e) {
         console.error(e);
@@ -160,18 +179,15 @@ export class MessagingUtils {
    */
   public static async generateEmbed(queueChannel: GuildBasedChannel): Promise<MessageEmbed[]> {
     const queueGuild = await QueueGuildTable.get(queueChannel.guild.id);
-    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
-    if (!storedQueueChannel) return [];
+    const storedQueue = await QueueChannelTable.get(queueChannel.id);
+    if (!storedQueue) return [];
     let queueMembers = await QueueMemberTable.getFromQueueOrdered(queueChannel);
-    if (storedQueueChannel.max_members)
-      queueMembers = queueMembers.slice(0, +storedQueueChannel.max_members);
+    if (storedQueue.max_members) queueMembers = queueMembers.slice(0, +storedQueue.max_members);
 
     // Setup embed variables
-    let title = (storedQueueChannel.is_locked ? "🔒 " : "") + queueChannel.name;
-    if (storedQueueChannel.target_channel_id) {
-      const targetChannel = (await queueChannel.guild.channels
-        .fetch(storedQueueChannel.target_channel_id)
-        .catch(() => null)) as GuildBasedChannel;
+    let title = (storedQueue.is_locked ? "🔒 " : "") + queueChannel.name;
+    if (storedQueue.target_channel_id) {
+      const targetChannel = queueChannel.guild.channels.cache.get(storedQueue.target_channel_id);
       if (targetChannel) {
         title += `  ->  ${targetChannel.name}`;
       } else {
@@ -181,7 +197,7 @@ export class MessagingUtils {
     }
 
     let description: string;
-    if (storedQueueChannel.is_locked) {
+    if (storedQueue.is_locked) {
       description = "Queue is locked.";
     } else {
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
@@ -189,14 +205,18 @@ export class MessagingUtils {
       } else {
         description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
       }
-      const timeString = this.getGracePeriodString(storedQueueChannel.grace_period);
-      if (timeString)
-        description += `\nIf you leave, you have ** ${timeString}** to rejoin to reclaim your spot.`;
     }
-
+    const timeString = this.getGracePeriodString(storedQueue.grace_period);
+    if (timeString) {
+      description += `\nIf you leave, you have **${timeString}** to rejoin to reclaim your spot.`;
+    }
+    if (storedQueue.clear_schedule) {
+      const timezone = Base.getTimezone(+storedQueue.clear_utc_offset).value;
+      description += `\nClears **${cronstrue.toString(storedQueue.clear_schedule)}** ${timezone}.`;
+    }
     if (queueMembers.some((member) => member.is_priority))
       description += `\nPriority users are marked with a ⋆.`;
-    if (storedQueueChannel.header) description += `\n\n${storedQueueChannel.header}`;
+    if (storedQueue.header) description += `\n\n${storedQueue.header}`;
 
     // Create a list of entries
     let position = 0;
@@ -235,8 +255,8 @@ export class MessagingUtils {
       entries.push(idxStr + timeStr + prioStr + nameStr + msgStr + "\n");
     }
 
-    const firstFieldName = storedQueueChannel.max_members
-      ? `Capacity:  ${position} / ${storedQueueChannel.max_members}`
+    const firstFieldName = storedQueue.max_members
+      ? `Capacity:  ${position} / ${storedQueue.max_members}`
       : `Length:  ${position}`;
 
     const embeds: MessageEmbed[] = [];
@@ -263,7 +283,7 @@ export class MessagingUtils {
     fields.push(field);
     const embed = new MessageEmbed();
     embed.setTitle(title);
-    embed.setColor(storedQueueChannel.color);
+    embed.setColor(storedQueue.color);
     embed.setDescription(description);
     embed.setFields(fields);
     embed.fields[0].name = firstFieldName;
@@ -281,11 +301,8 @@ export class MessagingUtils {
   ];
 
   public static async getButton(channel: GuildBasedChannel): Promise<MessageActionRow[]> {
-    const storedQueueChannel = await QueueChannelTable.get(channel.id);
-    if (
-      !["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) &&
-      !storedQueueChannel?.hide_button
-    ) {
+    const storedQueue = await QueueChannelTable.get(channel.id);
+    if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) && !storedQueue?.hide_button) {
       return this.rows;
     } else {
       return [];

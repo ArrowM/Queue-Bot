@@ -11,7 +11,7 @@ import {
   VoiceState,
 } from "discord.js";
 import { EventEmitter } from "events";
-import { QueueChannel } from "./utilities/Interfaces";
+import { Parsed, QueueChannel } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
@@ -132,6 +132,7 @@ client.once("ready", async () => {
   SlashCommands.register(guilds).then();
   // Validator.validateAtStartup(guilds);
   MessagingUtils.startScheduler();
+  MessagingUtils.startClearScheduler();
   console.timeEnd("READY. Bot started in");
   isReady = true;
 });
@@ -225,7 +226,7 @@ client.on("voiceStateUpdate", async (oldVoiceState, newVoiceState) => {
 // -- Bot Processing Methods ---
 //
 
-async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<boolean> {
+async function checkPermission(parsed: Parsed): Promise<boolean> {
   if (!parsed.hasPermission) {
     await parsed
       .reply({
@@ -238,7 +239,7 @@ async function checkPermission(parsed: ParsedCommand | ParsedMessage): Promise<b
   return true;
 }
 
-async function processCommand(parsed: ParsedCommand | ParsedMessage, command: CommandArg[]) {
+async function processCommand(parsed: Parsed, command: CommandArg[]) {
   switch (command[0]?.name) {
     case "display":
       await Commands.display(parsed);
@@ -266,7 +267,7 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
       await Commands.leave(parsed);
       return;
     case "myqueues":
-      await Commands.myqueues(parsed);
+      await Commands.myQueues(parsed);
       return;
   }
 
@@ -376,11 +377,11 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           return;
       }
       return;
-    case "kick":
-      await Commands.kick(parsed);
+    case "dequeue":
+      await Commands.dequeue(parsed);
       return;
-    case "kickall":
-      await Commands.kickAll(parsed);
+    case "dequeue-all":
+      await Commands.dequeueAll(parsed);
       return;
     case "lock":
       switch (command[1]?.name) {
@@ -518,6 +519,22 @@ async function processCommand(parsed: ParsedCommand | ParsedMessage, command: Co
           return;
         case "set":
           await Commands.rolesSet(parsed);
+          return;
+      }
+      return;
+    case "scheduleclear":
+      switch (command[1]?.name) {
+        case "get":
+          await Commands.scheduleClearGet(parsed);
+          return;
+        case "help":
+          await Commands.scheduleClearHelp(parsed);
+          return;
+        case "set":
+          await Commands.scheduleClearSet(parsed);
+          return;
+        case "stop":
+          await Commands.scheduleClearStop(parsed);
           return;
       }
       return;
@@ -668,16 +685,15 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
     }
     if (!Base.isMe(member) && oldVoiceChannel) {
       // Check if leaving target channel
-      const storedQueueChannels = await QueueChannelTable.getFromTarget(oldVoiceChannel.id);
+      const storedQueues = await QueueChannelTable.getFromTarget(oldVoiceChannel.id);
       // Randomly pick a queue to pull from
-      const storedQueueChannel =
-        storedQueueChannels[~~(Math.random() * storedQueueChannels.length)];
-      if (storedQueueChannel && storedQueueChannel.auto_fill) {
-        const queueChannel = (await member.guild.channels
-          .fetch(storedQueueChannel.queue_channel_id)
-          .catch(() => null)) as VoiceChannel | StageChannel;
+      const storedQueue = storedQueues[~~(Math.random() * storedQueues.length)];
+      if (storedQueue && storedQueue.auto_fill) {
+        const queueChannel = member.guild.channels.cache.get(storedQueue.queue_channel_id) as
+          | VoiceChannel
+          | StageChannel;
         if (queueChannel) {
-          await fillTargetChannel(storedQueueChannel, queueChannel, oldVoiceChannel);
+          await fillTargetChannel(storedQueue, queueChannel, oldVoiceChannel);
         }
       }
     }
@@ -719,10 +735,10 @@ async function fillTargetChannel(
     }
   } else {
     // Request perms in display channel chat
-    const storedDisplayChannel = await DisplayChannelTable.getFirstFromQueue(srcChannel.id);
-    if (storedDisplayChannel) {
+    const storedDisplay = await DisplayChannelTable.getFirstFromQueue(srcChannel.id);
+    if (storedDisplay) {
       const displayChannel = (await guild.channels
-        .fetch(storedDisplayChannel.display_channel_id)
+        .fetch(storedDisplay.display_channel_id)
         .catch(() => null)) as TextChannel;
       await displayChannel.send(
         `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
@@ -740,18 +756,18 @@ async function fillTargetChannel(
 
 async function joinLeaveButton(interaction: ButtonInteraction) {
   try {
-    const storedDisplayChannel = await DisplayChannelTable.getFromMessage(interaction.message.id);
-    if (!storedDisplayChannel) {
+    const storedDisplay = await DisplayChannelTable.getFromMessage(interaction.message.id);
+    if (!storedDisplay) {
       await interaction.reply("An error has occurred").catch(() => null);
       return;
     }
     let queueChannel = (await interaction.guild.channels
-      .fetch(storedDisplayChannel.queue_channel_id)
+      .fetch(storedDisplay.queue_channel_id)
       .catch(async (e) => {
         if (e.code === 50001) {
           await interaction
             .reply({
-              content: `I can't see <#${storedDisplayChannel.queue_channel_id}>. Please give me the \`View Channel\` permission.`,
+              content: `I can't see <#${storedDisplay.queue_channel_id}>. Please give me the \`View Channel\` permission.`,
             })
             .catch(() => null);
           return;
@@ -763,12 +779,12 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
     if (storedQueueMember) {
-      const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
+      const storedQueue = await QueueChannelTable.get(queueChannel.id);
       await QueueMemberTable.unstore(
         member.guild.id,
         queueChannel.id,
         [member.id],
-        storedQueueChannel.grace_period
+        storedQueue.grace_period
       );
       await interaction
         .reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true })

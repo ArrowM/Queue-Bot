@@ -156,10 +156,10 @@ export class QueueMemberTable {
     }
     this.unstoredMembersCache.delete(member.id);
     // Assign Queue Role
-    const storedQueueChannel = await QueueChannelTable.get(queueChannel.id);
-    if (storedQueueChannel?.role_id) {
+    const storedQueue = await QueueChannelTable.get(queueChannel.id);
+    if (storedQueue?.role_id) {
       member.roles
-        .add(storedQueueChannel.role_id)
+        .add(storedQueue.role_id)
         .catch(() => null)
         .then();
     }
@@ -168,11 +168,11 @@ export class QueueMemberTable {
   private static async unstoreRoles(
     guildId: Snowflake,
     deletedMembers: QueueMember[],
-    storedQueueChannel: QueueChannel
+    storedQueue: QueueChannel
   ) {
     const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
     if (!guild) return;
-    const role = await guild.roles.fetch(storedQueueChannel.role_id);
+    const role = await guild.roles.fetch(storedQueue.role_id);
     if (!role) return;
     const promises = [];
     for (const deletedMember of deletedMembers) {
@@ -213,14 +213,12 @@ export class QueueMemberTable {
     const deletedMembers = await query;
     await query.delete();
     // Unassign Queue Role
-    const storedQueueChannel = await QueueChannelTable.get(channelId).catch(
-      () => null as QueueChannel
-    );
-    if (!storedQueueChannel?.role_id) return;
+    const storedQueue = await QueueChannelTable.get(channelId).catch(() => null as QueueChannel);
+    if (!storedQueue?.role_id) return;
 
     const queueGuild = await QueueGuildTable.get(guildId);
     if (!queueGuild.disable_roles) {
-      this.unstoreRoles(guildId, deletedMembers, storedQueueChannel).then();
+      this.unstoreRoles(guildId, deletedMembers, storedQueue).then();
     }
   }
 

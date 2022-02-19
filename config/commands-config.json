@@ -5,7 +5,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current alternate prefix settings",
+        "description": "the current alternate prefix settings",
         "type": 1,
         "options": []
       },
@@ -40,7 +40,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current autopull settings",
+        "description": "the current autopull settings",
         "type": 1,
         "options": []
       },
@@ -256,7 +256,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current color settings",
+        "description": "the current color settings",
         "type": 1,
         "options": []
       },
@@ -453,7 +453,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current grace period settings",
+        "description": "the current grace period settings",
         "type": 1,
         "options": []
       },
@@ -484,7 +484,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current header settings",
+        "description": "the current header settings",
         "type": 1,
         "options": []
       },
@@ -554,8 +554,8 @@
     ]
   },
   {
-    "name": "kick",
-    "description": "Kick a user from a specified queue",
+    "name": "dequeue",
+    "description": "Dequeue a user from a specified queue",
     "options": [
       {
         "name": "queue",
@@ -565,19 +565,19 @@
       },
       {
         "name": "user",
-        "description": "User to kick",
+        "description": "User to dequeue",
         "type": 6,
         "required": true
       }
     ]
   },
   {
-    "name": "kickall",
-    "description": "Kick a user from all queues",
+    "name": "dequeue-all",
+    "description": "Dequeue a user from all queues",
     "options": [
       {
         "name": "user",
-        "description": "User to kick",
+        "description": "User to dequeue",
         "type": 6,
         "required": true
       }
@@ -886,7 +886,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current pullnum settings",
+        "description": "the current pullnum settings",
         "type": 1,
         "options": []
       },
@@ -1042,7 +1042,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current roles settings",
+        "description": "the current roles settings",
         "type": 1,
         "options": []
       },
@@ -1072,6 +1072,135 @@
     ]
   },
   {
+    "name": "scheduleclear",
+    "description": "Clear queues on a schedule",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get queue clearing schedules",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "help",
+        "description": "Help with writing clear schedules",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set a queue clearing schedule",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel to clear",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "schedule",
+            "description": "schedule in cron format (* * * * *). See `/scheduleclear help`",
+            "type": 3,
+            "required": true
+          },
+          {
+            "name": "utc-offset",
+            "description": "utc offset used for timezone approximation. See `/scheduleclear help`",
+            "type": 4,
+            "required": true,
+            "choices": [{
+              "name": -11,
+              "value": -11
+            }, {
+              "name": -10,
+              "value": -10
+            }, {
+              "name": -9,
+              "value": -9
+            }, {
+              "name": -8,
+              "value": -8
+            }, {
+              "name": -7,
+              "value": -7
+            }, {
+              "name": -6,
+              "value": -6
+            }, {
+              "name": -5,
+              "value": -5
+            }, {
+              "name": -4,
+              "value": -4
+            }, {
+              "name": -3,
+              "value": -3
+            }, {
+              "name": -2,
+              "value": -2
+            }, {
+              "name": -1,
+              "value": -1
+            }, {
+              "name": 0,
+              "value": 0
+            }, {
+              "name": 1,
+              "value": 1
+            }, {
+              "name": 2,
+              "value": 2
+            }, {
+              "name": 3,
+              "value": 3
+            }, {
+              "name": 4,
+              "value": 4
+            }, {
+              "name": 5,
+              "value": 5
+            }, {
+              "name": 6,
+              "value": 6
+            }, {
+              "name": 7,
+              "value": 7
+            }, {
+              "name": 8,
+              "value": 8
+            }, {
+              "name": 9,
+              "value": 9
+            }, {
+              "name": 10,
+              "value": 10
+            }, {
+              "name": 11,
+              "value": 11
+            }, {
+              "name": 12,
+              "value": 12
+            }]
+          }
+        ]
+      },
+      {
+        "name": "stop",
+        "description": "Stop a queue clearing schedule",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel to clear",
+            "type": 7,
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "shuffle",
     "description": "Shuffle a queue",
     "options": [
@@ -1089,7 +1218,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get the current queue sizes",
+        "description": "the current queue sizes",
         "type": 1,
         "options": []
       },

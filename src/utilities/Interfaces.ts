@@ -1,8 +1,11 @@
 import { ColorResolvable, Snowflake } from "discord.js";
+import { ParsedCommand, ParsedMessage } from "./ParsingUtils";
 
 export interface QueueChannel {
   id: Snowflake;
   auto_fill: number; // 0 off. 1 on.
+  clear_schedule: string;
+  clear_utc_offset: string;
   color: ColorResolvable;
   guild_id: Snowflake;
   grace_period: number;
@@ -83,3 +86,14 @@ export interface ConfigJson {
 
   announcementChannelId: Snowflake;
 }
+
+export interface Timezone {
+  value: string;
+  abbr: string;
+  offset: number;
+  isdst: boolean;
+  text: string;
+  timezone: string;
+}
+
+export type Parsed = ParsedCommand | ParsedMessage;

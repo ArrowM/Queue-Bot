@@ -70,23 +70,23 @@ export interface ParsedArguments {
 }
 
 export interface ParsedOptions {
+  channelType?: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[];
   commandNameLength: number;
   hasChannel?: boolean;
   hasMember?: boolean;
   hasRole?: boolean;
   hasText?: boolean;
-  hasNumber?: boolean;
-  channelType?: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[];
-  numberArgs?: {
+  hasNumber?: {
+    required?: boolean;
     min: number;
     max: number;
     defaultValue: number;
   };
 }
 
-export abstract class Parsed {
+abstract class ParsedBase {
   public request: CommandInteraction | Message;
-  public storedQueueChannels: QueueChannel[];
+  public storedQueues: QueueChannel[];
   public _channels: Collection<string, GuildBasedChannel>;
   public queueGuild: QueueGuild;
   public hasPermission: boolean;
@@ -116,19 +116,17 @@ export abstract class Parsed {
 
     // Required - channel, role, member
     if (conf.hasChannel) {
-      const storedQueueChannelIds = (await this.getStoredQueueChannels()).map(
-        (ch) => ch.queue_channel_id
-      );
+      const storedQueueIds = (await this.getstoredQueues()).map((ch) => ch.queue_channel_id);
       await this.populateChannelParam(conf.channelType);
       if (!this.args.channel) {
         const queues = (await this.getChannels()).filter(
           (ch) =>
-            storedQueueChannelIds.includes(ch.id) &&
+            storedQueueIds.includes(ch.id) &&
             (!conf.channelType || (conf.channelType as string[])?.includes(ch.type))
         );
         if (queues.size === 1) this.args.channel = queues.first();
       }
-      if (!this.args.channel?.guild?.id) {
+      if (!this.args.channel?.id) {
         const channelText =
           (conf.channelType?.includes("GUILD_TEXT") ? "**text** " : "") +
           (conf.channelType?.includes("GUILD_VOICE") ||
@@ -148,11 +146,14 @@ export abstract class Parsed {
       if (!this.args.member) this.missingArgs.push("member");
     }
     // OPTIONAL - number & text
-    if (conf.numberArgs) {
+    if (conf.hasNumber) {
       await this.getNumberParam();
-      this.verifyNumber(conf.numberArgs.min, conf.numberArgs.max, conf.numberArgs.defaultValue);
+      if (conf.hasNumber.required && this.args.num == undefined) {
+        this.missingArgs.push("number");
+      } else {
+        this.verifyNumber(conf.hasNumber.min, conf.hasNumber.max, conf.hasNumber.defaultValue);
+      }
     }
-    if (conf.hasNumber && this.args.num === undefined) this.missingArgs.push("number");
 
     if (conf.hasText && !this.args.text) this.missingArgs.push("message");
     // Report missing
@@ -171,11 +172,11 @@ export abstract class Parsed {
     return this.missingArgs;
   }
 
-  public async getStoredQueueChannels() {
-    if (this.storedQueueChannels === undefined) {
-      this.storedQueueChannels = await QueueChannelTable.getFromGuild(this.request.guild.id);
+  public async getstoredQueues() {
+    if (this.storedQueues === undefined) {
+      this.storedQueues = await QueueChannelTable.getFromGuild(this.request.guild.id);
     }
-    return this.storedQueueChannels;
+    return this.storedQueues;
   }
 
   public async getChannels() {
@@ -226,7 +227,7 @@ export abstract class Parsed {
   }
 }
 
-export class ParsedCommand extends Parsed {
+export class ParsedCommand extends ParsedBase {
   public request: CommandInteraction;
 
   constructor(command: CommandInteraction) {
@@ -326,7 +327,7 @@ export class ParsedCommand extends Parsed {
   }
 }
 
-export class ParsedMessage extends Parsed {
+export class ParsedMessage extends ParsedBase {
   public request: Message;
   private lastResponse: Message;
 

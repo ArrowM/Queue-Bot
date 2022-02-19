@@ -82,18 +82,18 @@ export class DisplayChannelTable {
       queueChannelId
     );
     if (displayChannelId) query = query.where("display_channel_id", displayChannelId);
-    const storedDisplayChannels = await query;
+    const storedDisplays = await query;
     await query.delete();
-    if (!storedDisplayChannels) return;
+    if (!storedDisplays) return;
 
-    for await (const storedDisplayChannel of storedDisplayChannels) {
-      const displayChannel = (await Base.client.channels
-        .fetch(storedDisplayChannel.display_channel_id)
-        .catch(() => null)) as TextChannel;
+    for await (const storedDisplay of storedDisplays) {
+      const displayChannel = Base.client.channels.cache.get(
+        storedDisplay.display_channel_id
+      ) as TextChannel;
       if (!displayChannel) continue;
 
       const displayMessage = await displayChannel.messages
-        .fetch(storedDisplayChannel.message_id, { cache: false })
+        .fetch(storedDisplay.message_id, { cache: false })
         .catch(() => null as Message);
       if (!displayMessage) continue;
 

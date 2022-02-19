@@ -2,17 +2,17 @@ import { ApplicationOptions } from "discord-slash-commands-client";
 import { Client, Collection, Guild, GuildMember, LimitedCollection, Snowflake } from "discord.js";
 import { readFileSync, writeFileSync } from "fs";
 import { knex } from "knex";
-import { ConfigJson } from "./Interfaces";
+import { ConfigJson, Timezone } from "./Interfaces";
 import _ from "lodash";
 import { MessageCollection } from "./MessageCollection";
 
 export class Base {
-  static readonly config: ConfigJson = this.getJSON("../config/config.json") as ConfigJson;
-  static readonly commands = (this.getJSON("../config/commands-config.json") ||
-    []) as ApplicationOptions[];
+  static readonly config = this.getJSON("../config/config.json") as ConfigJson;
+  static readonly commands = this.getJSON("../config/commands-config.json") as ApplicationOptions[];
   static readonly lastCommands = (this.getJSON("../data/last-commands-config.json") ||
     []) as ApplicationOptions[];
-  private static getJSON(path: string): any {
+  static readonly timeZones = this.getJSON("../data/timezone-list.json") as Timezone[];
+  static getJSON(path: string): any {
     const str = readFileSync(path, { encoding: "utf8", flag: "as+" });
     return str ? JSON.parse(str) : undefined;
   }
@@ -111,6 +111,10 @@ export class Base {
       "../data/last-commands-config.json",
       readFileSync("../config/commands-config.json", { encoding: "utf8" })
     );
+  }
+
+  public static getTimezone(utcOffset: number): Timezone {
+    return this.timeZones.find((t) => t.offset === utcOffset);
   }
 
   /**

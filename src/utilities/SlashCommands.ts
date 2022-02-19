@@ -8,8 +8,8 @@ import {
 } from "discord-slash-commands-client";
 import { Collection, Guild, GuildBasedChannel, Message, Snowflake } from "discord.js";
 import { Base } from "./Base";
-import { Parsed, ParsedCommand, ParsedMessage } from "./ParsingUtils";
 import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { Parsed } from "./Interfaces";
 
 interface SlashUpdateMessage {
   resp: Message;
@@ -87,7 +87,7 @@ export class SlashCommands {
 
   private static async modify(
     guildId: Snowflake,
-    parsed: ParsedCommand | ParsedMessage,
+    parsed: Parsed,
     storedChannels: GuildBasedChannel[]
   ): Promise<ApplicationOptions[]> {
     const now = Date.now();
@@ -120,9 +120,9 @@ export class SlashCommands {
           return;
         }
         const liveCommand = liveCommands.find((cmd) => cmd.name === excludedTextCommand);
-        if (liveCommand)
+        if (liveCommand) {
           await this.slashClient.deleteCommand(liveCommand.id, guildId).catch(console.error);
-
+        }
         await this.editProgress(slashUpdateMessage);
       }
     }
@@ -190,7 +190,7 @@ export class SlashCommands {
     }
   }
 
-  public static async modifyCommandsForGuild(guild: Guild, parsed?: ParsedCommand | ParsedMessage) {
+  public static async modifyCommandsForGuild(guild: Guild, parsed?: Parsed) {
     try {
       //console.log("Modifying commands for " + guild.id);
       const storedChannels = Array.from(
