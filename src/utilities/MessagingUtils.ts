@@ -89,9 +89,7 @@ export class MessagingUtils {
     for await (const storedDisplay of storedDisplays) {
       // For each embed list of the queue
       try {
-        const displayChannel = Base.client.channels.cache.get(
-          storedDisplay.display_channel_id
-        ) as TextChannel;
+        const displayChannel = Base.client.channels.cache.get(storedDisplay.display_channel_id) as TextChannel;
 
         if (displayChannel) {
           if (
@@ -99,9 +97,7 @@ export class MessagingUtils {
             displayChannel.permissionsFor(displayChannel.guild.me)?.has("EMBED_LINKS")
           ) {
             // Retrieved display embed
-            const message = await displayChannel.messages
-              .fetch(storedDisplay.message_id)
-              .catch(() => null as Message);
+            const message = await displayChannel.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
             if (!message) continue;
             if (queueGuild.msg_mode === 1) {
               /* Edit */
@@ -114,11 +110,7 @@ export class MessagingUtils {
                 .catch(() => null);
             } else {
               /* Replace */
-              await DisplayChannelTable.unstore(
-                queueChannel.id,
-                displayChannel.id,
-                queueGuild.msg_mode !== 3
-              );
+              await DisplayChannelTable.unstore(queueChannel.id, displayChannel.id, queueGuild.msg_mode !== 3);
               await DisplayChannelTable.store(queueChannel, displayChannel, embeds);
             }
           }
@@ -214,8 +206,7 @@ export class MessagingUtils {
       const timezone = Base.getTimezone(+storedQueue.clear_utc_offset).value;
       description += `\nClears **${cronstrue.toString(storedQueue.clear_schedule)}** ${timezone}.`;
     }
-    if (queueMembers.some((member) => member.is_priority))
-      description += `\nPriority users are marked with a ⋆.`;
+    if (queueMembers.some((member) => member.is_priority)) description += `\nPriority users are marked with a ⋆.`;
     if (storedQueue.header) description += `\n\n${storedQueue.header}`;
 
     // Create a list of entries
@@ -225,25 +216,19 @@ export class MessagingUtils {
       const queueMember = queueMembers[i];
       let member: GuildMember;
       if (queueGuild.disable_mentions) {
-        member = await queueChannel.guild.members
-          .fetch(queueMember.member_id)
-          .catch(async (e: DiscordAPIError) => {
-            if ([403, 404].includes(e.httpStatus)) {
-              await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [
-                queueMember.member_id,
-              ]);
-            }
-            return null;
-          });
+        member = await queueChannel.guild.members.fetch(queueMember.member_id).catch(async (e: DiscordAPIError) => {
+          if ([403, 404].includes(e.httpStatus)) {
+            await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
+          }
+          return null;
+        });
         if (!member) continue;
       }
       // Create entry string
       const idxStr = "`" + (++position < 10 ? position + " " : position) + "` ";
       const timeStr =
         queueGuild.timestamps !== "off"
-          ? `<t:${Math.floor(queueMember.display_time.getTime() / 1000)}:${this.getTimestampFormat(
-              queueGuild
-            )}> `
+          ? `<t:${Math.floor(queueMember.display_time.getTime() / 1000)}:${this.getTimestampFormat(queueGuild)}> `
           : "";
       const prioStr = `${queueMember.is_priority ? "⋆" : ""}`;
       const nameStr =
@@ -294,9 +279,7 @@ export class MessagingUtils {
 
   private static rows: MessageActionRow[] = [
     new MessageActionRow({
-      components: [
-        new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY"),
-      ],
+      components: [new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY")],
     }),
   ];
 

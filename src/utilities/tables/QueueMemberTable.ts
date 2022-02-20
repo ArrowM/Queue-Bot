@@ -29,16 +29,11 @@ export class QueueMemberTable {
   }
 
   public static get(channelId: Snowflake, memberId: Snowflake) {
-    return Base.knex<QueueMember>("queue_members")
-      .where("channel_id", channelId)
-      .where("member_id", memberId)
-      .first();
+    return Base.knex<QueueMember>("queue_members").where("channel_id", channelId).where("member_id", memberId).first();
   }
 
   public static getFromChannels(queueChannelIds: Snowflake[], memberId: Snowflake) {
-    return Base.knex<QueueMember>("queue_members")
-      .whereIn("channel_id", queueChannelIds)
-      .where("member_id", memberId);
+    return Base.knex<QueueMember>("queue_members").whereIn("channel_id", queueChannelIds).where("member_id", memberId);
   }
 
   public static async setCreatedAt(channelId: Snowflake, memberId: Snowflake, time: Date) {
@@ -75,9 +70,7 @@ export class QueueMemberTable {
       return await queueChannel.guild.members.fetch(queueMember.member_id);
     } catch (e: any) {
       if ([403, 404].includes(e.httpStatus)) {
-        await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [
-          queueMember.member_id,
-        ]);
+        await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
       }
       return undefined;
     }
@@ -86,10 +79,7 @@ export class QueueMemberTable {
   /**
    *
    */
-  public static async getFromQueueOrdered(
-    queueChannel: GuildBasedChannel,
-    amount?: number
-  ): Promise<QueueMember[]> {
+  public static async getFromQueueOrdered(queueChannel: GuildBasedChannel, amount?: number): Promise<QueueMember[]> {
     let query = Base.knex<QueueMember>("queue_members")
       .where("channel_id", queueChannel.id)
       .orderBy([{ column: "is_priority", order: "desc" }, "created_at"]);
@@ -165,11 +155,7 @@ export class QueueMemberTable {
     }
   }
 
-  private static async unstoreRoles(
-    guildId: Snowflake,
-    deletedMembers: QueueMember[],
-    storedQueue: QueueChannel
-  ) {
+  private static async unstoreRoles(guildId: Snowflake, deletedMembers: QueueMember[], storedQueue: QueueChannel) {
     const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
     if (!guild) return;
     const role = await guild.roles.fetch(storedQueue.role_id);
@@ -188,12 +174,7 @@ export class QueueMemberTable {
     await Promise.all(promises);
   }
 
-  public static async unstore(
-    guildId: Snowflake,
-    channelId: Snowflake,
-    memberIds?: Snowflake[],
-    gracePeriod?: number
-  ) {
+  public static async unstore(guildId: Snowflake, channelId: Snowflake, memberIds?: Snowflake[], gracePeriod?: number) {
     // Retrieve list of stored embeds for display channel
     let query = Base.knex<QueueMember>("queue_members").where("channel_id", channelId);
     if (memberIds) {
@@ -203,10 +184,7 @@ export class QueueMemberTable {
         for (const queueMember of await query) {
           this.unstoredMembersCache.set(queueMember.member_id, queueMember.created_at);
           // Schedule cleanup of cached member
-          setTimeout(
-            () => this.unstoredMembersCache.delete(queueMember.member_id),
-            gracePeriod * 1000
-          );
+          setTimeout(() => this.unstoredMembersCache.delete(queueMember.member_id), gracePeriod * 1000);
         }
       }
     }
@@ -231,9 +209,7 @@ export class QueueMemberTable {
     for await (const entry of storedEntries) {
       const member = members.find((m) => m.id === entry.member_id);
       if (!member) {
-        promises.push(
-          await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id])
-        );
+        promises.push(await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id]));
       }
     }
     await Promise.all(promises);

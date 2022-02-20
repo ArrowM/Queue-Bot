@@ -9,8 +9,7 @@ import { MessageCollection } from "./MessageCollection";
 export class Base {
   static readonly config = this.getJSON("../config/config.json") as ConfigJson;
   static readonly commands = this.getJSON("../config/commands-config.json") as ApplicationOptions[];
-  static readonly lastCommands = (this.getJSON("../data/last-commands-config.json") ||
-    []) as ApplicationOptions[];
+  static readonly lastCommands = (this.getJSON("../data/last-commands-config.json") || []) as ApplicationOptions[];
   static readonly timeZones = this.getJSON("../data/timezone-list.json") as Timezone[];
   static getJSON(path: string): any {
     const str = readFileSync(path, { encoding: "utf8", flag: "as+" });

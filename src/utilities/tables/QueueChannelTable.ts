@@ -48,9 +48,7 @@ export class QueueChannelTable {
   }
 
   public static get(queueChannelId: Snowflake) {
-    return Base.knex<QueueChannel>("queue_channels")
-      .where("queue_channel_id", queueChannelId)
-      .first();
+    return Base.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannelId).first();
   }
 
   public static getFromGuild(guildId: Snowflake) {
@@ -85,9 +83,7 @@ export class QueueChannelTable {
     await this.get(queueChannel.id).update("color", value);
     const storedQueue = await this.get(queueChannel.id);
     if (storedQueue?.role_id) {
-      const role = await queueChannel.guild.roles
-        .fetch(storedQueue.role_id)
-        .catch(() => null as Role);
+      const role = await queueChannel.guild.roles.fetch(storedQueue.role_id).catch(() => null as Role);
       await role?.setColor(value).catch(() => null);
     }
   }
@@ -118,29 +114,18 @@ export class QueueChannelTable {
     await this.get(queueChannel.id).update("role_id", Base.knex.raw("DEFAULT"));
   }
 
-  public static async setScheduledClear(
-    queueChannelId: Snowflake,
-    schedule: string,
-    utcOffset: number
-  ) {
-    await this.get(queueChannelId)
-      .update("clear_schedule", schedule)
-      .update("clear_utc_offset", utcOffset);
+  public static async setScheduledClear(queueChannelId: Snowflake, schedule: string, utcOffset: number) {
+    await this.get(queueChannelId).update("clear_schedule", schedule).update("clear_utc_offset", utcOffset);
   }
 
   public static getScheduledClears() {
     return Base.knex<QueueChannel>("queue_channels").whereNotNull("clear_schedule");
   }
 
-  public static async fetchFromGuild(
-    guild: Guild
-  ): Promise<Collection<Snowflake, GuildBasedChannel>> {
+  public static async fetchFromGuild(guild: Guild): Promise<Collection<Snowflake, GuildBasedChannel>> {
     const queueChannelIdsToRemove: Snowflake[] = [];
     // Fetch stored channels
-    const storedQueues = await Base.knex<QueueChannel>("queue_channels").where(
-      "guild_id",
-      guild.id
-    );
+    const storedQueues = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
     const queueChannels: Collection<Snowflake, GuildBasedChannel> = new Collection();
     // Check for deleted channels
     // Going backwards allows the removal of entries while visiting each one
@@ -244,10 +229,7 @@ export class QueueChannelTable {
     }
 
     // Timeout for message order
-    setTimeout(
-      () => SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed).catch(() => null),
-      500
-    );
+    setTimeout(() => SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed).catch(() => null), 500);
     if ((await QueueChannelTable.getFromGuild(parsed.request.guild.id)).length > 25) {
       await parsed.reply({
         content:

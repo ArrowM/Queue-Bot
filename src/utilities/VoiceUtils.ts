@@ -7,10 +7,7 @@ import {
   VoiceConnectionStatus,
 } from "@discordjs/voice";
 import { Client, Constants, Guild, Snowflake, StageChannel, VoiceChannel } from "discord.js";
-import {
-  GatewayVoiceServerUpdateDispatchData,
-  GatewayVoiceStateUpdateDispatchData,
-} from "discord-api-types/v9";
+import { GatewayVoiceServerUpdateDispatchData, GatewayVoiceStateUpdateDispatchData } from "discord-api-types/v9";
 
 export class Voice {
   /**
@@ -28,20 +25,14 @@ export class Voice {
   private static trackClient(client: Client) {
     if (Voice.trackedClients.has(client)) return;
     Voice.trackedClients.add(client);
-    client.ws.on(
-      Constants.WSEvents.VOICE_SERVER_UPDATE,
-      (payload: GatewayVoiceServerUpdateDispatchData) => {
-        Voice.adapters.get(payload.guild_id)?.onVoiceServerUpdate(payload);
+    client.ws.on(Constants.WSEvents.VOICE_SERVER_UPDATE, (payload: GatewayVoiceServerUpdateDispatchData) => {
+      Voice.adapters.get(payload.guild_id)?.onVoiceServerUpdate(payload);
+    });
+    client.ws.on(Constants.WSEvents.VOICE_STATE_UPDATE, (payload: GatewayVoiceStateUpdateDispatchData) => {
+      if (payload.guild_id && payload.session_id && payload.user_id === client.user?.id) {
+        Voice.adapters.get(payload.guild_id)?.onVoiceStateUpdate(payload);
       }
-    );
-    client.ws.on(
-      Constants.WSEvents.VOICE_STATE_UPDATE,
-      (payload: GatewayVoiceStateUpdateDispatchData) => {
-        if (payload.guild_id && payload.session_id && payload.user_id === client.user?.id) {
-          Voice.adapters.get(payload.guild_id)?.onVoiceStateUpdate(payload);
-        }
-      }
-    );
+    });
     client.on(Constants.Events.SHARD_DISCONNECT, (_, shardID) => {
       const guilds = Voice.trackedShards.get(shardID);
       if (guilds) {
@@ -66,9 +57,7 @@ export class Voice {
    * Creates an adapter for a Voice Channel
    * @param channel - The channel to create the adapter for
    */
-  public static createDiscordJSAdapter(
-    channel: VoiceChannel | StageChannel
-  ): DiscordGatewayAdapterCreator {
+  public static createDiscordJSAdapter(channel: VoiceChannel | StageChannel): DiscordGatewayAdapterCreator {
     return (methods) => {
       Voice.adapters.set(channel.guild.id, methods);
       Voice.trackClient(channel.client);
@@ -96,9 +85,7 @@ export class Voice {
     }
   }
 
-  public static async connectToChannel(
-    channel: VoiceChannel | StageChannel
-  ): Promise<VoiceConnection> {
+  public static async connectToChannel(channel: VoiceChannel | StageChannel): Promise<VoiceConnection> {
     const connection = joinVoiceChannel({
       channelId: channel.id,
       guildId: channel.guild.id,

@@ -31,13 +31,11 @@ export class ParsingUtils {
       const member = request.member as GuildMember;
       if (!member) return false;
       // Check if ADMIN
-      if (member.permissionsIn(request.channel as GuildBasedChannel).has("ADMINISTRATOR"))
-        return true;
+      if (member.permissionsIn(request.channel as GuildBasedChannel).has("ADMINISTRATOR")) return true;
       // Check IDs
       const permissionEntries = await AdminPermissionTable.getMany(request.guild.id);
       for (const entry of permissionEntries) {
-        if (member.roles.cache.has(entry.role_member_id) || member.id === entry.role_member_id)
-          return true;
+        if (member.roles.cache.has(entry.role_member_id) || member.id === entry.role_member_id) return true;
       }
       // Check role names
       const roles = member.roles.cache.values();
@@ -121,16 +119,14 @@ abstract class ParsedBase {
       if (!this.args.channel) {
         const queues = (await this.getChannels()).filter(
           (ch) =>
-            storedQueueIds.includes(ch.id) &&
-            (!conf.channelType || (conf.channelType as string[])?.includes(ch.type))
+            storedQueueIds.includes(ch.id) && (!conf.channelType || (conf.channelType as string[])?.includes(ch.type))
         );
         if (queues.size === 1) this.args.channel = queues.first();
       }
       if (!this.args.channel?.id) {
         const channelText =
           (conf.channelType?.includes("GUILD_TEXT") ? "**text** " : "") +
-          (conf.channelType?.includes("GUILD_VOICE") ||
-          conf.channelType?.includes("GUILD_STAGE_VOICE")
+          (conf.channelType?.includes("GUILD_VOICE") || conf.channelType?.includes("GUILD_STAGE_VOICE")
             ? "**voice** "
             : "") +
           "channel";
@@ -262,16 +258,9 @@ export class ParsedCommand extends ParsedBase {
     await this.request.deferReply();
   }
 
-  private findArgs(
-    _options: Readonly<CommandInteractionOption[]>,
-    type: string,
-    accumulator: any[] = []
-  ): any[] {
+  private findArgs(_options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
     for (const option of _options) {
-      if (
-        (option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") &&
-        option.options?.length
-      ) {
+      if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options?.length) {
         accumulator = this.findArgs(option.options, type, accumulator);
       } else if (option.type === type) {
         if (["CHANNEL"].includes(type)) {
@@ -366,10 +355,7 @@ export class ParsedMessage extends ParsedBase {
   // Populate this.args.text as well
   protected async populateChannelParam(channelType: string[]) {
     if (this.request.mentions.channels.first()) {
-      this.args.channel = this.request.mentions.channels.first() as
-        | VoiceChannel
-        | StageChannel
-        | TextChannel;
+      this.args.channel = this.request.mentions.channels.first() as VoiceChannel | StageChannel | TextChannel;
       this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();
     } else {
       let channels = await this.getChannels();

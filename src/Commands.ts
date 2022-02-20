@@ -9,13 +9,7 @@ import {
   Role,
   GuildBasedChannel,
 } from "discord.js";
-import {
-  BlackWhiteListEntry,
-  Parsed,
-  PriorityEntry,
-  QueueChannel,
-  QueueGuild,
-} from "./utilities/Interfaces";
+import { BlackWhiteListEntry, Parsed, PriorityEntry, QueueChannel, QueueGuild } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
@@ -141,11 +135,7 @@ export class Commands {
   /**
    * HELPER
    */
-  private static async validateBWList(
-    parsed: Parsed,
-    type: number,
-    storedEntries: BlackWhiteListEntry[]
-  ) {
+  private static async validateBWList(parsed: Parsed, type: number, storedEntries: BlackWhiteListEntry[]) {
     const promises = [];
     let removedAny = false;
     for (const entry of storedEntries) {
@@ -166,9 +156,7 @@ export class Commands {
         async () =>
           await parsed
             .reply({
-              content: `Removed 1 or more invalid members/roles from the ${
-                type ? "white" : "black"
-              }list.`,
+              content: `Removed 1 or more invalid members/roles from the ${type ? "white" : "black"}list.`,
             })
             .catch(() => null),
         1000
@@ -426,8 +414,7 @@ export class Commands {
    * Set a new color for a queue
    */
   public static async colorSet(parsed: Parsed) {
-    if ((await parsed.readArgs({ commandNameLength: 9, hasChannel: true, hasText: true })).length)
-      return;
+    if ((await parsed.readArgs({ commandNameLength: 9, hasChannel: true, hasText: true })).length) return;
     if (
       ![
         "default",
@@ -467,10 +454,7 @@ export class Commands {
 
     const queueChannel = parsed.args.channel;
 
-    await QueueChannelTable.setColor(
-      queueChannel,
-      parsed.args.text.toUpperCase() as ColorResolvable
-    );
+    await QueueChannelTable.setColor(queueChannel, parsed.args.text.toUpperCase() as ColorResolvable);
     await parsed
       .reply({
         content: `Set color of \`${queueChannel.name}\` to \`${parsed.args.text}\`.`,
@@ -520,9 +504,7 @@ export class Commands {
         .catch(() => null);
     }
 
-    const storedQueue = await QueueChannelTable.get(queueChannel.id).catch(
-      () => null as QueueChannel
-    );
+    const storedQueue = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
     if (storedQueue && !(storedQueue?.role_id || parsed.queueGuild.disable_roles)) {
       await QueueChannelTable.createQueueRole(parsed, queueChannel, storedQueue.color);
     }
@@ -588,9 +570,7 @@ export class Commands {
         );
       }
       await Promise.all(promises);
-      const errorText = errorAccumulator
-        ? "However, failed to add 1 or more members:\n" + errorAccumulator
-        : "";
+      const errorText = errorAccumulator ? "However, failed to add 1 or more members:\n" + errorAccumulator : "";
       await parsed
         .reply({
           content: `Added <@&${role.id}> to \`${queueChannel.name}\`.` + errorText,
@@ -604,10 +584,7 @@ export class Commands {
    * Add a specified user to a text queue / Update queue message
    */
   public static async enqueueUser(parsed: Parsed) {
-    if (
-      (await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasMember: true })).length
-    )
-      return;
+    if ((await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasMember: true })).length) return;
 
     await this.enqueue(parsed);
   }
@@ -616,8 +593,7 @@ export class Commands {
    * Add a specified role to a text queue / Update queue message
    */
   public static async enqueueRole(parsed: Parsed) {
-    if ((await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasRole: true })).length)
-      return;
+    if ((await parsed.readArgs({ commandNameLength: 12, hasChannel: true, hasRole: true })).length) return;
 
     await this.enqueue(parsed);
   }
@@ -664,9 +640,7 @@ export class Commands {
     const timeString = MessagingUtils.getGracePeriodString(parsed.args.num);
     await parsed
       .reply({
-        content: `Set grace period of \`${queueChannel.name}\` to \`${
-          timeString || "0 seconds"
-        }\`.`,
+        content: `Set grace period of \`${queueChannel.name}\` to \`${timeString || "0 seconds"}\`.`,
       })
       .catch(() => null);
     MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
@@ -930,8 +904,7 @@ export class Commands {
         },
         {
           name: "`/notifications`",
-          value:
-            "Get / Set notification status (on = DM users when they are pulled out. off = no DMS)",
+          value: "Get / Set notification status (on = DM users when they are pulled out. off = no DMS)",
         },
         {
           name: "`/permission add user` & `/permission add role`",
@@ -1112,8 +1085,7 @@ export class Commands {
    * Dequeue a user from a specified queue
    */
   public static async dequeue(parsed: Parsed) {
-    if ((await parsed.readArgs({ commandNameLength: 4, hasChannel: true, hasMember: true })).length)
-      return;
+    if ((await parsed.readArgs({ commandNameLength: 4, hasChannel: true, hasMember: true })).length) return;
 
     const member = parsed.args.member;
     const channel = parsed.args.channel;
@@ -1136,9 +1108,7 @@ export class Commands {
 
     const member = parsed.args.member;
     const channels: GuildBasedChannel[] = [];
-    const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map(
-      (ch) => ch.queue_channel_id
-    );
+    const storedChannelIds = (await QueueChannelTable.getFromGuild(member.guild.id)).map((ch) => ch.queue_channel_id);
     const storedEntries = await QueueMemberTable.getFromChannels(storedChannelIds, member.id);
 
     const promises = [];
@@ -1159,10 +1129,7 @@ export class Commands {
     }
     await parsed
       .reply({
-        content:
-          `Dequeueed <@${member.id}> from ` +
-          channels.map((ch) => `\`${ch.name}\``).join(", ") +
-          " queues.",
+        content: `Dequeueed <@${member.id}> from ` + channels.map((ch) => `\`${ch.name}\``).join(", ") + " queues.",
       })
       .catch(() => null);
   }
@@ -1203,16 +1170,12 @@ export class Commands {
     if ((await parsed.readArgs({ commandNameLength: 8, hasChannel: true })).length) return;
 
     const queueChannel = parsed.args.channel;
-    const storedQueue = await QueueChannelTable.get(queueChannel.id).catch(
-      () => null as QueueChannel
-    );
+    const storedQueue = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
     if (!storedQueue) return;
 
     await parsed
       .reply({
-        content: `\`${queueChannel.name}\` is **${
-          storedQueue.is_locked ? "locked" : "unlocked"
-        }**.`,
+        content: `\`${queueChannel.name}\` is **${storedQueue.is_locked ? "locked" : "unlocked"}**.`,
       })
       .catch(() => null);
   }
@@ -1221,13 +1184,10 @@ export class Commands {
    * the current mentions settings
    */
   public static async lockSet(parsed: Parsed) {
-    if ((await parsed.readArgs({ commandNameLength: 8, hasChannel: true, hasText: true })).length)
-      return;
+    if ((await parsed.readArgs({ commandNameLength: 8, hasChannel: true, hasText: true })).length) return;
 
     const queueChannel = parsed.args.channel;
-    const storedQueue = await QueueChannelTable.get(queueChannel.id).catch(
-      () => null as QueueChannel
-    );
+    const storedQueue = await QueueChannelTable.get(queueChannel.id).catch(() => null as QueueChannel);
     if (!storedQueue) return;
 
     if (!["lock", "unlock"].includes(parsed.args.text.toLowerCase())) {
@@ -1254,9 +1214,7 @@ export class Commands {
       }
       await parsed
         .reply({
-          content: `${parsed.args.text === "lock" ? "Locked " : "Unlocked "} \`${
-            queueChannel.name
-          }\`.`,
+          content: `${parsed.args.text === "lock" ? "Locked " : "Unlocked "} \`${queueChannel.name}\`.`,
         })
         .catch(() => null);
       MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
@@ -1423,11 +1381,7 @@ export class Commands {
     const promises = [];
     for (let i = 0; i < queueMembers.length; i++) {
       promises.push(
-        QueueMemberTable.setCreatedAt(
-          queueChannel.id,
-          queueMembers[i].member_id,
-          queueMemberTimeStamps[i]
-        )
+        QueueMemberTable.setCreatedAt(queueChannel.id, queueMembers[i].member_id, queueMemberTimeStamps[i])
       );
     }
     await Promise.all(promises);
@@ -1449,12 +1403,8 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 8 });
 
     const author = parsed.request.member as GuildMember;
-    const storedChannelIds = (await QueueChannelTable.getFromGuild(author.guild.id)).map(
-      (ch) => ch.queue_channel_id
-    );
-    const storedEntries = (
-      await QueueMemberTable.getFromChannels(storedChannelIds, author.id)
-    ).slice(0, 25);
+    const storedChannelIds = (await QueueChannelTable.getFromGuild(author.guild.id)).map((ch) => ch.queue_channel_id);
+    const storedEntries = (await QueueMemberTable.getFromChannels(storedChannelIds, author.id)).slice(0, 25);
     if (storedEntries?.length < 1) {
       await parsed
         .reply({
@@ -1468,9 +1418,7 @@ export class Commands {
       for await (const entry of storedEntries) {
         const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === entry.channel_id);
         if (!queueChannel) continue;
-        const memberIds = (await QueueMemberTable.getFromQueueOrdered(queueChannel)).map(
-          (member) => member.member_id
-        );
+        const memberIds = (await QueueMemberTable.getFromQueueOrdered(queueChannel)).map((member) => member.member_id);
         embed.addField(
           queueChannel.name,
           `${memberIds.indexOf(author.id) + 1} <@${author.id}>` +
@@ -1626,10 +1574,7 @@ export class Commands {
         })
         .catch(() => null);
     } else {
-      await QueueGuildTable.setDisableNotifications(
-        parsed.request.guild.id,
-        parsed.args.text === "off"
-      );
+      await QueueGuildTable.setDisableNotifications(parsed.request.guild.id, parsed.args.text === "off");
       await parsed
         .reply({
           content: `Notifications have been turned **${parsed.args.text}**.`,
@@ -1647,9 +1592,7 @@ export class Commands {
     const perms = await AdminPermissionTable.getMany(parsed.request.guild.id);
     let response = "\nRoles and users with bot permission: ";
     if (perms?.length) {
-      response += perms
-        .map((status) => "<@" + (status.is_role ? "&" : "") + status.role_member_id + ">")
-        .join(", ");
+      response += perms.map((status) => "<@" + (status.is_role ? "&" : "") + status.role_member_id + ">").join(", ");
     } else {
       response += "Empty";
     }
@@ -1825,22 +1768,15 @@ export class Commands {
   private static async updatePriorities(parsed: Parsed) {
     const guild = parsed.request.guild;
     // Get all priority Ids for guild
-    const priorityIds = (await PriorityTable.getMany(guild.id)).map(
-      (entry) => entry.role_member_id
-    );
+    const priorityIds = (await PriorityTable.getMany(guild.id)).map((entry) => entry.role_member_id);
     // Get all queue channels for guild
     for await (const storedChannel of await parsed.getstoredQueues()) {
-      const queueChannel = (await parsed.getChannels()).find(
-        (ch) => ch.id === storedChannel.queue_channel_id
-      );
+      const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === storedChannel.queue_channel_id);
       if (!queueChannel) continue;
       // Get members for each queue channel
       const storedMembers = await QueueMemberTable.getFromQueueUnordered(queueChannel);
       for await (const storedMember of storedMembers) {
-        const queueMember = await QueueMemberTable.getMemberFromQueueMember(
-          queueChannel,
-          storedMember
-        );
+        const queueMember = await QueueMemberTable.getMemberFromQueueMember(queueChannel, storedMember);
         if (!queueMember) continue;
         // Re-evaluate priority for each member
         const roleIds = queueMember.roles.cache.keys();
@@ -2123,8 +2059,7 @@ export class Commands {
     const storedQueue = await QueueChannelTable.get(queueChannel.id);
     if (storedQueue) {
       await QueueChannelTable.unstore(parsed.request.guild.id, queueChannel.id, parsed);
-      const response =
-        `Deleted queue for \`${queueChannel.name}\`.` + (await this.genQueuesList(parsed));
+      const response = `Deleted queue for \`${queueChannel.name}\`.` + (await this.genQueuesList(parsed));
       await parsed
         .reply({
           content: response,
@@ -2132,8 +2067,7 @@ export class Commands {
         .catch(() => null);
       Voice.disconnectFromChannel(queueChannel as VoiceChannel | StageChannel);
     } else {
-      const response =
-        `\`${queueChannel.name}\` is not a queue.` + (await this.genQueuesList(parsed));
+      const response = `\`${queueChannel.name}\` is not a queue.` + (await this.genQueuesList(parsed));
       await parsed
         .reply({
           content: response,
@@ -2203,9 +2137,7 @@ export class Commands {
 
       const storedQueues = await QueueChannelTable.getFromGuild(guild.id);
       for await (const storedQueue of storedQueues) {
-        const channel = (await parsed.getChannels()).find(
-          (ch) => ch.id === storedQueue.queue_channel_id
-        );
+        const channel = (await parsed.getChannels()).find((ch) => ch.id === storedQueue.queue_channel_id);
         if (!channel) continue;
         if (disableRoles) {
           // Delete role
@@ -2220,9 +2152,7 @@ export class Commands {
           if (role) {
             const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
             for await (const queueMember of queueMembers) {
-              await guild.members
-                .fetch(queueMember.member_id)
-                .then((member) => member.roles.add(role));
+              await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
             }
           } else {
             break; // Failed to create role, don't attempt to create the others
@@ -2248,9 +2178,7 @@ export class Commands {
         if (storedQueue.clear_schedule != null) {
           const queue = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
           const timezone = Base.getTimezone(+storedQueue.clear_utc_offset).value;
-          resp += `Clearing \`${queue.name}\` **${cronstrue.toString(
-            storedQueue.clear_schedule
-          )}** ${timezone}.\n`;
+          resp += `Clearing \`${queue.name}\` **${cronstrue.toString(storedQueue.clear_schedule)}** ${timezone}.\n`;
         }
       }
       await parsed
@@ -2347,9 +2275,7 @@ export class Commands {
 
     await parsed
       .reply({
-        content: `Scheduled \`${queueChannel.name}\` to be cleared **${cronstrue.toString(
-          schedule
-        )}** ${timezone}.`,
+        content: `Scheduled \`${queueChannel.name}\` to be cleared **${cronstrue.toString(schedule)}** ${timezone}.`,
       })
       .catch(() => null);
   }
@@ -2382,11 +2308,7 @@ export class Commands {
     const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
     Base.shuffle(queueMemberTimeStamps);
     for (let i = 0; i < queueMembers.length; i++) {
-      await QueueMemberTable.setCreatedAt(
-        queueChannel.id,
-        queueMembers[i].member_id,
-        queueMemberTimeStamps[i]
-      );
+      await QueueMemberTable.setCreatedAt(queueChannel.id, queueMembers[i].member_id, queueMemberTimeStamps[i]);
     }
     MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     await parsed
@@ -2525,13 +2447,10 @@ export class Commands {
   public static async timestampsSet(parsed: Parsed) {
     if ((await parsed.readArgs({ commandNameLength: 14, hasText: true })).length) return;
 
-    if (
-      !["date", "time", "date+time", "relative", "off"].includes(parsed.args.text.toLowerCase())
-    ) {
+    if (!["date", "time", "date+time", "relative", "off"].includes(parsed.args.text.toLowerCase())) {
       await parsed
         .reply({
-          content:
-            "**ERROR**: Missing required argument: **date**, **time**, **date+time**, **relative**, **off**.",
+          content: "**ERROR**: Missing required argument: **date**, **time**, **date+time**, **relative**, **off**.",
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);

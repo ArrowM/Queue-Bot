@@ -1,6 +1,6 @@
 [
    {
-      "sent": false,
+      "sent": true,
       "date": "2022-02-19",
       "embeds": [
          {
@@ -13,7 +13,7 @@
             "fields": [
                {
                   "name": "Kick Renamed",
-                  "value": "`/kick` has been renamed to `/dequeue` and `/kick all` has been renamed to `/dequeue-all`."
+                  "value": "`/kick` has been renamed to `/dequeue` and `/kickall` has been renamed to `/dequeue-all`."
                },
                {
                   "name": "Scheduled Queue Clearing",

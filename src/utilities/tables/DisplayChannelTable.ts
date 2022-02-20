@@ -32,9 +32,7 @@ export class DisplayChannelTable {
   }
 
   public static get(displayChannelId: Snowflake) {
-    return Base.knex<DisplayChannel>("display_channels")
-      .where("display_channel_id", displayChannelId)
-      .first();
+    return Base.knex<DisplayChannel>("display_channels").where("display_channel_id", displayChannelId).first();
   }
 
   public static getFromQueue(queueChannelId: Snowflake) {
@@ -42,20 +40,14 @@ export class DisplayChannelTable {
   }
 
   public static getFirstFromQueue(queueChannelId: Snowflake) {
-    return Base.knex<DisplayChannel>("display_channels")
-      .where("queue_channel_id", queueChannelId)
-      .first();
+    return Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first();
   }
 
   public static getFromMessage(messageId: Snowflake) {
     return Base.knex<DisplayChannel>("display_channels").where("message_id", messageId).first();
   }
 
-  public static async store(
-    queueChannel: GuildBasedChannel,
-    displayChannel: TextChannel,
-    embeds: MessageEmbed[]
-  ) {
+  public static async store(queueChannel: GuildBasedChannel, displayChannel: TextChannel, embeds: MessageEmbed[]) {
     const response = await displayChannel
       .send({
         embeds: embeds,
@@ -72,24 +64,15 @@ export class DisplayChannelTable {
     });
   }
 
-  public static async unstore(
-    queueChannelId: Snowflake,
-    displayChannelId?: Snowflake,
-    deleteOldDisplays = true
-  ) {
-    let query = Base.knex<DisplayChannel>("display_channels").where(
-      "queue_channel_id",
-      queueChannelId
-    );
+  public static async unstore(queueChannelId: Snowflake, displayChannelId?: Snowflake, deleteOldDisplays = true) {
+    let query = Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
     if (displayChannelId) query = query.where("display_channel_id", displayChannelId);
     const storedDisplays = await query;
     await query.delete();
     if (!storedDisplays) return;
 
     for await (const storedDisplay of storedDisplays) {
-      const displayChannel = Base.client.channels.cache.get(
-        storedDisplay.display_channel_id
-      ) as TextChannel;
+      const displayChannel = Base.client.channels.cache.get(storedDisplay.display_channel_id) as TextChannel;
       if (!displayChannel) continue;
 
       const displayMessage = await displayChannel.messages
@@ -102,9 +85,7 @@ export class DisplayChannelTable {
         await displayMessage.delete().catch(() => null);
       } else {
         // Remove button
-        await displayMessage
-          .edit({ embeds: displayMessage.embeds, components: [] })
-          .catch(() => null);
+        await displayMessage.edit({ embeds: displayMessage.embeds, components: [] }).catch(() => null);
       }
     }
   }

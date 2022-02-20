@@ -41,17 +41,14 @@ client.on("error", console.error);
 client.on("shardError", console.error);
 client.on("uncaughtException", (err, origin) => {
   console.error(
-    `Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(
-      origin,
-      {
-        depth: null,
-      }
-    )}`
+    `Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, {
+      depth: null,
+    })}`
   );
 });
-// client.on("rateLimit", (rateLimitInfo) => {
-//   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
-// });
+client.on("rateLimit", (rateLimitInfo) => {
+  console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
+});
 
 // Top GG integration
 if (config.topGgToken) AutoPoster(config.topGgToken, client);
@@ -192,10 +189,7 @@ client.on("channelDelete", async (channel) => {
     if (!isReady || channel.type === "DM") return;
     const deletedQueueChannel = await QueueChannelTable.get(channel.id);
     if (deletedQueueChannel) {
-      await QueueChannelTable.unstore(
-        deletedQueueChannel.guild_id,
-        deletedQueueChannel.queue_channel_id
-      );
+      await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
     }
     await DisplayChannelTable.getFromQueue(channel.id).delete();
   } catch (e) {
@@ -611,12 +605,8 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
     if (oldVoiceChannel === newVoiceChannel || !member) return;
 
     const queueGuild = await QueueGuildTable.get(member.guild.id);
-    const storedOldQueueChannel = oldVoiceChannel
-      ? await QueueChannelTable.get(oldVoiceChannel.id)
-      : undefined;
-    const storedNewQueueChannel = newVoiceChannel
-      ? await QueueChannelTable.get(newVoiceChannel.id)
-      : undefined;
+    const storedOldQueueChannel = oldVoiceChannel ? await QueueChannelTable.get(oldVoiceChannel.id) : undefined;
+    const storedNewQueueChannel = newVoiceChannel ? await QueueChannelTable.get(newVoiceChannel.id) : undefined;
 
     if (
       Base.isMe(member) &&
@@ -637,8 +627,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
               storedNewQueueChannel.auto_fill &&
               newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
               (!targetChannel.userLimit ||
-                targetChannel.members.filter((member) => !member.user.bot).size <
-                  targetChannel.userLimit)
+                targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
             ) {
               member.voice.setChannel(targetChannel).catch(() => null);
               return;
@@ -663,11 +652,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           member.voice.setChannel(oldVoiceChannel).catch(() => null);
           await setTimeout(
             async () =>
-              await fillTargetChannel(
-                storedOldQueueChannel,
-                oldVoiceChannel,
-                newVoiceChannel
-              ).catch(() => null),
+              await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel).catch(() => null),
             1000
           );
         } else {
@@ -717,10 +702,7 @@ async function fillTargetChannel(
         storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
       }
       if (dstChannel.userLimit) {
-        const num = Math.max(
-          0,
-          dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size
-        );
+        const num = Math.max(0, dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size);
         storedMembers = storedMembers.slice(0, num);
       }
       const promises = [];
@@ -746,9 +728,7 @@ async function fillTargetChannel(
     } else {
       const owner = await guild.fetchOwner();
       owner
-        .send(
-          `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
-        )
+        .send(`I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`)
         .catch(() => null);
     }
   }
@@ -761,47 +741,34 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
       await interaction.reply("An error has occurred").catch(() => null);
       return;
     }
-    let queueChannel = (await interaction.guild.channels
-      .fetch(storedDisplay.queue_channel_id)
-      .catch(async (e) => {
-        if (e.code === 50001) {
-          await interaction
-            .reply({
-              content: `I can't see <#${storedDisplay.queue_channel_id}>. Please give me the \`View Channel\` permission.`,
-            })
-            .catch(() => null);
-          return;
-        } else {
-          throw e;
-        }
-      })) as GuildBasedChannel;
+    let queueChannel = (await interaction.guild.channels.fetch(storedDisplay.queue_channel_id).catch(async (e) => {
+      if (e.code === 50001) {
+        await interaction
+          .reply({
+            content: `I can't see <#${storedDisplay.queue_channel_id}>. Please give me the \`View Channel\` permission.`,
+          })
+          .catch(() => null);
+        return;
+      } else {
+        throw e;
+      }
+    })) as GuildBasedChannel;
     if (!queueChannel) throw "Queue channel not found.";
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
     if (storedQueueMember) {
       const storedQueue = await QueueChannelTable.get(queueChannel.id);
-      await QueueMemberTable.unstore(
-        member.guild.id,
-        queueChannel.id,
-        [member.id],
-        storedQueue.grace_period
-      );
-      await interaction
-        .reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true })
-        .catch(() => null);
+      await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueue.grace_period);
+      await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
     } else {
       await QueueMemberTable.store(queueChannel, member);
-      await interaction
-        .reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true })
-        .catch(() => null);
+      await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
     }
     const queueGuild = await QueueGuildTable.get(interaction.guild.id);
     MessagingUtils.updateDisplay(queueGuild, queueChannel);
   } catch (e: any) {
     if (e.author === "Queue Bot") {
-      await interaction
-        .reply({ content: "**ERROR**: " + e.message, ephemeral: true })
-        .catch(() => null);
+      await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
     } else {
       await interaction.reply("An error has occurred").catch(() => null);
       console.error(e);

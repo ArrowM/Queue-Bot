@@ -22,11 +22,7 @@ export class BlackWhiteListTable {
     });
   }
 
-  private static async isBWlisted(
-    queueChannelId: Snowflake,
-    member: GuildMember,
-    type: number
-  ): Promise<boolean> {
+  private static async isBWlisted(queueChannelId: Snowflake, member: GuildMember, type: number): Promise<boolean> {
     const roleIds = Array.from(member.roles.cache.keys());
     const promises = [];
     for (const id of [member.id, ...roleIds]) {
@@ -42,17 +38,11 @@ export class BlackWhiteListTable {
     return (await Promise.all(promises)).includes(true);
   }
 
-  public static async isBlacklisted(
-    queueChannelId: Snowflake,
-    member: GuildMember
-  ): Promise<boolean> {
+  public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
     return await this.isBWlisted(queueChannelId, member, 0);
   }
 
-  public static async isWhitelisted(
-    queueChannelId: Snowflake,
-    member: GuildMember
-  ): Promise<boolean> {
+  public static async isWhitelisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
     return await this.isBWlisted(queueChannelId, member, 1);
   }
 
@@ -79,12 +69,7 @@ export class BlackWhiteListTable {
       .where("type", type);
   }
 
-  public static async store(
-    type: number,
-    queueChannelId: Snowflake,
-    roleMemberId: Snowflake,
-    isRole: boolean
-  ) {
+  public static async store(type: number, queueChannelId: Snowflake, roleMemberId: Snowflake, isRole: boolean) {
     await Base.knex<BlackWhiteListEntry>("black_white_list").insert({
       queue_channel_id: queueChannelId,
       role_member_id: roleMemberId,
@@ -99,10 +84,7 @@ export class BlackWhiteListTable {
    * @param roleMemberId
    */
   public static async unstore(type: number, queueChannelId: Snowflake, roleMemberId?: Snowflake) {
-    let query = Base.knex<BlackWhiteListEntry>("black_white_list").where(
-      "queue_channel_id",
-      queueChannelId
-    );
+    let query = Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannelId);
     if (type !== 2) query = query.where("type", type);
     if (roleMemberId) query = query.where("role_member_id", roleMemberId);
     await query.delete();

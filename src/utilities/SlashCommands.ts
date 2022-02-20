@@ -27,21 +27,12 @@ export class SlashCommands {
 
   private static async editProgress(suMsg: SlashUpdateMessage) {
     await suMsg.resp
-      ?.edit(
-        suMsg.respText +
-          "\n[" +
-          "▓".repeat(++suMsg.progNum) +
-          "░".repeat(suMsg.totalNum - suMsg.progNum) +
-          "]"
-      )
+      ?.edit(suMsg.respText + "\n[" + "▓".repeat(++suMsg.progNum) + "░".repeat(suMsg.totalNum - suMsg.progNum) + "]")
       .catch(() => null);
     await delay(5000);
   }
 
-  private static modifyQueueArg(
-    cmd: ApplicationOptions,
-    storedChannels: GuildBasedChannel[]
-  ): ApplicationOptions {
+  private static modifyQueueArg(cmd: ApplicationOptions, storedChannels: GuildBasedChannel[]): ApplicationOptions {
     if (cmd.options) cmd.options = this.modifyQueue(cmd.name, cmd.options, storedChannels);
     return cmd;
   }
@@ -61,9 +52,7 @@ export class SlashCommands {
         if (this.TEXT_COMMANDS.includes(name)) {
           storedChannels = storedChannels.filter((ch) => ch.type === "GUILD_TEXT");
         } else if (this.VOICE_COMMANDS.includes(name)) {
-          storedChannels = storedChannels.filter((ch) =>
-            ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type)
-          );
+          storedChannels = storedChannels.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type));
         }
         if (storedChannels.length > 1) {
           const choices: ApplicationCommandOptionChoice[] = storedChannels.map((ch) => {
@@ -139,21 +128,16 @@ export class SlashCommands {
 
       await this.editProgress(slashUpdateMessage);
     }
-    await slashUpdateMessage.resp
-      ?.edit({ content: "Done registering queue commands." })
-      .catch(() => null);
+    await slashUpdateMessage.resp?.edit({ content: "Done registering queue commands." }).catch(() => null);
   }
 
   private static async modifyForNoQueues(guildId: Snowflake, parsed: Parsed) {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
 
-    const commands = (await this.slashClient
-      .getCommands({ guildID: guildId })
-      .catch(() => [])) as ApplicationCommand[];
+    const commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
     const filteredCommands = commands.filter(
-      (cmd) =>
-        !this.GLOBAL_COMMANDS.includes(cmd.name) && cmd.application_id === Base.client.user.id
+      (cmd) => !this.GLOBAL_COMMANDS.includes(cmd.name) && cmd.application_id === Base.client.user.id
     );
 
     const msgTest = "Unregistering queue commands. This will take about 2 minutes...";
@@ -174,16 +158,12 @@ export class SlashCommands {
 
       await this.editProgress(slashUpdateMessage);
     }
-    await slashUpdateMessage.resp
-      ?.edit({ content: "Done unregistering queue commands." })
-      .catch(() => null);
+    await slashUpdateMessage.resp?.edit({ content: "Done unregistering queue commands." }).catch(() => null);
   }
 
   public static async addCommandForGuild(guild: Guild, cmd: ApplicationOptions) {
     cmd = JSON.parse(JSON.stringify(cmd)) as ApplicationOptions; // copies
-    const storedChannels = Array.from(
-      (await QueueChannelTable.fetchFromGuild(guild)).values()
-    ).slice(0, 25); // max # of options is 25
+    const storedChannels = Array.from((await QueueChannelTable.fetchFromGuild(guild)).values()).slice(0, 25); // max # of options is 25
     if (storedChannels.length) {
       cmd = await this.modifyQueueArg(cmd, storedChannels);
       await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(() => null);
@@ -193,9 +173,7 @@ export class SlashCommands {
   public static async modifyCommandsForGuild(guild: Guild, parsed?: Parsed) {
     try {
       //console.log("Modifying commands for " + guild.id);
-      const storedChannels = Array.from(
-        (await QueueChannelTable.fetchFromGuild(guild)).values()
-      ).slice(0, 25); // max # of options is 25
+      const storedChannels = Array.from((await QueueChannelTable.fetchFromGuild(guild)).values()).slice(0, 25); // max # of options is 25
       if (storedChannels.length === 0) {
         await this.modifyForNoQueues(guild.id, parsed);
       } else {
