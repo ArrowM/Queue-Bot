@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p .",
     "format": "eslint src/**/*.ts --fix --no-error-on-unmatched-pattern && prettier --write --loglevel warn \"src/**/*.ts\"",
-    "start": "cd build && node bot.js",
+    "start": "node build/bot.js",
     "restart": "tsc -p . && pm2 stop all && pm2 flush && pm2 start all"
   },
   "keywords": [],

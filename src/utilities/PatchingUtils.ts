@@ -111,7 +111,7 @@ export class PatchingUtils {
     const displayChannels: TextChannel[] = [];
     if (existsSync("../patch_notes/patch_notes.json")) {
       // Collect notes
-      const notes = Base.getJSON("../patch_notes/patch_notes.json") as Note[];
+      const notes = Base.getJSON("patch_notes/patch_notes.json") as Note[];
       const notesToSend = notes.filter((p) => !p.sent);
       if (!notesToSend?.length) return;
       // Collect channel destinations

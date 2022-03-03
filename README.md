@@ -103,7 +103,7 @@ Enter `npm install -g typescript`, then `npm i` into command prompt. Keep the co
     1. https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=2433838096&scope=applications.commands%20bot
 11. **Optional**. Make the bot run in the background.  
      9a. In command prompt, enter `npm install pm2 -g`  
-     9b. To start the bot, enter `cd build`, then `pm2 start bot.js --time`  
+     9b. To start the bot, enter `pm2 start build/bot.js --time`  
      9c. To stop the bot, enter `pm2 stop bot`  
   
 ### Local Development Automation
