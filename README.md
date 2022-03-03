@@ -60,18 +60,19 @@ https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-
 ## How to set up your own hosting  
 1. [Create a Discord bot account](https://discordpy.readthedocs.io/en/latest/discord.html)
 2. Clone/download this repository  
-3. Create a database for storing queues. If doing local development [here are instructions for using Docker to create a viable database](#local-development-automation), otherwise here are the steps for establishing a Postgres instance on Windows:  
-	1. [Download Postgresql](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)  
-	2. Run the installer. Use the default port. Skip Stack Builder. Remember the password you set, you will need it later.  
-	3. Open Windows start menu, search for and open SQL Shell (psql).  
-	4. Leave the default login values for Server, Database, Port, and Username.  
-	5. Enter the password you chose during installation.  
-	6. Create a new database. (The semicolon is important):  
-		`CREATE DATABASE queue;`  
-	7. Close command prompt.  
+3. Create a database for storing queues. If doing local development [here are instructions for using Docker to create a viable database](#local-development-automation), otherwise the steps for establishing a Postgres instance on Windows are below. **If you use a different type of database, [you need to install an additional library for it](https://knexjs.org/#Installation-node)**.  
+    1. [Download Postgresql](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)  
+    2. Run the installer. Use the default port. Skip Stack Builder. Remember the password you set, you will need it later.  
+    3. Open Windows start menu, search for and open SQL Shell (psql).  
+    4. Leave the default login values for Server, Database, Port, and Username.  
+    5. Enter the password you chose during installation.  
+    6. Create a new database. (The semicolon is important):  
+        `CREATE DATABASE queue;`  
+    7. Close command prompt.  
+
 4. Open the Queue Bot folder.  
 5. Modify `config/config.json`:  
-	If you followed all Step 3, you only need to update the REQUIRED fields in the table below.
+    If you followed all Step 3, you only need to update the REQUIRED fields in the table below.
 
 | REQUIRED Config Fields | Description                                                                                                                       | Default |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------|

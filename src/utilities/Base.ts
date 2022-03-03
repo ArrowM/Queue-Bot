@@ -107,8 +107,8 @@ export class Base {
 
   public static archiveCommands(): void {
     writeFileSync(
-      "../data/last-commands-config.json",
-      readFileSync("../config/commands-config.json", { encoding: "utf8" })
+      "data/last-commands-config.json",
+      readFileSync("config/commands-config.json", { encoding: "utf8" })
     );
   }
 
