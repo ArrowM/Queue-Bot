@@ -68,8 +68,7 @@ https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-
     5. Enter the password you chose during installation.  
     6. Create a new database. (The semicolon is important):  
         `CREATE DATABASE queue;`  
-    7. Close command prompt.  
-
+    7. Close command prompt.
 4. Open the Queue Bot folder.  
 5. Modify `config/config.json`:  
     If you followed all Step 3, you only need to update the REQUIRED fields in the table below.

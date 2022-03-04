@@ -98,7 +98,7 @@ export class QueueMemberTable {
   ) {
     if (!force) {
       const storedChannel = await QueueChannelTable.get(queueChannel.id);
-      if (storedChannel.is_locked) {
+      if (storedChannel?.is_locked) {
         throw {
           author: "Queue Bot",
           message: `Failed to join to \`${queueChannel.name}\`. Queue is locked!\n`,

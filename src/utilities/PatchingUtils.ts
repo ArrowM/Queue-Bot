@@ -109,9 +109,9 @@ export class PatchingUtils {
 
   private static async checkNotes(guilds: Collection<Snowflake, Guild>) {
     const displayChannels: TextChannel[] = [];
-    if (existsSync("patch_notes/patch_notes.json")) {
+    if (existsSync("../patch_notes/patch_notes.json")) {
       // Collect notes
-      const notes = Base.getJSON("patch_notes/patch_notes.json") as Note[];
+      const notes = Base.getJSON("../patch_notes/patch_notes.json") as Note[];
       const notesToSend = notes.filter((p) => !p.sent);
       if (!notesToSend?.length) return;
       // Collect channel destinations
@@ -165,7 +165,7 @@ export class PatchingUtils {
         note.sent = sentNote = true;
       }
       if (sentNote) {
-        writeFileSync("patch_notes/patch_notes.json", JSON.stringify(notes, null, 3));
+        writeFileSync("../patch_notes/patch_notes.json", JSON.stringify(notes, null, 3));
       }
       if (failedChannelIds.length) {
         console.log("FAILED TO SEND TO THE FOLLOWING CHANNEL IDS:");
