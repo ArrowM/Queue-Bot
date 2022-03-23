@@ -34,7 +34,6 @@ EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be ha
 let isReady = false;
 const config = Base.config;
 const client = Base.client;
-const knex = Base.knex;
 // noinspection JSIgnoredPromiseFromCall
 client.login(config.token);
 client.on("error", console.error);
@@ -129,10 +128,23 @@ client.once("ready", async () => {
   SlashCommands.register(guilds).then();
   // Validator.validateAtStartup(guilds);
   MessagingUtils.startScheduler();
-  MessagingUtils.startClearScheduler();
+  MessagingUtils.startClearScheduler().then();
   console.timeEnd("READY. Bot started in");
   isReady = true;
+  reportStats().then();
 });
+
+async function reportStats() {
+  setInterval(async () => {
+    const guildCnt = client.guilds.cache.size;
+    const visibleMemberCnt = client.guilds.cache.reduce((total, guild) => total + guild.memberCount, 0);
+    const queueMemberCnt = (await Base.knex("queue_members").count("id").first()).count;
+    console.log();
+    console.log("# Guilds = " + guildCnt);
+    console.log("# Visible members = " + visibleMemberCnt);
+    console.log("# Queue members = " + queueMemberCnt);
+  }, 12 * 60 * 60 * 1000); // 12 hour
+}
 
 client.on("guildCreate", async (guild) => {
   if (!isReady) return;
@@ -634,7 +646,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             }
           } else {
             // Target has been deleted - clean it up
-            await QueueChannelTable.setTarget(newVoiceChannel.id, knex.raw("DEFAULT"));
+            await QueueChannelTable.setTarget(newVoiceChannel.id, Base.knex.raw("DEFAULT"));
           }
         }
         await QueueMemberTable.store(newVoiceChannel, member);

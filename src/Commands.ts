@@ -704,7 +704,7 @@ export class Commands {
             "**VOICE**: Join the matching voice channel.",
         },
         {
-          name: "`/display`",
+          name: "`/display`" + (alt ? " or `!display`" : ""),
           value: "Display a queue",
         },
         {

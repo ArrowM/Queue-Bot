@@ -207,7 +207,7 @@ abstract class ParsedBase {
   // eslint-disable-next-line no-unused-vars
   protected abstract getStringParam(_commandNameLength: number): Promise<void>;
   protected abstract populateChannelParam(
-  // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line no-unused-vars
     _channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]
   ): Promise<void>;
   protected abstract getRoleParam(): Promise<void>;
