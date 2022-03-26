@@ -181,7 +181,7 @@ export class QueueChannelTable {
     return role;
   }
 
-  public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed: Parsed) {
+  public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed?: Parsed) {
     await this.get(channel.queue_channel_id).update("role_id", Base.knex.raw("DEFAULT"));
     const roleId = channel?.role_id;
     if (roleId) {
@@ -191,7 +191,7 @@ export class QueueChannelTable {
         await role?.delete().catch(async (e: DiscordAPIError) => {
           if ([403, 404].includes(e.httpStatus)) {
             await parsed
-              .reply({
+              ?.reply({
                 content: `ERROR: Failed to delete server role for queue. Please:\n1. Grant me the Manage Roles permission **or** click this link\n2. Manually delete the \`${role.name}\` role`,
                 embeds: [
                   {
