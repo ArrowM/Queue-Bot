@@ -86,11 +86,7 @@ export class Commands {
       if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel?.type)) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.auto_fill ? "on" : "off"}\n`;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -208,11 +204,7 @@ export class Commands {
     }
     MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
     response += await this.genBWList(parsed, type);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -253,11 +245,7 @@ export class Commands {
     }
 
     response += await this.genBWList(parsed, type);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -283,11 +271,7 @@ export class Commands {
    */
   private static async _bwList(parsed: Parsed, type: number) {
     const response = await this.genBWList(parsed, type);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -328,11 +312,7 @@ export class Commands {
       if (!["GUILD_TEXT"].includes(queueChannel?.type)) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.hide_button ? "off" : "on"}\n`;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -403,11 +383,7 @@ export class Commands {
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.color}\n`;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -613,11 +589,7 @@ export class Commands {
       const timeString = MessagingUtils.getGracePeriodString(storedQueue.grace_period);
       response += `\`${queueChannel.name}\`: ${timeString || "0 seconds"}\n`;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -660,11 +632,7 @@ export class Commands {
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.header || "none"}\n`;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -815,7 +783,7 @@ export class Commands {
         },
         {
           name: "`/pullnum`",
-          value: "Get / Set # of users to pull when manually pulling from a voice queue",
+          value: "Get / Set the default # of users to pull when autopull is off or when using `/next`",
         },
         {
           name: "`/queues add`",
@@ -1302,11 +1270,7 @@ export class Commands {
         response += "`3`. New display messages are sent.";
         break;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1478,6 +1442,18 @@ export class Commands {
     let queueMembers = await QueueMemberTable.getFromQueueOrdered(queueChannel, amount);
 
     if (queueMembers.length > 0) {
+      // Check enable_partial_pull
+      if (!storedQueue.enable_partial_pull && queueMembers.length < amount) {
+        await parsed
+          .edit({
+            content:
+              `\`${queueChannel.name}\` only has **${queueMembers.length}** member${queueMembers.length > 1 ? "s" : ""}, **${amount}** are needed. ` +
+              `To allow pulling of fewer than **${amount}** member${queueMembers.length > 1 ? "s" : ""}, use \`/pullnum\` and enable \`partial_pulling\`.`,
+            commandDisplay: "EPHEMERAL",
+          })
+          .catch(() => null);
+        return;
+      }
       // Display and remove member from the queue
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
         if (targetChannel) {
@@ -1616,11 +1592,7 @@ export class Commands {
       response += `Added bot permission for \`${name}\`.`;
     }
     response += await this.genPermissionList(parsed);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1658,11 +1630,7 @@ export class Commands {
       response += `\`${name}\` did not have bot permission.`;
     }
     response += await this.genPermissionList(parsed);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1690,11 +1658,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 20 });
 
     const response = await this.genPermissionList(parsed);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1811,11 +1775,7 @@ export class Commands {
     }
 
     response += await this.genPriorityList(parsed);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1856,11 +1816,7 @@ export class Commands {
     }
 
     response += await this.genPriorityList(parsed);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1888,11 +1844,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 13 });
 
     const response = await this.genPriorityList(parsed);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1923,11 +1875,7 @@ export class Commands {
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.pull_num}\n`;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -1940,20 +1888,31 @@ export class Commands {
           commandNameLength: 11,
           hasChannel: true,
           hasNumber: { required: true, min: 1, max: 99, defaultValue: 1 },
+          hasText: true,
         })
       ).length
     )
       return;
 
-    const queueChannel = parsed.args.channel;
-    const value = parsed.args.num;
-    await QueueChannelTable.setPullnum(queueChannel.id, value);
-    await parsed
-      .reply({
-        content: `Set pull number of \`${queueChannel.name}\` to \`${value}\`.`,
-      })
-      .catch(() => null);
-    MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
+    if (!["on", "off"].includes(parsed.args.text.toLowerCase())) {
+      await parsed
+        .reply({
+          content: "**ERROR**: Missing required argument: `on` or `off`.",
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else {
+      const queueChannel = parsed.args.channel;
+      const num = parsed.args.num;
+      const enable_partial_pulling = "on" === parsed.args.text.toLowerCase();
+      await QueueChannelTable.setPullnum(queueChannel.id, num, enable_partial_pulling);
+      await parsed
+        .reply({
+          content: `Set pull number of \`${queueChannel.name}\` to \`${num}\`.`,
+        })
+        .catch(() => null);
+      MessagingUtils.updateDisplay(parsed.queueGuild, queueChannel);
+    }
   }
 
   // --------------------------------- QUEUES ------------------------------- //
@@ -2084,11 +2043,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 11 });
 
     const response = await this.genQueuesList(parsed);
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   // --------------------------------- ROLES ------------------------------- //
@@ -2332,11 +2287,7 @@ export class Commands {
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.max_members || "none"}\n`;
     }
-    await parsed
-      .reply({
-        content: response,
-      })
-      .catch(() => null);
+    await parsed.reply({ content: response }).catch(() => null);
   }
 
   /**

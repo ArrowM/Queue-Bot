@@ -711,6 +711,20 @@ async function fillTargetChannel(
     let storedMembers = await QueueMemberTable.getFromQueueOrdered(srcChannel);
     if (storedMembers.length > 0) {
       if (!storedSrcChannel.auto_fill) {
+        // If partial filling is disabled, and there aren't enough members, skip.
+        if (!storedSrcChannel.enable_partial_pull && storedMembers.length < storedSrcChannel.pull_num) {
+          const storedDisplay = await DisplayChannelTable.getFirstFromQueue(srcChannel.id);
+          if (storedDisplay) {
+            const displayChannel = (await guild.channels
+              .fetch(storedDisplay.display_channel_id)
+              .catch(() => null)) as TextChannel;
+            await displayChannel?.send(
+              `\`${srcChannel.name}\` only has **${storedMembers.length}** member${storedMembers.length > 1 ? "s" : ""}, **${storedSrcChannel.pull_num}** are needed. ` +
+                `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${storedMembers.length > 1 ? "s" : ""}, use \`/pullnum\` and enable \`partial_pulling\`.`
+            );
+          }
+          return;
+        }
         storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
       }
       if (dstChannel.userLimit) {

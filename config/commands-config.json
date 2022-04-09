@@ -5,7 +5,7 @@
     "options": [
       {
         "name": "get",
-        "description": "the current alternate prefix settings",
+        "description": "Get the current alternate prefix settings",
         "type": 1,
         "options": []
       },
@@ -40,7 +40,7 @@
     "options": [
       {
         "name": "get",
-        "description": "the current autopull settings",
+        "description": "Get the current autopull settings",
         "type": 1,
         "options": []
       },
@@ -256,7 +256,7 @@
     "options": [
       {
         "name": "get",
-        "description": "the current color settings",
+        "description": "Get the current color settings",
         "type": 1,
         "options": []
       },
@@ -453,7 +453,7 @@
     "options": [
       {
         "name": "get",
-        "description": "the current grace period settings",
+        "description": "Get the current grace period settings",
         "type": 1,
         "options": []
       },
@@ -484,7 +484,7 @@
     "options": [
       {
         "name": "get",
-        "description": "the current header settings",
+        "description": "Get the current header settings",
         "type": 1,
         "options": []
       },
@@ -886,13 +886,13 @@
     "options": [
       {
         "name": "get",
-        "description": "the current pullnum settings",
+        "description": "Get the current pullnum settings",
         "type": 1,
         "options": []
       },
       {
         "name": "set",
-        "description": "Set the default # of users to pull when autopull is off or when using the `next` command",
+        "description": "Set the default # of users to pull when autopull is off or when using `/next`",
         "type": 1,
         "options": [
           {
@@ -906,6 +906,22 @@
             "description": "# of users to pull when autopull is off or when using the `next` command. (Default: 1)",
             "type": 4,
             "required": true
+          },
+          {
+            "name": "partial_pulling",
+            "description": "Allow pulling when there are less members than this new amount.",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
           }
         ]
       }
@@ -1042,7 +1058,7 @@
     "options": [
       {
         "name": "get",
-        "description": "the current roles settings",
+        "description": "Get the current roles settings",
         "type": 1,
         "options": []
       },
@@ -1218,7 +1234,7 @@
     "options": [
       {
         "name": "get",
-        "description": "the current queue sizes",
+        "description": "Get the current queue sizes",
         "type": 1,
         "options": []
       },

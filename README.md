@@ -38,7 +38,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/move` - Move a user to a new position in a queue  
 `/next` - Pull from a text queue  
-`/pullnum` - Get / Set # of users to pull when manually pulling from a voice queue  
+`/pullnum` - Set the default # of users to pull when autopull is off or when using the `/next` command  
 `/queues` - Add / delete / display queues  
 `/roles` - Enable or disable `In Queue: ...` roles  
 `/scheduleclear` - Clear queues on a schedule  

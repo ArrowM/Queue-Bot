@@ -7,6 +7,7 @@ export interface QueueChannel {
   clear_schedule: string;
   clear_utc_offset: string;
   color: ColorResolvable;
+  enable_partial_pull: boolean;
   guild_id: Snowflake;
   grace_period: number;
   header: string;

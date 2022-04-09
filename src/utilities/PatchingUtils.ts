@@ -395,6 +395,13 @@ export class PatchingUtils {
         t.integer("clear_utc_offset");
       });
     }
+    // Add enable_partial_pull
+    if (!(await Base.knex.schema.hasColumn("queue_channels", "enable_partial_pull"))) {
+      await Base.knex.schema.table("queue_channels", (t) => t.boolean("enable_partial_pull"));
+      for await (const entry of await Base.knex<QueueChannel>("queue_channels")) {
+        await Base.knex<DisplayChannel>("queue_channels").where("id", entry.id).update("enable_partial_pull", true);
+      }
+    }
   }
 
   private static async tableQueueGuilds() {

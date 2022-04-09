@@ -33,6 +33,7 @@ export class QueueChannelTable {
             table.text("clear_schedule");
             table.integer("clear_utc_offset");
             table.text("color");
+            table.boolean("enable_partial_pull");
             table.integer("grace_period");
             table.bigInteger("guild_id");
             table.text("header");
@@ -92,12 +93,16 @@ export class QueueChannelTable {
     await this.get(queueChannelId).update("grace_period", value);
   }
 
+  public static async setGroupSize(queueChannelId: Snowflake, value: number) {
+    await this.get(queueChannelId).update("group_size", value);
+  }
+
   public static async setAutopull(queueChannelId: Snowflake, value: number) {
     await this.get(queueChannelId).update("auto_fill", value);
   }
 
-  public static async setPullnum(queueChannelId: Snowflake, value: number) {
-    await this.get(queueChannelId).update("pull_num", value);
+  public static async setPullnum(queueChannelId: Snowflake, num: number, enable_partial_pulling: boolean) {
+    await this.get(queueChannelId).update("pull_num", num).update("enable_partial_pull", enable_partial_pulling);
   }
 
   public static async setRoleId(queueChannel: GuildBasedChannel, role: Role) {
