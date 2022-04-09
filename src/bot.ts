@@ -50,7 +50,7 @@ client.on("uncaughtException", (err, origin) => {
 // });
 
 // Top GG integration
-if (config.topGgToken) AutoPoster(config.topGgToken, client);
+if (config.topGgToken) AutoPoster(config.topGgToken, client).on("error", () => null);
 
 //
 // --- DISCORD EVENTS ---
