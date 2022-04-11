@@ -81,7 +81,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 12 });
 
     let response = "**Autopull**:\n";
-    for await (const storedQueue of await parsed.getstoredQueues()) {
+    for await (const storedQueue of await parsed.getStoredQueues()) {
       const queueChannel = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
       if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel?.type)) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.auto_fill ? "on" : "off"}\n`;
@@ -307,7 +307,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 10 });
 
     let response = "**Buttons**:\n";
-    for await (const storedQueue of await parsed.getstoredQueues()) {
+    for await (const storedQueue of await parsed.getStoredQueues()) {
       const queueChannel = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
       if (!["GUILD_TEXT"].includes(queueChannel?.type)) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.hide_button ? "off" : "on"}\n`;
@@ -378,7 +378,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 9 });
 
     let response = "**Colors**:\n";
-    for await (const storedQueue of await parsed.getstoredQueues()) {
+    for await (const storedQueue of await parsed.getStoredQueues()) {
       const queueChannel = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.color}\n`;
@@ -583,7 +583,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 15 });
 
     let response = "**Grace Periods**:\n";
-    for await (const storedQueue of await parsed.getstoredQueues()) {
+    for await (const storedQueue of await parsed.getStoredQueues()) {
       const queueChannel = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
       if (!queueChannel) continue;
       const timeString = MessagingUtils.getGracePeriodString(storedQueue.grace_period);
@@ -627,7 +627,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 10 });
 
     let response = "**Headers**:\n";
-    for await (const storedQueue of await parsed.getstoredQueues()) {
+    for await (const storedQueue of await parsed.getStoredQueues()) {
       const queueChannel = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.header || "none"}\n`;
@@ -1734,7 +1734,7 @@ export class Commands {
     // Get all priority Ids for guild
     const priorityIds = (await PriorityTable.getMany(guild.id)).map((entry) => entry.role_member_id);
     // Get all queue channels for guild
-    for await (const storedChannel of await parsed.getstoredQueues()) {
+    for await (const storedChannel of await parsed.getStoredQueues()) {
       const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === storedChannel.queue_channel_id);
       if (!queueChannel) continue;
       // Get members for each queue channel
@@ -1870,7 +1870,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 11 });
 
     let response = "**Pull nums**:\n";
-    for await (const storedQueue of await parsed.getstoredQueues()) {
+    for await (const storedQueue of await parsed.getStoredQueues()) {
       const queueChannel = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.pull_num}\n`;
@@ -2282,7 +2282,7 @@ export class Commands {
     await parsed.readArgs({ commandNameLength: 8 });
 
     let response = "**Sizes**:\n";
-    for await (const storedQueue of await parsed.getstoredQueues()) {
+    for await (const storedQueue of await parsed.getStoredQueues()) {
       const queueChannel = parsed.request.guild.channels.cache.get(storedQueue.queue_channel_id);
       if (!queueChannel) continue;
       response += `\`${queueChannel.name}\`: ${storedQueue.max_members || "none"}\n`;

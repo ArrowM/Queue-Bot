@@ -30,6 +30,8 @@ export class ParsingUtils {
     try {
       const member = request.member as GuildMember;
       if (!member) return false;
+      // Check if MEE6
+
       // Check if ADMIN
       if (member.permissionsIn(request.channel as GuildBasedChannel).has("ADMINISTRATOR")) return true;
       // Check IDs
@@ -114,7 +116,7 @@ abstract class ParsedBase {
 
     // Required - channel, role, member
     if (conf.hasChannel) {
-      const storedQueueIds = (await this.getstoredQueues()).map((ch) => ch.queue_channel_id);
+      const storedQueueIds = (await this.getStoredQueues()).map((ch) => ch.queue_channel_id);
       await this.populateChannelParam(conf.channelType);
       if (!this.args.channel) {
         const queues = (await this.getChannels()).filter(
@@ -168,7 +170,7 @@ abstract class ParsedBase {
     return this.missingArgs;
   }
 
-  public async getstoredQueues() {
+  public async getStoredQueues() {
     if (this.storedQueues === undefined) {
       this.storedQueues = await QueueChannelTable.getFromGuild(this.request.guild.id);
     }
@@ -362,18 +364,18 @@ export class ParsedMessage extends ParsedBase {
       if (channelType) {
         channels = channels.filter((ch) => channelType.includes(ch.type));
       }
-      let channelName = this.args.text;
+      let inputTest = this.args.text;
       // Search for largest matching channel name
-      while (channelName) {
+      while (inputTest) {
         for (const channel of channels.values()) {
-          if (ParsedMessage.coll.compare(channelName, channel.name) === 0) {
+          if (ParsedMessage.coll.compare(inputTest, channel.name) === 0) {
             this.args.channel = channel as GuildBasedChannel;
-            this.args.text = this.args.text.substring(channelName.length + 1);
+            this.args.text = this.args.text.substring(inputTest.length + 1);
             break;
           }
         }
         if (this.args.channel) break;
-        channelName = channelName.substring(0, channelName.lastIndexOf(" "));
+        inputTest = inputTest.substring(0, inputTest.lastIndexOf(" "));
       }
     }
   }
