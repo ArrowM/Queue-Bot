@@ -94,7 +94,7 @@ export class Base {
       status: "online",
     },
     intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES", "GUILD_MEMBERS"],
-    partials: ['MESSAGE', 'CHANNEL'],
+    partials: ['USER', 'GUILD_MEMBER', 'MESSAGE'],
     shards: "auto",
   });
 
