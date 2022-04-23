@@ -28,8 +28,13 @@ export class DisplayChannelTable {
     return Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
   }
 
-  public static getFirstFromQueue(queueChannelId: Snowflake) {
-    return Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first();
+  public static async getFirstChannelFromQueue(guild: Guild, queueChannelId: Snowflake) {
+    let storedDisplay = await Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first();
+    if (storedDisplay) {
+      return (await guild.channels
+        .fetch(storedDisplay.display_channel_id)
+        .catch(() => null)) as TextChannel;
+    }
   }
 
   public static getFromMessage(messageId: Snowflake) {

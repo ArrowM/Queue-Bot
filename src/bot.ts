@@ -723,20 +723,15 @@ async function fillTargetChannel(
       if (!storedSrcChannel.auto_fill) {
         // If partial filling is disabled, and there aren't enough members, skip.
         if (!storedSrcChannel.enable_partial_pull && storedMembers.length < storedSrcChannel.pull_num) {
-          const storedDisplay = await DisplayChannelTable.getFirstFromQueue(srcChannel.id);
-          if (storedDisplay) {
-            const displayChannel = (await guild.channels
-              .fetch(storedDisplay.display_channel_id)
-              .catch(() => null)) as TextChannel;
-            await displayChannel?.send(
-              `\`${srcChannel.name}\` only has **${storedMembers.length}** member${
+          const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(srcChannel.guild, srcChannel.id);
+          await displayChannel?.send(
+            `\`${srcChannel.name}\` only has **${storedMembers.length}** member${
+              storedMembers.length > 1 ? "s" : ""
+            }, **${storedSrcChannel.pull_num}** are needed. ` +
+              `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${
                 storedMembers.length > 1 ? "s" : ""
-              }, **${storedSrcChannel.pull_num}** are needed. ` +
-                `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${
-                  storedMembers.length > 1 ? "s" : ""
-                }, use \`/pullnum\` and enable \`partial_pulling\`.`
-            );
-          }
+              }, use \`/pullnum\` and enable \`partial_pulling\`.`
+          );
           return;
         }
         storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
@@ -757,11 +752,8 @@ async function fillTargetChannel(
     }
   } else {
     // Request perms in display channel chat
-    const storedDisplay = await DisplayChannelTable.getFirstFromQueue(srcChannel.id);
-    if (storedDisplay) {
-      const displayChannel = (await guild.channels
-        .fetch(storedDisplay.display_channel_id)
-        .catch(() => null)) as TextChannel;
+    const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(srcChannel.guild, srcChannel.id);
+    if (displayChannel) {
       await displayChannel.send(
         `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
       );

@@ -1558,14 +1558,14 @@ export class Commands {
         }
         await Promise.all(promises);
       }
-      await parsed
-        ?.edit({
-          content:
-            `Pulled ` +
-            queueMembers.map((member) => `<@${member.member_id}>`).join(", ") +
-            ` from \`${queue.channel.name}\`.`,
-        })
-        .catch(() => null);
+      const response = "Pulled " + queueMembers.map((member) => `<@${member.member_id}>`).join(", ") +
+          ` from \`${queue.channel.name}\`.`;
+      if (parsed) {
+        await parsed?.edit({content: response }).catch(() => null);
+      } else {
+        const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(queue.channel.guild, queue.channel.id);
+        await displayChannel?.send(response).catch(() => null);
+      }
       await QueueMemberTable.unstore(
         queue.channel.guild.id,
         queue.channel.id,
