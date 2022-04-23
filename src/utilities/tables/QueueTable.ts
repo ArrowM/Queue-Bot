@@ -7,9 +7,8 @@ import {
   GuildMember,
   GuildBasedChannel,
   Collection,
-  NonThreadGuildBasedChannel,
 } from "discord.js";
-import { Parsed, QueueChannel } from "../Interfaces";
+import { Parsed, StoredQueue } from "../Interfaces";
 import { Base } from "../Base";
 import { DisplayChannelTable } from "./DisplayChannelTable";
 import { QueueMemberTable } from "./QueueMemberTable";
@@ -17,12 +16,11 @@ import { Knex } from "knex";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { SlashCommands } from "../SlashCommands";
 import { QueueGuildTable } from "./QueueGuildTable";
-import { MessagingUtils } from "../MessagingUtils";
+import { SchedulingUtils } from "../SchedulingUtils";
+import { ScheduleTable } from "./ScheduleTable";
 
-export class QueueChannelTable {
-  /**
-   * Create & update QueueChannel database table if necessary
-   */
+export class QueueTable {
+  // Create & update database table if necessary
   public static async initTable() {
     await Base.knex.schema.hasTable("queue_channels").then(async (exists) => {
       if (!exists) {
@@ -30,8 +28,6 @@ export class QueueChannelTable {
           .createTable("queue_channels", (table) => {
             table.bigInteger("queue_channel_id").primary();
             table.integer("auto_fill");
-            table.text("clear_schedule");
-            table.integer("clear_utc_offset");
             table.text("color");
             table.boolean("enable_partial_pull");
             table.integer("grace_period");
@@ -49,40 +45,40 @@ export class QueueChannelTable {
   }
 
   public static get(queueChannelId: Snowflake) {
-    return Base.knex<QueueChannel>("queue_channels").where("queue_channel_id", queueChannelId).first();
+    return Base.knex<StoredQueue>("queue_channels").where("queue_channel_id", queueChannelId).first();
   }
 
   public static getFromGuild(guildId: Snowflake) {
-    return Base.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
+    return Base.knex<StoredQueue>("queue_channels").where("guild_id", guildId);
   }
 
   public static getFromTarget(targetChannelId: Snowflake) {
-    return Base.knex<QueueChannel>("queue_channels").where("target_channel_id", targetChannelId);
+    return Base.knex<StoredQueue>("queue_channels").where("target_channel_id", targetChannelId);
   }
 
   public static async setHeader(queueChannelId: Snowflake, message: string) {
-    await this.get(queueChannelId).update("header", message);
+    await QueueTable.get(queueChannelId).update("header", message);
   }
 
   public static async setHideButton(queueChannelId: Snowflake, hidden: boolean) {
-    await this.get(queueChannelId).update("hide_button", hidden);
+    await QueueTable.get(queueChannelId).update("hide_button", hidden);
   }
 
   public static async setLock(queueChannelId: Snowflake, is_locked: boolean) {
-    await this.get(queueChannelId).update("is_locked", is_locked);
+    await QueueTable.get(queueChannelId).update("is_locked", is_locked);
   }
 
   public static async setMaxMembers(queueChannelId: Snowflake, max: number) {
-    await this.get(queueChannelId).update("max_members", max);
+    await QueueTable.get(queueChannelId).update("max_members", max);
   }
 
   public static async setTarget(queueChannelId: Snowflake, targetChannelId: Snowflake | Knex.Raw) {
-    await this.get(queueChannelId).update("target_channel_id", targetChannelId);
+    await QueueTable.get(queueChannelId).update("target_channel_id", targetChannelId);
   }
 
   public static async setColor(queueChannel: GuildBasedChannel, value: ColorResolvable) {
-    await this.get(queueChannel.id).update("color", value);
-    const storedQueue = await this.get(queueChannel.id);
+    await QueueTable.get(queueChannel.id).update("color", value);
+    const storedQueue = await QueueTable.get(queueChannel.id);
     if (storedQueue?.role_id) {
       const role = await queueChannel.guild.roles.fetch(storedQueue.role_id).catch(() => null as Role);
       await role?.setColor(value).catch(() => null);
@@ -90,47 +86,39 @@ export class QueueChannelTable {
   }
 
   public static async setGraceperiod(queueChannelId: Snowflake, value: number) {
-    await this.get(queueChannelId).update("grace_period", value);
+    await QueueTable.get(queueChannelId).update("grace_period", value);
   }
 
-  public static async setGroupSize(queueChannelId: Snowflake, value: number) {
-    await this.get(queueChannelId).update("group_size", value);
+  public static async setAutopull(queueChannelId: Snowflake, value: boolean) {
+    await QueueTable.get(queueChannelId).update("auto_fill", value ? 1 : 0);
   }
 
-  public static async setAutopull(queueChannelId: Snowflake, value: number) {
-    await this.get(queueChannelId).update("auto_fill", value);
-  }
-
-  public static async setPullnum(queueChannelId: Snowflake, num: number, enable_partial_pulling: boolean) {
-    await this.get(queueChannelId).update("pull_num", num).update("enable_partial_pull", enable_partial_pulling);
+  public static async setPullnum(queueChannelId: Snowflake, number: number, enable_partial_pulling: boolean) {
+    await QueueTable.get(queueChannelId)
+      .update("pull_num", number)
+      .update("enable_partial_pull", enable_partial_pulling);
   }
 
   public static async setRoleId(queueChannel: GuildBasedChannel, role: Role) {
-    await this.get(queueChannel.id).update("role_id", role.id);
+    await QueueTable.get(queueChannel.id).update("role_id", role.id);
     const queueMembers = await QueueMemberTable.getFromQueueUnordered(queueChannel);
     for await (const queueMember of queueMembers) {
       const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
-      if (!member) continue;
+      if (!member) {
+        continue;
+      }
       await member.roles.add(role);
     }
   }
 
   public static async deleteRoleId(queueChannel: GuildBasedChannel) {
-    await this.get(queueChannel.id).update("role_id", Base.knex.raw("DEFAULT"));
-  }
-
-  public static async setScheduledClear(queueChannelId: Snowflake, schedule: string, utcOffset: number) {
-    await this.get(queueChannelId).update("clear_schedule", schedule).update("clear_utc_offset", utcOffset);
-  }
-
-  public static getScheduledClears() {
-    return Base.knex<QueueChannel>("queue_channels").whereNotNull("clear_schedule");
+    await QueueTable.get(queueChannel.id).update("role_id", Base.knex.raw("DEFAULT"));
   }
 
   public static async fetchFromGuild(guild: Guild): Promise<Collection<Snowflake, GuildBasedChannel>> {
     const queueChannelIdsToRemove: Snowflake[] = [];
     // Fetch stored channels
-    const storedQueues = await Base.knex<QueueChannel>("queue_channels").where("guild_id", guild.id);
+    const storedQueues = await Base.knex<StoredQueue>("queue_channels").where("guild_id", guild.id);
     const queueChannels: Collection<Snowflake, GuildBasedChannel> = new Collection();
     // Check for deleted channels
     // Going backwards allows the removal of entries while visiting each one
@@ -146,7 +134,7 @@ export class QueueChannelTable {
       }
     }
     for await (const queueChannelId of queueChannelIdsToRemove) {
-      await this.unstore(guild.id, queueChannelId);
+      await QueueTable.unstore(guild.id, queueChannelId);
     }
     return queueChannels;
   }
@@ -182,12 +170,14 @@ export class QueueChannelTable {
           return null;
         }
       });
-    if (role) await QueueChannelTable.setRoleId(channel, role);
+    if (role) {
+      await QueueTable.setRoleId(channel, role);
+    }
     return role;
   }
 
-  public static async deleteQueueRole(guildId: Snowflake, channel: QueueChannel, parsed?: Parsed) {
-    await this.get(channel.queue_channel_id).update("role_id", Base.knex.raw("DEFAULT"));
+  public static async deleteQueueRole(guildId: Snowflake, channel: StoredQueue, parsed?: Parsed) {
+    await QueueTable.get(channel.queue_channel_id).update("role_id", Base.knex.raw("DEFAULT"));
     const roleId = channel?.role_id;
     if (roleId) {
       const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
@@ -215,17 +205,15 @@ export class QueueChannelTable {
 
   public static async store(parsed: Parsed, channel: GuildBasedChannel, maxMembers?: number) {
     // Store
-    await Base.knex<QueueChannel>("queue_channels")
-      .insert({
-        auto_fill: 1,
-        color: Base.config.color,
-        grace_period: Base.config.gracePeriod,
-        guild_id: channel.guild.id,
-        max_members: maxMembers,
-        pull_num: 1,
-        queue_channel_id: channel.id,
-      })
-      .catch(() => null);
+    await Base.knex<StoredQueue>("queue_channels").insert({
+      auto_fill: 1,
+      color: Base.config.color,
+      grace_period: Base.config.gracePeriod,
+      guild_id: channel.guild.id,
+      max_members: maxMembers,
+      pull_num: 1,
+      queue_channel_id: channel.id,
+    });
     if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
       const members = channel.members as Collection<string, GuildMember>;
       for await (const member of members.filter((member) => !member.user.bot).values()) {
@@ -235,7 +223,7 @@ export class QueueChannelTable {
 
     // Timeout for message order
     setTimeout(() => SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed).catch(() => null), 500);
-    if ((await QueueChannelTable.getFromGuild(parsed.request.guild.id)).length > 25) {
+    if ((await QueueTable.getFromGuild(parsed.request.guild.id)).length > 25) {
       await parsed.reply({
         content:
           `WARNING: \`${channel.name}\` will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
@@ -245,18 +233,21 @@ export class QueueChannelTable {
   }
 
   public static async unstore(guildId: Snowflake, channelId?: Snowflake, parsed?: Parsed) {
-    let query = Base.knex<QueueChannel>("queue_channels").where("guild_id", guildId);
+    let query = Base.knex<StoredQueue>("queue_channels").where("guild_id", guildId);
     // Delete store db entries
-    if (channelId) query = query.where("queue_channel_id", channelId);
+    if (channelId) {
+      query = query.where("queue_channel_id", channelId);
+    }
     const queueChannels = await query;
 
     const promises = [];
     for (const queueChannel of queueChannels) {
       promises.push(
-        this.deleteQueueRole(guildId, queueChannel, parsed),
+        QueueTable.deleteQueueRole(guildId, queueChannel, parsed),
         BlackWhiteListTable.unstore(2, queueChannel.queue_channel_id),
         DisplayChannelTable.unstore(queueChannel.queue_channel_id),
-        QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id)
+        QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id),
+        ScheduleTable.unstore(queueChannel.queue_channel_id)
       );
     }
     await Promise.all(promises);
@@ -272,11 +263,11 @@ export class QueueChannelTable {
   public static async validate(
     requireGuildUpdate: boolean,
     guild: Guild,
-    channels: Collection<Snowflake, NonThreadGuildBasedChannel>,
+    channels: Collection<Snowflake, GuildBasedChannel>,
     members: Collection<Snowflake, GuildMember>,
     roles: Collection<Snowflake, Role>
   ) {
-    const storedEntries = await this.getFromGuild(guild.id);
+    const storedEntries = await QueueTable.getFromGuild(guild.id);
     for await (const entry of storedEntries) {
       let requireChannelUpdate = false;
       const queueChannel = channels.find((c) => c.id === entry.queue_channel_id);
@@ -292,13 +283,13 @@ export class QueueChannelTable {
           requireChannelUpdate = true;
         }
       } else {
-        await this.unstore(guild.id, entry.queue_channel_id);
+        await QueueTable.unstore(guild.id, entry.queue_channel_id);
         requireChannelUpdate = true;
       }
       if (requireGuildUpdate || requireChannelUpdate) {
         // If visual data has been unstored, schedule a display update.
-        const queueGuild = await QueueGuildTable.get(guild.id);
-        MessagingUtils.updateDisplay(queueGuild, queueChannel);
+        const storedGuild = await QueueGuildTable.get(guild.id);
+        await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queueChannel);
       }
     }
   }

@@ -25,6 +25,7 @@
     "knex-schema-inspector": "^1.5.8",
     "libsodium-wrappers": "^0.7.9",
     "lodash": "^4.17.21",
+    "multikey-map": "^0.2.1",
     "node-cron": "^3.0.0",
     "node-gyp": "^9.0.0",
     "pg": "^8.6.0",

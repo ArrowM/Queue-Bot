@@ -3,9 +3,7 @@ import { Base } from "../Base";
 import { BlackWhiteListEntry } from "../Interfaces";
 
 export class BlackWhiteListTable {
-  /**
-   * Create & update DisplayChannel database table if necessary
-   */
+  // Create & update database table if necessary
   public static async initTable() {
     await Base.knex.schema.hasTable("black_white_list").then(async (exists) => {
       if (!exists) {
@@ -23,7 +21,7 @@ export class BlackWhiteListTable {
   }
 
   private static async isBWlisted(queueChannelId: Snowflake, member: GuildMember, type: number): Promise<boolean> {
-    const roleIds = Array.from(member.roles.cache.keys());
+    const roleIds = [...member.roles.cache.keys()];
     const promises = [];
     for (const id of [member.id, ...roleIds]) {
       promises.push(
@@ -39,11 +37,11 @@ export class BlackWhiteListTable {
   }
 
   public static async isBlacklisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
-    return await this.isBWlisted(queueChannelId, member, 0);
+    return await BlackWhiteListTable.isBWlisted(queueChannelId, member, 0);
   }
 
   public static async isWhitelisted(queueChannelId: Snowflake, member: GuildMember): Promise<boolean> {
-    return await this.isBWlisted(queueChannelId, member, 1);
+    return await BlackWhiteListTable.isBWlisted(queueChannelId, member, 1);
   }
 
   public static async hasWhitelist(queueChannelId: Snowflake): Promise<boolean> {
@@ -69,6 +67,13 @@ export class BlackWhiteListTable {
       .where("type", type);
   }
 
+  public static getByIsRole(type: number, queueChannelId: Snowflake, isRole: boolean) {
+    return Base.knex<BlackWhiteListEntry>("black_white_list")
+      .where("queue_channel_id", queueChannelId)
+      .where("type", type)
+      .where("is_role", isRole);
+  }
+
   public static async store(type: number, queueChannelId: Snowflake, roleMemberId: Snowflake, isRole: boolean) {
     await Base.knex<BlackWhiteListEntry>("black_white_list").insert({
       queue_channel_id: queueChannelId,
@@ -85,8 +90,12 @@ export class BlackWhiteListTable {
    */
   public static async unstore(type: number, queueChannelId: Snowflake, roleMemberId?: Snowflake) {
     let query = Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannelId);
-    if (type !== 2) query = query.where("type", type);
-    if (roleMemberId) query = query.where("role_member_id", roleMemberId);
+    if (type !== 2) {
+      query = query.where("type", type);
+    }
+    if (roleMemberId) {
+      query = query.where("role_member_id", roleMemberId);
+    }
     await query.delete();
   }
 
@@ -97,16 +106,16 @@ export class BlackWhiteListTable {
   ): Promise<boolean> {
     const promises = [];
     for await (const type of [0, 1]) {
-      const storedEntries = await this.getMany(type, queueChannel.id);
+      const storedEntries = await BlackWhiteListTable.getMany(type, queueChannel.id);
       for (const entry of storedEntries) {
         if (entry.is_role) {
           if (!roles.some((r) => r.id === entry.role_member_id)) {
-            promises.push(this.unstore(type, entry.queue_channel_id, entry.role_member_id));
+            promises.push(BlackWhiteListTable.unstore(type, entry.queue_channel_id, entry.role_member_id));
           }
         } else {
           const member = members.find((m) => m.id === entry.role_member_id);
           if (!member) {
-            promises.push(this.unstore(type, entry.queue_channel_id, entry.role_member_id));
+            promises.push(BlackWhiteListTable.unstore(type, entry.queue_channel_id, entry.role_member_id));
           }
         }
       }

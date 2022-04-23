@@ -26,7 +26,7 @@ If a command that expects a channel name is not given one, the current text chan
   
 **Queue Management**  
 `/autopull` - Get / Set automatic pull from a voice queue  
-`/blacklist` - Add / delete / display blacklists of users and roles  
+`/blacklist` - Add / Delete / List / Clear users or roles from a queue blacklist  
 `/button` - Get / Set whether a \"Join / Leave\" button appears under a text queue display  
 `/clear` - Clear a queue  
 `/color` - Get / Set color of queue displays  
@@ -38,21 +38,22 @@ If a command that expects a channel name is not given one, the current text chan
 `/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/move` - Move a user to a new position in a queue  
 `/next` - Pull from a text queue  
-`/pullnum` - Set the default # of users to pull when autopull is off or when using the `/next` command  
-`/queues` - Add / delete / display queues  
-`/roles` - Enable or disable `In Queue: ...` roles  
-`/scheduleclear` - Clear queues on a schedule  
+`/pullnum` - Get / Set the default # of users to pull when autopull is off or when using the `/next` command  
+`/queues` - Add / Delete / List queues  
+`/roles` - Get / Set whether queue members are assigned a role named `In Queue: ...`  
+`/schedule` - Add / Delete / List scheduled commands  
 `/shuffle` - Shuffle a queue  
 `/size` - Get / Set size limit of a queue  
 `/timestamps` - Get / Set whether to display timestamps next to users
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
-`/whitelist` - Add / delete / display whitelists of users and roles  
+`/whitelist` - Add / Delete / List / Clear users or roles from a queue whitelist  
 
 **Bot Management**  
 `/altprefix` - Enable or disable alternate prefix `!`  
-`/mode` - Set display mode  
+`/mode` - Get / Set display mode  
 `/notifications` - Get / Set notification status (on = DM users when they are pulled out. off = no DMS)
-`/permission` - Add / delete / display users and roles with bot permissions
+`/permission` - Add / Delete / List / Clear users and roles with bot permissions
+`/priority` - Add / Delete / List / Clear users and roles with queue priority  
 `/start` - Add the bot to a voice queue  
 
 https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-83c0-c3b5d0441261.mp4  

@@ -1,21 +1,10 @@
-import {
-  Collection,
-  Guild,
-  GuildBasedChannel,
-  Message,
-  MessageEmbed,
-  NonThreadGuildBasedChannel,
-  Snowflake,
-  TextChannel,
-} from "discord.js";
+import { Collection, Guild, GuildBasedChannel, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 import { DisplayChannel } from "../Interfaces";
 import { Base } from "../Base";
 import { MessagingUtils } from "../MessagingUtils";
 
 export class DisplayChannelTable {
-  /**
-   * Create & update DisplayChannel database table if necessary
-   */
+  // Create & update database table if necessary
   public static async initTable() {
     await Base.knex.schema.hasTable("display_channels").then(async (exists) => {
       if (!exists) {
@@ -55,7 +44,9 @@ export class DisplayChannelTable {
         allowedMentions: { users: [] },
       })
       .catch(() => null as Message);
-    if (!response) return;
+    if (!response) {
+      return;
+    }
 
     await Base.knex<DisplayChannel>("display_channels").insert({
       display_channel_id: displayChannel.id,
@@ -66,19 +57,27 @@ export class DisplayChannelTable {
 
   public static async unstore(queueChannelId: Snowflake, displayChannelId?: Snowflake, deleteOldDisplays = true) {
     let query = Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId);
-    if (displayChannelId) query = query.where("display_channel_id", displayChannelId);
+    if (displayChannelId) {
+      query = query.where("display_channel_id", displayChannelId);
+    }
     const storedDisplays = await query;
     await query.delete();
-    if (!storedDisplays) return;
+    if (!storedDisplays) {
+      return;
+    }
 
     for await (const storedDisplay of storedDisplays) {
       const displayChannel = Base.client.channels.cache.get(storedDisplay.display_channel_id) as TextChannel;
-      if (!displayChannel) continue;
+      if (!displayChannel) {
+        continue;
+      }
 
       const displayMessage = await displayChannel.messages
         .fetch(storedDisplay.message_id, { cache: false })
         .catch(() => null as Message);
-      if (!displayMessage) continue;
+      if (!displayMessage) {
+        continue;
+      }
 
       if (deleteOldDisplays) {
         // Delete
@@ -93,17 +92,17 @@ export class DisplayChannelTable {
   public static async validate(
     guild: Guild,
     queueChannel: GuildBasedChannel,
-    channels: Collection<Snowflake, NonThreadGuildBasedChannel>
+    channels: Collection<Snowflake, GuildBasedChannel>
   ): Promise<boolean> {
     let updateRequired = false;
-    const storedEntries = await this.getFromQueue(queueChannel.id);
+    const storedEntries = await DisplayChannelTable.getFromQueue(queueChannel.id);
     for await (const entry of storedEntries) {
       if (channels.some((c) => c.id === entry.display_channel_id)) {
         Base.client.guilds.cache
           .get(guild.id)
           .channels.cache.set(entry.display_channel_id, channels.get(entry.display_channel_id)); // cache
       } else {
-        await this.unstore(queueChannel.id, entry.display_channel_id);
+        await DisplayChannelTable.unstore(queueChannel.id, entry.display_channel_id);
         updateRequired = true;
       }
     }

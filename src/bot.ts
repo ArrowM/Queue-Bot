@@ -4,6 +4,7 @@ import {
   GuildBasedChannel,
   GuildMember,
   Interaction,
+  Message,
   PartialGuildMember,
   StageChannel,
   TextChannel,
@@ -11,21 +12,19 @@ import {
   VoiceState,
 } from "discord.js";
 import { EventEmitter } from "events";
-import { Parsed, QueueChannel } from "./utilities/Interfaces";
+import { Parsed, StoredQueue } from "./utilities/Interfaces";
 import { Base } from "./utilities/Base";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
-import { QueueChannelTable } from "./utilities/tables/QueueChannelTable";
+import { QueueTable } from "./utilities/tables/QueueTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import util from "util";
-import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
-import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
 import { Commands } from "./Commands";
-import { MessagingUtils } from "./utilities/MessagingUtils";
+import { SchedulingUtils } from "./utilities/SchedulingUtils";
 
 // Setup client
 console.time("READY. Bot started in");
@@ -34,8 +33,7 @@ EventEmitter.defaultMaxListeners = 0; // Maximum number of events that can be ha
 let isReady = false;
 const config = Base.config;
 const client = Base.client;
-// noinspection JSIgnoredPromiseFromCall
-client.login(config.token);
+client.login(config.token).then();
 client.on("error", console.error);
 client.on("shardError", console.error);
 client.on("uncaughtException", (err, origin) => {
@@ -50,7 +48,9 @@ client.on("uncaughtException", (err, origin) => {
 // });
 
 // Top GG integration
-if (config.topGgToken) AutoPoster(config.topGgToken, client).on("error", () => null);
+if (config.topGgToken) {
+  AutoPoster(config.topGgToken, client).on("error", () => null);
+}
 
 //
 // --- DISCORD EVENTS ---
@@ -85,30 +85,43 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         await processCommand(parsed, commands);
       }
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
   }
 });
 
+function isTextCommand(message: Message): boolean {
+  if (message.content[0] === "!") {
+    message.content = message.content.slice(1).trimStart();
+    return true;
+  } else {
+    const regExp = RegExp(`^<@!?${message.guild.me.id}>`);
+    if (regExp.test(message.content)) {
+      // Remove bot mention from content
+      message.content = message.content.slice(message.content.indexOf(">") + 1).trimStart();
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
 client.on("messageCreate", async (message) => {
   try {
     const guildId = message.guild?.id;
-    if (isReady && guildId && message.content[0] === "!") {
+    if (isReady && guildId && isTextCommand(message)) {
       const parsed = new ParsedMessage(message);
       await parsed.setup();
-      if (parsed.queueGuild.enable_alt_prefix) {
+      if (parsed.storedGuild.enable_alt_prefix) {
         await processCommand(
           parsed,
-          message.content
-            .substring(1)
-            .split(" ")
-            .map((str) => {
-              return { name: str, value: undefined };
-            })
+          message.content.split(" ").map((str) => {
+            return { name: str, value: undefined };
+          })
         );
       }
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
   }
 });
@@ -118,17 +131,10 @@ client.once("ready", async () => {
   const guilds = Base.client.guilds.cache;
   Base.shuffle(guilds);
   await PatchingUtils.run(guilds);
-  await QueueGuildTable.initTable();
-  await QueueChannelTable.initTable();
-  await DisplayChannelTable.initTable();
-  await QueueMemberTable.initTable();
-  await BlackWhiteListTable.initTable();
-  await AdminPermissionTable.initTable();
-  await PriorityTable.initTable();
   SlashCommands.register(guilds).then();
   // Validator.validateAtStartup(guilds);
-  MessagingUtils.startScheduler();
-  MessagingUtils.startClearScheduler().then();
+  SchedulingUtils.startScheduler();
+  SchedulingUtils.startCommandScheduler().then();
   console.timeEnd("READY. Bot started in");
   isReady = true;
   reportStats().then();
@@ -147,30 +153,36 @@ async function reportStats() {
 }
 
 client.on("guildCreate", async (guild) => {
-  if (!isReady) return;
+  if (!isReady) {
+    return;
+  }
   await QueueGuildTable.store(guild).catch(() => null);
 });
 
 client.on("roleDelete", async (role) => {
   try {
-    if (!isReady) return;
+    if (!isReady) {
+      return;
+    }
     if (await PriorityTable.get(role.guild.id, role.id)) {
       await PriorityTable.unstore(role.guild.id, role.id);
-      const queueGuild = await QueueGuildTable.get(role.guild.id);
-      const queueChannels = await QueueChannelTable.fetchFromGuild(role.guild);
+      const storedGuild = await QueueGuildTable.get(role.guild.id);
+      const queueChannels = await QueueTable.fetchFromGuild(role.guild);
       for (const queueChannel of queueChannels.values()) {
-        MessagingUtils.updateDisplay(queueGuild, queueChannel);
+        await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queueChannel);
       }
     }
-  } catch (e) {
+  } catch (e: any) {
     // Nothing
   }
 });
 
 async function memberUpdate(member: GuildMember | PartialGuildMember) {
   try {
-    if (!isReady) return;
-    const queueGuild = await QueueGuildTable.get(member.guild.id);
+    if (!isReady) {
+      return;
+    }
+    const storedGuild = await QueueGuildTable.get(member.guild.id);
     const queueMembers = await QueueMemberTable.getFromMember(member.id);
     const promises = [];
     for (const queueMember of queueMembers) {
@@ -178,11 +190,11 @@ async function memberUpdate(member: GuildMember | PartialGuildMember) {
         member.guild.channels
           .fetch(queueMember.channel_id)
           .catch(() => null)
-          .then((ch) => MessagingUtils.updateDisplay(queueGuild, ch))
+          .then((ch) => SchedulingUtils.scheduleDisplayUpdate(storedGuild, ch))
       );
     }
     await Promise.all(promises);
-  } catch (e) {
+  } catch (e: any) {
     // Nothing
   }
 }
@@ -192,33 +204,39 @@ client.on("guildMemberRemove", async (guildMember) => {
 });
 
 client.on("guildDelete", async (guild) => {
-  if (!isReady) return;
+  if (!isReady) {
+    return;
+  }
   await QueueGuildTable.unstore(guild.id).catch(() => null);
 });
 
 client.on("channelDelete", async (channel) => {
   try {
-    if (!isReady || channel.type === "DM") return;
-    const deletedQueueChannel = await QueueChannelTable.get(channel.id);
+    if (!isReady || channel.type === "DM") {
+      return;
+    }
+    const deletedQueueChannel = await QueueTable.get(channel.id);
     if (deletedQueueChannel) {
-      await QueueChannelTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
+      await QueueTable.unstore(deletedQueueChannel.guild_id, deletedQueueChannel.queue_channel_id);
     }
     await DisplayChannelTable.getFromQueue(channel.id).delete();
-  } catch (e) {
+  } catch (e: any) {
     // Nothing
   }
 });
 
 client.on("channelUpdate", async (_oldCh, newCh) => {
   try {
-    if (!isReady) return;
-    const newChannel = newCh as GuildBasedChannel;
-    const changedChannel = await QueueChannelTable.get(newCh.id);
-    if (changedChannel) {
-      const queueGuild = await QueueGuildTable.get(changedChannel.guild_id);
-      MessagingUtils.updateDisplay(queueGuild, newChannel);
+    if (!isReady) {
+      return;
     }
-  } catch (e) {
+    const newChannel = newCh as GuildBasedChannel;
+    const changedChannel = await QueueTable.get(newCh.id);
+    if (changedChannel) {
+      const storedGuild = await QueueGuildTable.get(changedChannel.guild_id);
+      await SchedulingUtils.scheduleDisplayUpdate(storedGuild, newChannel);
+    }
+  } catch (e: any) {
     // Nothing
   }
 });
@@ -246,6 +264,7 @@ async function checkPermission(parsed: Parsed): Promise<boolean> {
 }
 
 async function processCommand(parsed: Parsed, command: CommandArg[]) {
+  await parsed.deferReply();
   switch (command[0]?.name) {
     case "display":
       await Commands.display(parsed);
@@ -277,7 +296,9 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
       return;
   }
 
-  if (!(await checkPermission(parsed))) return;
+  if (!(await checkPermission(parsed))) {
+    return;
+  }
   // -- ADMIN COMMANDS --
   switch (command[0]?.name) {
     case "altprefix":
@@ -325,9 +346,6 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
         case "list":
           await Commands.bwList(parsed, true);
           return;
-        case "clear":
-          await Commands.bwClear(parsed, true);
-          return;
       }
       return;
     case "button":
@@ -356,10 +374,10 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
     case "enqueue":
       switch (command[1]?.name) {
         case "user":
-          await Commands.enqueueUser(parsed);
+          await Commands.enqueue(parsed, false);
           return;
         case "role":
-          await Commands.enqueueRole(parsed);
+          await Commands.enqueue(parsed, true);
           return;
       }
       return;
@@ -385,9 +403,6 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
       return;
     case "dequeue":
       await Commands.dequeue(parsed);
-      return;
-    case "dequeue-all":
-      await Commands.dequeueAll(parsed);
       return;
     case "lock":
       switch (command[1]?.name) {
@@ -440,28 +455,25 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
         case "add":
           switch (command[2]?.name) {
             case "user":
-              await Commands.permissionAddUser(parsed);
+              await Commands.permissionAdd(parsed, false);
               return;
             case "role":
-              await Commands.permissionAddRole(parsed);
+              await Commands.permissionAdd(parsed, true);
               return;
           }
           return;
         case "delete":
           switch (command[2]?.name) {
             case "user":
-              await Commands.permissionDeleteUser(parsed);
+              await Commands.permissionDelete(parsed, false);
               return;
             case "role":
-              await Commands.permissionDeleteRole(parsed);
+              await Commands.permissionDelete(parsed, true);
               return;
           }
           return;
         case "list":
           await Commands.permissionList(parsed);
-          return;
-        case "clear":
-          await Commands.permissionClear(parsed);
           return;
       }
       return;
@@ -470,28 +482,25 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
         case "add":
           switch (command[2]?.name) {
             case "user":
-              await Commands.priorityAddUser(parsed);
+              await Commands.priorityAdd(parsed, false);
               return;
             case "role":
-              await Commands.priorityAddRole(parsed);
+              await Commands.priorityAdd(parsed, true);
               return;
           }
           return;
         case "delete":
           switch (command[2]?.name) {
             case "user":
-              await Commands.priorityDeleteUser(parsed);
+              await Commands.priorityDelete(parsed, false);
               return;
             case "role":
-              await Commands.priorityDeleteRole(parsed);
+              await Commands.priorityDelete(parsed, true);
               return;
           }
           return;
         case "list":
           await Commands.priorityList(parsed);
-          return;
-        case "clear":
-          await Commands.priorityClear(parsed);
           return;
       }
       return;
@@ -528,19 +537,19 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
           return;
       }
       return;
-    case "scheduleclear":
+    case "schedule":
       switch (command[1]?.name) {
-        case "get":
-          await Commands.scheduleClearGet(parsed);
+        case "add":
+          await Commands.scheduleAdd(parsed);
+          return;
+        case "delete":
+          await Commands.scheduleDelete(parsed);
           return;
         case "help":
-          await Commands.scheduleClearHelp(parsed);
+          await Commands.scheduleHelp(parsed);
           return;
-        case "set":
-          await Commands.scheduleClearSet(parsed);
-          return;
-        case "stop":
-          await Commands.scheduleClearStop(parsed);
+        case "list":
+          await Commands.scheduleList(parsed);
           return;
       }
       return;
@@ -598,9 +607,6 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
         case "list":
           await Commands.bwList(parsed, false);
           return;
-        case "clear":
-          await Commands.bwClear(parsed, false);
-          return;
       }
       return;
   }
@@ -608,17 +614,21 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
 
 async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState) {
   try {
-    if (!isReady) return;
+    if (!isReady) {
+      return;
+    }
     const oldVoiceChannel = oldVoiceState?.channel as VoiceChannel | StageChannel;
     const newVoiceChannel = newVoiceState?.channel as VoiceChannel | StageChannel;
 
     const member = newVoiceState.member || oldVoiceState.member;
     // Ignore mutes and deafens
-    if (oldVoiceChannel === newVoiceChannel || !member) return;
+    if (oldVoiceChannel === newVoiceChannel || !member) {
+      return;
+    }
 
-    const queueGuild = await QueueGuildTable.get(member.guild.id);
-    const storedOldQueueChannel = oldVoiceChannel ? await QueueChannelTable.get(oldVoiceChannel.id) : undefined;
-    const storedNewQueueChannel = newVoiceChannel ? await QueueChannelTable.get(newVoiceChannel.id) : undefined;
+    const storedGuild = await QueueGuildTable.get(member.guild.id);
+    const storedOldQueueChannel = oldVoiceChannel ? await QueueTable.get(oldVoiceChannel.id) : undefined;
+    const storedNewQueueChannel = newVoiceChannel ? await QueueTable.get(newVoiceChannel.id) : undefined;
 
     if (
       Base.isMe(member) &&
@@ -646,12 +656,12 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             }
           } else {
             // Target has been deleted - clean it up
-            await QueueChannelTable.setTarget(newVoiceChannel.id, Base.knex.raw("DEFAULT"));
+            await QueueTable.setTarget(newVoiceChannel.id, Base.knex.raw("DEFAULT"));
           }
         }
         await QueueMemberTable.store(newVoiceChannel, member);
-        MessagingUtils.updateDisplay(queueGuild, newVoiceChannel);
-      } catch (e) {
+        await SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel);
+      } catch (e: any) {
         // skip display update if failure
       }
     }
@@ -659,7 +669,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
       try {
         // Left queue channel
         if (Base.isMe(member) && newVoiceChannel) {
-          await QueueChannelTable.setTarget(oldVoiceChannel.id, newVoiceChannel.id);
+          await QueueTable.setTarget(oldVoiceChannel.id, newVoiceChannel.id);
           // move bot back
           member.voice.setChannel(oldVoiceChannel).catch(() => null);
           await setTimeout(
@@ -674,15 +684,15 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             [member.id],
             storedOldQueueChannel.grace_period
           );
-          MessagingUtils.updateDisplay(queueGuild, oldVoiceChannel);
+          await SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel);
         }
-      } catch (e) {
+      } catch (e: any) {
         // skip display update if failure
       }
     }
     if (!Base.isMe(member) && oldVoiceChannel) {
       // Check if leaving target channel
-      const storedQueues = await QueueChannelTable.getFromTarget(oldVoiceChannel.id);
+      const storedQueues = await QueueTable.getFromTarget(oldVoiceChannel.id);
       // Randomly pick a queue to pull from
       const storedQueue = storedQueues[~~(Math.random() * storedQueues.length)];
       if (storedQueue && storedQueue.auto_fill) {
@@ -694,13 +704,13 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
         }
       }
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
   }
 }
 
 async function fillTargetChannel(
-  storedSrcChannel: QueueChannel,
+  storedSrcChannel: StoredQueue,
   srcChannel: VoiceChannel | StageChannel,
   dstChannel: VoiceChannel | StageChannel
 ) {
@@ -719,8 +729,12 @@ async function fillTargetChannel(
               .fetch(storedDisplay.display_channel_id)
               .catch(() => null)) as TextChannel;
             await displayChannel?.send(
-              `\`${srcChannel.name}\` only has **${storedMembers.length}** member${storedMembers.length > 1 ? "s" : ""}, **${storedSrcChannel.pull_num}** are needed. ` +
-                `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${storedMembers.length > 1 ? "s" : ""}, use \`/pullnum\` and enable \`partial_pulling\`.`
+              `\`${srcChannel.name}\` only has **${storedMembers.length}** member${
+                storedMembers.length > 1 ? "s" : ""
+              }, **${storedSrcChannel.pull_num}** are needed. ` +
+                `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${
+                  storedMembers.length > 1 ? "s" : ""
+                }, use \`/pullnum\` and enable \`partial_pulling\`.`
             );
           }
           return;
@@ -728,8 +742,8 @@ async function fillTargetChannel(
         storedMembers = storedMembers.slice(0, storedSrcChannel.pull_num);
       }
       if (dstChannel.userLimit) {
-        const num = Math.max(0, dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size);
-        storedMembers = storedMembers.slice(0, num);
+        const number = Math.max(0, dstChannel.userLimit - dstChannel.members.filter((member) => !member.user.bot).size);
+        storedMembers = storedMembers.slice(0, number);
       }
       const promises = [];
       for (const storedMember of storedMembers) {
@@ -779,19 +793,21 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
         throw e;
       }
     })) as GuildBasedChannel;
-    if (!queueChannel) throw "Queue channel not found.";
+    if (!queueChannel) {
+      throw "Queue channel not found.";
+    }
     const member = await queueChannel.guild.members.fetch(interaction.user.id);
     const storedQueueMember = await QueueMemberTable.get(queueChannel.id, member.id);
     if (storedQueueMember) {
-      const storedQueue = await QueueChannelTable.get(queueChannel.id);
+      const storedQueue = await QueueTable.get(queueChannel.id);
       await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueue.grace_period);
       await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
     } else {
       await QueueMemberTable.store(queueChannel, member);
       await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
     }
-    const queueGuild = await QueueGuildTable.get(interaction.guild.id);
-    MessagingUtils.updateDisplay(queueGuild, queueChannel);
+    const storedGuild = await QueueGuildTable.get(interaction.guild.id);
+    await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queueChannel);
   } catch (e: any) {
     if (e.author === "Queue Bot") {
       await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);

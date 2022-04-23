@@ -3,9 +3,7 @@ import { Base } from "../Base";
 import { PriorityEntry } from "../Interfaces";
 
 export class PriorityTable {
-  /**
-   * Create & update QueueGuild database table if necessary
-   */
+  // Create & update database table if necessary
   public static async initTable() {
     await Base.knex.schema.hasTable("priority").then(async (exists) => {
       if (!exists) {
@@ -39,7 +37,9 @@ export class PriorityTable {
         .where("guild_id", guildId)
         .where("role_member_id", id)
         .first();
-      if (memberPerm) return true;
+      if (memberPerm) {
+        return true;
+      }
     }
     return false;
   }
@@ -54,7 +54,9 @@ export class PriorityTable {
 
   public static async unstore(guildId: Snowflake, roleMemberId?: Snowflake) {
     let query = Base.knex<PriorityEntry>("priority").where("guild_id", guildId);
-    if (roleMemberId) query = query.where("role_member_id", roleMemberId);
+    if (roleMemberId) {
+      query = query.where("role_member_id", roleMemberId);
+    }
     await query.first().delete();
   }
 
@@ -64,17 +66,17 @@ export class PriorityTable {
     roles: Collection<Snowflake, Role>
   ): Promise<boolean> {
     let updateRequired = false;
-    const storedEntries = await this.getMany(guild.id);
+    const storedEntries = await PriorityTable.getMany(guild.id);
     for await (const entry of storedEntries) {
       if (entry.is_role) {
         if (!roles.some((r) => r.id === entry.role_member_id)) {
-          await this.unstore(guild.id, entry.role_member_id);
+          await PriorityTable.unstore(guild.id, entry.role_member_id);
           updateRequired = true;
         }
       } else {
         const member = members.find((m) => m.id === entry.role_member_id);
         if (!member) {
-          await this.unstore(guild.id, entry.role_member_id);
+          await PriorityTable.unstore(guild.id, entry.role_member_id);
           updateRequired = true;
         }
       }

@@ -1,11 +1,40 @@
-import { ColorResolvable, Snowflake } from "discord.js";
+import { ColorResolvable, GuildBasedChannel, Snowflake } from "discord.js";
 import { ParsedCommand, ParsedMessage } from "./ParsingUtils";
 
-export interface QueueChannel {
-  id: Snowflake;
+// ------ TABLES ------
+
+export interface AdminPermission {
+  id: number;
+  guild_id: Snowflake;
+  role_member_id: Snowflake;
+  is_role: boolean;
+}
+
+export interface BlackWhiteListEntry {
+  id: number;
+  queue_channel_id: Snowflake;
+  role_member_id: Snowflake;
+  type: number; // 0 - blacklisted, 1 - whitelisted
+  is_role: boolean;
+}
+
+export interface DisplayChannel {
+  id: number;
+  display_channel_id: Snowflake;
+  message_id: Snowflake;
+  queue_channel_id: Snowflake;
+}
+
+export interface PriorityEntry {
+  id: number;
+  guild_id: Snowflake;
+  role_member_id: Snowflake;
+  is_role: boolean;
+}
+
+export interface StoredQueue {
+  id: number;
   auto_fill: number; // 0 off. 1 on.
-  clear_schedule: string;
-  clear_utc_offset: string;
   color: ColorResolvable;
   enable_partial_pull: boolean;
   guild_id: Snowflake;
@@ -20,15 +49,8 @@ export interface QueueChannel {
   target_channel_id: Snowflake;
 }
 
-export interface DisplayChannel {
-  id: Snowflake;
-  display_channel_id: Snowflake;
-  message_id: Snowflake;
-  queue_channel_id: Snowflake;
-}
-
-export interface QueueGuild {
-  id: Snowflake;
+export interface StoredGuild {
+  id: number;
   disable_mentions: boolean;
   disable_notifications: boolean;
   disable_roles: boolean;
@@ -40,7 +62,7 @@ export interface QueueGuild {
 }
 
 export interface QueueMember {
-  id: Snowflake;
+  id: number;
   created_at: Date; // Used for queue position
   display_time: Date; // Used for displayed timestamp
   is_priority: boolean;
@@ -49,26 +71,35 @@ export interface QueueMember {
   member_id: Snowflake;
 }
 
-export interface BlackWhiteListEntry {
+export interface Schedule {
   id: Snowflake;
+  command: ScheduleCommand;
   queue_channel_id: Snowflake;
-  role_member_id: Snowflake;
-  type: number; // 0 - blacklisted, 1 - whitelisted
-  is_role: boolean;
+  schedule: string;
+  utc_offset: number;
 }
 
-export interface AdminPermission {
-  id: Snowflake;
-  guild_id: Snowflake;
-  role_member_id: Snowflake;
-  is_role: boolean;
+// ------ OTHER ------
+
+export enum ScheduleCommand {
+  // eslint-disable-next-line no-unused-vars
+  CLEAR = "clear",
+  // eslint-disable-next-line no-unused-vars
+  DISPLAY = "display",
+  // eslint-disable-next-line no-unused-vars
+  NEXT = "next",
+  // eslint-disable-next-line no-unused-vars
+  SHUFFLE = "shuffle",
 }
 
-export interface PriorityEntry {
-  id: Snowflake;
-  guild_id: Snowflake;
-  role_member_id: Snowflake;
-  is_role: boolean;
+export interface QueuePair {
+  stored: StoredQueue;
+  channel: GuildBasedChannel;
+}
+
+export interface QueueUpdateRequest {
+  storedGuild: StoredGuild;
+  queueChannel: GuildBasedChannel;
 }
 
 export interface ConfigJson {

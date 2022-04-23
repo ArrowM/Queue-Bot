@@ -1,7 +1,7 @@
 import { Guild, Snowflake } from "discord.js";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 import { PriorityTable } from "./tables/PriorityTable";
-import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { QueueTable } from "./tables/QueueTable";
 
 export class Validator {
   private static timestampCache = new Map<Snowflake, number>(); // <guild.id, timestamp>
@@ -22,7 +22,10 @@ export class Validator {
   public static async validateGuild(guild: Guild) {
     const cachedTime = this.timestampCache.get(guild.id);
     const now = Date.now();
-    if (cachedTime && now - cachedTime < Validator.SIX_HOURS) return; // Limit validation to once every 6 hours
+    // Limit validation to once every 6 hours
+    if (cachedTime && now - cachedTime < Validator.SIX_HOURS) {
+      return;
+    }
     this.timestampCache.set(guild.id, now);
     const me = guild.me;
     try {
@@ -46,8 +49,8 @@ export class Validator {
       // Verify data in temp storage. Once verified, cache the channels again.
       AdminPermissionTable.validate(guild, members, roles).then();
       const requireUpdate = await PriorityTable.validate(guild, members, roles);
-      QueueChannelTable.validate(requireUpdate, guild, channels, members, roles).then();
-    } catch (e) {
+      QueueTable.validate(requireUpdate, guild, channels, members, roles).then();
+    } catch (e: any) {
       // console.error(e);
       // Nothing - we don't want to accidentally delete legit data
     }

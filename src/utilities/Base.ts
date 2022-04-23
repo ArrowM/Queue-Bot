@@ -62,7 +62,7 @@ export class Base {
     // },
 
     makeCache: (manager) => {
-      if ("MessageManager" === manager.name) {
+      if (manager.name === "MessageManager") {
         return new MessageCollection({ maxSize: 5 });
       } else if (
         [
@@ -94,7 +94,6 @@ export class Base {
       status: "online",
     },
     intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES", "GUILD_MEMBERS"],
-    partials: ['USER', 'GUILD_MEMBER', 'MESSAGE'],
     shards: "auto",
   });
 

@@ -8,7 +8,7 @@ import {
 } from "discord-slash-commands-client";
 import { Collection, Guild, GuildBasedChannel, Message, Snowflake } from "discord.js";
 import { Base } from "./Base";
-import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { QueueTable } from "./tables/QueueTable";
 import { Parsed } from "./Interfaces";
 
 interface SlashUpdateMessage {
@@ -19,6 +19,23 @@ interface SlashUpdateMessage {
 }
 export class SlashCommands {
   public static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues", "permission"];
+  public static readonly MULTI_QUEUE_COMMANDS = [
+    "autopull",
+    "blacklist",
+    "button",
+    "clear",
+    "color",
+    "display",
+    "header",
+    "dequeue",
+    "leave",
+    "lock",
+    "pullnum",
+    "schedule",
+    "shuffle",
+    "to-me",
+    "whitelist",
+  ];
   public static readonly TEXT_COMMANDS = ["button"];
   public static readonly VOICE_COMMANDS = ["autopull", "start", "to-me"];
   public static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
@@ -32,32 +49,37 @@ export class SlashCommands {
     await delay(5000);
   }
 
-  private static modifyQueueArg(cmd: ApplicationOptions, storedChannels: GuildBasedChannel[]): ApplicationOptions {
-    if (cmd.options) cmd.options = this.modifyQueue(cmd.name, cmd.options, storedChannels);
+  private static modifyQueueArg(cmd: ApplicationOptions, queueChannels: GuildBasedChannel[]): ApplicationOptions {
+    if (cmd.options) {
+      cmd.options = this.modifyQueue(cmd.name, cmd.options, queueChannels);
+    }
     return cmd;
   }
 
   private static modifyQueue(
     name: string,
     options: ApplicationCommandOption[],
-    storedChannels: GuildBasedChannel[]
+    queueChannels: GuildBasedChannel[]
   ): ApplicationCommandOption[] {
     for (let i = options.length - 1; i >= 0; i--) {
       const option = options[i];
       if (option.type === 1 || option.type === 2) {
         if (option.options?.length) {
-          option.options = this.modifyQueue(name, option.options, storedChannels);
+          option.options = this.modifyQueue(name, option.options, queueChannels);
         }
       } else if (option.type === 7) {
         if (this.TEXT_COMMANDS.includes(name)) {
-          storedChannels = storedChannels.filter((ch) => ch.type === "GUILD_TEXT");
+          queueChannels = queueChannels.filter((ch) => ch.type === "GUILD_TEXT");
         } else if (this.VOICE_COMMANDS.includes(name)) {
-          storedChannels = storedChannels.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type));
+          queueChannels = queueChannels.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type));
         }
-        if (storedChannels.length > 1) {
-          const choices: ApplicationCommandOptionChoice[] = storedChannels.map((ch) => {
+        if (queueChannels.length > 1) {
+          const choices: ApplicationCommandOptionChoice[] = queueChannels.map((ch) => {
             return { name: ch.name, value: ch.id };
           });
+          if (this.MULTI_QUEUE_COMMANDS.includes(name)) {
+            choices.push({ name: "ALL", value: "ALL" });
+          }
           // Modify
           options[i] = {
             name: option.name,
@@ -77,7 +99,7 @@ export class SlashCommands {
   private static async modify(
     guildId: Snowflake,
     parsed: Parsed,
-    storedChannels: GuildBasedChannel[]
+    queueChannels: GuildBasedChannel[]
   ): Promise<ApplicationOptions[]> {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
@@ -94,7 +116,7 @@ export class SlashCommands {
       totalNum: commands.length,
     };
 
-    if (!storedChannels.find((ch) => ch.type === "GUILD_TEXT")) {
+    if (!queueChannels.find((ch) => ch.type === "GUILD_TEXT")) {
       const excludedTextCommands = this.TEXT_COMMANDS;
       commands = commands.filter((c) => !excludedTextCommands.includes(c.name));
 
@@ -123,8 +145,8 @@ export class SlashCommands {
         return;
       }
 
-      command = await this.modifyQueueArg(command, storedChannels);
-      await this.slashClient.createCommand(command, guildId).catch(() => null);
+      let modddedCommand = await this.modifyQueueArg(command, queueChannels);
+      await this.slashClient.createCommand(modddedCommand, guildId).catch(() => null);
 
       await this.editProgress(slashUpdateMessage);
     }
@@ -163,9 +185,9 @@ export class SlashCommands {
 
   public static async addCommandForGuild(guild: Guild, cmd: ApplicationOptions) {
     cmd = JSON.parse(JSON.stringify(cmd)) as ApplicationOptions; // copies
-    const storedChannels = Array.from((await QueueChannelTable.fetchFromGuild(guild)).values()).slice(0, 25); // max # of options is 25
-    if (storedChannels.length) {
-      cmd = await this.modifyQueueArg(cmd, storedChannels);
+    const queueChannels = [...(await QueueTable.fetchFromGuild(guild)).values()].slice(0, 25); // max # of options is 25
+    if (queueChannels.length) {
+      cmd = await this.modifyQueueArg(cmd, queueChannels);
       await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(() => null);
     }
   }
@@ -173,13 +195,13 @@ export class SlashCommands {
   public static async modifyCommandsForGuild(guild: Guild, parsed?: Parsed) {
     try {
       //console.log("Modifying commands for " + guild.id);
-      const storedChannels = Array.from((await QueueChannelTable.fetchFromGuild(guild)).values()).slice(0, 25); // max # of options is 25
-      if (storedChannels.length === 0) {
+      const queueChannels = [...(await QueueTable.fetchFromGuild(guild)).values()].slice(0, 25); // max # of options is 25
+      if (queueChannels.length === 0) {
         await this.modifyForNoQueues(guild.id, parsed);
       } else {
-        await this.modify(guild.id, parsed, storedChannels);
+        await this.modify(guild.id, parsed, queueChannels);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
     }
   }
@@ -189,11 +211,11 @@ export class SlashCommands {
       const channels = guild.channels.cache?.filter((ch) =>
         ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type)
       );
-      const storedChannels = await QueueChannelTable.getFromGuild(guild.id);
+      const queueChannels = await QueueTable.getFromGuild(guild.id);
       let updateRequired = false;
-      for await (const storedChannel of storedChannels) {
+      for await (const storedChannel of queueChannels) {
         if (!channels.some((ch) => ch.id === storedChannel.queue_channel_id)) {
-          await QueueChannelTable.unstore(guild.id, storedChannel.queue_channel_id);
+          await QueueTable.unstore(guild.id, storedChannel.queue_channel_id);
           updateRequired = true;
         }
       }

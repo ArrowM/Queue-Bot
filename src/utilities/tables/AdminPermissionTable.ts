@@ -3,9 +3,7 @@ import { Base } from "../Base";
 import { Collection, Guild, GuildMember, Role, Snowflake } from "discord.js";
 
 export class AdminPermissionTable {
-  /**
-   * Create & update AdminPermission database table if necessary
-   */
+  // Create & update database table if necessary
   public static async initTable() {
     await Base.knex.schema.hasTable("admin_permission").then(async (exists) => {
       if (!exists) {
@@ -33,18 +31,18 @@ export class AdminPermissionTable {
   }
 
   public static async store(guildId: Snowflake, roleMemberId: Snowflake, isRole: boolean) {
-    await Base.knex<AdminPermission>("admin_permission")
-      .insert({
-        guild_id: guildId,
-        role_member_id: roleMemberId,
-        is_role: isRole,
-      })
-      .catch(() => null);
+    await Base.knex<AdminPermission>("admin_permission").insert({
+      guild_id: guildId,
+      role_member_id: roleMemberId,
+      is_role: isRole,
+    });
   }
 
   public static async unstore(guildId: Snowflake, roleMemberId?: Snowflake) {
     let query = Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId);
-    if (roleMemberId) query = query.where("role_member_id", roleMemberId);
+    if (roleMemberId) {
+      query = query.where("role_member_id", roleMemberId);
+    }
     await query.first().delete();
   }
 

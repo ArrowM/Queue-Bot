@@ -1,15 +1,13 @@
-import { QueueChannel, QueueMember } from "../Interfaces";
+import { StoredQueue, QueueMember } from "../Interfaces";
 import { Base } from "../Base";
 import { Collection, Guild, GuildBasedChannel, GuildMember, Snowflake } from "discord.js";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { PriorityTable } from "./PriorityTable";
-import { QueueChannelTable } from "./QueueChannelTable";
+import { QueueTable } from "./QueueTable";
 import { QueueGuildTable } from "./QueueGuildTable";
 
 export class QueueMemberTable {
-  /**
-   * Create & update QueueGuild database table if necessary
-   */
+  // Create & update database table if necessary
   public static async initTable() {
     await Base.knex.schema.hasTable("queue_members").then(async (exists) => {
       if (!exists) {
@@ -37,7 +35,7 @@ export class QueueMemberTable {
   }
 
   public static async setCreatedAt(channelId: Snowflake, memberId: Snowflake, time: Date) {
-    await this.get(channelId, memberId).update("created_at", time);
+    await QueueMemberTable.get(channelId, memberId).update("created_at", time);
   }
 
   public static async setPriority(channelId: Snowflake, memberId: Snowflake, isPriority: boolean) {
@@ -83,7 +81,9 @@ export class QueueMemberTable {
     let query = Base.knex<QueueMember>("queue_members")
       .where("channel_id", queueChannel.id)
       .orderBy([{ column: "is_priority", order: "desc" }, "created_at"]);
-    if (amount) query = query.limit(amount);
+    if (amount) {
+      query = query.limit(amount);
+    }
 
     return query;
   }
@@ -97,7 +97,7 @@ export class QueueMemberTable {
     force?: boolean
   ) {
     if (!force) {
-      const storedChannel = await QueueChannelTable.get(queueChannel.id);
+      const storedChannel = await QueueTable.get(queueChannel.id);
       if (storedChannel?.is_locked) {
         throw {
           author: "Queue Bot",
@@ -119,7 +119,7 @@ export class QueueMemberTable {
         };
       }
       if (storedChannel.max_members) {
-        const storedQueueMembers = await this.getFromQueueUnordered(queueChannel);
+        const storedQueueMembers = await QueueMemberTable.getFromQueueUnordered(queueChannel);
         if (storedChannel.max_members <= storedQueueMembers?.length) {
           throw {
             author: "Queue Bot",
@@ -136,17 +136,17 @@ export class QueueMemberTable {
       await QueueMemberTable.get(queueChannel.id, member.id).update(storedMember);
     } else {
       await Base.knex<QueueMember>("queue_members").insert({
-        created_at: this.unstoredMembersCache.get(member.id),
-        display_time: this.unstoredMembersCache.get(member.id),
+        created_at: QueueMemberTable.unstoredMembersCache.get(member.id),
+        display_time: QueueMemberTable.unstoredMembersCache.get(member.id),
         is_priority: await PriorityTable.isPriority(queueChannel.guild.id, member),
         personal_message: customMessage,
         channel_id: queueChannel.id,
         member_id: member.id,
       });
     }
-    this.unstoredMembersCache.delete(member.id);
+    QueueMemberTable.unstoredMembersCache.delete(member.id);
     // Assign Queue Role
-    const storedQueue = await QueueChannelTable.get(queueChannel.id);
+    const storedQueue = await QueueTable.get(queueChannel.id);
     if (storedQueue?.role_id) {
       member.roles
         .add(storedQueue.role_id)
@@ -155,11 +155,15 @@ export class QueueMemberTable {
     }
   }
 
-  private static async unstoreRoles(guildId: Snowflake, deletedMembers: QueueMember[], storedQueue: QueueChannel) {
+  private static async unstoreRoles(guildId: Snowflake, deletedMembers: QueueMember[], storedQueue: StoredQueue) {
     const guild = await Base.client.guilds.fetch(guildId).catch(() => null as Guild);
-    if (!guild) return;
+    if (!guild) {
+      return;
+    }
     const role = await guild.roles.fetch(storedQueue.role_id);
-    if (!role) return;
+    if (!role) {
+      return;
+    }
     const promises = [];
     for (const deletedMember of deletedMembers) {
       promises.push(
@@ -182,21 +186,23 @@ export class QueueMemberTable {
       if (gracePeriod) {
         // Cache members
         for (const queueMember of await query) {
-          this.unstoredMembersCache.set(queueMember.member_id, queueMember.created_at);
+          QueueMemberTable.unstoredMembersCache.set(queueMember.member_id, queueMember.created_at);
           // Schedule cleanup of cached member
-          setTimeout(() => this.unstoredMembersCache.delete(queueMember.member_id), gracePeriod * 1000);
+          setTimeout(() => QueueMemberTable.unstoredMembersCache.delete(queueMember.member_id), gracePeriod * 1000);
         }
       }
     }
     const deletedMembers = await query;
     await query.delete();
     // Unassign Queue Role
-    const storedQueue = await QueueChannelTable.get(channelId).catch(() => null as QueueChannel);
-    if (!storedQueue?.role_id) return;
+    const storedQueue = await QueueTable.get(channelId).catch(() => null as StoredQueue);
+    if (!storedQueue?.role_id) {
+      return;
+    }
 
-    const queueGuild = await QueueGuildTable.get(guildId);
-    if (!queueGuild.disable_roles) {
-      this.unstoreRoles(guildId, deletedMembers, storedQueue).then();
+    const storedGuild = await QueueGuildTable.get(guildId);
+    if (!storedGuild.disable_roles) {
+      QueueMemberTable.unstoreRoles(guildId, deletedMembers, storedQueue).then();
     }
   }
 
@@ -204,12 +210,12 @@ export class QueueMemberTable {
     queueChannel: GuildBasedChannel,
     members: Collection<Snowflake, GuildMember>
   ): Promise<boolean> {
-    const storedEntries = await this.getFromQueueUnordered(queueChannel);
+    const storedEntries = await QueueMemberTable.getFromQueueUnordered(queueChannel);
     const promises = [];
     for await (const entry of storedEntries) {
       const member = members.find((m) => m.id === entry.member_id);
       if (!member) {
-        promises.push(await this.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id]));
+        promises.push(await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [entry.member_id]));
       }
     }
     await Promise.all(promises);

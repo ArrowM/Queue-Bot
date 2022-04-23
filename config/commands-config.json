@@ -77,16 +77,16 @@
   },
   {
     "name": "blacklist",
-    "description": "Add / Delete / List users or roles from a queue's blacklist",
+    "description": "Add / Delete / List / Clear users or roles from a queue blacklist",
     "options": [
       {
         "name": "add",
-        "description": "Add a user or role to a queue's blacklist",
+        "description": "Add a user or role to a queue blacklist",
         "type": 2,
         "options": [
           {
             "name": "user",
-            "description": "Add a user to a queue's blacklist",
+            "description": "Add a user to a queue blacklist",
             "type": 1,
             "options": [
               {
@@ -97,7 +97,7 @@
               },
               {
                 "name": "user",
-                "description": "User to blacklist",
+                "description": "User to blacklist. Leave blank for all users",
                 "type": 6,
                 "required": true
               }
@@ -105,7 +105,7 @@
           },
           {
             "name": "role",
-            "description": "Add a role to a queue's blacklist",
+            "description": "Add a role to a queue blacklist",
             "type": 1,
             "options": [
               {
@@ -116,7 +116,7 @@
               },
               {
                 "name": "role",
-                "description": "Role to blacklist",
+                "description": "Role to blacklist. Leave blank for all roles",
                 "type": 8,
                 "required": true
               }
@@ -126,12 +126,12 @@
       },
       {
         "name": "delete",
-        "description": "Remove a user or role from a queue's blacklist",
+        "description": "Delete users or roles from a queue blacklist",
         "type": 2,
         "options": [
           {
             "name": "user",
-            "description": "Remove a user from a queue's blacklist",
+            "description": "Delete a user from a queue blacklist",
             "type": 1,
             "options": [
               {
@@ -142,15 +142,14 @@
               },
               {
                 "name": "user",
-                "description": "User to remove from blacklist",
-                "type": 6,
-                "required": true
+                "description": "User to delete from blacklist. Leave blank for all users",
+                "type": 6
               }
             ]
           },
           {
             "name": "role",
-            "description": "Remove a role from a queue's blacklist",
+            "description": "Delete a role from a queue blacklist",
             "type": 1,
             "options": [
               {
@@ -161,9 +160,8 @@
               },
               {
                 "name": "role",
-                "description": "Role to remove from blacklist",
-                "type": 8,
-                "required": true
+                "description": "Role to delete from blacklist. Leave blank for all roles",
+                "type": 8
               }
             ]
           }
@@ -171,29 +169,9 @@
       },
       {
         "name": "list",
-        "description": "Display a queue's blacklist",
+        "description": "Display blacklists",
         "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-          }
-        ]
-      },
-      {
-        "name": "clear",
-        "description": "Clear a queue's blacklist",
-        "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-          }
-        ]
+        "options": []
       }
     ]
   },
@@ -278,8 +256,8 @@
             "required": true,
             "choices": [
               {
-                "name": "DEFAULT",
-                "value": "DEFAULT"
+                "name": "BLACK",
+                "value": "BLACK"
               },
               {
                 "name": "WHITE",
@@ -415,8 +393,7 @@
           {
             "name": "message",
             "description": "Message to display next to the name",
-            "type": 3,
-            "required": false
+            "type": 3
           }
         ]
       },
@@ -440,8 +417,7 @@
           {
             "name": "message",
             "description": "Message to display next to the name",
-            "type": 3,
-            "required": false
+            "type": 3
           }
         ]
       }
@@ -472,7 +448,9 @@
             "name": "graceperiod",
             "description": "Grace period in seconds",
             "type": 4,
-            "required": true
+            "required": true,
+            "min_value": 0,
+            "max_value": 6000
           }
         ]
       }
@@ -490,7 +468,7 @@
       },
       {
         "name": "set",
-        "description": "Set or remove a header for a queue's display messages",
+        "description": "Set or delete a header for a queue display messages",
         "type": 1,
         "options": [
           {
@@ -501,9 +479,8 @@
           },
           {
             "name": "message",
-            "description": "New header message. Leave blank to remove current header",
-            "type": 3,
-            "required": false
+            "description": "New header message. Leave blank to delete current header",
+            "type": 3
           }
         ]
       }
@@ -517,7 +494,6 @@
         "name": "type",
         "description": "Type of help to display",
         "type": 3,
-        "required": false,
         "choices": [
           {
             "name": "setup",
@@ -548,38 +524,32 @@
       {
         "name": "message",
         "description": "Message to display next to your name",
-        "type": 3,
-        "required": false
+        "type": 3
       }
     ]
   },
   {
     "name": "dequeue",
-    "description": "Dequeue a user from a specified queue",
-    "options": [
-      {
-        "name": "queue",
-        "description": "Queue channel",
-        "type": 7,
-        "required": true
-      },
-      {
-        "name": "user",
-        "description": "User to dequeue",
-        "type": 6,
-        "required": true
-      }
-    ]
-  },
-  {
-    "name": "dequeue-all",
-    "description": "Dequeue a user from all queues",
+    "description": "Dequeue a user or role",
     "options": [
       {
         "name": "user",
-        "description": "User to dequeue",
-        "type": 6,
-        "required": true
+        "description": "Dequeue a user",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "user",
+            "description": "User to dequeue",
+            "type": 6,
+            "required": true
+          }
+        ]
       }
     ]
   },
@@ -603,14 +573,7 @@
         "name": "get",
         "description": "Get whether a queue is locked or unlocked",
         "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-          }
-        ]
+        "options": []
       },
       {
         "name": "set",
@@ -625,7 +588,7 @@
           },
           {
             "name": "status",
-            "description": "Locked or unlocked.",
+            "description": "Locked or unlocked",
             "type": 3,
             "required": true,
             "choices": [
@@ -695,7 +658,7 @@
         "options": [
           {
             "name": "mode",
-            "description": "1 = Edit old msgs. 2 = Send new msgs and delete old ones. 3 = Send new msgs.",
+            "description": "1 = Edit old msgs. 2 = Send new msgs and delete old ones. 3 = Send new msgs",
             "type": 4,
             "required": true,
             "choices": [
@@ -737,7 +700,9 @@
         "name": "position",
         "description": "New position",
         "type": 4,
-        "required": true
+        "required": true,
+        "min_value": 1,
+        "max_value": 9999
       }
     ]
   },
@@ -759,13 +724,14 @@
         "name": "amount",
         "description": "# of users to pull from the queue. (Default: 1)",
         "type": 4,
-        "required": false
+        "min_value": 1,
+        "max_value": 99
       }
     ]
   },
   {
     "name": "notifications",
-    "description": "notifications",
+    "description": "Get / Set notification status (on = DM users when they are pulled out. off = no DMS)",
     "options": [
       {
         "name": "get",
@@ -800,7 +766,7 @@
   },
   {
     "name": "permission",
-    "description": "permission",
+    "description": "Add / Delete / List / Clear users and roles with bot permissions",
     "options": [
       {
         "name": "add",
@@ -842,27 +808,25 @@
         "options": [
           {
             "name": "user",
-            "description": "Grant permission to a user to use bot commands",
+            "description": "Revoke permission from a user to use bot commands",
             "type": 1,
             "options": [
               {
                 "name": "user",
-                "description": "User receiving permission to use bot commands",
-                "type": 6,
-                "required": true
+                "description": "User to revoke permission from. Leave blank for all users",
+                "type": 6
               }
             ]
           },
           {
             "name": "role",
-            "description": "Grant permission to a role to use bot commands",
+            "description": "Revoke permission from a role to use bot commands",
             "type": 1,
             "options": [
               {
                 "name": "role",
-                "description": "Role receiving permission to use bot commands",
-                "type": 8,
-                "required": true
+                "description": "Roles to revoke permission from. Leave blank for all roles",
+                "type": 8
               }
             ]
           }
@@ -871,11 +835,6 @@
       {
         "name": "list",
         "description": "List roles and users with permission to use bot commands",
-        "type": 1
-      },
-      {
-        "name": "clear",
-        "description": "Clear roles and users with permission to use bot commands",
         "type": 1
       }
     ]
@@ -892,7 +851,7 @@
       },
       {
         "name": "set",
-        "description": "Set the default # of users to pull when autopull is off or when using `/next`",
+        "description": "Get / Set the default # of users to pull when autopull is off or when using /next",
         "type": 1,
         "options": [
           {
@@ -903,13 +862,15 @@
           },
           {
             "name": "amount",
-            "description": "# of users to pull when autopull is off or when using the `next` command. (Default: 1)",
+            "description": "# of users to pull when autopull is off or when using the next command. (Default: 1)",
             "type": 4,
-            "required": true
+            "required": true,
+            "min_value": 1,
+            "max_value": 99
           },
           {
             "name": "partial_pulling",
-            "description": "Allow pulling when there are less members than this new amount.",
+            "description": "Allow pulling when there are less members than this new amount",
             "type": 3,
             "required": true,
             "choices": [
@@ -971,27 +932,25 @@
         "options": [
           {
             "name": "user",
-            "description": "Grant priority in queue to a user",
+            "description": "Revoke a user's priority in queue",
             "type": 1,
             "options": [
               {
                 "name": "user",
-                "description": "User receiving priority in queue",
-                "type": 6,
-                "required": true
+                "description": "User to revoke priority from. Leave blank for all users",
+                "type": 6
               }
             ]
           },
           {
             "name": "role",
-            "description": "Grant priority in queue to a role",
+            "description": "Revoke a roles's priority in queue",
             "type": 1,
             "options": [
               {
                 "name": "role",
-                "description": "Role receiving priority in queue",
-                "type": 8,
-                "required": true
+                "description": "Role to revoke priority from. Leave blank for all roles",
+                "type": 8
               }
             ]
           }
@@ -1001,17 +960,12 @@
         "name": "list",
         "description": "List roles and users with priority in queue",
         "type": 1
-      },
-      {
-        "name": "clear",
-        "description": "Clear roles and users with priority in queue",
-        "type": 1
       }
     ]
   },
   {
     "name": "queues",
-    "description": "queues",
+    "description": "Add / Delete / List queues",
     "options": [
       {
         "name": "add",
@@ -1028,7 +982,8 @@
             "name": "size",
             "description": "Maximum # of users that can be in the queue at once",
             "type": 4,
-            "required": false
+            "min_value": 1,
+            "max_value": 99
           }
         ]
       },
@@ -1054,7 +1009,7 @@
   },
   {
     "name": "roles",
-    "description": "Turn queue roles on or off",
+    "description": "Get / Set whether queue members are assigned a role named \"In Queue: ...\"",
     "options": [
       {
         "name": "get",
@@ -1088,122 +1043,159 @@
     ]
   },
   {
-    "name": "scheduleclear",
-    "description": "Clear queues on a schedule",
+    "name": "schedule",
+    "description": "Add / Delete / List scheduled commands",
     "options": [
       {
-        "name": "get",
-        "description": "Get queue clearing schedules",
-        "type": 1,
-        "options": []
-      },
-      {
-        "name": "help",
-        "description": "Help with writing clear schedules",
-        "type": 1,
-        "options": []
-      },
-      {
-        "name": "set",
-        "description": "Set a queue clearing schedule",
+        "name": "add",
+        "description": "Add a scheduled command",
         "type": 1,
         "options": [
           {
             "name": "queue",
-            "description": "Queue channel to clear",
+            "description": "Queue channel",
             "type": 7,
             "required": true
           },
           {
+            "name": "command",
+            "description": "Command to schedule",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "clear",
+                "value": "clear"
+              },
+              {
+                "name": "display",
+                "value": "display"
+              },
+              {
+                "name": "next",
+                "value": "next"
+              },
+              {
+                "name": "shuffle",
+                "value": "shuffle"
+              }
+            ]
+          },
+          {
             "name": "schedule",
-            "description": "schedule in cron format (* * * * *). See `/scheduleclear help`",
+            "description": "Schedule in cron format (* * * * *). Minimum value is every minute. See /schedule help",
             "type": 3,
             "required": true
           },
           {
             "name": "utc-offset",
-            "description": "utc offset used for timezone approximation. See `/scheduleclear help`",
+            "description": "UTC offset used for timezone approximation. See /schedule help",
             "type": 4,
             "required": true,
-            "choices": [{
-              "name": -11,
-              "value": -11
-            }, {
-              "name": -10,
-              "value": -10
-            }, {
-              "name": -9,
-              "value": -9
-            }, {
-              "name": -8,
-              "value": -8
-            }, {
-              "name": -7,
-              "value": -7
-            }, {
-              "name": -6,
-              "value": -6
-            }, {
-              "name": -5,
-              "value": -5
-            }, {
-              "name": -4,
-              "value": -4
-            }, {
-              "name": -3,
-              "value": -3
-            }, {
-              "name": -2,
-              "value": -2
-            }, {
-              "name": -1,
-              "value": -1
-            }, {
-              "name": 0,
-              "value": 0
-            }, {
-              "name": 1,
-              "value": 1
-            }, {
-              "name": 2,
-              "value": 2
-            }, {
-              "name": 3,
-              "value": 3
-            }, {
-              "name": 4,
-              "value": 4
-            }, {
-              "name": 5,
-              "value": 5
-            }, {
-              "name": 6,
-              "value": 6
-            }, {
-              "name": 7,
-              "value": 7
-            }, {
-              "name": 8,
-              "value": 8
-            }, {
-              "name": 9,
-              "value": 9
-            }, {
-              "name": 10,
-              "value": 10
-            }, {
-              "name": 11,
-              "value": 11
-            }, {
-              "name": 12,
-              "value": 12
-            }]
+            "choices": [
+              {
+                "name": -11,
+                "value": -11
+              },
+              {
+                "name": -10,
+                "value": -10
+              },
+              {
+                "name": -9,
+                "value": -9
+              },
+              {
+                "name": -8,
+                "value": -8
+              },
+              {
+                "name": -7,
+                "value": -7
+              },
+              {
+                "name": -6,
+                "value": -6
+              },
+              {
+                "name": -5,
+                "value": -5
+              },
+              {
+                "name": -4,
+                "value": -4
+              },
+              {
+                "name": -3,
+                "value": -3
+              },
+              {
+                "name": -2,
+                "value": -2
+              },
+              {
+                "name": -1,
+                "value": -1
+              },
+              {
+                "name": 0,
+                "value": 0
+              },
+              {
+                "name": 1,
+                "value": 1
+              },
+              {
+                "name": 2,
+                "value": 2
+              },
+              {
+                "name": 3,
+                "value": 3
+              },
+              {
+                "name": 4,
+                "value": 4
+              },
+              {
+                "name": 5,
+                "value": 5
+              },
+              {
+                "name": 6,
+                "value": 6
+              },
+              {
+                "name": 7,
+                "value": 7
+              },
+              {
+                "name": 8,
+                "value": 8
+              },
+              {
+                "name": 9,
+                "value": 9
+              },
+              {
+                "name": 10,
+                "value": 10
+              },
+              {
+                "name": 11,
+                "value": 11
+              },
+              {
+                "name": 12,
+                "value": 12
+              }
+            ]
           }
         ]
       },
       {
-        "name": "stop",
-        "description": "Stop a queue clearing schedule",
+        "name": "delete",
+        "description": "Delete scheduled commands",
         "type": 1,
         "options": [
           {
@@ -1211,8 +1203,43 @@
             "description": "Queue channel to clear",
             "type": 7,
             "required": true
+          },
+          {
+            "name": "command",
+            "description": "Command to delete. Leave blank for all commands",
+            "type": 3,
+            "choices": [
+              {
+                "name": "clear",
+                "value": "clear"
+              },
+              {
+                "name": "display",
+                "value": "display"
+              },
+              {
+                "name": "next",
+                "value": "next"
+              },
+              {
+                "name": "shuffle",
+                "value": "shuffle"
+              }
+            ]
           }
         ]
+      },
+      {
+        "name": "help",
+        "description": "Help with writing schedules",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "list",
+        "description": "List scheduled commands",
+        "type": 1,
+        "options": []
       }
     ]
   },
@@ -1253,7 +1280,9 @@
             "name": "size",
             "description": "Maximum # of users allowed in the queue",
             "type": 4,
-            "required": true
+            "required": true,
+            "min_value": 1,
+            "max_value": 99
           }
         ]
       }
@@ -1288,7 +1317,7 @@
         "options": [
           {
             "name": "status",
-            "description": "date: January 1, 2022.  time: 5:13 PM.  date+time: January 1, 2022 5:13 PM.  relative: an hour ago.",
+            "description": "date: January 1, 2022.  time: 5:13 PM.  date+time: January 1, 2022 5:13 PM.  relative: an hour ago",
             "type": 3,
             "required": true,
             "choices": [
@@ -1332,22 +1361,23 @@
         "name": "amount",
         "description": "# of users to pull from the queue. (Default: 1)",
         "type": 4,
-        "required": false
+        "min_value": 1,
+        "max_value": 99
       }
     ]
   },
   {
     "name": "whitelist",
-    "description": "Add / Delete / List users or roles from a queue's whitelist",
+    "description": "Add / Delete / List / Clear users or roles from a queue whitelist",
     "options": [
       {
         "name": "add",
-        "description": "Add a user or role to a queue's whitelist",
+        "description": "Add a user or role to a queue whitelist",
         "type": 2,
         "options": [
           {
             "name": "user",
-            "description": "Add a user to a queue's whitelist",
+            "description": "Add a user to a queue whitelist",
             "type": 1,
             "options": [
               {
@@ -1358,15 +1388,14 @@
               },
               {
                 "name": "user",
-                "description": "User to whitelist",
-                "type": 6,
-                "required": true
+                "description": "User to whitelist. Leave blank for all users",
+                "type": 6
               }
             ]
           },
           {
             "name": "role",
-            "description": "Add a role to a queue's whitelist",
+            "description": "Add a role to a queue whitelist",
             "type": 1,
             "options": [
               {
@@ -1377,9 +1406,8 @@
               },
               {
                 "name": "role",
-                "description": "Role to whitelist",
-                "type": 8,
-                "required": true
+                "description": "Role to whitelist. Leave blank for all roles",
+                "type": 8
               }
             ]
           }
@@ -1387,12 +1415,12 @@
       },
       {
         "name": "delete",
-        "description": "Remove a user or role from a queue's whitelist",
+        "description": "Delete users or roles from a queue whitelist",
         "type": 2,
         "options": [
           {
             "name": "user",
-            "description": "Remove a user from a queue's whitelist",
+            "description": "Delete a user from a queue whitelist",
             "type": 1,
             "options": [
               {
@@ -1403,15 +1431,14 @@
               },
               {
                 "name": "user",
-                "description": "User to remove from whitelist",
-                "type": 6,
-                "required": true
+                "description": "User to delete from whitelist. Leave blank for all users",
+                "type": 6
               }
             ]
           },
           {
             "name": "role",
-            "description": "Remove a role from a queue's whitelist",
+            "description": "Delete a role from a queue whitelist",
             "type": 1,
             "options": [
               {
@@ -1422,9 +1449,8 @@
               },
               {
                 "name": "role",
-                "description": "Role to remove from whitelist",
-                "type": 8,
-                "required": true
+                "description": "Role to delete from whitelist. Leave blank for all roles",
+                "type": 8
               }
             ]
           }
@@ -1432,29 +1458,9 @@
       },
       {
         "name": "list",
-        "description": "Display a queue's whitelist",
+        "description": "Display whitelists",
         "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-          }
-        ]
-      },
-      {
-        "name": "clear",
-        "description": "Clear a queue's whitelist",
-        "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-          }
-        ]
+        "options": []
       }
     ]
   }

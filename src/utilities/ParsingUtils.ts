@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import {
   Collection,
   CommandInteraction,
@@ -11,13 +12,10 @@ import {
   ReplyMessageOptions,
   Role,
   Snowflake,
-  StageChannel,
-  TextChannel,
-  VoiceChannel,
 } from "discord.js";
 import { Base } from "./Base";
-import { QueueChannel, QueueGuild } from "./Interfaces";
-import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { StoredQueue, StoredGuild, QueuePair } from "./Interfaces";
+import { QueueTable } from "./tables/QueueTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 
@@ -29,22 +27,28 @@ export class ParsingUtils {
   public static async checkPermission(request: CommandInteraction | Message): Promise<boolean> {
     try {
       const member = request.member as GuildMember;
-      if (!member) return false;
-      // Check if MEE6
-
+      if (!member) {
+        return false;
+      }
       // Check if ADMIN
-      if (member.permissionsIn(request.channel as GuildBasedChannel).has("ADMINISTRATOR")) return true;
+      if (member.permissionsIn(request.channel as GuildBasedChannel).has("ADMINISTRATOR")) {
+        return true;
+      }
       // Check IDs
       const permissionEntries = await AdminPermissionTable.getMany(request.guild.id);
       for (const entry of permissionEntries) {
-        if (member.roles.cache.has(entry.role_member_id) || member.id === entry.role_member_id) return true;
+        if (member.roles.cache.has(entry.role_member_id) || member.id === entry.role_member_id) {
+          return true;
+        }
       }
       // Check role names
       const roles = member.roles.cache.values();
       for (const role of roles) {
-        if (this.regEx.test(role.name)) return true;
+        if (this.regEx.test(role.name)) {
+          return true;
+        }
       }
-    } catch (e) {
+    } catch (e: any) {
       // Empty
     }
     // False if no matches
@@ -52,7 +56,7 @@ export class ParsingUtils {
   }
 }
 
-export interface ReplyOptions {
+interface ReplyOptions {
   messageDisplay?: "NONE" | "DM";
   commandDisplay?: "EPHEMERAL";
   content?: string;
@@ -60,24 +64,23 @@ export interface ReplyOptions {
   allowMentions?: boolean;
 }
 
-export interface ParsedArguments {
-  channel?: GuildBasedChannel;
-  member?: GuildMember;
-  role?: Role;
-  text?: string;
-  num?: number;
-  rawStrings?: string[];
+export enum RequiredType {
+  REQUIRED = "REQUIRED",
+  OPTIONAL = "OPTIONAL",
 }
 
-export interface ParsedOptions {
-  channelType?: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[];
+interface RequiredOptions {
   commandNameLength: number;
-  hasChannel?: boolean;
-  hasMember?: boolean;
-  hasRole?: boolean;
-  hasText?: boolean;
-  hasNumber?: {
-    required?: boolean;
+
+  channel?: {
+    required?: RequiredType; // OPTIONAL means "All" queues are an accepted channel arg
+    type?: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[];
+  };
+  members?: RequiredType;
+  roles?: RequiredType;
+  strings?: RequiredType;
+  numbers?: {
+    required?: RequiredType;
     min: number;
     max: number;
     defaultValue: number;
@@ -85,142 +88,147 @@ export interface ParsedOptions {
 }
 
 abstract class ParsedBase {
+  public args: {
+    channels?: GuildBasedChannel[];
+    members?: Collection<Snowflake, GuildMember>;
+    roles?: Collection<Snowflake, Role>;
+    strings: string[];
+    numbers: number[];
+  };
   public request: CommandInteraction | Message;
-  public storedQueues: QueueChannel[];
-  public _channels: Collection<string, GuildBasedChannel>;
-  public queueGuild: QueueGuild;
+  public storedGuild: StoredGuild;
   public hasPermission: boolean;
-  public args: ParsedArguments;
-  public missingArgs?: string[];
+  protected cachedChannels: Collection<string, GuildBasedChannel>;
+  protected cachedQueues: StoredQueue[];
+  protected cachedQueueChannels: QueuePair[];
 
   protected constructor() {
-    this.args = {};
+    this.args = {
+      strings: [],
+      numbers: [],
+    };
   }
-  // eslint-disable-next-line no-unused-vars
-  public abstract reply(_options: ReplyOptions): Promise<Message>;
-  // eslint-disable-next-line no-unused-vars
-  public abstract edit(_options: ReplyOptions): Promise<Message>;
-  public abstract deferReply(): Promise<void>;
 
-  /**
-   * Return missing fields
-   */
-  public async readArgs(conf: ParsedOptions): Promise<string[]> {
-    if (this.missingArgs === undefined) {
-      this.missingArgs = [];
-    } else {
-      return this.missingArgs;
+  public get member(): GuildMember {
+    return this.args.members ? [...this.args.members.values()][0] : undefined;
+  }
+
+  public get role(): Role {
+    return this.args.roles ? [...this.args.roles.values()][0] : undefined;
+  }
+
+  public get channel(): GuildBasedChannel {
+    return this.args.channels?.[0];
+  }
+
+  public get channelNames(): string {
+    return this.args.channels?.map((c) => "`" + c.name + "`").join(", ");
+  }
+
+  public get string(): string {
+    return this.args.strings?.[0];
+  }
+
+  public get number(): number {
+    return this.args.numbers?.[0];
+  }
+
+  public async setup() {
+    this.storedGuild = await QueueGuildTable.get(this.request.guild.id);
+    if (!this.storedGuild) {
+      await QueueGuildTable.store(this.request.guild);
+      this.storedGuild = await QueueGuildTable.get(this.request.guild.id);
     }
+    this.hasPermission = await ParsingUtils.checkPermission(this.request);
+  }
 
-    await this.getStringParam(conf.commandNameLength); // must call before channel or number
+  public abstract parseArgs(conf: RequiredOptions): Promise<string[]>;
+  public abstract deferReply(): Promise<void>;
+  public abstract reply(options: ReplyOptions): Promise<Message>;
+  public abstract edit(options: ReplyOptions): Promise<Message>;
 
-    // Required - channel, role, member
-    if (conf.hasChannel) {
-      const storedQueueIds = (await this.getStoredQueues()).map((ch) => ch.queue_channel_id);
-      await this.populateChannelParam(conf.channelType);
-      if (!this.args.channel) {
-        const queues = (await this.getChannels()).filter(
-          (ch) =>
-            storedQueueIds.includes(ch.id) && (!conf.channelType || (conf.channelType as string[])?.includes(ch.type))
-        );
-        if (queues.size === 1) this.args.channel = queues.first();
-      }
-      if (!this.args.channel?.id) {
-        const channelText =
-          (conf.channelType?.includes("GUILD_TEXT") ? "**text** " : "") +
-          (conf.channelType?.includes("GUILD_VOICE") || conf.channelType?.includes("GUILD_STAGE_VOICE")
+  protected async verifyArgs(conf: RequiredOptions): Promise<string[]> {
+    const missingArgs = [];
+    if (conf.channel?.required === RequiredType.REQUIRED && !this.args.channels) {
+      missingArgs.push(
+        (conf.channel.type?.includes("GUILD_TEXT") ? "**text** " : "") +
+          (conf.channel.type?.includes("GUILD_VOICE") || conf.channel.type?.includes("GUILD_STAGE_VOICE")
             ? "**voice** "
             : "") +
-          "channel";
-        this.missingArgs.push(channelText);
-      }
+          "channel"
+      );
     }
-    if (conf.hasRole) {
-      await this.getRoleParam();
-      if (!this.args.role) this.missingArgs.push("role");
+    if (conf.roles === RequiredType.REQUIRED && !this.args.roles) {
+      missingArgs.push("role");
     }
-    if (conf.hasMember) {
-      await this.getMemberParam();
-      if (!this.args.member) this.missingArgs.push("member");
+    if (conf.members === RequiredType.REQUIRED && !this.args.members?.size) {
+      missingArgs.push("member");
     }
-    // OPTIONAL - number & text
-    if (conf.hasNumber) {
-      await this.getNumberParam();
-      if (conf.hasNumber.required && this.args.num == undefined) {
-        this.missingArgs.push("number");
+    if (conf.numbers?.required === RequiredType.REQUIRED) {
+      if (this.args.numbers.length) {
+        this.verifyNumber(conf.numbers.min, conf.numbers.max, conf.numbers.defaultValue);
       } else {
-        this.verifyNumber(conf.hasNumber.min, conf.hasNumber.max, conf.hasNumber.defaultValue);
+        missingArgs.push("number");
       }
     }
-
-    if (conf.hasText && !this.args.text) this.missingArgs.push("message");
+    if (conf.strings === RequiredType.REQUIRED && !this.args.strings.length) {
+      missingArgs.push("message");
+    }
     // Report missing
-    if (this.missingArgs.length) {
+    if (missingArgs.length) {
       await this.reply({
         content:
-          "**ERROR**: Missing " +
-          this.missingArgs.join(" and ") +
-          " argument" +
-          (this.missingArgs.length > 1 ? "s" : "") +
-          ".",
+          "**ERROR**: Missing " + missingArgs.join(" and ") + " argument" + (missingArgs.length > 1 ? "s." : "."),
         commandDisplay: "EPHEMERAL",
       }).catch(() => null);
     }
-
-    return this.missingArgs;
+    return missingArgs;
   }
 
-  public async getStoredQueues() {
-    if (this.storedQueues === undefined) {
-      this.storedQueues = await QueueChannelTable.getFromGuild(this.request.guild.id);
+  /**
+   * Get stored queues as StoredQueue[]
+   */
+  private async getStoredQueues(): Promise<StoredQueue[]> {
+    if (this.cachedQueues === undefined) {
+      this.cachedQueues = await QueueTable.getFromGuild(this.request.guild.id);
     }
-    return this.storedQueues;
+    return this.cachedQueues;
   }
 
-  public async getChannels() {
-    return (this._channels =
-      this._channels ||
+  public async getQueueChannels(): Promise<GuildBasedChannel[]> {
+    return (await this.getQueuePairs()).map((pair) => pair.channel);
+  }
+
+  /**
+   * Get queues as QueuePair[]
+   */
+  public async getQueuePairs(): Promise<QueuePair[]> {
+    const storedQueues = await this.getStoredQueues();
+    const channels = await this.getChannels();
+    if (!this.cachedQueueChannels) {
+      this.cachedQueueChannels = storedQueues.map((stored) => ({
+        stored: stored,
+        channel: channels.find((ch) => ch.id === stored.queue_channel_id),
+      }));
+    }
+    return this.cachedQueueChannels;
+  }
+
+  /**
+   * Get all channels as GuildBasedChannel
+   */
+  public async getChannels(): Promise<Collection<string, GuildBasedChannel>> {
+    return (this.cachedChannels =
+      this.cachedChannels ||
       (await this.request.guild.channels.fetch()).filter((ch) =>
         ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
       ));
   }
 
-  // public get channels() {
-  //   return (this._channels =
-  //     this._channels ||
-  //     this.request.guild.channels.cache.filter((ch) =>
-  //       ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
-  //     ));
-  // }
-
-  // public set channels(channels: Collection<string, GuildBasedChannel>) {
-  //   this._channels = channels;
-  // }
-
-  public async setup() {
-    this.queueGuild = await QueueGuildTable.get(this.request.guild.id);
-    if (!this.queueGuild) {
-      await QueueGuildTable.store(this.request.guild);
-      this.queueGuild = await QueueGuildTable.get(this.request.guild.id);
-    }
-    this.hasPermission = await ParsingUtils.checkPermission(this.request);
-  }
-
-  // eslint-disable-next-line no-unused-vars
-  protected abstract getStringParam(_commandNameLength: number): Promise<void>;
-  protected abstract populateChannelParam(
-    // eslint-disable-next-line no-unused-vars
-    _channelType: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[]
-  ): Promise<void>;
-  protected abstract getRoleParam(): Promise<void>;
-  protected abstract getMemberParam(): Promise<void>;
-  protected abstract getNumberParam(): Promise<void>;
-
   protected verifyNumber(min: number, max: number, defaultValue: number): void {
-    if (this.args.num) {
-      this.args.num = Math.max(Math.min(this.args.num as number, max), min);
-    } else {
-      this.args.num = defaultValue;
+    for (let i = 0; i < this.args.numbers.length; i++) {
+      let number = this.args.numbers[i];
+      this.args.numbers[i] = number ? Math.max(Math.min(number as number, max), min) : defaultValue;
     }
   }
 }
@@ -231,6 +239,57 @@ export class ParsedCommand extends ParsedBase {
   constructor(command: CommandInteraction) {
     super();
     this.request = command;
+  }
+
+  public async parseArgs(conf: RequiredOptions): Promise<string[]> {
+    // Strings
+    this.args.strings = this.findArgs(this.request.options.data, "STRING") as string[];
+    // Numbers
+    if (conf.numbers) {
+      this.args.numbers = this.findArgs(this.request.options.data, "INTEGER") as number[];
+    }
+    // Members
+    if (conf.members) {
+      this.args.members = new Collection<Snowflake, GuildMember>();
+      const members = this.findArgs(this.request.options.data, "USER") as GuildMember[];
+      members.forEach((member) => this.args.members.set(member.id, member));
+    }
+    // Roles
+    if (conf.roles) {
+      this.args.roles = new Collection<Snowflake, Role>();
+      const roles = this.findArgs(this.request.options.data, "ROLE") as Role[];
+      roles.forEach((role) => this.args.roles.set(role.id, role));
+    }
+    // Channels
+    if (conf.channel) {
+      let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildBasedChannel;
+      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type)) {
+        this.args.channels = [channel];
+      } else {
+        let channels = await this.getQueueChannels();
+        if (conf.channel.type) {
+          // @ts-ignore
+          channels = channels.filter((ch) => conf.channel.type.includes(ch.type));
+        }
+        if (channels.length === 1) {
+          this.args.channels = channels;
+        } else {
+          if (this.args.strings[0] === "ALL") {
+            this.args.channels = channels;
+          } else {
+            channel = channels.find((ch) => ch.id === this.args.strings[0]);
+            if (channel) {
+              this.args.channels = [channel];
+            }
+          }
+          if (this.args.channels) {
+            this.args.strings.splice(0, 1); // Channel found by plaintext. remove it from args
+          }
+        }
+      }
+    }
+    // Verify
+    return this.verifyArgs(conf);
   }
 
   public async reply(options: ReplyOptions): Promise<Message> {
@@ -260,8 +319,8 @@ export class ParsedCommand extends ParsedBase {
     await this.request.deferReply();
   }
 
-  private findArgs(_options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
-    for (const option of _options) {
+  private findArgs(options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
+    for (const option of options) {
       if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options?.length) {
         accumulator = this.findArgs(option.options, type, accumulator);
       } else if (option.type === type) {
@@ -278,44 +337,6 @@ export class ParsedCommand extends ParsedBase {
     }
     return accumulator;
   }
-
-  protected async populateChannelParam(channelType: string[]) {
-    let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildBasedChannel;
-    if (!channel) {
-      const channelId = this.args.text as Snowflake;
-      if (channelId) {
-        channel = (await this.getChannels()).find((ch) => ch.id === channelId);
-        if (channel) {
-          this.args.text = this.args.rawStrings[1];
-        }
-      }
-    }
-    if (
-      channel?.type &&
-      ((channelType && !channelType.includes(channel.type)) ||
-        !["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type))
-    ) {
-      channel = null;
-    }
-    this.args.channel = channel as GuildBasedChannel;
-  }
-
-  protected async getMemberParam() {
-    this.args.member = this.findArgs(this.request.options.data, "USER")[0] as GuildMember;
-  }
-
-  protected async getRoleParam() {
-    this.args.role = this.findArgs(this.request.options.data, "ROLE")[0] as Role;
-  }
-
-  protected async getStringParam() {
-    this.args.rawStrings = this.findArgs(this.request.options.data, "STRING") as string[];
-    this.args.text = this.args.rawStrings[0];
-  }
-
-  protected async getNumberParam() {
-    this.args.num = this.findArgs(this.request.options.data, "INTEGER")[0] as number;
-  }
 }
 
 export class ParsedMessage extends ParsedBase {
@@ -325,6 +346,71 @@ export class ParsedMessage extends ParsedBase {
   constructor(message: Message) {
     super();
     this.request = message;
+  }
+
+  private static mentionRegex = RegExp(/<(@*?|#)\d+>/g);
+
+  public async parseArgs(conf: RequiredOptions): Promise<string[]> {
+    this.request.content = this.request.content.slice(conf.commandNameLength + 1); // trim command
+    this.request.mentions.members.delete(this.request.guild.me.id); // remove mention of bot
+    let incomingStrings = this.request.content.split(" ");
+    // Members
+    if (conf.members) {
+      this.args.members = this.request.mentions.members;
+    }
+    // Roles
+    if (conf.roles) {
+      this.args.roles = this.request.mentions.roles;
+    }
+    // Channels
+    if (conf.channel) {
+      let channel = this.request.mentions.channels.first() as GuildBasedChannel;
+      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type)) {
+        this.args.channels = [channel];
+      } else {
+        let channels = await this.getQueueChannels();
+        if (conf.channel.type) {
+          // @ts-ignore
+          channels = channels.filter((ch) => conf.channel.type.includes(ch.type));
+        }
+        if (channels.length === 1) {
+          this.args.channels = channels;
+        } else {
+          if (incomingStrings[0] === "ALL") {
+            if (conf.channel.required === RequiredType.OPTIONAL) {
+              this.args.channels = channels;
+            } else {
+              await this.reply({
+                content: `Can NOT target \`ALL\` queues for this command.`,
+              }).catch(() => null);
+            }
+          }
+          channel = channels.find((ch) => ch.name === this.args.strings[0]);
+          if (channel) {
+            this.args.channels = [channel];
+          }
+          if (this.args.channels) {
+            incomingStrings.splice(0, 1); // Channel found by plaintext. remove it from args
+          } else {
+            await this.reply({
+              content: `\`${incomingStrings[0]}\` is not a queue.`,
+            }).catch(() => null);
+          }
+        }
+      }
+    }
+    // Filter mentions
+    incomingStrings = incomingStrings.filter((arg) => !arg.match(ParsedMessage.mentionRegex)?.length);
+    // Strings
+    if (conf.strings) {
+      this.args.strings = incomingStrings.filter((arg) => isNaN(+arg));
+    }
+    // Numbers
+    if (conf.numbers) {
+      this.args.numbers = incomingStrings.filter((arg) => !isNaN(+arg)).map((arg) => +arg);
+    }
+    // Verify
+    return this.verifyArgs(conf);
   }
 
   public async reply(options: ReplyOptions): Promise<Message> {
@@ -351,54 +437,5 @@ export class ParsedMessage extends ParsedBase {
 
   public async deferReply() {
     this.lastResponse = await this.request.reply("Thinking...");
-  }
-
-  private static coll = new Intl.Collator("en", { sensitivity: "base" });
-  // Populate this.args.text as well
-  protected async populateChannelParam(channelType: string[]) {
-    if (this.request.mentions.channels.first()) {
-      this.args.channel = this.request.mentions.channels.first() as VoiceChannel | StageChannel | TextChannel;
-      this.args.text = this.args.text.replace(`<#${this.args.channel.id}>`, "").trim();
-    } else {
-      let channels = await this.getChannels();
-      if (channelType) {
-        channels = channels.filter((ch) => channelType.includes(ch.type));
-      }
-      let inputTest = this.args.text;
-      // Search for largest matching channel name
-      while (inputTest) {
-        for (const channel of channels.values()) {
-          if (ParsedMessage.coll.compare(inputTest, channel.name) === 0) {
-            this.args.channel = channel as GuildBasedChannel;
-            this.args.text = this.args.text.substring(inputTest.length + 1);
-            break;
-          }
-        }
-        if (this.args.channel) break;
-        inputTest = inputTest.substring(0, inputTest.lastIndexOf(" "));
-      }
-    }
-  }
-
-  protected async getMemberParam() {
-    this.args.member = (await this.request.mentions.members).first();
-    if (this.args.member) {
-      this.args.text = this.args.text.replace(`<#${this.args.member.id}>`, "").trim();
-    }
-  }
-
-  protected async getRoleParam() {
-    this.args.role = (await this.request.mentions.roles).first();
-    if (this.args.role) {
-      this.args.text = this.args.text.replace(`<#${this.args.role.id}>`, "").trim();
-    }
-  }
-
-  protected async getStringParam(commandNameLength: number) {
-    this.args.text = this.request.content.substring(commandNameLength + 2).trim(); // +2 for slash and space
-  }
-
-  protected async getNumberParam() {
-    this.args.num = +this.args.text.replace(/\D/g, "");
   }
 }

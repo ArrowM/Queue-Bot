@@ -4,14 +4,16 @@ import {
   AdminPermission,
   BlackWhiteListEntry,
   DisplayChannel,
-  QueueChannel,
-  QueueGuild,
+  StoredQueue,
+  StoredGuild,
   QueueMember,
+  Schedule,
+  ScheduleCommand,
 } from "./Interfaces";
 import { existsSync, writeFileSync } from "fs";
 import delay from "delay";
 import schemaInspector from "knex-schema-inspector";
-import { QueueChannelTable } from "./tables/QueueChannelTable";
+import { QueueTable } from "./tables/QueueTable";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { MessagingUtils } from "./MessagingUtils";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
@@ -22,6 +24,7 @@ import { QueueMemberTable } from "./tables/QueueMemberTable";
 import _ from "lodash";
 import { ApplicationCommand } from "discord-slash-commands-client";
 import { SlashCommands } from "./SlashCommands";
+import { ScheduleTable } from "./tables/ScheduleTable";
 
 interface Note {
   sent: boolean;
@@ -38,6 +41,7 @@ export class PatchingUtils {
     await this.tableAdminPermission();
     await this.tableDisplayChannels();
     await this.tableQueueGuilds();
+    await this.tableSchedules();
     this.checkCommandsFile(guilds).then();
   }
 
@@ -57,12 +61,12 @@ export class PatchingUtils {
         console.log("commands-config.json has changed. Removed: " + removedNames.join(", "));
       }
 
-      console.log("Updating commands [1/" + guilds.size + "]");
       for await (let cmd of addedCommands) {
         let progressCnt = 0;
         if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
           await SlashCommands.slashClient.createCommand(cmd).catch(() => null);
         } else {
+          console.log(`Adding [${cmd.name}] [1 / ${guilds.size}]`);
           for await (const guild of guilds.values()) {
             await SlashCommands.addCommandForGuild(guild, cmd).catch(() => null);
             if (++progressCnt % 50 === 0) {
@@ -80,8 +84,11 @@ export class PatchingUtils {
           const globalCommand = (
             (await SlashCommands.slashClient.getCommands().catch(() => [])) as ApplicationCommand[]
           ).find((c) => c.name === cmd.name);
-          await SlashCommands.slashClient.deleteCommand(globalCommand.id).catch(() => null);
+          if (globalCommand) {
+            await SlashCommands.slashClient.deleteCommand(globalCommand.id).catch(() => null);
+          }
         } else {
+          console.log(`Removing [${cmd.name}] [1 / ${guilds.size}]`);
           for await (const guild of guilds.values()) {
             const guildCommands = (await SlashCommands.slashClient
               .getCommands({
@@ -98,7 +105,7 @@ export class PatchingUtils {
             console.log(`Removing [${cmd.name}] [${progressCnt} / ${guilds.size}]`);
           }
         }
-        console.log(`Added [${cmd.name}] [${progressCnt} / ${guilds.size}]`);
+        console.log(`Removed [${cmd.name}] [${progressCnt} / ${guilds.size}]`);
         await delay(5000);
       }
       console.log("Done updating commands for command-config.json change.");
@@ -113,38 +120,51 @@ export class PatchingUtils {
       // Collect notes
       const notes = Base.getJSON("../patch_notes/patch_notes.json") as Note[];
       const notesToSend = notes.filter((p) => !p.sent);
-      if (!notesToSend?.length) return;
+      if (!notesToSend?.length) {
+        return;
+      }
       // Collect channel destinations
       for await (const guild of guilds.values()) {
         try {
-          const queueChannelId = (await QueueChannelTable.fetchFromGuild(guild)).first()?.id;
-          if (!queueChannelId) continue;
+          const queueChannelId = (await QueueTable.fetchFromGuild(guild)).first()?.id;
+          if (!queueChannelId) {
+            continue;
+          }
 
           const storedDisplays = await DisplayChannelTable.getFromQueue(queueChannelId);
-          if (!storedDisplays.length) continue;
+          if (!storedDisplays.length) {
+            continue;
+          }
           const displayChannelId = storedDisplays[storedDisplays.length - 1]?.display_channel_id;
-          if (!displayChannelId) continue;
+          if (!displayChannelId) {
+            continue;
+          }
 
           const displayChannel = (await guild.channels.fetch(displayChannelId).catch(() => null)) as TextChannel;
-          if (!displayChannel) continue;
+          if (!displayChannel) {
+            continue;
+          }
 
           displayChannels.push(displayChannel);
-        } catch (e) {
+        } catch (e: any) {
           // Empty
         }
         await delay(100);
       }
+
       let sentNote = false;
       const failedChannelIds: Snowflake[] = [];
       let i = 0;
       // Send notes
       for await (const note of notesToSend) {
         for await (const displayChannel of displayChannels) {
-          if (!note.embeds) continue;
+          if (!note.embeds) {
+            continue;
+          }
           try {
             await displayChannel.send({ embeds: note.embeds });
             // console.log("Sent to " + displayChannel.id);
-          } catch (e) {
+          } catch (e: any) {
             failedChannelIds.push(displayChannel.id);
             // console.error(e);
           }
@@ -162,7 +182,8 @@ export class PatchingUtils {
         if (announcementChannel) {
           await announcementChannel.send({ embeds: note.embeds }).catch(() => null);
         }
-        note.sent = sentNote = true;
+        note.sent = true;
+        sentNote = true;
       }
       if (sentNote) {
         writeFileSync("../patch_notes/patch_notes.json", JSON.stringify(notes, null, 3));
@@ -188,13 +209,16 @@ export class PatchingUtils {
       await PriorityTable.initTable();
     }
     if (!(await Base.knex.schema.hasTable("queue_channels"))) {
-      await QueueChannelTable.initTable();
+      await QueueTable.initTable();
     }
     if (!(await Base.knex.schema.hasTable("queue_guilds"))) {
       await QueueGuildTable.initTable();
     }
     if (!(await Base.knex.schema.hasTable("queue_members"))) {
       await QueueMemberTable.initTable();
+    }
+    if (!(await Base.knex.schema.hasTable("schedules"))) {
+      await ScheduleTable.initTable();
     }
   }
 
@@ -216,7 +240,9 @@ export class PatchingUtils {
       for await (const entry of entries) {
         try {
           const guild = await Base.client.guilds.fetch(entry.guild_id).catch(() => null as Guild);
-          if (!guild) throw "GUILD NOT FOUND";
+          if (!guild) {
+            throw "GUILD NOT FOUND";
+          }
 
           let newId: Snowflake;
           let isRole = false;
@@ -224,19 +250,23 @@ export class PatchingUtils {
             // USER
             const id = entry.role_member_id.replace(/\D/g, "") as Snowflake;
             const member = await guild.members.fetch(id).catch(() => null);
-            if (member) newId = id;
+            if (member) {
+              newId = id;
+            }
           } else {
             // ROLE
             await guild.roles.fetch();
             newId = guild.roles.cache.find((role) => role.name === entry.role_member_id)?.id;
             isRole = true;
           }
-          if (!newId) throw "ID NOT FOUND";
+          if (!newId) {
+            throw "ID NOT FOUND";
+          }
           await Base.knex<AdminPermission>("admin_permission")
             .where("id", entry.id)
             .update("role_member_id", newId)
             .update("is_role", isRole);
-        } catch (e) {
+        } catch (e: any) {
           await Base.knex<AdminPermission>("admin_permission").where("id", entry.id).first().delete();
         }
         await delay(40);
@@ -302,14 +332,18 @@ export class PatchingUtils {
           .fetch(entry.display_channel_id)
           .catch(() => null)) as TextChannel;
         const queueChannel = await Base.client.channels.fetch(entry.queue_channel_id).catch(() => null);
-        if (!displayChannel || !queueChannel) continue;
+        if (!displayChannel || !queueChannel) {
+          continue;
+        }
         const embedIds = entry["embed_ids"] as Snowflake[];
         const messages: Message[] = [];
         const embeds: MessageEmbed[] = [];
         for await (const embedId of embedIds) {
           const message = await displayChannel.messages.fetch(embedId).catch(() => null);
           await delay(40);
-          if (!message) continue;
+          if (!message) {
+            continue;
+          }
           messages.push(message);
           embeds.push(message.embeds[0]);
         }
@@ -334,9 +368,11 @@ export class PatchingUtils {
   }
 
   private static async setNickNames() {
-    for await (const entry of await Base.knex<QueueGuild>("queue_guilds")) {
+    for await (const entry of await Base.knex<StoredGuild>("queue_guilds")) {
       const guild = await Base.client.guilds.fetch(entry.guild_id).catch(() => null as Guild);
-      if (!guild) continue;
+      if (!guild) {
+        continue;
+      }
 
       await guild.me.setNickname("Queue Bot").catch(() => null);
       await delay(1100);
@@ -355,12 +391,12 @@ export class PatchingUtils {
     // Add auto_fill
     if (!(await Base.knex.schema.hasColumn("queue_channels", "auto_fill"))) {
       await Base.knex.schema.table("queue_channels", (t) => t.integer("auto_fill"));
-      await Base.knex<QueueChannel>("queue_channels").update("auto_fill", 1);
+      await Base.knex<StoredQueue>("queue_channels").update("auto_fill", 1);
     }
     // Add pull_num
     if (!(await Base.knex.schema.hasColumn("queue_channels", "pull_num"))) {
       await Base.knex.schema.table("queue_channels", (t) => t.integer("pull_num"));
-      await Base.knex<QueueChannel>("queue_channels").update("pull_num", 1);
+      await Base.knex<StoredQueue>("queue_channels").update("pull_num", 1);
     }
     // Add header
     if (!(await Base.knex.schema.hasColumn("queue_channels", "header"))) {
@@ -388,19 +424,30 @@ export class PatchingUtils {
     if (!(await Base.knex.schema.hasColumn("queue_channels", "is_locked"))) {
       await Base.knex.schema.table("queue_channels", (t) => t.boolean("is_locked"));
     }
-    // Add clear_schedule & clearTimezone
-    if (!(await Base.knex.schema.hasColumn("queue_channels", "clear_schedule"))) {
-      await Base.knex.schema.table("queue_channels", (t) => {
-        t.text("clear_schedule");
-        t.integer("clear_utc_offset");
-      });
-    }
     // Add enable_partial_pull
     if (!(await Base.knex.schema.hasColumn("queue_channels", "enable_partial_pull"))) {
       await Base.knex.schema.table("queue_channels", (t) => t.boolean("enable_partial_pull"));
-      for await (const entry of await Base.knex<QueueChannel>("queue_channels")) {
+      for await (const entry of await Base.knex<StoredQueue>("queue_channels")) {
         await Base.knex<DisplayChannel>("queue_channels").where("id", entry.id).update("enable_partial_pull", true);
       }
+    }
+    // Migrate clear_schedule & clearTimezone to schedule table
+    if (await Base.knex.schema.hasColumn("queue_channels", "clear_schedule")) {
+      await this.tableSchedules();
+      const entries = await Base.knex<StoredQueue & { clear_schedule: string; clear_utc_offset: string }>(
+        "queue_channels"
+      ).whereNotNull("clear_schedule");
+      for await (let entry of entries) {
+        await Base.knex<Schedule>("schedules")
+          .insert({
+            queue_channel_id: entry.queue_channel_id,
+            command: ScheduleCommand.CLEAR,
+            schedule: entry.clear_schedule,
+            utc_offset: +entry.clear_utc_offset,
+          })
+          .catch(() => null);
+      }
+      await Base.knex.schema.alterTable("queue_channels", (t) => t.dropColumn("clear_schedule"));
     }
   }
 
@@ -408,17 +455,17 @@ export class PatchingUtils {
     // Migration of msg_on_update to msg_mode
     if (await Base.knex.schema.hasColumn("queue_guilds", "msg_on_update")) {
       await Base.knex.schema.table("queue_guilds", (t) => t.integer("msg_mode"));
-      for await (const queueGuild of await Base.knex<QueueGuild>("queue_guilds")) {
-        await Base.knex<QueueGuild>("queue_guilds")
-          .where("guild_id", queueGuild.guild_id)
-          .update("msg_mode", queueGuild["msg_on_update"] ? 2 : 1);
+      for await (const storedGuild of await Base.knex<StoredGuild>("queue_guilds")) {
+        await Base.knex<StoredGuild>("queue_guilds")
+          .where("guild_id", storedGuild.guild_id)
+          .update("msg_mode", storedGuild["msg_on_update"] ? 2 : 1);
       }
       await Base.knex.schema.table("queue_guilds", (t) => t.dropColumn("msg_on_update"));
     }
     // Add cleanup_commands
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "cleanup_commands"))) {
       await Base.knex.schema.table("queue_guilds", (t) => t.text("cleanup_commands"));
-      await Base.knex<QueueGuild>("queue_guilds").update("cleanup_commands", "off");
+      await Base.knex<StoredGuild>("queue_guilds").update("cleanup_commands", "off");
     }
     // Move columns to channel t
     if (await Base.knex.schema.hasColumn("queue_guilds", "color")) {
@@ -429,10 +476,10 @@ export class PatchingUtils {
         await Base.knex.schema.table("queue_channels", (t) => t.integer("grace_period"));
       }
 
-      const entries = await Base.knex<QueueGuild & { color: string; grace_period: number }>("queue_guilds");
+      const entries = await Base.knex<StoredGuild & { color: string; grace_period: number }>("queue_guilds");
       console.log("Migrate QueueGuilds to QueueChannels");
       for await (const entry of entries) {
-        await Base.knex<QueueChannel>("queue_channels")
+        await Base.knex<StoredQueue>("queue_channels")
           .where("guild_id", entry.guild_id)
           .update("color", entry.color)
           .update("grace_period", entry.grace_period);
@@ -466,8 +513,8 @@ export class PatchingUtils {
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "timestamps"))) {
       await Base.knex.schema.alterTable("queue_guilds", (t) => t.text("timestamps").defaultTo("off"));
       // Initialize timestamps
-      for await (const entry of await Base.knex<QueueGuild & { enable_timestamps: string }>("queue_guilds")) {
-        await Base.knex<QueueGuild>("queue_guilds")
+      for await (const entry of await Base.knex<StoredGuild & { enable_timestamps: string }>("queue_guilds")) {
+        await Base.knex<StoredGuild>("queue_guilds")
           .where("guild_id", entry.guild_id)
           .update("timestamps", entry.enable_timestamps ? "time" : "off");
       }
@@ -503,4 +550,6 @@ export class PatchingUtils {
       }
     }
   }
+
+  private static async tableSchedules() {}
 }

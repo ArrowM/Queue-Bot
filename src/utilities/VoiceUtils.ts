@@ -23,7 +23,9 @@ export class Voice {
    * @param client - The Discord.js Client to track
    */
   private static trackClient(client: Client) {
-    if (Voice.trackedClients.has(client)) return;
+    if (Voice.trackedClients.has(client)) {
+      return;
+    }
     Voice.trackedClients.add(client);
     client.ws.on(Constants.WSEvents.VOICE_SERVER_UPDATE, (payload: GatewayVoiceServerUpdateDispatchData) => {
       Voice.adapters.get(payload.guild_id)?.onVoiceServerUpdate(payload);
@@ -80,7 +82,7 @@ export class Voice {
   public static disconnectFromChannel(channel: VoiceChannel | StageChannel): void {
     try {
       Voice.connections.get(channel.id)?.destroy();
-    } catch (e) {
+    } catch (e: any) {
       // Empty
     }
   }
@@ -95,12 +97,12 @@ export class Voice {
     });
 
     try {
-      await entersState(connection, VoiceConnectionStatus.Ready, 30e3);
+      await entersState(connection, VoiceConnectionStatus.Ready, 30.0e3);
       Voice.connections.set(channel.id, connection);
       return connection;
-    } catch (error) {
+    } catch (e: any) {
       connection.destroy();
-      throw error;
+      throw e;
     }
   }
 }
