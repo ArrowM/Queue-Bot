@@ -1188,7 +1188,7 @@ export class Commands {
     }
     await Promise.all(dataPromises);
     await Promise.all(displayPromises);
-    await parsed.reply({ content: response, commandDisplay: "EPHEMERAL" });
+    await parsed.reply({ content: response, commandDisplay: "EPHEMERAL" }).catch(() => null);
   }
 
   // --------------------------------- LOCK ------------------------------- //
