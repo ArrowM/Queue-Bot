@@ -30,7 +30,7 @@
                   "value": "Many of the commands, such as `/clear`, `/color`, and `/display` can now be used to update all queues with 1 command."
                },
                {
-                  "name": "/pullnum` Tweak",
+                  "name": "`/pullnum` Tweak",
                   "value": "`/pullnum` has a new argument, `partial_pulling`."
                },
                {

@@ -7,7 +7,6 @@ import {
   Message,
   PartialGuildMember,
   StageChannel,
-  TextChannel,
   VoiceChannel,
   VoiceState,
 } from "discord.js";
@@ -725,9 +724,9 @@ async function fillTargetChannel(
         if (!storedSrcChannel.enable_partial_pull && storedMembers.length < storedSrcChannel.pull_num) {
           const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(srcChannel.guild, srcChannel.id);
           await displayChannel?.send(
-            `\`${srcChannel.name}\` only has **${storedMembers.length}** member${
-              storedMembers.length > 1 ? "s" : ""
-            }, **${storedSrcChannel.pull_num}** are needed. ` +
+            `<#${srcChannel.id}> only has **${storedMembers.length}** member${storedMembers.length > 1 ? "s" : ""}, **${
+              storedSrcChannel.pull_num
+            }** are needed. ` +
               `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${
                 storedMembers.length > 1 ? "s" : ""
               }, use \`/pullnum\` and enable \`partial_pulling\`.`
@@ -755,12 +754,12 @@ async function fillTargetChannel(
     const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(srcChannel.guild, srcChannel.id);
     if (displayChannel) {
       await displayChannel.send(
-        `I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`
+        `I need the **CONNECT** permission in the <#${dstChannel.id}> voice channel to pull in queue members.`
       );
     } else {
       const owner = await guild.fetchOwner();
       owner
-        .send(`I need the **CONNECT** permission in the \`${dstChannel.name}\` voice channel to pull in queue members.`)
+        .send(`I need the **CONNECT** permission in the <#${dstChannel.id}> voice channel to pull in queue members.`)
         .catch(() => null);
     }
   }
@@ -793,10 +792,10 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
     if (storedQueueMember) {
       const storedQueue = await QueueTable.get(queueChannel.id);
       await QueueMemberTable.unstore(member.guild.id, queueChannel.id, [member.id], storedQueue.grace_period);
-      await interaction.reply({ content: `You left \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+      await interaction.reply({ content: `You left <#${queueChannel.id}>.`, ephemeral: true }).catch(() => null);
     } else {
       await QueueMemberTable.store(queueChannel, member);
-      await interaction.reply({ content: `You joined \`${queueChannel.name}\`.`, ephemeral: true }).catch(() => null);
+      await interaction.reply({ content: `You joined <#${queueChannel.id}>.`, ephemeral: true }).catch(() => null);
     }
     const storedGuild = await QueueGuildTable.get(interaction.guild.id);
     await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queueChannel);

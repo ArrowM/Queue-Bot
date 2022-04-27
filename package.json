@@ -21,7 +21,7 @@
     "delay": "^5.0.0",
     "discord-slash-commands-client": "^1.2.1",
     "discord.js": "^13.2.0",
-    "knex": "^1.0.1",
+    "knex": "^2.0.0",
     "knex-schema-inspector": "^1.5.8",
     "libsodium-wrappers": "^0.7.9",
     "lodash": "^4.17.21",

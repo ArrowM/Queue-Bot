@@ -1,5 +1,5 @@
-import { QueueUpdateRequest, Schedule, ScheduleCommand, StoredGuild } from "./Interfaces";
-import { GuildBasedChannel, Snowflake } from "discord.js";
+import { QueueUpdateRequest, Schedule, ScheduleCommand, StoredGuild, StoredQueue } from "./Interfaces";
+import { Guild, GuildBasedChannel, Snowflake } from "discord.js";
 import { ScheduleTable } from "./tables/ScheduleTable";
 import { Base } from "./Base";
 import { QueueTable } from "./tables/QueueTable";
@@ -47,7 +47,7 @@ export class SchedulingUtils {
   public static async stopScheduledCommand(queueChannelId: Snowflake, command?: ScheduleCommand) {
     const commands = command ? [command] : Object.values(ScheduleCommand);
     for (command of commands) {
-      this.tasks.get([queueChannelId, command]).stop();
+      this.tasks.get([queueChannelId, command])?.stop();
     }
   }
 
@@ -58,40 +58,44 @@ export class SchedulingUtils {
     utcOffset: number
   ) {
     try {
-      const timezone = Base.getTimezone(utcOffset).timezone;
-      const storedQueue = await QueueTable.get(queueChannelId);
-      const storedGuild = await QueueGuildTable.get(storedQueue.guild_id);
-      const guild = Base.client.guilds.cache.get(storedQueue.guild_id);
-      const queue = guild.channels.cache.get(storedQueue.queue_channel_id);
-
-      // eslint-disable-next-line no-unused-vars
-      let func: (now: Date) => void;
-      switch (command) {
-        case "clear":
-          func = async () => {
-            await QueueMemberTable.unstore(storedQueue.guild_id, storedQueue.queue_channel_id);
-            await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queue);
-          };
-          break;
-        case "display":
-          func = async () => {
-            await this.scheduleDisplayUpdate(storedGuild, queue);
-          };
-          break;
-        case "next":
-          func = async () => {
-            await Commands.pullHelper({ stored: storedQueue, channel: queue });
-          };
-          break;
-        case "shuffle":
-          func = async () => {
-            await Commands.shuffleHelper(undefined, { stored: storedQueue, channel: queue });
-          };
-          break;
-      }
+      const timezone = Base.getTimezone(utcOffset).timezone; // eslint-disable-next-line no-unused-vars
+      let func = async () => {
+        await SchedulingUtils.commandHelper(queueChannelId, command);
+      };
       this.tasks.set([queueChannelId, command], cronSchedule(schedule, func, { timezone: timezone }));
     } catch (e: any) {
       console.error(e);
+    }
+  }
+
+  private static async commandHelper(queueChannelId: Snowflake, command: ScheduleCommand) {
+    let storedQueue: StoredQueue, storedGuild: StoredGuild, guild: Guild, queue: GuildBasedChannel;
+    try {
+      storedQueue = await QueueTable.get(queueChannelId);
+      storedGuild = await QueueGuildTable.get(storedQueue.guild_id);
+      guild = Base.client.guilds.cache.get(storedQueue.guild_id);
+      queue = guild.channels.cache.get(storedQueue.queue_channel_id);
+    } catch (ignore) {
+      /** empty **/
+    }
+    if (!storedQueue || !storedGuild || !guild || !queue) {
+      await this.stopScheduledCommand(queueChannelId, command);
+      await ScheduleTable.unstore(queueChannelId, command);
+    }
+    switch (command) {
+      case "clear":
+        await QueueMemberTable.unstore(storedQueue.guild_id, storedQueue.queue_channel_id);
+        await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queue);
+        break;
+      case "display":
+        await this.scheduleDisplayUpdate(storedGuild, queue);
+        break;
+      case "next":
+        await Commands.pullHelper({ stored: storedQueue, channel: queue });
+        break;
+      case "shuffle":
+        await Commands.shuffleHelper(undefined, { stored: storedQueue, channel: queue });
+        break;
     }
   }
 

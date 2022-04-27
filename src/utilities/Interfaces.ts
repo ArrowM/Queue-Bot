@@ -81,6 +81,18 @@ export interface Schedule {
 
 // ------ OTHER ------
 
+// eslint-disable-next-line no-unused-vars
+export enum ReplaceWith {
+  // eslint-disable-next-line no-unused-vars
+  QUEUE_CHANNEL = "QUEUE_CHANNEL",
+  // eslint-disable-next-line no-unused-vars
+  QUEUE_CHANNEL_ID = "QUEUE_CHANNEL_ID",
+  // eslint-disable-next-line no-unused-vars
+  STORED_QUEUE = "STORED_QUEUE",
+  // eslint-disable-next-line no-unused-vars
+  STORED_GUILD = "STORED_GUILD",
+}
+
 export enum ScheduleCommand {
   // eslint-disable-next-line no-unused-vars
   CLEAR = "clear",

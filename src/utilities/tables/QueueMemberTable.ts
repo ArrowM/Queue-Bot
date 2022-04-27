@@ -101,7 +101,7 @@ export class QueueMemberTable {
       if (storedChannel?.is_locked) {
         throw {
           author: "Queue Bot",
-          message: `Failed to join to \`${queueChannel.name}\`. Queue is locked!\n`,
+          message: `Failed to join to <#${queueChannel.id}>. Queue is locked!\n`,
         };
       }
 
@@ -109,13 +109,13 @@ export class QueueMemberTable {
         if (!(await BlackWhiteListTable.isWhitelisted(queueChannel.id, member))) {
           throw {
             author: "Queue Bot",
-            message: `<@${member.id}> is not on the whitelist for \`${queueChannel.name}\`.\n`,
+            message: `<@${member.id}> is not on the whitelist for <#${queueChannel.id}>.\n`,
           };
         }
       } else if (await BlackWhiteListTable.isBlacklisted(queueChannel.id, member)) {
         throw {
           author: "Queue Bot",
-          message: `<@${member.id}> is blacklisted from \`${queueChannel.name}\`.\n`,
+          message: `<@${member.id}> is blacklisted from <#${queueChannel.id}>.\n`,
         };
       }
       if (storedChannel.max_members) {
@@ -123,7 +123,7 @@ export class QueueMemberTable {
         if (storedChannel.max_members <= storedQueueMembers?.length) {
           throw {
             author: "Queue Bot",
-            message: `Failed to add <@${member.id}> to \`${queueChannel.name}\`. Queue is full!\n`,
+            message: `Failed to add <@${member.id}> to <#${queueChannel.id}>. Queue is full!\n`,
           };
         }
       }

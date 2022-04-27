@@ -29,11 +29,12 @@ export class DisplayChannelTable {
   }
 
   public static async getFirstChannelFromQueue(guild: Guild, queueChannelId: Snowflake) {
-    let storedDisplay = await Base.knex<DisplayChannel>("display_channels").where("queue_channel_id", queueChannelId).first();
+    let storedDisplay = await Base.knex<DisplayChannel>("display_channels")
+      .where("queue_channel_id", queueChannelId)
+      .first()
+      .orderBy("message_id", "desc");
     if (storedDisplay) {
-      return (await guild.channels
-        .fetch(storedDisplay.display_channel_id)
-        .catch(() => null)) as TextChannel;
+      return (await guild.channels.fetch(storedDisplay.display_channel_id).catch(() => null)) as TextChannel;
     }
   }
 

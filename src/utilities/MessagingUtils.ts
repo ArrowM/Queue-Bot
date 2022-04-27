@@ -35,31 +35,23 @@ export class MessagingUtils {
       // For each embed list of the queue
       try {
         const displayChannel = Base.client.channels.cache.get(storedDisplay.display_channel_id) as TextChannel;
-
-        if (displayChannel) {
-          if (
-            displayChannel.permissionsFor(displayChannel.guild.me)?.has("SEND_MESSAGES") &&
-            displayChannel.permissionsFor(displayChannel.guild.me)?.has("EMBED_LINKS")
-          ) {
-            // Retrieved display embed
-            const message = await displayChannel.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
-            if (!message) {
-              continue;
-            }
-            if (storedGuild.msg_mode === 1) {
-              /* Edit */
-              await message
-                .edit({
-                  embeds: embeds,
-                  components: await MessagingUtils.getButton(queueChannel),
-                  allowedMentions: { users: [] },
-                })
-                .catch(() => null);
-            } else {
-              /* Replace */
-              await DisplayChannelTable.unstore(queueChannel.id, displayChannel.id, storedGuild.msg_mode !== 3);
-              await DisplayChannelTable.store(queueChannel, displayChannel, embeds);
-            }
+        const message = await displayChannel.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
+        const perms = displayChannel.permissionsFor(displayChannel.guild.me);
+        if (displayChannel && message && perms?.has("SEND_MESSAGES") && perms?.has("EMBED_LINKS")) {
+          // Retrieved display embed
+          if (storedGuild.msg_mode === 1) {
+            /* Edit */
+            await message
+              .edit({
+                embeds: embeds,
+                components: await MessagingUtils.getButton(queueChannel),
+                allowedMentions: { users: [] },
+              })
+              .catch(console.error);
+          } else {
+            /* Replace */
+            await DisplayChannelTable.unstore(queueChannel.id, displayChannel.id, storedGuild.msg_mode !== 3);
+            await DisplayChannelTable.store(queueChannel, displayChannel, embeds);
           }
         } else {
           // Handled deleted display channels
@@ -128,7 +120,7 @@ export class MessagingUtils {
     }
 
     // Title
-    let title = (storedQueue.is_locked ? "🔒 " : "") + queueChannel.name;
+    let title = `${storedQueue.is_locked ? "🔒 " : ""}${queueChannel.name}`;
     if (storedQueue.target_channel_id) {
       const targetChannel = queueChannel.guild.channels.cache.get(storedQueue.target_channel_id);
       if (targetChannel) {
