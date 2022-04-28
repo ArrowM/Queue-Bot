@@ -263,7 +263,6 @@ async function checkPermission(parsed: Parsed): Promise<boolean> {
 }
 
 async function processCommand(parsed: Parsed, command: CommandArg[]) {
-  await parsed.deferReply();
   switch (command[0]?.name) {
     case "display":
       await Commands.display(parsed);

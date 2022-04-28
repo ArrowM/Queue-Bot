@@ -143,7 +143,6 @@ abstract class ParsedBase {
   }
 
   public abstract parseArgs(conf: RequiredOptions): Promise<string[]>;
-  public abstract deferReply(): Promise<void>;
   public abstract reply(options: ReplyOptions): Promise<Message>;
   public abstract edit(options: ReplyOptions): Promise<Message>;
 
@@ -315,10 +314,6 @@ export class ParsedCommand extends ParsedBase {
     return (await this.request.editReply(options)) as Message;
   }
 
-  public async deferReply() {
-    await this.request.deferReply();
-  }
-
   private findArgs(options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
     for (const option of options) {
       if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options?.length) {
@@ -433,9 +428,5 @@ export class ParsedMessage extends ParsedBase {
     } else {
       return await this.reply(options);
     }
-  }
-
-  public async deferReply() {
-    this.lastResponse = await this.request.reply("Thinking...");
   }
 }
