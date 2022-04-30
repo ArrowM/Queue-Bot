@@ -184,12 +184,9 @@ export class MessagingUtils {
       entries.push(idxStr + timeStr + prioStr + nameStr + msgStr + "\n");
     }
 
-    let firstFieldName = "";
-    if (storedQueue.max_members) {
-      firstFieldName = `Capacity:  ${position} / ${storedQueue.max_members}`;
-    } else if (queueMembers.length > 50) {
-      firstFieldName = `Length:  ${position}`;
-    }
+    const firstFieldName = storedQueue.max_members
+      ? `Capacity:  ${position} / ${storedQueue.max_members}`
+      : `Length:  ${position}`;
 
     const embeds: MessageEmbed[] = [];
     let embedLength = title.length + description.length + firstFieldName.length;
