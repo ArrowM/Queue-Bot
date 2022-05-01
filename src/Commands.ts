@@ -1496,7 +1496,7 @@ export class Commands {
       // Check enable_partial_pull
       if (!queue.stored.enable_partial_pull && queueMembers.length < amount) {
         await parsed
-          ?.edit({
+          ?.reply({
             content:
               `<#${queue.channel.id}> only has **${queueMembers.length}** member${
                 queueMembers.length > 1 ? "s" : ""
@@ -1523,7 +1523,7 @@ export class Commands {
           await Promise.all(promises);
         } else {
           await parsed
-            ?.edit({
+            ?.reply({
               content:
                 "**ERROR**: No target channel. Set a target channel by sending `/start` then dragging the bot to the target channel.",
               commandDisplay: "EPHEMERAL",
@@ -1552,7 +1552,7 @@ export class Commands {
       const response =
         "Pulled " + queueMembers.map((member) => `<@${member.member_id}>`).join(", ") + ` from <#${queue.channel.id}>.`;
       if (parsed) {
-        await parsed?.edit({ content: response }).catch(() => null);
+        await parsed?.reply({ content: response }).catch(() => null);
       } else {
         const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(
           queue.channel.guild,
@@ -1568,7 +1568,7 @@ export class Commands {
       await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queue.channel);
     } else {
       await parsed
-        ?.edit({
+        ?.reply({
           content: `<#${queue.channel.id}> is empty.`,
           commandDisplay: "EPHEMERAL",
         })

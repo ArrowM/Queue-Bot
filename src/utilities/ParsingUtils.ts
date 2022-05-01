@@ -144,7 +144,6 @@ abstract class ParsedBase {
 
   public abstract parseArgs(conf: RequiredOptions): Promise<string[]>;
   public abstract reply(options: ReplyOptions): Promise<Message>;
-  public abstract edit(options: ReplyOptions): Promise<Message>;
 
   protected async verifyArgs(conf: RequiredOptions): Promise<string[]> {
     const missingArgs = [];
@@ -310,10 +309,6 @@ export class ParsedCommand extends ParsedBase {
     }
   }
 
-  public async edit(options: ReplyOptions): Promise<Message> {
-    return (await this.request.editReply(options)) as Message;
-  }
-
   private findArgs(options: Readonly<CommandInteractionOption[]>, type: string, accumulator: any[] = []): any[] {
     for (const option of options) {
       if ((option.type === "SUB_COMMAND" || option.type === "SUB_COMMAND_GROUP") && option.options?.length) {
@@ -419,14 +414,6 @@ export class ParsedMessage extends ParsedBase {
       return (this.lastResponse = (await this.request.author.send(message)) as Message);
     } else if (options.messageDisplay !== "NONE") {
       return (this.lastResponse = (await this.request.reply(message)) as Message);
-    }
-  }
-
-  public async edit(options: ReplyOptions): Promise<Message> {
-    if (this.lastResponse && this.lastResponse.editable) {
-      return (await this.lastResponse.edit(options)) as Message;
-    } else {
-      return await this.reply(options);
     }
   }
 }

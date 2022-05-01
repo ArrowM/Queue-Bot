@@ -34,9 +34,9 @@ export class MessagingUtils {
     for await (const storedDisplay of storedDisplays) {
       // For each embed list of the queue
       try {
-        const displayChannel = Base.client.channels.cache.get(storedDisplay.display_channel_id) as TextChannel;
-        const message = await displayChannel.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
-        const perms = displayChannel.permissionsFor(displayChannel.guild.me);
+        const displayChannel = await Base.client.channels.fetch(storedDisplay.display_channel_id) as TextChannel;
+        const message = await displayChannel?.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
+        const perms = displayChannel?.permissionsFor(displayChannel.guild.me);
         if (displayChannel && message && perms?.has("SEND_MESSAGES") && perms?.has("EMBED_LINKS")) {
           // Retrieved display embed
           if (storedGuild.msg_mode === 1) {
