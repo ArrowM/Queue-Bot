@@ -224,9 +224,12 @@ export class MessagingUtils {
   }
 
   private static button: MessageActionRow[] = [
-    new MessageActionRow({
-      components: [new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY")],
-    }),
+    new MessageActionRow().addComponents(
+      new MessageButton()
+        .setCustomId("joinLeave")
+        .setLabel("Join / Leave")
+        .setStyle("SECONDARY")
+    )
   ];
 
   public static async getButton(channel: GuildBasedChannel): Promise<MessageActionRow[]> {
