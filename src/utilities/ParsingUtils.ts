@@ -147,7 +147,7 @@ abstract class ParsedBase {
 
   protected async verifyArgs(conf: RequiredOptions): Promise<string[]> {
     const missingArgs = [];
-    if (conf.channel?.required === RequiredType.REQUIRED && !this.args.channels) {
+    if (conf.channel?.required && !this.args.channels) {
       missingArgs.push(
         (conf.channel.type?.includes("GUILD_TEXT") ? "**text** " : "") +
           (conf.channel.type?.includes("GUILD_VOICE") || conf.channel.type?.includes("GUILD_STAGE_VOICE")
@@ -382,9 +382,15 @@ export class ParsedMessage extends ParsedBase {
           if (this.args.channels) {
             incomingStrings.splice(0, 1); // Channel found by plaintext. remove it from args
           } else {
-            await this.reply({
-              content: `\`${incomingStrings[0]}\` is not a queue.`,
-            }).catch(() => null);
+            if (incomingStrings[0]) {
+              await this.reply({
+                content: `\`${incomingStrings[0]}\` is not a queue.`,
+              }).catch(() => null);
+            } else {
+              await this.reply({
+                content: `Missing queue argument. Did you mean to use \`ALL\`?.`,
+              }).catch(() => null);
+            }
           }
         }
       }

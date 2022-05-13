@@ -47,7 +47,7 @@ export class MessagingUtils {
                 components: await MessagingUtils.getButton(queueChannel),
                 allowedMentions: { users: [] },
               })
-              .catch(console.error);
+              .catch(() => null);
           } else {
             /* Replace */
             await DisplayChannelTable.unstore(queueChannel.id, displayChannel.id, storedGuild.msg_mode !== 3);
