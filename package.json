@@ -14,7 +14,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@discordjs/voice": "^0.8.0",
+    "@discordjs/voice": "^0.9.0",
     "@types/node-cron": "^3.0.1",
     "bufferutil": "^4.0.6",
     "cronstrue": "^2.2.0",
