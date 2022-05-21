@@ -17,6 +17,7 @@ import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
 import { Validator } from "./Validator";
 import { SchedulingUtils } from "./SchedulingUtils";
+import {BlackWhiteListTable} from "./tables/BlackWhiteListTable";
 
 export class MessagingUtils {
   private static gracePeriodCache = new Map<number, string>();
@@ -34,7 +35,12 @@ export class MessagingUtils {
     for await (const storedDisplay of storedDisplays) {
       // For each embed list of the queue
       try {
-        const displayChannel = await Base.client.channels.fetch(storedDisplay.display_channel_id) as TextChannel;
+        const displayChannel = await Base.client.channels.fetch(storedDisplay.display_channel_id).catch(async (e) => {
+          if ([403, 404].includes(e.httpStatus)) {
+            // Handled deleted display channels
+            await DisplayChannelTable.unstore(queueChannel.id, storedDisplay.display_channel_id);
+          }
+        }) as TextChannel;
         const message = await displayChannel?.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
         const perms = displayChannel?.permissionsFor(displayChannel.guild.me);
         if (displayChannel && message && perms?.has("SEND_MESSAGES") && perms?.has("EMBED_LINKS")) {
@@ -53,9 +59,6 @@ export class MessagingUtils {
             await DisplayChannelTable.unstore(queueChannel.id, displayChannel.id, storedGuild.msg_mode !== 3);
             await DisplayChannelTable.store(queueChannel, displayChannel, embeds);
           }
-        } else {
-          // Handled deleted display channels
-          await DisplayChannelTable.unstore(queueChannel.id, storedDisplay.display_channel_id);
         }
       } catch (e: any) {
         console.error(e);
