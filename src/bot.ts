@@ -93,16 +93,15 @@ function isTextCommand(message: Message): boolean {
   if (message.content[0] === "!") {
     message.content = message.content.slice(1).trimStart();
     return true;
-  } else {
+  } else if (message.guild.me?.id) {
     const regExp = RegExp(`^<@!?${message.guild.me.id}>`);
     if (regExp.test(message.content)) {
       // Remove bot mention from content
       message.content = message.content.slice(message.content.indexOf(">") + 1).trimStart();
       return true;
-    } else {
-      return false;
     }
   }
+  return false;
 }
 
 client.on("messageCreate", async (message) => {

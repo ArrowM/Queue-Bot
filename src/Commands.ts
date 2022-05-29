@@ -2136,7 +2136,9 @@ export class Commands {
           const role = await guild.roles.fetch(storedQueue.role_id).catch(() => null as Role);
           if (role) {
             await QueueTable.deleteRoleId(channel).catch(() => null);
-            await role.delete().catch(() => null);
+            try { await role.delete() } catch (e) {
+              // nothing
+            };
           }
         } else {
           // Create role and assign it to members
@@ -2338,6 +2340,7 @@ export class Commands {
    * HELPER
    */
   public static async shuffleHelper(parsed: Parsed, queue: QueuePair) {
+    if (!queue.channel?.guildId) return;
     const storedGuild = parsed?.storedGuild || (await QueueGuildTable.get(queue.channel.guildId));
     const queueMembers = await QueueMemberTable.getFromQueueUnordered(queue.channel);
     const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);

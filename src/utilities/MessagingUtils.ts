@@ -17,7 +17,6 @@ import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
 import { Validator } from "./Validator";
 import { SchedulingUtils } from "./SchedulingUtils";
-import {BlackWhiteListTable} from "./tables/BlackWhiteListTable";
 
 export class MessagingUtils {
   private static gracePeriodCache = new Map<number, string>();
