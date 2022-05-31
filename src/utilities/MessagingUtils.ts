@@ -34,12 +34,12 @@ export class MessagingUtils {
     for await (const storedDisplay of storedDisplays) {
       // For each embed list of the queue
       try {
-        const displayChannel = await Base.client.channels.fetch(storedDisplay.display_channel_id).catch(async (e) => {
+        const displayChannel = (await Base.client.channels.fetch(storedDisplay.display_channel_id).catch(async (e) => {
           if ([403, 404].includes(e.httpStatus)) {
             // Handled deleted display channels
             await DisplayChannelTable.unstore(queueChannel.id, storedDisplay.display_channel_id);
           }
-        }) as TextChannel;
+        })) as TextChannel;
         const message = await displayChannel?.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
         const perms = displayChannel?.permissionsFor(displayChannel.guild.me);
         if (displayChannel && message && perms?.has("SEND_MESSAGES") && perms?.has("EMBED_LINKS")) {
@@ -138,7 +138,7 @@ export class MessagingUtils {
       description = "Queue is locked.";
     } else {
       if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
-        description = `Join <#${queueChannel.id}> to join this queue.`;
+        description = `Join ${queueChannel} to join this queue.`;
       } else {
         description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
       }
@@ -227,11 +227,8 @@ export class MessagingUtils {
 
   private static button: MessageActionRow[] = [
     new MessageActionRow().addComponents(
-      new MessageButton()
-        .setCustomId("joinLeave")
-        .setLabel("Join / Leave")
-        .setStyle("SECONDARY")
-    )
+      new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY")
+    ),
   ];
 
   public static async getButton(channel: GuildBasedChannel): Promise<MessageActionRow[]> {
