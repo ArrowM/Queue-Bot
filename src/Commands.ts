@@ -2346,9 +2346,9 @@ export class Commands {
   /**
    * HELPER
    */
-  public static async shuffleHelper(parsed: Parsed, queue: QueuePair) {
+  public static async shuffleHelper(queue: QueuePair) {
     if (!queue.channel?.guildId) return;
-    const storedGuild = parsed?.storedGuild || (await QueueGuildTable.get(queue.channel.guildId));
+    const storedGuild = await QueueGuildTable.get(queue.channel.guildId);
     const queueMembers = await QueueMemberTable.getFromQueueUnordered(queue.channel);
     const queueMemberTimeStamps = queueMembers.map((member) => member.created_at);
     Base.shuffle(queueMemberTimeStamps);
@@ -2356,8 +2356,6 @@ export class Commands {
       await QueueMemberTable.setCreatedAt(queue.channel.id, queueMembers[i].member_id, queueMemberTimeStamps[i]);
     }
     await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queue.channel);
-    const response = `${queue.channel} queue shuffled.`;
-    await parsed?.reply({ content: response }).catch(() => null);
   }
 
   /**
@@ -2379,7 +2377,7 @@ export class Commands {
 
     const dataPromises = [];
     for (const queue of parsed.args.channels) {
-      dataPromises.push(this.shuffleHelper(parsed, { stored: await QueueTable.get(queue.id), channel: queue }));
+      dataPromises.push(this.shuffleHelper({ stored: await QueueTable.get(queue.id), channel: queue }));
     }
     await Promise.all(dataPromises);
 

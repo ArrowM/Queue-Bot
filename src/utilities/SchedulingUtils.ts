@@ -94,7 +94,7 @@ export class SchedulingUtils {
         await Commands.pullHelper({ stored: storedQueue, channel: queue });
         break;
       case "shuffle":
-        await Commands.shuffleHelper(undefined, { stored: storedQueue, channel: queue });
+        await Commands.shuffleHelper( { stored: storedQueue, channel: queue });
         break;
     }
   }
