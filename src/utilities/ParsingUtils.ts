@@ -250,13 +250,17 @@ export class ParsedCommand extends ParsedBase {
     if (conf.members) {
       this.args.members = new Collection<Snowflake, GuildMember>();
       const members = this.findArgs(this.request.options.data, "USER") as GuildMember[];
-      members.forEach((member) => this.args.members.set(member.id, member));
+      members.forEach((member) => {
+        if (member) this.args.members.set(member.id, member);
+      });
     }
     // Roles
     if (conf.roles) {
       this.args.roles = new Collection<Snowflake, Role>();
       const roles = this.findArgs(this.request.options.data, "ROLE") as Role[];
-      roles.forEach((role) => this.args.roles.set(role.id, role));
+      roles.forEach((role) => {
+        if (role) this.args.roles.set(role.id, role);
+      });
     }
     // Channels
     if (conf.channel) {
