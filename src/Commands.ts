@@ -181,7 +181,7 @@ export class Commands {
       await this.applyToQueue(
         parsed,
         QueueTable.setAutopull,
-        [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "off"],
+        [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"],
         "autopull"
       );
     } else {
