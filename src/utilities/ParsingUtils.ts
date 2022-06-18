@@ -12,6 +12,7 @@ import {
   ReplyMessageOptions,
   Role,
   Snowflake,
+  TextBasedChannel,
 } from "discord.js";
 import { Base } from "./Base";
 import { StoredQueue, StoredGuild, QueuePair } from "./Interfaces";
@@ -35,7 +36,7 @@ export class ParsingUtils {
         return true;
       }
       // Check IDs
-      const permissionEntries = await AdminPermissionTable.getMany(request.guild.id);
+      const permissionEntries = await AdminPermissionTable.getMany(request.guildId);
       for (const entry of permissionEntries) {
         if (member.roles.cache.has(entry.role_member_id) || member.id === entry.role_member_id) {
           return true;
@@ -134,10 +135,10 @@ abstract class ParsedBase {
   }
 
   public async setup() {
-    this.storedGuild = await QueueGuildTable.get(this.request.guild.id);
+    this.storedGuild = await QueueGuildTable.get(this.request.guildId);
     if (!this.storedGuild) {
       await QueueGuildTable.store(this.request.guild);
-      this.storedGuild = await QueueGuildTable.get(this.request.guild.id);
+      this.storedGuild = await QueueGuildTable.get(this.request.guildId);
     }
     this.hasPermission = await ParsingUtils.checkPermission(this.request);
   }
@@ -188,7 +189,7 @@ abstract class ParsedBase {
    */
   private async getStoredQueues(): Promise<StoredQueue[]> {
     if (this.cachedQueues === undefined) {
-      this.cachedQueues = await QueueTable.getFromGuild(this.request.guild.id);
+      this.cachedQueues = await QueueTable.getFromGuild(this.request.guildId);
     }
     return this.cachedQueues;
   }
@@ -304,6 +305,17 @@ export class ParsedCommand extends ParsedBase {
       ephemeral: isEphemeral,
       fetchReply: !isEphemeral,
     };
+
+    const loggingChannelId = this.storedGuild.logging_channel_id;
+    const loggingChannelLevel = this.storedGuild.logging_channel_level;
+    if (loggingChannelId && (!isEphemeral || loggingChannelLevel === 1)) {
+      const loggingChannel = (await this.request.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
+      await loggingChannel.send({
+        allowedMentions: { users: [] },
+        content: options.content,
+        embeds: options.embeds,
+      });
+    }
     if (this.request.replied) {
       return (await this.request.followUp(message)) as Message;
     } else if (this.request.deferred) {
@@ -415,11 +427,23 @@ export class ParsedMessage extends ParsedBase {
 
   public async reply(options: ReplyOptions): Promise<Message> {
     const mentions: MessageMentionOptions = options.allowMentions ? null : { parse: [] };
+    const isEphemeral = options.commandDisplay === "EPHEMERAL";
     const message: ReplyMessageOptions = {
       content: options.content,
       embeds: options.embeds,
       allowedMentions: mentions,
     };
+
+    const loggingChannelId = this.storedGuild.logging_channel_id;
+    const loggingChannelLevel = this.storedGuild.logging_channel_level;
+    if (loggingChannelId && (!isEphemeral || loggingChannelLevel === 1)) {
+      const loggingChannel = (await this.request.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
+      await loggingChannel.send({
+        allowedMentions: { users: [] },
+        content: options.content,
+        embeds: options.embeds,
+      });
+    }
     if (options.messageDisplay === "DM") {
       return (this.lastResponse = (await this.request.author.send(message)) as Message);
     } else if (options.messageDisplay !== "NONE") {

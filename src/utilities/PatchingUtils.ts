@@ -523,6 +523,13 @@ export class PatchingUtils {
         await Base.knex.schema.alterTable("queue_guilds", (t) => t.dropColumn("enable_timestamps"));
       }
     }
+    // Add logging_channel
+    if (!(await Base.knex.schema.hasColumn("queue_guilds", "logging_channel_id"))) {
+      await Base.knex.schema.table("queue_guilds", (t) => {
+        t.bigInteger("logging_channel_id");
+        t.integer("logging_channel_level");
+      });
+    }
   }
 
   private static async tableQueueMembers() {

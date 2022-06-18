@@ -358,6 +358,31 @@
     ]
   },
   {
+    "name": "dequeue",
+    "description": "Dequeue a user or role",
+    "options": [
+      {
+        "name": "user",
+        "description": "Dequeue a user",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "user",
+            "description": "User to dequeue",
+            "type": 6,
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "display",
     "description": "Display the users in a queue. These messages stay updated",
     "options": [
@@ -529,31 +554,6 @@
     ]
   },
   {
-    "name": "dequeue",
-    "description": "Dequeue a user or role",
-    "options": [
-      {
-        "name": "user",
-        "description": "Dequeue a user",
-        "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-          },
-          {
-            "name": "user",
-            "description": "User to dequeue",
-            "type": 6,
-            "required": true
-          }
-        ]
-      }
-    ]
-  },
-  {
     "name": "leave",
     "description": "Leave a text queue",
     "options": [
@@ -599,6 +599,46 @@
               {
                 "name": "unlock",
                 "value": "unlock"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "logging",
+    "description": "logging",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get current logging channel setting",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set a dedicated logging channel for bot messages",
+        "type": 1,
+        "options": [
+          {
+            "name": "channel",
+            "description": "Dedicated logging channel for bot messages",
+            "type": 7,
+            "channel_types": [0]
+          },
+          {
+            "name": "level",
+            "description": "Logging level",
+            "type": 3,
+            "choices": [
+              {
+                "name": "default",
+                "value": "default"
+              },
+              {
+                "name": "everything",
+                "value": "everything"
               }
             ]
           }

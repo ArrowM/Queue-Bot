@@ -18,6 +18,7 @@ interface SlashUpdateMessage {
   totalNum: number;
 }
 export class SlashCommands {
+  public static readonly DONT_MODIFY = ["logging"];
   public static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues", "permission"];
   public static readonly MULTI_QUEUE_COMMANDS = [
     "autopull",
@@ -50,7 +51,7 @@ export class SlashCommands {
   }
 
   private static modifyQueueArg(cmd: ApplicationOptions, queueChannels: GuildBasedChannel[]): ApplicationOptions {
-    if (cmd.options) {
+    if (cmd.options && !this.DONT_MODIFY.includes(cmd.name)) {
       cmd.options = this.modifyQueue(cmd.name, cmd.options, queueChannels);
     }
     return cmd;
@@ -188,7 +189,7 @@ export class SlashCommands {
     const queueChannels = [...(await QueueTable.fetchFromGuild(guild)).values()].slice(0, 25); // max # of options is 25
     if (queueChannels.length) {
       cmd = await this.modifyQueueArg(cmd, queueChannels);
-      await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(() => null);
+      await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(console.error);
     }
   }
 

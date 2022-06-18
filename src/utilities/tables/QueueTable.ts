@@ -223,7 +223,7 @@ export class QueueTable {
 
     // Timeout for message order
     setTimeout(() => SlashCommands.modifyCommandsForGuild(parsed.request.guild, parsed).catch(() => null), 500);
-    if ((await QueueTable.getFromGuild(parsed.request.guild.id)).length > 25) {
+    if ((await QueueTable.getFromGuild(parsed.request.guildId)).length > 25) {
       await parsed.reply({
         content:
           `WARNING: ${channel} will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +

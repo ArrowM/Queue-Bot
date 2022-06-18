@@ -17,6 +17,8 @@ export class QueueGuildTable {
             table.boolean("disable_notifications");
             table.boolean("disable_roles");
             table.boolean("enable_alt_prefix");
+            table.bigInteger("logging_channel_id");
+            table.integer("logging_channel_level");
             table.integer("msg_mode");
             table.text("timestamps").defaultTo("off");
           })
@@ -39,6 +41,13 @@ export class QueueGuildTable {
 
   public static async setDisableRoles(guildId: Snowflake, value: boolean) {
     await QueueGuildTable.get(guildId).update("disable_roles", value);
+  }
+
+  public static async setLoggingChannel(guildId: Snowflake, channelId: Snowflake, level: string) {
+    const loggingNum = level === "everything" ? 1 : 0;
+    await QueueGuildTable.get(guildId)
+      .update("logging_channel_id", channelId)
+      .update("logging_channel_level", loggingNum);
   }
 
   public static async setMessageMode(guildId: Snowflake, mode: number) {

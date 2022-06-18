@@ -56,6 +56,8 @@ export interface StoredGuild {
   disable_roles: boolean;
   enable_alt_prefix: boolean;
   guild_id: Snowflake;
+  logging_channel_id: Snowflake;
+  logging_channel_level: number;
   msg_mode: number;
   prefix?: string;
   timestamps: string;

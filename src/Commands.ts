@@ -12,11 +12,11 @@ import {
   BlackWhiteListEntry,
   Parsed,
   PriorityEntry,
-  StoredGuild,
-  ScheduleCommand,
   QueuePair,
-  StoredQueue,
   ReplaceWith,
+  ScheduleCommand,
+  StoredGuild,
+  StoredQueue,
 } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
@@ -125,7 +125,7 @@ export class Commands {
           })
           .catch(() => null);
       } else {
-        await QueueGuildTable.setAltPrefix(parsed.request.guild.id, parsed.string === "on");
+        await QueueGuildTable.setAltPrefix(parsed.request.guildId, parsed.string === "on");
         const response = `Alternative prefixes have been turned **${parsed.string}**.`;
         await parsed.reply({ content: response }).catch(() => null);
       }
@@ -444,7 +444,7 @@ export class Commands {
       return;
     }
 
-    await this.applyToQueue(parsed, QueueMemberTable.unstore, [parsed.request.guild.id, ReplaceWith.QUEUE_CHANNEL_ID]);
+    await this.applyToQueue(parsed, QueueMemberTable.unstore, [parsed.request.guildId, ReplaceWith.QUEUE_CHANNEL_ID]);
     let response: string;
     if (parsed.args.channels.length === 1) {
       response = `${parsed.channel} queue cleared.`;
@@ -1189,6 +1189,9 @@ export class Commands {
 
   // --------------------------------- LOCK ------------------------------- //
 
+  /**
+   * Get whether a queue is locked or unlocked
+   */
   public static async lockGet(parsed: Parsed) {
     await parsed.parseArgs({ commandNameLength: 8 });
 
@@ -1200,7 +1203,7 @@ export class Commands {
   }
 
   /**
-   * the current mentions settings
+   * Lock or unlock a queue. Locked queues can still be left
    */
   public static async lockSet(parsed: Parsed) {
     if (
@@ -1240,10 +1243,52 @@ export class Commands {
     await parsed.reply({ content: response }).catch(() => null);
   }
 
+  // --------------------------------- LOGGING CHANNEL ------------------------------- //
+
+  /**
+   * Get current logging setting
+   */
+  public static async loggingChannelGet(parsed: Parsed) {
+    await parsed.parseArgs({ commandNameLength: 11 });
+
+    const levelString = parsed.storedGuild.logging_channel_level === 0 ? "default" : "everything";
+    const response = parsed.storedGuild.logging_channel_id
+      ? `Logging channel set to <#${parsed.storedGuild.logging_channel_id}>. Level = **${levelString}**.`
+      : `No logging channel set.`;
+
+    await parsed.reply({ content: response }).catch(() => null);
+  }
+
+  /**
+   * Set a dedicated logging channel for bot messages
+   */
+  public static async loggingChannelSet(parsed: Parsed) {
+    if (
+      (
+        await parsed.parseArgs({
+          commandNameLength: 11,
+          channel: {
+            required: RequiredType.OPTIONAL,
+          },
+          strings: RequiredType.REQUIRED,
+        })
+      ).length
+    ) {
+      return;
+    }
+
+    await QueueGuildTable.setLoggingChannel(parsed.request.guildId, parsed.channel?.id, parsed.string);
+    const response = parsed.channel
+      ? `Set logging channel to ${parsed.channel}. Level = **${parsed.string}**.`
+      : `Unset logging channel.`;
+
+    await parsed.reply({ content: response }).catch(() => null);
+  }
+
   // --------------------------------- MENTIONS ------------------------------- //
 
   /**
-   * the current mentions settings
+   * Get whether users are displayed as mentions (on), or normal text (off)
    */
   public static async mentionsGet(parsed: Parsed) {
     await parsed.parseArgs({ commandNameLength: 12 });
@@ -1256,7 +1301,7 @@ export class Commands {
   }
 
   /**
-   * Enable or disable mentions in queue displays
+   * Set whether users are displayed as mentions (on), or normal text (off)
    */
   public static async mentionsSet(parsed: Parsed) {
     if ((await parsed.parseArgs({ commandNameLength: 12, strings: RequiredType.REQUIRED })).length) {
@@ -1302,7 +1347,7 @@ export class Commands {
   // --------------------------------- MODE ------------------------------- //
 
   /**
-   * the current autopull settings
+   * Get the way queue displays are sent
    */
   public static async modeGet(parsed: Parsed) {
     await parsed.parseArgs({ commandNameLength: 8 });
@@ -1323,7 +1368,7 @@ export class Commands {
   }
 
   /**
-   * Toggle automatic pull of users from a queue
+   * Set the way queue displays are sent
    */
   public static async modeSet(parsed: Parsed) {
     if (
@@ -1347,7 +1392,7 @@ export class Commands {
       return;
     }
 
-    await QueueGuildTable.setMessageMode(parsed.request.guild.id, parsed.number);
+    await QueueGuildTable.setMessageMode(parsed.request.guildId, parsed.number);
     await parsed
       .reply({
         content: `Set messaging mode to \`${parsed.number}\`.`,
@@ -1609,7 +1654,7 @@ export class Commands {
           })
           .catch(() => null);
       } else {
-        await QueueGuildTable.setDisableNotifications(parsed.request.guild.id, parsed.string === "off");
+        await QueueGuildTable.setDisableNotifications(parsed.request.guildId, parsed.string === "off");
         await parsed
           .reply({
             content: `Notifications have been turned **${parsed.string}**.`,
@@ -1634,7 +1679,7 @@ export class Commands {
   private static async genPermissionList(parsed: Parsed) {
     let response = "\n**Roles and users with bot permission**: ";
 
-    const perms = await AdminPermissionTable.getMany(parsed.request.guild.id);
+    const perms = await AdminPermissionTable.getMany(parsed.request.guildId);
     if (perms?.length) {
       response += perms.map((status) => "<@" + (status.is_role ? "&" : "") + status.role_member_id + ">").join(", ");
     } else {
@@ -1665,10 +1710,10 @@ export class Commands {
     const name = member?.displayName || role?.name;
     let response = "";
 
-    if (await AdminPermissionTable.get(parsed.request.guild.id, id)) {
+    if (await AdminPermissionTable.get(parsed.request.guildId, id)) {
       response += `\`${name}\` already has bot permission.`;
     } else {
-      await AdminPermissionTable.store(parsed.request.guild.id, id, role != null);
+      await AdminPermissionTable.store(parsed.request.guildId, id, role != null);
       response += `Added bot permission for \`${name}\`.`;
     }
     response += await this.genPermissionList(parsed);
@@ -1698,12 +1743,12 @@ export class Commands {
     let response = "";
 
     if (!id) {
-      await AdminPermissionTable.unstore(parsed.request.guild.id);
+      await AdminPermissionTable.unstore(parsed.request.guildId);
       await parsed.reply({ content: "Cleared bot permission list." }).catch(() => null);
       return;
     }
-    if (await AdminPermissionTable.get(parsed.request.guild.id, id)) {
-      await AdminPermissionTable.unstore(parsed.request.guild.id, id);
+    if (await AdminPermissionTable.get(parsed.request.guildId, id)) {
+      await AdminPermissionTable.unstore(parsed.request.guildId, id);
       response += `Removed bot permission for \`${name}\`.`;
     } else {
       response += `\`${name}\` did not have bot permission.`;
@@ -1823,7 +1868,7 @@ export class Commands {
     const role = parsed.role;
     const id = member?.id || role?.id;
     const name = member?.displayName || role?.name;
-    const guildId = parsed.request.guild.id;
+    const guildId = parsed.request.guildId;
     let response = "";
 
     if (await PriorityTable.get(guildId, id)) {
@@ -1858,7 +1903,7 @@ export class Commands {
     const role = parsed.role;
     const id = member?.id || role?.id;
     const name = member?.displayName || role?.name;
-    const guildId = parsed.request.guild.id;
+    const guildId = parsed.request.guildId;
     let response = "";
 
     if (!id) {
@@ -2055,7 +2100,7 @@ export class Commands {
     const queueChannel = parsed.channel;
     const storedQueue = await QueueTable.get(queueChannel.id);
     if (storedQueue) {
-      await QueueTable.unstore(parsed.request.guild.id, queueChannel.id, parsed);
+      await QueueTable.unstore(parsed.request.guildId, queueChannel.id, parsed);
       const response = `Deleted queue for ${queueChannel}.` + (await this.genQueuesList(parsed));
       await parsed
         .reply({
@@ -2384,7 +2429,7 @@ export class Commands {
     if (parsed.args.channels.length > 1) {
       await parsed?.reply({ content: `All queues shuffled.` }).catch(() => null);
     } else {
-      await parsed?.reply({ content: `${parsed.args.channels[0]} queue shuffled.` }).catch(() => null);
+      await parsed?.reply({ content: `${parsed.channel} queue shuffled.` }).catch(() => null);
     }
   }
 
@@ -2531,7 +2576,7 @@ export class Commands {
           })
           .catch(() => null);
       } else {
-        await QueueGuildTable.setTimestamps(parsed.request.guild.id, parsed.string);
+        await QueueGuildTable.setTimestamps(parsed.request.guildId, parsed.string);
         await parsed
           .reply({
             content: `Timestamps have been set to **${parsed.string}**.`,
