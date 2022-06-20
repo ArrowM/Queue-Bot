@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import {
   Collection,
+  ColorResolvable,
   CommandInteraction,
   CommandInteractionOption,
   GuildBasedChannel,
@@ -19,6 +20,7 @@ import { StoredQueue, StoredGuild, QueuePair } from "./Interfaces";
 import { QueueTable } from "./tables/QueueTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
+import { MessagingUtils } from "./MessagingUtils";
 
 export class ParsingUtils {
   private static regEx = RegExp(Base.config.permissionsRegexp, "i");
@@ -71,7 +73,7 @@ export enum RequiredType {
 }
 
 interface RequiredOptions {
-  commandNameLength: number;
+  command: string;
 
   channel?: {
     required?: RequiredType; // OPTIONAL means "All" queues are an accepted channel arg
@@ -96,6 +98,7 @@ abstract class ParsedBase {
     strings: string[];
     numbers: number[];
   };
+  public command: string;
   public request: CommandInteraction | Message;
   public storedGuild: StoredGuild;
   public hasPermission: boolean;
@@ -241,6 +244,7 @@ export class ParsedCommand extends ParsedBase {
   }
 
   public async parseArgs(conf: RequiredOptions): Promise<string[]> {
+    this.command = conf.command;
     // Strings
     this.args.strings = this.findArgs(this.request.options.data, "STRING") as string[];
     // Numbers
@@ -306,16 +310,14 @@ export class ParsedCommand extends ParsedBase {
       fetchReply: !isEphemeral,
     };
 
-    const loggingChannelId = this.storedGuild.logging_channel_id;
-    const loggingChannelLevel = this.storedGuild.logging_channel_level;
-    if (loggingChannelId && (!isEphemeral || loggingChannelLevel === 1)) {
-      const loggingChannel = (await this.request.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
-      await loggingChannel.send({
-        allowedMentions: { users: [] },
-        content: options.content,
-        embeds: options.embeds,
-      });
-    }
+    await MessagingUtils.logToLoggingChannel(
+      this.command,
+      options.content,
+      this.request.member as GuildMember,
+      this.storedGuild,
+      isEphemeral
+    );
+
     if (this.request.replied) {
       return (await this.request.followUp(message)) as Message;
     } else if (this.request.deferred) {
@@ -357,7 +359,8 @@ export class ParsedMessage extends ParsedBase {
   private static mentionRegex = RegExp(/<(@*?|#)\d+>/g);
 
   public async parseArgs(conf: RequiredOptions): Promise<string[]> {
-    this.request.content = this.request.content.slice(conf.commandNameLength + 1); // trim command
+    this.command = conf.command;
+    this.request.content = this.request.content.slice(conf.command.length + 1);
     this.request.mentions.members.delete(this.request.guild.me.id); // remove mention of bot
     let incomingStrings = this.request.content.split(" ");
     // Members
@@ -434,16 +437,14 @@ export class ParsedMessage extends ParsedBase {
       allowedMentions: mentions,
     };
 
-    const loggingChannelId = this.storedGuild.logging_channel_id;
-    const loggingChannelLevel = this.storedGuild.logging_channel_level;
-    if (loggingChannelId && (!isEphemeral || loggingChannelLevel === 1)) {
-      const loggingChannel = (await this.request.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
-      await loggingChannel.send({
-        allowedMentions: { users: [] },
-        content: options.content,
-        embeds: options.embeds,
-      });
-    }
+    await MessagingUtils.logToLoggingChannel(
+      this.command,
+      options.content,
+      this.request.member as GuildMember,
+      this.storedGuild,
+      isEphemeral
+    );
+
     if (options.messageDisplay === "DM") {
       return (this.lastResponse = (await this.request.author.send(message)) as Message);
     } else if (options.messageDisplay !== "NONE") {

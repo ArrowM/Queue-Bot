@@ -97,7 +97,7 @@ export class Commands {
    * the current alternate settings
    */
   public static async altPrefixGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 13 });
+    await parsed.parseArgs({ command: "altprefix get" });
     await parsed
       .reply({
         content: "**Alt Prefix** (`!`): " + (parsed.storedGuild.enable_alt_prefix ? "on" : "off"),
@@ -109,7 +109,7 @@ export class Commands {
    * Enable or disable alternate prefix
    */
   public static async altPrefixSet(parsed: Parsed) {
-    if ((await parsed.parseArgs({ commandNameLength: 13, strings: RequiredType.REQUIRED })).length) {
+    if ((await parsed.parseArgs({ command: "altprefix set", strings: RequiredType.REQUIRED })).length) {
       return;
     }
 
@@ -145,7 +145,7 @@ export class Commands {
    * the current autopull settings
    */
   public static async autopullGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 12 });
+    await parsed.parseArgs({ command: "autopull get" });
 
     let response = "**Autopull**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
@@ -165,7 +165,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 12,
+          command: "autopull set",
           channel: {
             required: RequiredType.OPTIONAL,
             type: ["GUILD_VOICE", "GUILD_STAGE_VOICE"],
@@ -257,7 +257,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 18,
+          command: isBlacklist ? "blacklist add" : "whitelist add",
           channel: { required: RequiredType.OPTIONAL },
           roles: isRole ? RequiredType.REQUIRED : undefined,
           members: isRole ? undefined : RequiredType.REQUIRED,
@@ -306,7 +306,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 18,
+          command: isBlacklist ? "blacklist delete" : "whitelist delete",
           channel: { required: RequiredType.OPTIONAL },
           roles: isRole ? RequiredType.OPTIONAL : undefined,
           members: isRole ? undefined : RequiredType.OPTIONAL,
@@ -363,7 +363,9 @@ export class Commands {
    * Display a blacklist or whitelist
    */
   public static async bwList(parsed: Parsed, isBlacklist: boolean) {
-    await parsed.parseArgs({ commandNameLength: 14 });
+    await parsed.parseArgs({
+      command: isBlacklist ? "blacklist list" : "whitelist list",
+    });
 
     const type = isBlacklist ? 0 : 1;
     const response = await this.genBWList(parsed, type);
@@ -376,7 +378,7 @@ export class Commands {
    * Get button settings
    */
   public static async buttonGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 10 });
+    await parsed.parseArgs({ command: "button get" });
 
     let response = "**Buttons**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
@@ -396,7 +398,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 10,
+          command: "button set",
           channel: {
             required: RequiredType.OPTIONAL,
             type: ["GUILD_TEXT"],
@@ -434,7 +436,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 5,
+          command: "clear",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -460,7 +462,7 @@ export class Commands {
    * the current color settings
    */
   public static async colorGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 9 });
+    await parsed.parseArgs({ command: "color get" });
 
     let response = "**Colors**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
@@ -476,7 +478,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 9,
+          command: "color set",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -571,7 +573,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 7,
+          command: "display",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -600,7 +602,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 12,
+          command: "enqueue",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -679,7 +681,7 @@ export class Commands {
    * the current grace period settings
    */
   public static async graceperiodGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 15 });
+    await parsed.parseArgs({ command: "graceperiod get" });
 
     let response = "**Grace Periods**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
@@ -696,7 +698,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 15,
+          command: "graceperiod set",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -723,7 +725,7 @@ export class Commands {
    * Set or remove a header for a queue's display messages
    */
   public static async headerGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 10 });
+    await parsed.parseArgs({ command: "header get" });
 
     let response = "**Headers**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
@@ -739,7 +741,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 10,
+          command: "header set",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -763,7 +765,7 @@ export class Commands {
    * Display general help messages
    */
   public static async help(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 4 });
+    await parsed.parseArgs({ command: "help" });
     const alt = parsed.storedGuild.enable_alt_prefix;
 
     const response: MessageEmbedOptions = {
@@ -810,7 +812,7 @@ export class Commands {
    * Display help messages for queues
    */
   public static async helpQueue(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 10 });
+    await parsed.parseArgs({ command: "help queue" });
 
     const response: MessageEmbedOptions = {
       author: { name: "Privileged Commands" },
@@ -924,7 +926,7 @@ export class Commands {
    * Display help messages for bot settings
    */
   public static async helpBot(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 8 });
+    await parsed.parseArgs({ command: "help bot" });
 
     const response: MessageEmbedOptions = {
       author: { name: "Privileged Commands" },
@@ -973,7 +975,7 @@ export class Commands {
    *
    */
   public static async helpSetup(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 10 });
+    await parsed.parseArgs({ command: "help setup" });
 
     const response: MessageEmbedOptions = {
       author: { name: "Privileged Commands" },
@@ -1049,7 +1051,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 4,
+          command: "join",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -1127,7 +1129,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 4,
+          command: "dequeue",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -1160,7 +1162,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 5,
+          command: "leave",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -1193,7 +1195,7 @@ export class Commands {
    * Get whether a queue is locked or unlocked
    */
   public static async lockGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 8 });
+    await parsed.parseArgs({ command: "lock get" });
 
     for await (const queue of await parsed.getQueuePairs()) {
       const storedQueue = await QueueTable.get(queue.channel.id);
@@ -1209,7 +1211,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 8,
+          command: "lock set",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -1248,8 +1250,8 @@ export class Commands {
   /**
    * Get current logging setting
    */
-  public static async loggingChannelGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 11 });
+  public static async loggingGet(parsed: Parsed) {
+    await parsed.parseArgs({ command: "logging get" });
 
     const levelString = parsed.storedGuild.logging_channel_level === 0 ? "default" : "everything";
     const response = parsed.storedGuild.logging_channel_id
@@ -1260,26 +1262,27 @@ export class Commands {
   }
 
   /**
-   * Set a dedicated logging channel for bot messages
+   * Set a dedicated logging channel for bot messages. Use without args to unset logging channel.
    */
-  public static async loggingChannelSet(parsed: Parsed) {
+  public static async loggingSet(parsed: Parsed) {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 11,
+          command: "logging set",
           channel: {
             required: RequiredType.OPTIONAL,
           },
-          strings: RequiredType.REQUIRED,
+          strings: RequiredType.OPTIONAL,
         })
       ).length
     ) {
       return;
     }
 
-    await QueueGuildTable.setLoggingChannel(parsed.request.guildId, parsed.channel?.id, parsed.string);
+    const level = parsed.string || "default";
+    await QueueGuildTable.setLoggingChannel(parsed.request.guildId, parsed.channel?.id, level);
     const response = parsed.channel
-      ? `Set logging channel to ${parsed.channel}. Level = **${parsed.string}**.`
+      ? `Set logging channel to ${parsed.channel}. Level = **${level}**.`
       : `Unset logging channel.`;
 
     await parsed.reply({ content: response }).catch(() => null);
@@ -1291,7 +1294,7 @@ export class Commands {
    * Get whether users are displayed as mentions (on), or normal text (off)
    */
   public static async mentionsGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 12 });
+    await parsed.parseArgs({ command: "mentions get" });
 
     await parsed
       .reply({
@@ -1304,7 +1307,7 @@ export class Commands {
    * Set whether users are displayed as mentions (on), or normal text (off)
    */
   public static async mentionsSet(parsed: Parsed) {
-    if ((await parsed.parseArgs({ commandNameLength: 12, strings: RequiredType.REQUIRED })).length) {
+    if ((await parsed.parseArgs({ command: "mentions set", strings: RequiredType.REQUIRED })).length) {
       return;
     }
 
@@ -1350,7 +1353,7 @@ export class Commands {
    * Get the way queue displays are sent
    */
   public static async modeGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 8 });
+    await parsed.parseArgs({ command: "mode get" });
 
     let response = "**Messaging Mode**:\n";
     switch (parsed.storedGuild.msg_mode) {
@@ -1374,7 +1377,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 8,
+          command: "mode set",
           numbers: { required: RequiredType.REQUIRED, min: 1, max: 3, defaultValue: 1 },
         })
       ).length
@@ -1409,7 +1412,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 4,
+          command: "move",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -1465,7 +1468,7 @@ export class Commands {
    * Display the queues you are in with your position
    */
   public static async myQueues(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 8 });
+    await parsed.parseArgs({ command: "myqueue" });
 
     const author = parsed.request.member as GuildMember;
     const storedChannelIds = (await QueueTable.getFromGuild(author.guild.id)).map((ch) => ch.queue_channel_id);
@@ -1505,7 +1508,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 4,
+          command: "next",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -1629,7 +1632,7 @@ export class Commands {
   // --------------------------------- NOTIFICATIONS ------------------------------- //
 
   public static async notificationsGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 17 });
+    await parsed.parseArgs({ command: "notifications get" });
     await parsed
       .reply({
         content: "**Notifications**: " + (parsed.storedGuild.disable_notifications ? "off" : "on"),
@@ -1638,7 +1641,7 @@ export class Commands {
   }
 
   public static async notificationsSet(parsed: Parsed) {
-    if ((await parsed.parseArgs({ commandNameLength: 17, strings: RequiredType.REQUIRED })).length) {
+    if ((await parsed.parseArgs({ command: "notifications set", strings: RequiredType.REQUIRED })).length) {
       return;
     }
 
@@ -1695,7 +1698,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 19,
+          command: "permission add",
           members: isRole ? undefined : RequiredType.REQUIRED,
           roles: isRole ? RequiredType.REQUIRED : undefined,
         })
@@ -1727,7 +1730,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 22,
+          command: "permission delete",
           members: isRole ? undefined : RequiredType.OPTIONAL,
           roles: isRole ? RequiredType.OPTIONAL : undefined,
         })
@@ -1761,7 +1764,7 @@ export class Commands {
    * List roles and users with permission
    */
   public static async permissionList(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 20 });
+    await parsed.parseArgs({ command: "permission list" });
 
     const response = await this.genPermissionList(parsed);
     await parsed.reply({ content: response }).catch(() => null);
@@ -1855,7 +1858,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 17,
+          command: "priority add",
           members: isRole ? undefined : RequiredType.REQUIRED,
           roles: isRole ? RequiredType.REQUIRED : undefined,
         })
@@ -1890,7 +1893,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 17,
+          command: "priority delete",
           members: isRole ? undefined : RequiredType.OPTIONAL,
           roles: isRole ? RequiredType.OPTIONAL : undefined,
         })
@@ -1927,7 +1930,7 @@ export class Commands {
    * List roles and users with priority in queue
    */
   public static async priorityList(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 13 });
+    await parsed.parseArgs({ command: "priority list" });
 
     const response = await this.genPriorityList(parsed);
     await parsed.reply({ content: response }).catch(() => null);
@@ -1939,7 +1942,7 @@ export class Commands {
    * the current pullnum settings
    */
   public static async pullnumGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 11 });
+    await parsed.parseArgs({ command: "pullnum get" });
 
     let response = "**Pull nums**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
@@ -1955,7 +1958,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 11,
+          command: "pullnum set",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -2017,7 +2020,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 10,
+          command: "queues add",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -2087,7 +2090,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 13,
+          command: "queues delete",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -2123,7 +2126,7 @@ export class Commands {
    * List queues
    */
   public static async queuesList(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 11 });
+    await parsed.parseArgs({ command: "queues list" });
 
     const response = await this.genQueuesList(parsed);
     await parsed.reply({ content: response }).catch(() => null);
@@ -2132,10 +2135,10 @@ export class Commands {
   // --------------------------------- ROLES ------------------------------- //
 
   /**
-   * the current autopull settings
+   * Get whether queue members are assigned a role named "In Queue: ..."
    */
   public static async rolesGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 9 });
+    await parsed.parseArgs({ command: "roles get" });
     await parsed
       .reply({
         content: "**Queue Roles**: " + (parsed.storedGuild.disable_roles ? "off" : "on"),
@@ -2144,10 +2147,10 @@ export class Commands {
   }
 
   /**
-   * Enable or disable alternate prefix
+   * Set whether queue members are assigned a role named "In Queue: ..."
    */
   public static async rolesSet(parsed: Parsed) {
-    if ((await parsed.parseArgs({ commandNameLength: 9, strings: RequiredType.REQUIRED })).length) {
+    if ((await parsed.parseArgs({ command: "roles set", strings: RequiredType.REQUIRED })).length) {
       return;
     }
 
@@ -2217,7 +2220,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 12,
+          command: "schedule add",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -2280,7 +2283,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 16,
+          command: "schedule delete",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -2346,7 +2349,7 @@ export class Commands {
    * elp with writing schedules
    */
   public static async scheduleHelp(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 14 });
+    await parsed.parseArgs({ command: "schedule help" });
     await parsed
       .reply({
         content:
@@ -2380,7 +2383,7 @@ export class Commands {
    * List scheduled commands
    */
   public static async scheduleList(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 13 });
+    await parsed.parseArgs({ command: "schedule list" });
 
     let response = await this.genScheduleList(parsed);
     await parsed.reply({ content: response }).catch(() => null);
@@ -2410,7 +2413,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 7,
+          command: "shuffle",
           channel: {
             required: RequiredType.OPTIONAL,
           },
@@ -2439,7 +2442,7 @@ export class Commands {
    * the current queue sizes
    */
   public static async sizeGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 8 });
+    await parsed.parseArgs({ command: "size get" });
 
     let response = "**Sizes**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
@@ -2455,7 +2458,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 8,
+          command: "set set",
           channel: {
             required: RequiredType.REQUIRED,
           },
@@ -2483,6 +2486,12 @@ export class Commands {
     await Promise.all(dataPromises);
     await Promise.all(displayPromises);
 
+    if (parsed.args.channels.length > 1) {
+      await parsed?.reply({ content: `Set size of all queues to ${parsed.number}.` }).catch(() => null);
+    } else {
+      await parsed?.reply({ content: `Set size of ${parsed.channel} to ${parsed.number}.` }).catch(() => null);
+    }
+
     if (printHelpMessage) {
       await parsed
         .reply({
@@ -2505,7 +2514,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 5,
+          command: "start",
           channel: {
             required: RequiredType.REQUIRED,
             type: ["GUILD_VOICE", "GUILD_STAGE_VOICE"],
@@ -2550,7 +2559,7 @@ export class Commands {
    * Get the timestamps settings
    */
   public static async timestampsGet(parsed: Parsed) {
-    await parsed.parseArgs({ commandNameLength: 14 });
+    await parsed.parseArgs({ command: "timestamp get" });
 
     await parsed
       .reply({
@@ -2563,7 +2572,7 @@ export class Commands {
    * Enable or disable a joined-at timestamps next to each user in queue
    */
   public static async timestampsSet(parsed: Parsed) {
-    if ((await parsed.parseArgs({ commandNameLength: 14, strings: RequiredType.REQUIRED })).length) {
+    if ((await parsed.parseArgs({ command: "timestamp set", strings: RequiredType.REQUIRED })).length) {
       return;
     }
 
@@ -2608,7 +2617,7 @@ export class Commands {
     if (
       (
         await parsed.parseArgs({
-          commandNameLength: 5,
+          command: "to-me",
           channel: {
             required: RequiredType.REQUIRED,
             type: ["GUILD_VOICE"],

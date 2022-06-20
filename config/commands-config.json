@@ -612,7 +612,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get current logging channel setting",
+        "description": "Get current logging channel setting. Use without args to unset logging channel.",
         "type": 1,
         "options": []
       },
@@ -629,7 +629,7 @@
           },
           {
             "name": "level",
-            "description": "Logging level",
+            "description": "default = log public response. everything = log all response + joining/leaving via buttons & vc",
             "type": 3,
             "choices": [
               {

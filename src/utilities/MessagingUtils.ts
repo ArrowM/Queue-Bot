@@ -1,4 +1,5 @@
 import {
+  ColorResolvable,
   DiscordAPIError,
   EmbedFieldData,
   GuildBasedChannel,
@@ -7,6 +8,7 @@ import {
   MessageActionRow,
   MessageButton,
   MessageEmbed,
+  TextBasedChannel,
   TextChannel,
 } from "discord.js";
 import { Base } from "./Base";
@@ -117,9 +119,6 @@ export class MessagingUtils {
       return [];
     }
     let queueMembers = await QueueMemberTable.getFromQueueOrdered(queueChannel);
-    if (storedQueue.max_members) {
-      queueMembers = queueMembers.slice(0, +storedQueue.max_members);
-    }
 
     // Title
     let title = `${storedQueue.is_locked ? "🔒 " : ""}${queueChannel.name}`;
@@ -237,6 +236,60 @@ export class MessagingUtils {
       return this.button;
     } else {
       return [];
+    }
+  }
+
+  public static async logToLoggingChannel(
+    command: string,
+    content: string,
+    author: GuildMember,
+    storedGuild: StoredGuild,
+    isEphemeral: boolean
+  ): Promise<void> {
+    const loggingChannelId = storedGuild.logging_channel_id;
+    const loggingChannelLevel = storedGuild.logging_channel_level;
+    if (loggingChannelId && (!isEphemeral || loggingChannelLevel === 1)) {
+      const loggingChannel = (await author.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
+      await loggingChannel
+        .send({
+          allowedMentions: { users: [] },
+          embeds: [
+            {
+              fields: [
+                {
+                  name: command,
+                  value: content,
+                },
+              ],
+              author: {
+                name: author.user.tag,
+                icon_url: author.displayAvatarURL(),
+              },
+              footer: {
+                icon_url: author.guild.me.displayAvatarURL(),
+                text: `${author.guild.me.displayName}`,
+              },
+              timestamp: Date.now(),
+              color: this.getLoggingColor(command),
+            },
+          ],
+        })
+        .catch(() => null);
+    }
+  }
+
+  private static getLoggingColor(command: string): ColorResolvable {
+    // TODO - return red for errors
+    switch (command) {
+      case "enqueue":
+      case "join":
+        return "GREEN";
+      case "next":
+      case "dequeue":
+      case "leave":
+        return "ORANGE";
+      default:
+        return "DARKER_GREY";
     }
   }
 }

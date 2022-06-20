@@ -7,7 +7,6 @@ import {
   Message,
   PartialGuildMember,
   StageChannel,
-  TextBasedChannel,
   VoiceChannel,
   VoiceState,
 } from "discord.js";
@@ -25,6 +24,7 @@ import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
 import { Commands } from "./Commands";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
+import { MessagingUtils } from "./utilities/MessagingUtils";
 
 // Setup client
 console.time("READY. Bot started in");
@@ -415,10 +415,10 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
     case "logging":
       switch (command[1]?.name) {
         case "get":
-          await Commands.loggingChannelGet(parsed);
+          await Commands.loggingGet(parsed);
           return;
         case "set":
-          await Commands.loggingChannelSet(parsed);
+          await Commands.loggingSet(parsed);
           return;
       }
       return;
@@ -670,15 +670,13 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
         await QueueMemberTable.store(newVoiceChannel, member);
         await SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel);
 
-        const loggingChannelId = storedGuild.logging_channel_id;
-        const loggingChannelLevel = storedGuild.logging_channel_level;
-        if (loggingChannelId && loggingChannelLevel === 1) {
-          const loggingChannel = (await member.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
-          await loggingChannel.send({
-            allowedMentions: { users: [] },
-            content: `${member} joined ${newVoiceChannel}.`,
-          });
-        }
+        await MessagingUtils.logToLoggingChannel(
+          "join",
+          `${member} joined ${newVoiceChannel}.`,
+          member,
+          storedGuild,
+          true
+        );
       } catch (e: any) {
         // skip display update if failure
       }
@@ -704,15 +702,13 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           );
           await SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel);
 
-          const loggingChannelId = storedGuild.logging_channel_id;
-          const loggingChannelLevel = storedGuild.logging_channel_level;
-          if (loggingChannelId && loggingChannelLevel === 1) {
-            const loggingChannel = (await member.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
-            await loggingChannel.send({
-              allowedMentions: { users: [] },
-              content: `${member} left ${newVoiceChannel}.`,
-            });
-          }
+          await MessagingUtils.logToLoggingChannel(
+            "leave",
+            `${member} left ${newVoiceChannel}.`,
+            member,
+            storedGuild,
+            true
+          );
         }
       } catch (e: any) {
         // skip display update if failure
@@ -829,15 +825,13 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
     const storedGuild = await QueueGuildTable.get(interaction.guild.id);
     await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queueChannel);
 
-    const loggingChannelId = storedGuild.logging_channel_id;
-    const loggingChannelLevel = storedGuild.logging_channel_level;
-    if (loggingChannelId && loggingChannelLevel === 1) {
-      const loggingChannel = (await member.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
-      await loggingChannel.send({
-        allowedMentions: { users: [] },
-        content: `${member} ${storedQueueMember ? "left" : "joined"} ${queueChannel}.`,
-      });
-    }
+    await MessagingUtils.logToLoggingChannel(
+      storedQueueMember ? "leave" : "join",
+      `${member} ${storedQueueMember ? "left" : "joined"} ${queueChannel}.`,
+      member,
+      storedGuild,
+      true
+    );
   } catch (e: any) {
     if (e.author === "Queue Bot") {
       await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
