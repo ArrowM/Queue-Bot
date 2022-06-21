@@ -820,15 +820,15 @@ export class Commands {
       fields: [
         {
           name: "`/autopull`",
-          value: "Get / Set automatic pull from a voice queue",
+          value: "Get/Set automatic pull from a voice queue",
         },
         {
           name: "`/blacklist`",
-          value: "Add / Delete / List users or roles from a queue blacklist",
+          value: "Add/Delete/List users or roles from a queue blacklist",
         },
         {
           name: "`/button`",
-          value: 'Get / Set whether a "Join / Leave" button appears under a text queue display',
+          value: 'Get/Set whether a "Join / Leave" button appears under a text queue display',
         },
         {
           name: "`/clear`",
@@ -836,7 +836,7 @@ export class Commands {
         },
         {
           name: "`/color`",
-          value: "Get / Set color of queue displays",
+          value: "Get/Set color of queue displays",
         },
         {
           name: "`/enqueue user` & `/enqueue role`",
@@ -844,11 +844,11 @@ export class Commands {
         },
         {
           name: "`/graceperiod`",
-          value: "Get / Set how long users can leave a queue before losing their position",
+          value: "Get/Set how long users can leave a queue before losing their position",
         },
         {
           name: "`/header`",
-          value: "Get / Set a header on display messages",
+          value: "Get/Set a header on display messages",
         },
         {
           name: "`/dequeue`",
@@ -859,9 +859,13 @@ export class Commands {
           value: "Lock or unlock a queue. Locked queues can still be left",
         },
         {
+          name: "`/logging`",
+          value: "Get/Set a dedicated logging channel for bot messages",
+        },
+        {
           name: "`/mentions`",
           value:
-            "Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
+            "Get/Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
         },
         {
           name: "`/move`",
@@ -873,19 +877,19 @@ export class Commands {
         },
         {
           name: "`/pullnum`",
-          value: "Get / Set the default # of users to pull when autopull is off or when using `/next`",
+          value: "Get/Set the default # of users to pull when autopull is off or when using `/next`",
         },
         {
           name: "`/queues`",
-          value: "Add / Delete / List queues",
+          value: "Add/Delete/List queues",
         },
         {
           name: "`/roles`",
-          value: "Get / Set whether queue members are assigned a role named `In Queue: ...`",
+          value: "Get/Set whether queue members are assigned a role named `In Queue: ...`",
         },
         {
           name: "`/schedule`",
-          value: "Add / Delete / List scheduled commands",
+          value: "Add/Delete/List scheduled commands",
         },
         {
           name: "`/shuffle`",
@@ -893,7 +897,7 @@ export class Commands {
         },
         {
           name: "`/size`",
-          value: "Get / Set the size limits of queues",
+          value: "Get/Set the size limits of queues",
         },
         {
           name: "`/timestamps`",
@@ -905,7 +909,7 @@ export class Commands {
         },
         {
           name: "`/whitelist`",
-          value: "Add / Delete / List / Clear users or roles from a queue whitelist",
+          value: "Add/Delete/List/Clear users or roles from a queue whitelist",
         },
       ],
     };
@@ -938,19 +942,19 @@ export class Commands {
         },
         {
           name: "`/mode`",
-          value: "Get / Set display mode",
+          value: "Get/Set display mode",
         },
         {
           name: "`/notifications`",
-          value: "Get / Set notification status (on = DM users when they are pulled out. off = no DMS)",
+          value: "Get/Set notification status (on = DM users when they are pulled out. off = no DMS)",
         },
         {
           name: "`/permission`",
-          value: "Add / Delete / List / Clear users and roles with bot permissions",
+          value: "Add/Delete/List/Clear users and roles with bot permissions",
         },
         {
           name: "`/priority`",
-          value: "Add / Delete / List / Clear users and roles with queue priority",
+          value: "Add/Delete/List/Clear users and roles with queue priority",
         },
         {
           name: "`/start`",
@@ -1952,7 +1956,7 @@ export class Commands {
   }
 
   /**
-   * Get / Set the default # of users to pull when autopull is off or when using the `next` command
+   * Get/Set the default # of users to pull when autopull is off or when using the `next` command
    */
   public static async pullnumSet(parsed: Parsed) {
     if (

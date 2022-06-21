@@ -57,7 +57,7 @@ export class QueueTable {
   }
 
   public static async setHeader(queueChannelId: Snowflake, message: string) {
-    await QueueTable.get(queueChannelId).update("header", message);
+    await QueueTable.get(queueChannelId).update("header", message || null);
   }
 
   public static async setHideButton(queueChannelId: Snowflake, hidden: boolean) {

@@ -25,35 +25,36 @@ Privileged commands are restricted to the server owner, administrators, and user
 If a command that expects a channel name is not given one, the current text channel will be used.  
   
 **Queue Management**  
-`/autopull` - Get / Set automatic pull from a voice queue  
-`/blacklist` - Add / Delete / List / Clear users or roles from a queue blacklist  
-`/button` - Get / Set whether a \"Join / Leave\" button appears under a text queue display  
+`/autopull` - Get/Set automatic pull from a voice queue  
+`/blacklist` - Add/Delete/List/Clear users or roles from a queue blacklist  
+`/button` - Get/Set whether a \"Join / Leave\" button appears under a text queue display  
 `/clear` - Clear a queue  
-`/color` - Get / Set color of queue displays  
+`/color` - Get/Set color of queue displays  
 `/enqueue` - Add a specified user or role to a text queue / Update queue message  
-`/graceperiod` - Get / Set how long users can leave a queue before losing their position  
-`/header` - Get / Set a header on display messages  
+`/graceperiod` - Get/Set how long users can leave a queue before losing their position  
+`/header` - Get/Set a header on display messages  
 `/dequeue` - Dequeue a user  
 `/lock` - Lock or unlock a queue. Locked queues can still be left  
-`/mentions` - Get / Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
+`/logging` - Get/Set a dedicated logging channel for bot messages  
+`/mentions` - Get/Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/move` - Move a user to a new position in a queue  
 `/next` - Pull from a text queue  
-`/pullnum` - Get / Set the default # of users to pull when autopull is off or when using the `/next` command  
-`/queues` - Add / Delete / List queues  
-`/roles` - Get / Set whether queue members are assigned a role named `In Queue: ...`  
-`/schedule` - Add / Delete / List scheduled commands  
+`/pullnum` - Get/Set the default # of users to pull when autopull is off or when using the `/next` command  
+`/queues` - Add/Delete/List queues  
+`/roles` - Get/Set whether queue members are assigned a role named `In Queue: ...`  
+`/schedule` - Add/Delete/List scheduled commands  
 `/shuffle` - Shuffle a queue  
-`/size` - Get / Set size limit of a queue  
-`/timestamps` - Get / Set whether to display timestamps next to users
+`/size` - Get/Set size limit of a queue  
+`/timestamps` - Get/Set whether to display timestamps next to users
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
-`/whitelist` - Add / Delete / List / Clear users or roles from a queue whitelist  
+`/whitelist` - Add/Delete/List/Clear users or roles from a queue whitelist  
 
 **Bot Management**  
 `/altprefix` - Enable or disable alternate prefix `!`  
-`/mode` - Get / Set display mode  
-`/notifications` - Get / Set notification status (on = DM users when they are pulled out. off = no DMS)
-`/permission` - Add / Delete / List / Clear users and roles with bot permissions
-`/priority` - Add / Delete / List / Clear users and roles with queue priority  
+`/mode` - Get/Set display mode  
+`/notifications` - Get/Set notification status (on = DM users when they are pulled out. off = no DMS)
+`/permission` - Add/Delete/List/Clear users and roles with bot permissions
+`/priority` - Add/Delete/List/Clear users and roles with queue priority  
 `/start` - Add the bot to a voice queue  
 
 https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-83c0-c3b5d0441261.mp4  

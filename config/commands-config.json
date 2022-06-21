@@ -612,7 +612,7 @@
     "options": [
       {
         "name": "get",
-        "description": "Get current logging channel setting. Use without args to unset logging channel.",
+        "description": "Get current logging channel setting. Use without args to unset logging channel",
         "type": 1,
         "options": []
       },

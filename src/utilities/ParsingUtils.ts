@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import {
   Collection,
-  ColorResolvable,
   CommandInteraction,
   CommandInteractionOption,
   GuildBasedChannel,
@@ -13,7 +12,6 @@ import {
   ReplyMessageOptions,
   Role,
   Snowflake,
-  TextBasedChannel,
 } from "discord.js";
 import { Base } from "./Base";
 import { StoredQueue, StoredGuild, QueuePair } from "./Interfaces";
