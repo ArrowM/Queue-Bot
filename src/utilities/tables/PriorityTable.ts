@@ -57,7 +57,7 @@ export class PriorityTable {
     if (roleMemberId) {
       query = query.where("role_member_id", roleMemberId);
     }
-    await query.first().delete();
+    await query.delete();
   }
 
   public static async validate(

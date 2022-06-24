@@ -62,7 +62,7 @@ export class ScheduleTable {
       query = query.where("queue_channel_id", queueChannelId);
     }
     if (command) {
-      query = query.where("command", command).first();
+      query = query.where("command", command);
     }
     await query;
   }
