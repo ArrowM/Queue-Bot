@@ -95,15 +95,18 @@ https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-
   
 ![Token Location](docs/token_location.PNG)  
   
-5. [Install NodeJS 16.6+](https://discordjs.guide/preparations/#installing-node-js).  
-6. [Install Node-gyp](https://github.com/nodejs/node-gyp#installation), follow the installation steps carefully.
-7. Open command prompt in project directory (If you have the project open in file explorer, click on the directory bar, enter `cmd`, and hit enter).
-Enter `npm install -g typescript`, then `npm i` into command prompt. Keep the command prompt open.
-8. Build the bot. In the same command prompt, enter `npm run build`.  
-9. Start the Bot. Enter `npm start` into command prompt. If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
-10. Invite the bot with the following url after replacing `CLIENT_ID` with your own client id.  
+5. [Install NodeJS](https://discordjs.guide/preparations/#installing-node-js).
+6. Open command prompt in project directory (If you have the project open in file explorer, click on the directory bar, enter `cmd`, and hit enter).
+Enter the following:
+```
+npm update
+npm run build
+npm start
+```
+If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
+7. Invite the bot with the following url after replacing `CLIENT_ID` with your own client id.  
     1. https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=2433838096&scope=applications.commands%20bot
-11. **Optional**. Make the bot run in the background.  
+8. **Optional**. Make the bot run in the background.  
      9a. In command prompt, enter `npm install pm2 -g`  
      9b. To start the bot, enter `pm2 start build/bot.js --time`  
      9c. To stop the bot, enter `pm2 stop bot`  

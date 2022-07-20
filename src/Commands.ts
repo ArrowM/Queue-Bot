@@ -22,7 +22,6 @@ import { MessagingUtils } from "./utilities/MessagingUtils";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
 import { QueueTable } from "./utilities/tables/QueueTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
-import { Voice } from "./utilities/VoiceUtils";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
@@ -34,6 +33,12 @@ import { validate as cronValidate } from "node-cron";
 import cronstrue from "cronstrue";
 import { ScheduleTable } from "./utilities/tables/ScheduleTable";
 import { RequiredType } from "./utilities/ParsingUtils";
+import {
+  DiscordGatewayAdapterCreator, entersState,
+  getVoiceConnection,
+  joinVoiceChannel,
+  VoiceConnectionStatus
+} from "@discordjs/voice";
 
 export class Commands {
   /**
@@ -2114,7 +2119,7 @@ export class Commands {
           content: response,
         })
         .catch(() => null);
-      Voice.disconnectFromChannel(queueChannel as VoiceChannel | StageChannel);
+      getVoiceConnection((queueChannel as VoiceChannel | StageChannel).guild.id).destroy();
     } else {
       const response = `${queueChannel} is not a queue.` + (await this.genQueuesList(parsed));
       await parsed
@@ -2540,7 +2545,23 @@ export class Commands {
           })
           .catch(() => null);
       } else {
-        await Voice.connectToChannel(queueChannel).catch(() => null);
+        const connection = joinVoiceChannel({
+          channelId: queueChannel.id,
+          guildId: queueChannel.guild.id,
+          adapterCreator: queueChannel.guild.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator
+        });
+        connection.on(VoiceConnectionStatus.Disconnected, async () => {
+          try {
+            await Promise.race([
+              entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+              entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+            ]);
+            // Seems to be reconnecting to a new channel - ignore disconnect
+          } catch (error) {
+            // Seems to be a real disconnect which SHOULDN'T be recovered from
+            connection.destroy();
+          }
+        });
         await parsed
           .reply({
             content: "Started.",
