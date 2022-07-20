@@ -865,7 +865,7 @@ export class Commands {
         },
         {
           name: "`/logging`",
-          value: "Get/Set a dedicated logging channel for bot messages",
+          value: "Get/Set a channel to log a history of bot commands and queue changes",
         },
         {
           name: "`/mentions`",

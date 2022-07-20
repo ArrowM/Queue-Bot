@@ -4,6 +4,30 @@
       "date": "2022-04-23",
       "embeds": [
          {
+            "title": "Patch Notes for July 19, 2022",
+            "color": 16767633
+         },
+         {
+            "title": "New Command",
+            "color": 16767633,
+            "fields": [
+               {
+                  "name": "New `/logging` Command",
+                  "value": "You can now log all bot commands  and queue changes to a channel with the `/logging` command."
+               },
+               {
+                  "name": "Support the Bot :heart:",
+                  "value": "Hosting isn't free and development takes lots of time.\n1. [Leave a review on top.gg](https://top.gg/bot/679018301543677959).\n2. [Buy me a coffee](https://www.buymeacoffee.com/Arroww)."
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "sent": false,
+      "date": "2022-04-23",
+      "embeds": [
+         {
             "title": "Patch Notes for April 23, 2022",
             "color": 16767633
          },

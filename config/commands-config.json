@@ -618,12 +618,12 @@
       },
       {
         "name": "set",
-        "description": "Set a dedicated logging channel for bot messages",
+        "description": "Set a channel to log a history of bot commands and queue changes",
         "type": 1,
         "options": [
           {
             "name": "channel",
-            "description": "Dedicated logging channel for bot messages",
+            "description": "Channel for logging a history of bot commands",
             "type": 7,
             "channel_types": [0]
           },
