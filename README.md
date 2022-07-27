@@ -97,13 +97,15 @@ https://user-images.githubusercontent.com/42418080/134399133-3ef5cfb4-24d1-459a-
   
 5. [Install NodeJS](https://discordjs.guide/preparations/#installing-node-js).
 6. Open command prompt in project directory (If you have the project open in file explorer, click on the directory bar, enter `cmd`, and hit enter).
-Enter the following:
-```
-npm update
-npm run build
-npm start
-```
-If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
+   1. Enter the following to install dependencies:  
+   `npm ci`  
+   **If you get an error**, try switching to npm 7.X.X:  
+   `npm i -g npm@7`  
+   2. Then build:  
+   `npm run build`  
+   3. And start   
+   `npm start`  
+   If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
 7. Invite the bot with the following url after replacing `CLIENT_ID` with your own client id.  
     1. https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=2433838096&scope=applications.commands%20bot
 8. **Optional**. Make the bot run in the background.  
