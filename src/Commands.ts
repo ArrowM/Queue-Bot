@@ -2046,7 +2046,7 @@ export class Commands {
           content: response,
         })
         .catch(() => null);
-      getVoiceConnection((queueChannel as VoiceChannel | StageChannel).guild.id).destroy();
+      getVoiceConnection((queueChannel as VoiceChannel | StageChannel).guild.id)?.destroy();
     } else {
       const response = `${queueChannel} is not a queue.` + (await this.genQueuesList(parsed));
       await parsed
