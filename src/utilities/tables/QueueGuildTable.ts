@@ -1,9 +1,10 @@
-import { StoredGuild } from "../Interfaces";
-import { Base } from "../Base";
 import { Guild, Snowflake } from "discord.js";
-import { QueueTable } from "./QueueTable";
+
+import { Base } from "../Base";
+import { StoredGuild } from "../Interfaces";
 import { AdminPermissionTable } from "./AdminPermissionTable";
 import { PriorityTable } from "./PriorityTable";
+import { QueueTable } from "./QueueTable";
 
 export class QueueGuildTable {
   // Create & update database table if necessary
@@ -45,9 +46,7 @@ export class QueueGuildTable {
 
   public static async setLoggingChannel(guildId: Snowflake, channelId: Snowflake, level: string) {
     const loggingNum = level === "everything" ? 1 : 0;
-    await QueueGuildTable.get(guildId)
-      .update("logging_channel_id", channelId)
-      .update("logging_channel_level", loggingNum);
+    await QueueGuildTable.get(guildId).update("logging_channel_id", channelId).update("logging_channel_level", loggingNum);
   }
 
   public static async setMessageMode(guildId: Snowflake, mode: number) {

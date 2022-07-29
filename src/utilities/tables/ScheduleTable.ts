@@ -1,5 +1,6 @@
-import { Base } from "../Base";
 import { Snowflake } from "discord.js";
+
+import { Base } from "../Base";
 import { Schedule, ScheduleCommand } from "../Interfaces";
 
 export class ScheduleTable {
@@ -32,15 +33,8 @@ export class ScheduleTable {
     return Base.knex<Schedule>("schedules").where("queue_channel_id", queueChannelId);
   }
 
-  public static async store(
-    queueChannelId: Snowflake,
-    command: ScheduleCommand,
-    schedule: string,
-    utcOffset: number
-  ): Promise<void> {
-    const existingEntry = await Base.knex<Schedule>("schedules")
-      .where("queue_channel_id", queueChannelId)
-      .where("command", command);
+  public static async store(queueChannelId: Snowflake, command: ScheduleCommand, schedule: string, utcOffset: number): Promise<void> {
+    const existingEntry = await Base.knex<Schedule>("schedules").where("queue_channel_id", queueChannelId).where("command", command);
     if (existingEntry.length) {
       await Base.knex<Schedule>("schedules")
         .where("queue_channel_id", queueChannelId)

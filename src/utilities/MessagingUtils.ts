@@ -11,14 +11,15 @@ import {
   TextBasedChannel,
   TextChannel,
 } from "discord.js";
+
 import { Base } from "./Base";
 import { QueueUpdateRequest, StoredGuild } from "./Interfaces";
+import { SchedulingUtils } from "./SchedulingUtils";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
-import { QueueTable } from "./tables/QueueTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
+import { QueueTable } from "./tables/QueueTable";
 import { Validator } from "./Validator";
-import { SchedulingUtils } from "./SchedulingUtils";
 
 export class MessagingUtils {
   private static gracePeriodCache = new Map<number, string>();
@@ -185,9 +186,7 @@ export class MessagingUtils {
       entries.push(idxStr + timeStr + prioStr + nameStr + msgStr + "\n");
     }
 
-    const firstFieldName = storedQueue.max_members
-      ? `Capacity:  ${position} / ${storedQueue.max_members}`
-      : `Length:  ${position}`;
+    const firstFieldName = storedQueue.max_members ? `Capacity:  ${position} / ${storedQueue.max_members}` : `Length:  ${position}`;
 
     const embeds: MessageEmbed[] = [];
     let embedLength = title.length + description.length + firstFieldName.length;
@@ -225,9 +224,7 @@ export class MessagingUtils {
   }
 
   private static button: MessageActionRow[] = [
-    new MessageActionRow().addComponents(
-      new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY")
-    ),
+    new MessageActionRow().addComponents(new MessageButton().setCustomId("joinLeave").setLabel("Join / Leave").setStyle("SECONDARY")),
   ];
 
   public static async getButton(channel: GuildBasedChannel): Promise<MessageActionRow[]> {

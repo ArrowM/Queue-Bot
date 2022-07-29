@@ -1,4 +1,5 @@
 import { Collection, GuildBasedChannel, GuildMember, Role, Snowflake } from "discord.js";
+
 import { Base } from "../Base";
 import { BlackWhiteListEntry } from "../Interfaces";
 
@@ -46,10 +47,7 @@ export class BlackWhiteListTable {
 
   public static async hasWhitelist(queueChannelId: Snowflake): Promise<boolean> {
     return (
-      (await Base.knex<BlackWhiteListEntry>("black_white_list")
-        .where("queue_channel_id", queueChannelId)
-        .where("type", 1)
-        .first()) != null
+      (await Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannelId).where("type", 1).first()) != null
     );
   }
 
@@ -62,9 +60,7 @@ export class BlackWhiteListTable {
   }
 
   public static getMany(type: number, queueChannelId: Snowflake) {
-    return Base.knex<BlackWhiteListEntry>("black_white_list")
-      .where("queue_channel_id", queueChannelId)
-      .where("type", type);
+    return Base.knex<BlackWhiteListEntry>("black_white_list").where("queue_channel_id", queueChannelId).where("type", type);
   }
 
   public static getByIsRole(type: number, queueChannelId: Snowflake, isRole: boolean) {

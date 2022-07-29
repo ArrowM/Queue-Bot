@@ -1,4 +1,5 @@
 import { Guild, Snowflake } from "discord.js";
+
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 import { PriorityTable } from "./tables/PriorityTable";
 import { QueueTable } from "./tables/QueueTable";

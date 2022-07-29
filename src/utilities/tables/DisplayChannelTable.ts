@@ -1,6 +1,7 @@
 import { Collection, Guild, GuildBasedChannel, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
-import { DisplayChannel } from "../Interfaces";
+
 import { Base } from "../Base";
+import { DisplayChannel } from "../Interfaces";
 import { MessagingUtils } from "../MessagingUtils";
 
 export class DisplayChannelTable {
@@ -78,9 +79,7 @@ export class DisplayChannelTable {
         continue;
       }
 
-      const displayMessage = await displayChannel.messages
-        .fetch(storedDisplay.message_id, { cache: false })
-        .catch(() => null as Message);
+      const displayMessage = await displayChannel.messages.fetch(storedDisplay.message_id, { cache: false }).catch(() => null as Message);
       if (!displayMessage) {
         continue;
       }
@@ -104,9 +103,7 @@ export class DisplayChannelTable {
     const storedEntries = await DisplayChannelTable.getFromQueue(queueChannel.id);
     for await (const entry of storedEntries) {
       if (channels.some((c) => c.id === entry.display_channel_id)) {
-        Base.client.guilds.cache
-          .get(guild.id)
-          .channels.cache.set(entry.display_channel_id, channels.get(entry.display_channel_id)); // cache
+        Base.client.guilds.cache.get(guild.id).channels.cache.set(entry.display_channel_id, channels.get(entry.display_channel_id)); // cache
       } else {
         await DisplayChannelTable.unstore(queueChannel.id, entry.display_channel_id);
         updateRequired = true;

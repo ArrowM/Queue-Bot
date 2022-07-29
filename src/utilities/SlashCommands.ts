@@ -1,4 +1,5 @@
 import delay from "delay";
+import { Collection, Guild, GuildBasedChannel, Message, Snowflake } from "discord.js";
 import {
   ApplicationCommand,
   ApplicationCommandOption,
@@ -6,10 +7,10 @@ import {
   ApplicationOptions,
   Client as SlashClient,
 } from "discord-slash-commands-client";
-import { Collection, Guild, GuildBasedChannel, Message, Snowflake } from "discord.js";
+
 import { Base } from "./Base";
-import { QueueTable } from "./tables/QueueTable";
 import { Parsed } from "./Interfaces";
+import { QueueTable } from "./tables/QueueTable";
 
 interface SlashUpdateMessage {
   resp: Message;
@@ -97,11 +98,7 @@ export class SlashCommands {
     return options;
   }
 
-  private static async modify(
-    guildId: Snowflake,
-    parsed: Parsed,
-    queueChannels: GuildBasedChannel[]
-  ): Promise<ApplicationOptions[]> {
+  private static async modify(guildId: Snowflake, parsed: Parsed, queueChannels: GuildBasedChannel[]): Promise<ApplicationOptions[]> {
     const now = Date.now();
     this.commandRegistrationCache.set(guildId, now);
 
@@ -121,9 +118,7 @@ export class SlashCommands {
       const excludedTextCommands = this.TEXT_COMMANDS;
       commands = commands.filter((c) => !excludedTextCommands.includes(c.name));
 
-      let liveCommands = (await this.slashClient
-        .getCommands({ guildID: guildId })
-        .catch(() => [])) as ApplicationCommand[];
+      let liveCommands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
       liveCommands = liveCommands.filter((cmd) => cmd.application_id === Base.client.user.id);
 
       for (const excludedTextCommand of excludedTextCommands) {
@@ -209,9 +204,7 @@ export class SlashCommands {
 
   public static async updateCommandsForOfflineGuildChanges(guilds: Collection<Snowflake, Guild>) {
     for await (const guild of guilds.values()) {
-      const channels = guild.channels.cache?.filter((ch) =>
-        ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type)
-      );
+      const channels = guild.channels.cache?.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type));
       const queueChannels = await QueueTable.getFromGuild(guild.id);
       let updateRequired = false;
       for await (const storedChannel of queueChannels) {

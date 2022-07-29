@@ -1,10 +1,11 @@
-import { StoredQueue, QueueMember } from "../Interfaces";
-import { Base } from "../Base";
 import { Collection, Guild, GuildBasedChannel, GuildMember, Snowflake } from "discord.js";
+
+import { Base } from "../Base";
+import { QueueMember, StoredQueue } from "../Interfaces";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { PriorityTable } from "./PriorityTable";
-import { QueueTable } from "./QueueTable";
 import { QueueGuildTable } from "./QueueGuildTable";
+import { QueueTable } from "./QueueTable";
 
 export class QueueMemberTable {
   // Create & update database table if necessary
@@ -60,10 +61,7 @@ export class QueueMemberTable {
   /**
    * WARNING THIS MIGHT BE SLOW
    */
-  public static async getMemberFromQueueMember(
-    queueChannel: GuildBasedChannel,
-    queueMember: QueueMember
-  ): Promise<GuildMember> {
+  public static async getMemberFromQueueMember(queueChannel: GuildBasedChannel, queueMember: QueueMember): Promise<GuildMember> {
     try {
       return await queueChannel.guild.members.fetch(queueMember.member_id);
     } catch (e: any) {
@@ -90,12 +88,7 @@ export class QueueMemberTable {
 
   private static unstoredMembersCache = new Map<Snowflake, Date>();
 
-  public static async store(
-    queueChannel: GuildBasedChannel,
-    member: GuildMember,
-    customMessage?: string,
-    force?: boolean
-  ) {
+  public static async store(queueChannel: GuildBasedChannel, member: GuildMember, customMessage?: string, force?: boolean) {
     if (!force) {
       const storedChannel = await QueueTable.get(queueChannel.id);
       if (!storedChannel) {
@@ -211,10 +204,7 @@ export class QueueMemberTable {
     }
   }
 
-  public static async validate(
-    queueChannel: GuildBasedChannel,
-    members: Collection<Snowflake, GuildMember>
-  ): Promise<boolean> {
+  public static async validate(queueChannel: GuildBasedChannel, members: Collection<Snowflake, GuildMember>): Promise<boolean> {
     const storedEntries = await QueueMemberTable.getFromQueueUnordered(queueChannel);
     const promises = [];
     for await (const entry of storedEntries) {

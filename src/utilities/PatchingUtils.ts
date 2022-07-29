@@ -1,29 +1,30 @@
+import delay from "delay";
 import { Collection, Guild, Message, MessageEmbed, Snowflake, TextChannel } from "discord.js";
+import { ApplicationCommand } from "discord-slash-commands-client";
+import { existsSync, writeFileSync } from "fs";
+import schemaInspector from "knex-schema-inspector";
+import _ from "lodash";
+
 import { Base } from "./Base";
 import {
   AdminPermission,
   BlackWhiteListEntry,
   DisplayChannel,
-  StoredQueue,
-  StoredGuild,
   QueueMember,
   Schedule,
   ScheduleCommand,
+  StoredGuild,
+  StoredQueue,
 } from "./Interfaces";
-import { existsSync, writeFileSync } from "fs";
-import delay from "delay";
-import schemaInspector from "knex-schema-inspector";
-import { QueueTable } from "./tables/QueueTable";
-import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { MessagingUtils } from "./MessagingUtils";
+import { SlashCommands } from "./SlashCommands";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./tables/BlackWhiteListTable";
+import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { PriorityTable } from "./tables/PriorityTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
-import _ from "lodash";
-import { ApplicationCommand } from "discord-slash-commands-client";
-import { SlashCommands } from "./SlashCommands";
+import { QueueTable } from "./tables/QueueTable";
 import { ScheduleTable } from "./tables/ScheduleTable";
 
 interface Note {
@@ -49,9 +50,7 @@ export class PatchingUtils {
     if (Base.haveCommandsChanged()) {
       let addedCommands = Base.commands.filter((c) => _.findIndex(Base.lastCommands, c) === -1);
       let addedNames = addedCommands.map((c) => c.name);
-      let removedCommands = Base.lastCommands.filter(
-        (c) => _.findIndex(Base.commands, c) === -1 && !addedNames.includes(c.name)
-      );
+      let removedCommands = Base.lastCommands.filter((c) => _.findIndex(Base.commands, c) === -1 && !addedNames.includes(c.name));
       let removedNames = removedCommands.map((c) => c.name);
 
       if (addedNames.length) {
@@ -81,9 +80,9 @@ export class PatchingUtils {
       for await (const cmd of removedCommands) {
         let progressCnt = 0;
         if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
-          const globalCommand = (
-            (await SlashCommands.slashClient.getCommands().catch(() => [])) as ApplicationCommand[]
-          ).find((c) => c.name === cmd.name);
+          const globalCommand = ((await SlashCommands.slashClient.getCommands().catch(() => [])) as ApplicationCommand[]).find(
+            (c) => c.name === cmd.name
+          );
           if (globalCommand) {
             await SlashCommands.slashClient.deleteCommand(globalCommand.id).catch(() => null);
           }
@@ -176,9 +175,7 @@ export class PatchingUtils {
         }
 
         // SUPPORT SERVER
-        const announcementChannel = (await Base.client.channels
-          .fetch(Base.config.announcementChannelId)
-          .catch(() => null)) as TextChannel;
+        const announcementChannel = (await Base.client.channels.fetch(Base.config.announcementChannelId).catch(() => null)) as TextChannel;
         if (announcementChannel) {
           await announcementChannel.send({ embeds: note.embeds }).catch(() => null);
         }
@@ -328,9 +325,7 @@ export class PatchingUtils {
       await Base.knex.schema.alterTable("display_channels", (t) => t.bigInteger("message_id"));
       console.log("Display Channel updates");
       for await (const entry of await Base.knex<DisplayChannel>("display_channels")) {
-        const displayChannel = (await Base.client.channels
-          .fetch(entry.display_channel_id)
-          .catch(() => null)) as TextChannel;
+        const displayChannel = (await Base.client.channels.fetch(entry.display_channel_id).catch(() => null)) as TextChannel;
         const queueChannel = await Base.client.channels.fetch(entry.queue_channel_id).catch(() => null);
         if (!displayChannel || !queueChannel) {
           continue;
@@ -434,9 +429,9 @@ export class PatchingUtils {
     // Migrate clear_schedule & clearTimezone to schedule table
     if (await Base.knex.schema.hasColumn("queue_channels", "clear_schedule")) {
       await this.tableSchedules();
-      const entries = await Base.knex<StoredQueue & { clear_schedule: string; clear_utc_offset: string }>(
-        "queue_channels"
-      ).whereNotNull("clear_schedule");
+      const entries = await Base.knex<StoredQueue & { clear_schedule: string; clear_utc_offset: string }>("queue_channels").whereNotNull(
+        "clear_schedule"
+      );
       for await (let entry of entries) {
         await Base.knex<Schedule>("schedules")
           .insert({
@@ -548,9 +543,7 @@ export class PatchingUtils {
     }
     // add display_time
     if (!(await Base.knex.schema.hasColumn("queue_members", "display_time"))) {
-      await Base.knex.schema.alterTable("queue_members", (t) =>
-        t.timestamp("display_time").defaultTo(Base.knex.fn.now())
-      );
+      await Base.knex.schema.alterTable("queue_members", (t) => t.timestamp("display_time").defaultTo(Base.knex.fn.now()));
       // Initialize display_time
       for await (const entry of await Base.knex<QueueMember>("queue_members")) {
         await Base.knex<QueueMember>("queue_members").where("id", entry.id).update("display_time", entry.created_at);

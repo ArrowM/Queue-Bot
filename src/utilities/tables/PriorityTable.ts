@@ -1,4 +1,5 @@
 import { Collection, Guild, GuildMember, Role, Snowflake } from "discord.js";
+
 import { Base } from "../Base";
 import { PriorityEntry } from "../Interfaces";
 
@@ -20,10 +21,7 @@ export class PriorityTable {
   }
 
   public static get(guildId: Snowflake, roleMemberId: Snowflake) {
-    return Base.knex<PriorityEntry>("priority")
-      .where("guild_id", guildId)
-      .where("role_member_id", roleMemberId)
-      .first();
+    return Base.knex<PriorityEntry>("priority").where("guild_id", guildId).where("role_member_id", roleMemberId).first();
   }
 
   public static getMany(guildId: Snowflake) {
@@ -33,10 +31,7 @@ export class PriorityTable {
   public static async isPriority(guildId: Snowflake, member: GuildMember) {
     const roleIds = member.roles.cache.keys();
     for (const id of [member.id, ...roleIds]) {
-      const memberPerm = await Base.knex<PriorityEntry>("priority")
-        .where("guild_id", guildId)
-        .where("role_member_id", id)
-        .first();
+      const memberPerm = await Base.knex<PriorityEntry>("priority").where("guild_id", guildId).where("role_member_id", id).first();
       if (memberPerm) {
         return true;
       }

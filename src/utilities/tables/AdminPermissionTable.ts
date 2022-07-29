@@ -1,6 +1,7 @@
-import { AdminPermission } from "../Interfaces";
-import { Base } from "../Base";
 import { Collection, Guild, GuildMember, Role, Snowflake } from "discord.js";
+
+import { Base } from "../Base";
+import { AdminPermission } from "../Interfaces";
 
 export class AdminPermissionTable {
   // Create & update database table if necessary
@@ -20,10 +21,7 @@ export class AdminPermissionTable {
   }
 
   public static async get(guildId: Snowflake, roleMemberId: Snowflake) {
-    return Base.knex<AdminPermission>("admin_permission")
-      .where("guild_id", guildId)
-      .where("role_member_id", roleMemberId)
-      .first();
+    return Base.knex<AdminPermission>("admin_permission").where("guild_id", guildId).where("role_member_id", roleMemberId).first();
   }
 
   public static async getMany(guildId: Snowflake) {
@@ -46,11 +44,7 @@ export class AdminPermissionTable {
     await query.delete();
   }
 
-  public static async validate(
-    guild: Guild,
-    members: Collection<Snowflake, GuildMember>,
-    roles: Collection<Snowflake, Role>
-  ) {
+  public static async validate(guild: Guild, members: Collection<Snowflake, GuildMember>, roles: Collection<Snowflake, Role>) {
     const storedEntries = await this.getMany(guild.id);
     const promises = [];
     for (const entry of storedEntries) {

@@ -1,4 +1,3 @@
-import { AutoPoster } from "topgg-autoposter";
 import {
   ButtonInteraction,
   GuildBasedChannel,
@@ -11,20 +10,22 @@ import {
   VoiceState,
 } from "discord.js";
 import { EventEmitter } from "events";
-import { Parsed, StoredQueue } from "./utilities/Interfaces";
+import { AutoPoster } from "topgg-autoposter";
+import util from "util";
+
+import { Commands } from "./Commands";
 import { Base } from "./utilities/Base";
+import { Parsed, StoredQueue } from "./utilities/Interfaces";
+import { MessagingUtils } from "./utilities/MessagingUtils";
+import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
+import { PatchingUtils } from "./utilities/PatchingUtils";
+import { SchedulingUtils } from "./utilities/SchedulingUtils";
+import { SlashCommands } from "./utilities/SlashCommands";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
-import { QueueTable } from "./utilities/tables/QueueTable";
+import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
-import util from "util";
-import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
-import { PriorityTable } from "./utilities/tables/PriorityTable";
-import { PatchingUtils } from "./utilities/PatchingUtils";
-import { SlashCommands } from "./utilities/SlashCommands";
-import { Commands } from "./Commands";
-import { SchedulingUtils } from "./utilities/SchedulingUtils";
-import { MessagingUtils } from "./utilities/MessagingUtils";
+import { QueueTable } from "./utilities/tables/QueueTable";
 
 // Setup client
 console.time("READY. Bot started in");
@@ -638,10 +639,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
     const storedOldQueueChannel = oldVoiceChannel ? await QueueTable.get(oldVoiceChannel.id) : undefined;
     const storedNewQueueChannel = newVoiceChannel ? await QueueTable.get(newVoiceChannel.id) : undefined;
 
-    if (
-      Base.isMe(member) &&
-      ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)
-    ) {
+    if (Base.isMe(member) && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
       // Ignore when the bot moves between queues or when it starts and stops
       return;
     }
@@ -649,15 +647,14 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
       // Joined queue channel
       try {
         if (storedNewQueueChannel.target_channel_id) {
-          const targetChannel = (await member.guild.channels
-            .fetch(storedNewQueueChannel.target_channel_id)
-            .catch(() => null)) as VoiceChannel | StageChannel;
+          const targetChannel = (await member.guild.channels.fetch(storedNewQueueChannel.target_channel_id).catch(() => null)) as
+            | VoiceChannel
+            | StageChannel;
           if (targetChannel) {
             if (
               storedNewQueueChannel.auto_fill &&
               newVoiceChannel.members.filter((member) => !member.user.bot).size === 1 &&
-              (!targetChannel.userLimit ||
-                targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
+              (!targetChannel.userLimit || targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
             ) {
               member.voice.setChannel(targetChannel).catch(() => null);
               return;
@@ -670,13 +667,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
         await QueueMemberTable.store(newVoiceChannel, member);
         await SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel);
 
-        await MessagingUtils.logToLoggingChannel(
-          "join",
-          `${member} joined ${newVoiceChannel}.`,
-          member,
-          storedGuild,
-          true
-        );
+        await MessagingUtils.logToLoggingChannel("join", `${member} joined ${newVoiceChannel}.`, member, storedGuild, true);
       } catch (e: any) {
         // skip display update if failure
       }
@@ -689,26 +680,14 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           // move bot back
           member.voice.setChannel(oldVoiceChannel).catch(() => null);
           await setTimeout(
-            async () =>
-              await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel).catch(() => null),
+            async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel).catch(() => null),
             1000
           );
         } else {
-          await QueueMemberTable.unstore(
-            member.guild.id,
-            oldVoiceChannel.id,
-            [member.id],
-            storedOldQueueChannel.grace_period
-          );
+          await QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
           await SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel);
 
-          await MessagingUtils.logToLoggingChannel(
-            "leave",
-            `${member} left ${newVoiceChannel}.`,
-            member,
-            storedGuild,
-            true
-          );
+          await MessagingUtils.logToLoggingChannel("leave", `${member} left ${newVoiceChannel}.`, member, storedGuild, true);
         }
       } catch (e: any) {
         // skip display update if failure
@@ -720,9 +699,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
       // Randomly pick a queue to pull from
       const storedQueue = storedQueues[~~(Math.random() * storedQueues.length)];
       if (storedQueue && storedQueue.auto_fill) {
-        const queueChannel = member.guild.channels.cache.get(storedQueue.queue_channel_id) as
-          | VoiceChannel
-          | StageChannel;
+        const queueChannel = member.guild.channels.cache.get(storedQueue.queue_channel_id) as VoiceChannel | StageChannel;
         if (queueChannel) {
           await fillTargetChannel(storedQueue, queueChannel, oldVoiceChannel);
         }
@@ -767,9 +744,7 @@ async function fillTargetChannel(
       const promises = [];
       for (const storedMember of storedMembers) {
         promises.push(
-          QueueMemberTable.getMemberFromQueueMember(srcChannel, storedMember).then((m) =>
-            m?.voice.setChannel(dstChannel).catch(() => null)
-          )
+          QueueMemberTable.getMemberFromQueueMember(srcChannel, storedMember).then((m) => m?.voice.setChannel(dstChannel).catch(() => null))
         );
       }
       await Promise.all(promises);
@@ -778,14 +753,10 @@ async function fillTargetChannel(
     // Request perms in display channel chat
     const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(srcChannel.guild, srcChannel.id);
     if (displayChannel) {
-      await displayChannel.send(
-        `I need the **CONNECT** permission in the ${dstChannel} voice channel to pull in queue members.`
-      );
+      await displayChannel.send(`I need the **CONNECT** permission in the ${dstChannel} voice channel to pull in queue members.`);
     } else {
       const owner = await guild.fetchOwner();
-      owner
-        .send(`I need the **CONNECT** permission in the ${dstChannel} voice channel to pull in queue members.`)
-        .catch(() => null);
+      owner.send(`I need the **CONNECT** permission in the ${dstChannel} voice channel to pull in queue members.`).catch(() => null);
     }
   }
 }

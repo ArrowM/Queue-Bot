@@ -1,15 +1,16 @@
-import { QueueUpdateRequest, Schedule, ScheduleCommand, StoredGuild, StoredQueue } from "./Interfaces";
+import cronstrue from "cronstrue";
 import { Guild, GuildBasedChannel, Snowflake } from "discord.js";
-import { ScheduleTable } from "./tables/ScheduleTable";
+import MultikeyMap from "multikey-map";
+import { schedule as cronSchedule, ScheduledTask } from "node-cron";
+
+import { Commands } from "../Commands";
 import { Base } from "./Base";
-import { QueueTable } from "./tables/QueueTable";
+import { QueueUpdateRequest, Schedule, ScheduleCommand, StoredGuild, StoredQueue } from "./Interfaces";
+import { MessagingUtils } from "./MessagingUtils";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
-import { schedule as cronSchedule, ScheduledTask } from "node-cron";
-import { MessagingUtils } from "./MessagingUtils";
-import { Commands } from "../Commands";
-import MultikeyMap from "multikey-map";
-import cronstrue from "cronstrue";
+import { QueueTable } from "./tables/QueueTable";
+import { ScheduleTable } from "./tables/ScheduleTable";
 
 export class SchedulingUtils {
   // <queueChannelId, queueUpdateRequest>
@@ -51,14 +52,9 @@ export class SchedulingUtils {
     }
   }
 
-  public static async scheduleCommand(
-    queueChannelId: Snowflake,
-    command: ScheduleCommand,
-    schedule: string,
-    utcOffset: number
-  ) {
+  public static async scheduleCommand(queueChannelId: Snowflake, command: ScheduleCommand, schedule: string, utcOffset: number) {
     try {
-      const timezone = Base.getTimezone(utcOffset).timezone; // eslint-disable-next-line no-unused-vars
+      const timezone = Base.getTimezone(utcOffset).timezone;
       let func = async () => {
         await SchedulingUtils.commandHelper(queueChannelId, command);
       };
@@ -102,9 +98,7 @@ export class SchedulingUtils {
   public static async startCommandScheduler() {
     const promises = [];
     for await (const schedule of await ScheduleTable.getAll()) {
-      promises.push(
-        this.scheduleCommand(schedule.queue_channel_id, schedule.command, schedule.schedule, schedule.utc_offset)
-      );
+      promises.push(this.scheduleCommand(schedule.queue_channel_id, schedule.command, schedule.schedule, schedule.utc_offset));
     }
     await Promise.all(promises);
   }

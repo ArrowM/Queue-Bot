@@ -1,9 +1,10 @@
-import { ApplicationOptions } from "discord-slash-commands-client";
 import { Client, Collection, Guild, GuildMember, LimitedCollection, Snowflake } from "discord.js";
+import { ApplicationOptions } from "discord-slash-commands-client";
 import { readFileSync, writeFileSync } from "fs";
 import { knex } from "knex";
-import { ConfigJson, Timezone } from "./Interfaces";
 import _ from "lodash";
+
+import { ConfigJson, Timezone } from "./Interfaces";
 import { MessageCollection } from "./MessageCollection";
 
 export class Base {
@@ -106,10 +107,7 @@ export class Base {
   }
 
   public static archiveCommands(): void {
-    writeFileSync(
-      "../data/last-commands-config.json",
-      readFileSync("../config/commands-config.json", { encoding: "utf8" })
-    );
+    writeFileSync("../data/last-commands-config.json", readFileSync("../config/commands-config.json", { encoding: "utf8" }));
   }
 
   public static getTimezone(utcOffset: number): Timezone {

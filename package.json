@@ -5,9 +5,10 @@
   "main": "build/bot.js",
   "scripts": {
     "build": "tsc -p .",
-    "format": "eslint src/**/*.ts --fix --no-error-on-unmatched-pattern && prettier --write --loglevel warn \"src/**/*.ts\"",
+    "lint": "eslint src/**/*.ts --fix && prettier --write --loglevel warn src/**/*.ts",
     "start": "cd build && node bot.js",
-    "restart": "tsc -p . && pm2 stop all && pm2 flush && pm2 start all"
+    "restart": "tsc -p . && pm2 restart bot",
+    "restart:flush": "tsc -p . && pm2 stop bot && pm2 flush bot && pm2 start bot"
   },
   "keywords": [],
   "author": "Arrow",
@@ -32,6 +33,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@tsconfig/node18": "^1.0.1",
     "@types/knex": "^0.16.1",
     "@types/lodash": "^4.14.178",
     "@types/node": "^18.0.0",
@@ -41,12 +43,14 @@
     "@typescript-eslint/parser": "^5.0.0",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
     "prettier": "^2.4.1",
     "typescript": "^4.4.3"
   },
   "prettier": {
     "endOfLine": "auto",
-    "printWidth": 120,
+    "printWidth": 140,
     "tabWidth": 2
   }
 }

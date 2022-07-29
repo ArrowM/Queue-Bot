@@ -1,22 +1,14 @@
-import {
-  DiscordAPIError,
-  Guild,
-  ColorResolvable,
-  Role,
-  Snowflake,
-  GuildMember,
-  GuildBasedChannel,
-  Collection,
-} from "discord.js";
-import { Parsed, StoredQueue } from "../Interfaces";
-import { Base } from "../Base";
-import { DisplayChannelTable } from "./DisplayChannelTable";
-import { QueueMemberTable } from "./QueueMemberTable";
+import { Collection, ColorResolvable, DiscordAPIError, Guild, GuildBasedChannel, GuildMember, Role, Snowflake } from "discord.js";
 import { Knex } from "knex";
-import { BlackWhiteListTable } from "./BlackWhiteListTable";
-import { SlashCommands } from "../SlashCommands";
-import { QueueGuildTable } from "./QueueGuildTable";
+
+import { Base } from "../Base";
+import { Parsed, StoredQueue } from "../Interfaces";
 import { SchedulingUtils } from "../SchedulingUtils";
+import { SlashCommands } from "../SlashCommands";
+import { BlackWhiteListTable } from "./BlackWhiteListTable";
+import { DisplayChannelTable } from "./DisplayChannelTable";
+import { QueueGuildTable } from "./QueueGuildTable";
+import { QueueMemberTable } from "./QueueMemberTable";
 import { ScheduleTable } from "./ScheduleTable";
 
 export class QueueTable {
@@ -94,9 +86,7 @@ export class QueueTable {
   }
 
   public static async setPullnum(queueChannelId: Snowflake, number: number, enable_partial_pulling: boolean) {
-    await QueueTable.get(queueChannelId)
-      .update("pull_num", number)
-      .update("enable_partial_pull", enable_partial_pulling);
+    await QueueTable.get(queueChannelId).update("pull_num", number).update("enable_partial_pull", enable_partial_pulling);
   }
 
   public static async setRoleId(queueChannel: GuildBasedChannel, role: Role) {
@@ -139,11 +129,7 @@ export class QueueTable {
     return queueChannels;
   }
 
-  public static async createQueueRole(
-    parsed: Parsed,
-    channel: GuildBasedChannel,
-    color: ColorResolvable
-  ): Promise<Role> {
+  public static async createQueueRole(parsed: Parsed, channel: GuildBasedChannel, color: ColorResolvable): Promise<Role> {
     const role = await channel.guild.roles
       .create({
         color: color,

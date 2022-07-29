@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import {
   Collection,
   CommandInteraction,
@@ -13,12 +12,13 @@ import {
   Role,
   Snowflake,
 } from "discord.js";
+
 import { Base } from "./Base";
-import { StoredQueue, StoredGuild, QueuePair } from "./Interfaces";
-import { QueueTable } from "./tables/QueueTable";
-import { QueueGuildTable } from "./tables/QueueGuildTable";
-import { AdminPermissionTable } from "./tables/AdminPermissionTable";
+import { QueuePair, RequiredType, StoredGuild, StoredQueue } from "./Interfaces";
 import { MessagingUtils } from "./MessagingUtils";
+import { AdminPermissionTable } from "./tables/AdminPermissionTable";
+import { QueueGuildTable } from "./tables/QueueGuildTable";
+import { QueueTable } from "./tables/QueueTable";
 
 export class ParsingUtils {
   private static regEx = RegExp(Base.config.permissionsRegexp, "i");
@@ -63,11 +63,6 @@ interface ReplyOptions {
   content?: string;
   embeds?: MessageEmbedOptions[];
   allowMentions?: boolean;
-}
-
-export enum RequiredType {
-  REQUIRED = "REQUIRED",
-  OPTIONAL = "OPTIONAL",
 }
 
 interface RequiredOptions {
@@ -144,17 +139,15 @@ abstract class ParsedBase {
     this.hasPermission = await ParsingUtils.checkPermission(this.request);
   }
 
-  public abstract parseArgs(conf: RequiredOptions): Promise<string[]>;
-  public abstract reply(options: ReplyOptions): Promise<Message>;
+  public abstract parseArgs(_: RequiredOptions): Promise<string[]>;
+  public abstract reply(_: ReplyOptions): Promise<Message>;
 
   protected async verifyArgs(conf: RequiredOptions): Promise<string[]> {
     const missingArgs = [];
     if (conf.channel?.required && !this.args.channels) {
       missingArgs.push(
         (conf.channel.type?.includes("GUILD_TEXT") ? "**text** " : "") +
-          (conf.channel.type?.includes("GUILD_VOICE") || conf.channel.type?.includes("GUILD_STAGE_VOICE")
-            ? "**voice** "
-            : "") +
+          (conf.channel.type?.includes("GUILD_VOICE") || conf.channel.type?.includes("GUILD_STAGE_VOICE") ? "**voice** " : "") +
           "channel"
       );
     }
@@ -177,8 +170,7 @@ abstract class ParsedBase {
     // Report missing
     if (missingArgs.length) {
       await this.reply({
-        content:
-          "**ERROR**: Missing " + missingArgs.join(" and ") + " argument" + (missingArgs.length > 1 ? "s." : "."),
+        content: "**ERROR**: Missing " + missingArgs.join(" and ") + " argument" + (missingArgs.length > 1 ? "s." : "."),
         commandDisplay: "EPHEMERAL",
       }).catch(() => null);
     }
@@ -220,9 +212,7 @@ abstract class ParsedBase {
   public async getChannels(): Promise<Collection<string, GuildBasedChannel>> {
     return (this.cachedChannels =
       this.cachedChannels ||
-      (await this.request.guild.channels.fetch()).filter((ch) =>
-        ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)
-      ));
+      (await this.request.guild.channels.fetch()).filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)));
   }
 
   protected verifyNumber(min: number, max: number, defaultValue: number): void {
@@ -234,7 +224,7 @@ abstract class ParsedBase {
 }
 
 export class ParsedCommand extends ParsedBase {
-  public request: CommandInteraction;
+  public declare request: CommandInteraction;
 
   constructor(command: CommandInteraction) {
     super();
@@ -346,7 +336,7 @@ export class ParsedCommand extends ParsedBase {
 }
 
 export class ParsedMessage extends ParsedBase {
-  public request: Message;
+  public declare request: Message;
   private lastResponse: Message;
 
   constructor(message: Message) {
