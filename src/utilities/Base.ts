@@ -27,6 +27,8 @@ export class Base {
       host: Base.config.databaseHost,
       password: Base.config.databasePassword,
       user: Base.config.databaseUsername,
+      supportBigNumbers: true,
+      bigNumberStrings: true,
     },
   });
   static readonly client: Client = new Client({
