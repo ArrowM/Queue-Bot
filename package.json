@@ -29,7 +29,6 @@
     "pg": "^8.7.3",
     "sodium-native": "^3.3.0",
     "topgg-autoposter": "^2.0.1",
-    "tweetnacl": "^1.0.3",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
