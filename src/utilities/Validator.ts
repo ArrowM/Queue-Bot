@@ -15,7 +15,7 @@ export class Validator {
    * Q: Then what is the cache code below?
    * A: Fetching all the live data for channels, members, and roles populates the caches in the discord.js lib.
    * To my knowledge, these caches never get swept, so the bots' memory usage would be very high.
-   * The cache related code below clears the local cache, stored the lived data in local variables, then clears the
+   * The cache related code below clears the local cache, fetches live data and stores it locally, then clears the
    * cache again. Then we send the local variables to the validate methods, which re-cache info that is stored in
    * the databases.
    * @param guild
