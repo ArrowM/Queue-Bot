@@ -24,7 +24,7 @@
     "knex-schema-inspector": "^2.0.3",
     "lodash": "^4.17.21",
     "multikey-map": "^0.2.1",
-    "node-cron": "^3.0.1",
+    "node-cron": "3.0.0",
     "node-gyp": "^9.1.0",
     "pg": "^8.7.3",
     "sodium-native": "^3.3.0",

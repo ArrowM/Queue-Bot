@@ -687,7 +687,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           await QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
           await SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel);
 
-          await MessagingUtils.logToLoggingChannel("leave", `${member} left ${newVoiceChannel}.`, member, storedGuild, true);
+          await MessagingUtils.logToLoggingChannel("leave", `${member} left ${oldVoiceChannel}.`, member, storedGuild, true);
         }
       } catch (e: any) {
         // skip display update if failure
