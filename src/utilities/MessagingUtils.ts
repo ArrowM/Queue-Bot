@@ -43,7 +43,7 @@ export class MessagingUtils {
             await DisplayChannelTable.unstore(queueChannel.id, storedDisplay.display_channel_id);
           }
         })) as TextChannel;
-        const message = await displayChannel?.messages.fetch(storedDisplay.message_id).catch(() => null as Message);
+        const message = await displayChannel?.messages?.fetch(storedDisplay.message_id).catch(() => null as Message);
         const perms = displayChannel?.permissionsFor(displayChannel.guild.me);
         if (displayChannel && message && perms?.has("SEND_MESSAGES") && perms?.has("EMBED_LINKS")) {
           // Retrieved display embed
