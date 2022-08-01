@@ -1932,7 +1932,7 @@ export class Commands {
   private static async genQueuesList(parsed: Parsed): Promise<string> {
     const queueChannels = await QueueTable.fetchFromGuild(parsed.request.guild);
     if (queueChannels.size) {
-      return "\nQueues: " + queueChannels.map((ch) => `\`${ch.name}\``).join(", ");
+      return "\nQueues: " + queueChannels.map((ch) => `${ch}`).join(", ");
     } else {
       return "\nNo queue channels set. Set a new queue channel using `/queues add`.";
     }
