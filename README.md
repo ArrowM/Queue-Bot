@@ -8,6 +8,7 @@
 Create voice & text channel queues. Queue Bot provides live queue displays in chat, assists in removing users in order, and allows for customization.  
 
 https://user-images.githubusercontent.com/42418080/182225650-5fc2ae04-6012-4d5a-9cad-279521b3b048.mp4  
+
 *Example of Queue Bot usage*
 
 ## Getting Started  
