@@ -848,7 +848,7 @@ export class Commands {
         },
         {
           name: "`/roles`",
-          value: "Get/Set whether queue members are assigned a role named `In Queue: ...`",
+          value: "Get/Set whether queue members are assigned a role named `In queue: ...`",
         },
         {
           name: "`/schedule`",
@@ -2071,7 +2071,7 @@ export class Commands {
   // --------------------------------- ROLES ------------------------------- //
 
   /**
-   * Get whether queue members are assigned a role named "In Queue: ..."
+   * Get whether queue members are assigned a role named "In queue: ..."
    */
   public static async rolesGet(parsed: Parsed) {
     await parsed.parseArgs({ command: "roles get" });
@@ -2083,7 +2083,7 @@ export class Commands {
   }
 
   /**
-   * Set whether queue members are assigned a role named "In Queue: ..."
+   * Set whether queue members are assigned a role named "In queue: ..."
    */
   public static async rolesSet(parsed: Parsed) {
     if ((await parsed.parseArgs({ command: "roles set", strings: RequiredType.REQUIRED })).length) {
@@ -2094,14 +2094,6 @@ export class Commands {
       await parsed
         .reply({
           content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    }
-    if ((parsed.storedGuild.disable_roles && parsed.string === "off") || (!parsed.storedGuild.disable_roles && parsed.string === "on")) {
-      await parsed
-        .reply({
-          content: `Roles were already ${parsed.string}.`,
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
@@ -2117,28 +2109,25 @@ export class Commands {
         if (!channel) {
           continue;
         }
-        if (disableRoles) {
-          // Delete role
-          const role = await guild.roles.fetch(storedQueue.role_id).catch(() => null as Role);
-          if (role) {
-            await QueueTable.deleteRoleId(channel).catch(() => null);
-            try {
-              await role.delete();
-            } catch (e) {
-              // nothing
-            }
+        // Delete old role
+        const oldRole = await guild.roles.fetch(storedQueue.role_id).catch(() => null as Role);
+        if (oldRole) {
+          await QueueTable.deleteRoleId(channel).catch(() => null);
+          try {
+            await oldRole.delete();
+          } catch (e) {
+            // nothing
+          }
+        }
+        // Create role and assign it to members
+        const role = await QueueTable.createQueueRole(parsed, channel, storedQueue.color);
+        if (role) {
+          const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
+          for await (const queueMember of queueMembers) {
+            await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
           }
         } else {
-          // Create role and assign it to members
-          const role = await QueueTable.createQueueRole(parsed, channel, storedQueue.color);
-          if (role) {
-            const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
-            for await (const queueMember of queueMembers) {
-              await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
-            }
-          } else {
-            break; // Failed to create role, don't attempt to create the others
-          }
+          break; // Failed to create role, don't attempt to create the others
         }
       }
     }

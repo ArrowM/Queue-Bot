@@ -130,11 +130,12 @@ export class QueueTable {
   }
 
   public static async createQueueRole(parsed: Parsed, channel: GuildBasedChannel, color: ColorResolvable): Promise<Role> {
+    const prefix = (parsed.args.strings?.[1] + " ") || "In queue: ";
     const role = await channel.guild.roles
       .create({
         color: color,
         mentionable: true,
-        name: "In queue: " + channel.name,
+        name: prefix + channel.name,
       })
       .catch(async (e: DiscordAPIError) => {
         if ([403, 404].includes(e.httpStatus)) {

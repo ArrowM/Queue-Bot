@@ -45,7 +45,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/next` - Pull from a text queue  
 `/pullnum` - Get/Set the default # of users to pull when autopull is off or when using the `/next` command  
 `/queues` - Add/Delete/List queues  
-`/roles` - Get/Set whether queue members are assigned a role named `In Queue: ...`  
+`/roles` - Get/Set whether queue members are assigned a role named `In queue: ...`  
 `/schedule` - Add/Delete/List scheduled commands  
 `/shuffle` - Shuffle a queue  
 `/size` - Get/Set size limit of a queue  

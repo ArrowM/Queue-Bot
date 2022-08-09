@@ -183,7 +183,7 @@
             "fields": [
                {
                   "name": "Option to disable roles (`/roles`)",
-                  "value": "Now you can disable `In Queue: ...` roles without messing with permissions or seeing error messages. Simply use `/roles set off`."
+                  "value": "Now you can disable `In queue: ...` roles without messing with permissions or seeing error messages. Simply use `/roles set off`."
                }
             ]
          }

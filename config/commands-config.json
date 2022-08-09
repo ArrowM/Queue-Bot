@@ -1049,7 +1049,7 @@
   },
   {
     "name": "roles",
-    "description": "Get / Set whether queue members are assigned a role named \"In Queue: ...\"",
+    "description": "Get / Set whether queue members are assigned a role named \"In queue: ...\"",
     "options": [
       {
         "name": "get",
@@ -1059,12 +1059,12 @@
       },
       {
         "name": "set",
-        "description": "Enable or disable \"In Queue: ...\" roles assigned by bot",
+        "description": "Enable or disable \"In queue: ...\" roles assigned by bot",
         "type": 1,
         "options": [
           {
             "name": "status",
-            "description": "Enable or disable \"In Queue: ...\" roles assigned by bot",
+            "description": "Enable or disable \"In queue: ...\" roles assigned by bot",
             "type": 3,
             "required": true,
             "choices": [
@@ -1077,6 +1077,11 @@
                 "value": "off"
               }
             ]
+          },
+          {
+            "name": "prefix",
+            "description": "Prefix in role name. Default = \"In queue: \"",
+            "type": 3
           }
         ]
       }
