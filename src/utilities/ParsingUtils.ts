@@ -212,7 +212,7 @@ abstract class ParsedBase {
   public async getChannels(): Promise<Collection<string, GuildBasedChannel>> {
     return (this.cachedChannels =
       this.cachedChannels ||
-      (await this.request.guild.channels.fetch()).filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch.type)));
+      (await this.request.guild.channels.fetch()).filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type)));
   }
 
   protected verifyNumber(min: number, max: number, defaultValue: number): void {

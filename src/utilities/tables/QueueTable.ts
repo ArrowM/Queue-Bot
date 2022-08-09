@@ -130,7 +130,7 @@ export class QueueTable {
   }
 
   public static async createQueueRole(parsed: Parsed, channel: GuildBasedChannel, color: ColorResolvable): Promise<Role> {
-    const prefix = (parsed.args.strings?.[1] + " ") || "In queue: ";
+    const prefix = parsed.args.strings?.[1] + " " || "In queue: ";
     const role = await channel.guild.roles
       .create({
         color: color,
@@ -257,7 +257,7 @@ export class QueueTable {
     const storedEntries = await QueueTable.getFromGuild(guild.id);
     for await (const entry of storedEntries) {
       let requireChannelUpdate = false;
-      const queueChannel = channels.find((c) => c.id === entry.queue_channel_id);
+      const queueChannel = channels.find((c) => c?.id === entry.queue_channel_id);
       if (queueChannel) {
         Base.client.guilds.cache.get(guild.id).channels.cache.set(queueChannel.id, queueChannel); // cache
         guild.channels.cache.set(queueChannel.id, queueChannel); // cache
