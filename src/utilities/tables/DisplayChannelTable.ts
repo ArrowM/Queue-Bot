@@ -102,7 +102,7 @@ export class DisplayChannelTable {
     let updateRequired = false;
     const storedEntries = await DisplayChannelTable.getFromQueue(queueChannel.id);
     for await (const entry of storedEntries) {
-      if (channels.some((c) => c.id === entry.display_channel_id)) {
+      if (channels.some((c) => c?.id === entry.display_channel_id)) {
         Base.client.guilds.cache.get(guild.id).channels.cache.set(entry.display_channel_id, channels.get(entry.display_channel_id)); // cache
       } else {
         await DisplayChannelTable.unstore(queueChannel.id, entry.display_channel_id);
