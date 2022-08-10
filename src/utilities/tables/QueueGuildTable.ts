@@ -21,6 +21,7 @@ export class QueueGuildTable {
             table.bigInteger("logging_channel_id");
             table.integer("logging_channel_level");
             table.integer("msg_mode");
+            table.text("role_prefix");
             table.text("timestamps").defaultTo("off");
           })
           .catch((e) => console.error(e));
@@ -59,6 +60,10 @@ export class QueueGuildTable {
 
   public static async setTimestamps(guildId: Snowflake, value: string) {
     await QueueGuildTable.get(guildId).update("timestamps", value);
+  }
+
+  public static async setRolePrefix(guildId: Snowflake, value: string) {
+    await QueueGuildTable.get(guildId).update("role_prefix", value);
   }
 
   public static async store(guild: Guild) {

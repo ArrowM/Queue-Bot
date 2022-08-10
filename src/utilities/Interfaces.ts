@@ -61,7 +61,7 @@ export interface StoredGuild {
   logging_channel_id: Snowflake;
   logging_channel_level: number;
   msg_mode: number;
-  prefix?: string;
+  role_prefix: string;
   timestamps: string;
 }
 

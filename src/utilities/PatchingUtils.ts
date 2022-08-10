@@ -525,6 +525,10 @@ export class PatchingUtils {
         t.integer("logging_channel_level");
       });
     }
+    // Add role_prefix
+    if (!(await Base.knex.schema.hasColumn("queue_guilds", "role_prefix"))) {
+      await Base.knex.schema.table("queue_guilds", (t) => t.text("role_prefix"));
+    }
   }
 
   private static async tableQueueMembers() {

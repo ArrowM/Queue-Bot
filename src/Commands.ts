@@ -2120,6 +2120,9 @@ export class Commands {
           }
         }
         // Create role and assign it to members
+        if (parsed.args.strings?.[1]) {
+          await QueueGuildTable.setRolePrefix(guild.id, parsed.args.strings?.[1] + " ");
+        }
         const role = await QueueTable.createQueueRole(parsed, channel, storedQueue.color);
         if (role) {
           const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
