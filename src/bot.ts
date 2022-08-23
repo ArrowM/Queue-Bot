@@ -808,7 +808,6 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
       await interaction.reply({ content: "**ERROR**: " + e.message, ephemeral: true }).catch(() => null);
     } else {
       await interaction.reply("An error has occurred").catch(() => null);
-      console.error(e);
     }
   }
 }

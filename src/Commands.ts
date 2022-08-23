@@ -521,6 +521,7 @@ export class Commands {
   public static async displayHelper(parsed: Parsed, storedQueue: StoredQueue, channel: GuildBasedChannel) {
     const displayChannel = parsed.request.channel as TextChannel;
     const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
+    if (!displayPermission) return;
 
     if (displayPermission.has("VIEW_CHANNEL") && displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
       const embeds = await MessagingUtils.generateEmbed(channel);
