@@ -10,7 +10,9 @@ import {
   TextChannel,
   VoiceChannel,
 } from "discord.js";
+import { ChannelTypes } from "discord.js/typings/enums";
 import { validate as cronValidate } from "node-cron";
+import { setTimeout } from "timers";
 
 import { Base } from "./utilities/Base";
 import {
@@ -168,7 +170,7 @@ export class Commands {
           command: "autopull set",
           channel: {
             required: RequiredType.OPTIONAL,
-            type: ["GUILD_VOICE", "GUILD_STAGE_VOICE"],
+            type: [ChannelTypes.GUILD_VOICE, ChannelTypes.GUILD_STAGE_VOICE],
           },
           strings: RequiredType.REQUIRED,
         })
@@ -392,7 +394,7 @@ export class Commands {
           command: "button set",
           channel: {
             required: RequiredType.OPTIONAL,
-            type: ["GUILD_TEXT"],
+            type: [ChannelTypes.GUILD_TEXT],
           },
           strings: RequiredType.REQUIRED,
         })
@@ -1461,7 +1463,7 @@ export class Commands {
           channel: {
             required: RequiredType.REQUIRED,
           },
-          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
@@ -1899,7 +1901,7 @@ export class Commands {
           channel: {
             required: RequiredType.OPTIONAL,
           },
-          numbers: { required: RequiredType.REQUIRED, min: 1, max: 99, defaultValue: 1 },
+          numbers: { required: RequiredType.REQUIRED, min: 1, max: 999, defaultValue: 1 },
           strings: RequiredType.REQUIRED,
         })
       ).length
@@ -1961,7 +1963,7 @@ export class Commands {
           channel: {
             required: RequiredType.REQUIRED,
           },
-          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
@@ -2380,7 +2382,7 @@ export class Commands {
           channel: {
             required: RequiredType.REQUIRED,
           },
-          numbers: { required: RequiredType.REQUIRED, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.REQUIRED, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
@@ -2435,7 +2437,7 @@ export class Commands {
           command: "start",
           channel: {
             required: RequiredType.REQUIRED,
-            type: ["GUILD_VOICE", "GUILD_STAGE_VOICE"],
+            type: [ChannelTypes.GUILD_VOICE, ChannelTypes.GUILD_STAGE_VOICE],
           },
         })
       ).length
@@ -2459,28 +2461,36 @@ export class Commands {
           guildId: queueChannel.guild.id,
           adapterCreator: queueChannel.guild.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator,
         });
-        connection.on(VoiceConnectionStatus.Disconnected, async () => {
-          try {
-            await Promise.race([
-              entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-              entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-            ]);
-            // Seems to be reconnecting to a new channel - ignore disconnect
-          } catch (error) {
-            // Seems to be a real disconnect which SHOULDN'T be recovered from
-            connection.destroy();
-          }
-        });
-        await parsed
-          .reply({
-            content: "Started.",
-          })
-          .catch(() => null);
+        try {
+          connection.on(VoiceConnectionStatus.Disconnected, async () => {
+            try {
+              await Promise.race([
+                entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+              ]);
+              // Seems to be reconnecting to a new channel - ignore disconnect
+            } catch (error) {
+              // Seems to be a real disconnect which SHOULDN'T be recovered from
+              connection.destroy();
+            }
+          });
+          await parsed
+            .reply({
+              content: "Started.",
+            })
+            .catch(() => null);
+        } catch (e) {
+          await parsed
+            .reply({
+              content: "There was an error, please try again.",
+            })
+            .catch(() => null);
+        }
       }
     } else {
       await parsed
         .reply({
-          content: `**ERROR**: I don't have permission to join ${queueChannel.name}.`,
+          content: `**ERROR**: I don't have "View Channel" & "Connect" permission to join ${queueChannel.name}.`,
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
@@ -2554,9 +2564,9 @@ export class Commands {
           command: "to-me",
           channel: {
             required: RequiredType.REQUIRED,
-            type: ["GUILD_VOICE"],
+            type: [ChannelTypes.GUILD_VOICE],
           },
-          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {

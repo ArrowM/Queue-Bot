@@ -29,7 +29,7 @@
     "pg": "^8.7.3",
     "sodium-native": "^3.3.0",
     "topgg-autoposter": "^2.0.1",
-    "uuid": "^8.3.2"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@tsconfig/node18": "^1.0.1",
@@ -39,9 +39,9 @@
     "@types/node-cron": "^3.0.2",
     "@types/pg": "^8.6.5",
     "@typescript-eslint/parser": "^5.31.0",
-    "eslint": "^8.21.0",
+    "eslint": "8.22.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "eslint-plugin-simple-import-sort": "^8.0.0",
     "eslint-plugin-unused-imports": "^2.0.0",
     "prettier": "^2.7.1",
     "typescript": "^4.7.4"

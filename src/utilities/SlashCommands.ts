@@ -1,5 +1,6 @@
 import delay from "delay";
 import { Collection, Guild, GuildBasedChannel, Message, Snowflake } from "discord.js";
+import { ChannelTypes } from "discord.js/typings/enums";
 import {
   ApplicationCommand,
   ApplicationCommandOption,
@@ -204,7 +205,9 @@ export class SlashCommands {
 
   public static async updateCommandsForOfflineGuildChanges(guilds: Collection<Snowflake, Guild>) {
     for await (const guild of guilds.values()) {
-      const channels = guild.channels.cache?.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type));
+      const channels = guild.channels.cache?.filter((ch) =>
+        ["GUILD_VOICE", "GUILD_STAGE_VOICE", ChannelTypes.GUILD_TEXT].includes(ch?.type)
+      );
       const queueChannels = await QueueTable.getFromGuild(guild.id);
       let updateRequired = false;
       for await (const storedChannel of queueChannels) {

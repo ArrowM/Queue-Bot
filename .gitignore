@@ -5,7 +5,6 @@
 !/.gitignore
 !/package.json
 !/tsconfig.json
-!/update-node.sh
 
 !/config
 !/patch_notes
