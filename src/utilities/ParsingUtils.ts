@@ -12,7 +12,6 @@ import {
   Role,
   Snowflake,
 } from "discord.js";
-import { ChannelTypes } from "discord.js/typings/enums";
 
 import { Base } from "./Base";
 import { QueuePair, RequiredType, StoredGuild, StoredQueue } from "./Interfaces";
@@ -71,7 +70,7 @@ interface RequiredOptions {
 
   channel?: {
     required?: RequiredType; // OPTIONAL means "All" queues are an accepted channel arg
-    type?: ChannelTypes[];
+    type?: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[];
   };
   members?: RequiredType;
   roles?: RequiredType;
@@ -147,8 +146,8 @@ abstract class ParsedBase {
     const missingArgs = [];
     if (conf.channel?.required && !this.args.channels) {
       missingArgs.push(
-        (conf.channel.type?.includes(ChannelTypes.GUILD_TEXT) ? "**text** " : "") +
-          ([ChannelTypes.GUILD_VOICE, ChannelTypes.GUILD_STAGE_VOICE].some((x) => conf.channel.type?.includes(x)) ? "**voice** " : "") +
+        (conf.channel.type?.includes("GUILD_TEXT") ? "**text** " : "") +
+          (conf.channel.type?.includes("GUILD_VOICE") || conf.channel.type?.includes("GUILD_STAGE_VOICE") ? "**voice** " : "") +
           "channel"
       );
     }
@@ -213,9 +212,7 @@ abstract class ParsedBase {
   public async getChannels(): Promise<Collection<string, GuildBasedChannel>> {
     return (this.cachedChannels =
       this.cachedChannels ||
-      (await this.request.guild.channels.fetch()).filter((ch) =>
-        ["GUILD_VOICE", "GUILD_STAGE_VOICE", ChannelTypes.GUILD_TEXT].includes(ch?.type)
-      ));
+      (await this.request.guild.channels.fetch()).filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type)));
   }
 
   protected verifyNumber(min: number, max: number, defaultValue: number): void {
@@ -261,7 +258,7 @@ export class ParsedCommand extends ParsedBase {
     // Channels
     if (conf.channel) {
       let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildBasedChannel;
-      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", ChannelTypes.GUILD_TEXT].includes(channel.type)) {
+      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type)) {
         this.args.channels = [channel];
       } else {
         let channels = await this.getQueueChannels();
@@ -365,7 +362,7 @@ export class ParsedMessage extends ParsedBase {
     // Channels
     if (conf.channel) {
       let channel = this.request.mentions.channels.first() as GuildBasedChannel;
-      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", ChannelTypes.GUILD_TEXT].includes(channel.type)) {
+      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type)) {
         this.args.channels = [channel];
       } else {
         let channels = await this.getQueueChannels();

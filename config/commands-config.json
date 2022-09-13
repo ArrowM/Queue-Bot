@@ -765,7 +765,7 @@
         "description": "# of users to pull from the queue. (Default: 1)",
         "type": 4,
         "min_value": 1,
-        "max_value": 999
+        "max_value": 99
       }
     ]
   },
@@ -906,7 +906,7 @@
             "type": 4,
             "required": true,
             "min_value": 1,
-            "max_value": 999
+            "max_value": 99
           },
           {
             "name": "partial_pulling",
@@ -1023,7 +1023,7 @@
             "description": "Maximum # of users that can be in the queue at once",
             "type": 4,
             "min_value": 1,
-            "max_value": 999
+            "max_value": 99
           }
         ]
       },
@@ -1327,7 +1327,7 @@
             "type": 4,
             "required": true,
             "min_value": 1,
-            "max_value": 999
+            "max_value": 99
           }
         ]
       }
@@ -1407,7 +1407,7 @@
         "description": "# of users to pull from the queue. (Default: 1)",
         "type": 4,
         "min_value": 1,
-        "max_value": 999
+        "max_value": 99
       }
     ]
   },
