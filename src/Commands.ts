@@ -1369,7 +1369,7 @@ export class Commands {
             required: RequiredType.REQUIRED,
           },
           members: RequiredType.REQUIRED,
-          numbers: { required: RequiredType.REQUIRED, min: 1, max: 9999, defaultValue: null },
+          numbers: { required: RequiredType.REQUIRED, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
@@ -1461,7 +1461,7 @@ export class Commands {
           channel: {
             required: RequiredType.REQUIRED,
           },
-          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
@@ -1899,7 +1899,7 @@ export class Commands {
           channel: {
             required: RequiredType.OPTIONAL,
           },
-          numbers: { required: RequiredType.REQUIRED, min: 1, max: 99, defaultValue: 1 },
+          numbers: { required: RequiredType.REQUIRED, min: 1, max: 999, defaultValue: 1 },
           strings: RequiredType.REQUIRED,
         })
       ).length
@@ -1961,7 +1961,7 @@ export class Commands {
           channel: {
             required: RequiredType.REQUIRED,
           },
-          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
@@ -2380,7 +2380,7 @@ export class Commands {
           channel: {
             required: RequiredType.REQUIRED,
           },
-          numbers: { required: RequiredType.REQUIRED, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.REQUIRED, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
@@ -2459,23 +2459,31 @@ export class Commands {
           guildId: queueChannel.guild.id,
           adapterCreator: queueChannel.guild.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator,
         });
-        connection.on(VoiceConnectionStatus.Disconnected, async () => {
-          try {
-            await Promise.race([
-              entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-              entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-            ]);
-            // Seems to be reconnecting to a new channel - ignore disconnect
-          } catch (error) {
-            // Seems to be a real disconnect which SHOULDN'T be recovered from
-            connection.destroy();
-          }
-        });
-        await parsed
-          .reply({
-            content: "Started.",
-          })
-          .catch(() => null);
+        try {
+          connection.on(VoiceConnectionStatus.Disconnected, async () => {
+            try {
+              await Promise.race([
+                entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+              ]);
+              // Seems to be reconnecting to a new channel - ignore disconnect
+            } catch (error) {
+              // Seems to be a real disconnect which SHOULDN'T be recovered from
+              connection.destroy();
+            }
+          });
+          await parsed
+            .reply({
+              content: "Started.",
+            })
+            .catch(() => null);
+        } catch (e) {
+          await parsed
+            .reply({
+              content: "There was an error, please try again.",
+            })
+            .catch(() => null);
+        }
       }
     } else {
       await parsed
@@ -2556,7 +2564,7 @@ export class Commands {
             required: RequiredType.REQUIRED,
             type: ["GUILD_VOICE"],
           },
-          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 99, defaultValue: null },
+          numbers: { required: RequiredType.OPTIONAL, min: 1, max: 999, defaultValue: null },
         })
       ).length
     ) {
