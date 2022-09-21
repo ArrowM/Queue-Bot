@@ -2,7 +2,7 @@ import { Collection, ColorResolvable, DiscordAPIError, Guild, GuildBasedChannel,
 import { Knex } from "knex";
 
 import { Base } from "../Base";
-import { Parsed, StoredQueue } from "../Interfaces";
+import { Parsed, QUEUABLE_VOICE_CHANNELS, StoredQueue } from "../Interfaces";
 import { SchedulingUtils } from "../SchedulingUtils";
 import { SlashCommands } from "../SlashCommands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
@@ -196,12 +196,13 @@ export class QueueTable {
       auto_fill: 1,
       color: Base.config.color,
       grace_period: Base.config.gracePeriod,
-      guild_id: channel.guild.id,
+      guild_id: parsed.storedGuild.guild_id,
       max_members: maxMembers,
       pull_num: 1,
       queue_channel_id: channel.id,
     });
-    if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
+    // @ts-ignore
+    if (QUEUABLE_VOICE_CHANNELS.includes(channel.type)) {
       const members = channel.members as Collection<string, GuildMember>;
       for await (const member of members.filter((member) => !member.user.bot).values()) {
         await QueueMemberTable.store(channel, member).catch(() => null);
@@ -213,7 +214,7 @@ export class QueueTable {
     if ((await QueueTable.getFromGuild(parsed.request.guildId)).length > 25) {
       await parsed.reply({
         content:
-          `WARNING: ${channel} will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
+          `WARNING: ${(channel.guild || ("**" + channel.name + "**"))} will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
           ` To interact with this new queue, you must use the alternate prefix (\`/altprefix on\`) or delete another queue.`,
       });
     }

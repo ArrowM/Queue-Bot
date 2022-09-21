@@ -9,7 +9,7 @@ import {
 } from "discord-slash-commands-client";
 
 import { Base } from "./Base";
-import { Parsed } from "./Interfaces";
+import { Parsed, QUEUABLE_CHANNELS, QUEUABLE_TEXT_CHANNELS, QUEUABLE_VOICE_CHANNELS } from "./Interfaces";
 import { QueueTable } from "./tables/QueueTable";
 
 interface SlashUpdateMessage {
@@ -71,9 +71,11 @@ export class SlashCommands {
         }
       } else if (option.type === 7) {
         if (this.TEXT_COMMANDS.includes(name)) {
-          queueChannels = queueChannels.filter((ch) => ch.type === "GUILD_TEXT");
+          // @ts-ignore
+          queueChannels = queueChannels.filter((ch) => QUEUABLE_TEXT_CHANNELS.includes(ch.type));
         } else if (this.VOICE_COMMANDS.includes(name)) {
-          queueChannels = queueChannels.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(ch.type));
+          // @ts-ignore
+          queueChannels = queueChannels.filter((ch) => QUEUABLE_VOICE_CHANNELS.includes(ch.type));
         }
         if (queueChannels.length > 1) {
           const choices: ApplicationCommandOptionChoice[] = queueChannels.map((ch) => {
@@ -114,7 +116,8 @@ export class SlashCommands {
       totalNum: commands.length,
     };
 
-    if (!queueChannels.find((ch) => ch.type === "GUILD_TEXT")) {
+    // @ts-ignore
+    if (!queueChannels.find((ch) => QUEUABLE_TEXT_CHANNELS.includes(ch.type))) {
       const excludedTextCommands = this.TEXT_COMMANDS;
       commands = commands.filter((c) => !excludedTextCommands.includes(c.name));
 
@@ -204,7 +207,8 @@ export class SlashCommands {
 
   public static async updateCommandsForOfflineGuildChanges(guilds: Collection<Snowflake, Guild>) {
     for await (const guild of guilds.values()) {
-      const channels = guild.channels.cache?.filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type));
+      // @ts-ignore
+      const channels = guild.channels.cache?.filter((ch) => QUEUABLE_CHANNELS.includes(ch?.type));
       const queueChannels = await QueueTable.getFromGuild(guild.id);
       let updateRequired = false;
       for await (const storedChannel of queueChannels) {

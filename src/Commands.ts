@@ -17,6 +17,8 @@ import {
   BlackWhiteListEntry,
   Parsed,
   PriorityEntry,
+  QUEUABLE_TEXT_CHANNELS,
+  QUEUABLE_VOICE_CHANNELS,
   QueuePair,
   ReplaceWith,
   RequiredType,
@@ -149,7 +151,8 @@ export class Commands {
 
     let response = "**Autopull**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
-      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queue.channel?.type)) {
+      // @ts-ignore
+      if (QUEUABLE_VOICE_CHANNELS.includes(queue.channel?.type)) {
         response += `${queue.channel}: ${queue.stored.auto_fill ? "on" : "off"}\n`;
       } else {
         response += `${queue.channel}: no autopull for text\n`;
@@ -168,7 +171,7 @@ export class Commands {
           command: "autopull set",
           channel: {
             required: RequiredType.OPTIONAL,
-            type: ["GUILD_VOICE", "GUILD_STAGE_VOICE"],
+            type: QUEUABLE_VOICE_CHANNELS,
           },
           strings: RequiredType.REQUIRED,
         })
@@ -373,7 +376,8 @@ export class Commands {
 
     let response = "**Buttons**:\n";
     for await (const queue of await parsed.getQueuePairs()) {
-      if (["GUILD_TEXT"].includes(queue.channel.type)) {
+      // @ts-ignore
+      if (QUEUABLE_TEXT_CHANNELS.includes(queue.channel.type)) {
         response += `${queue.channel}: ${queue.stored.hide_button ? "off" : "on"}\n`;
       } else {
         response += `${queue.channel}: no buttons for voice\n`;
@@ -392,7 +396,7 @@ export class Commands {
           command: "button set",
           channel: {
             required: RequiredType.OPTIONAL,
-            type: ["GUILD_TEXT"],
+            type: QUEUABLE_TEXT_CHANNELS,
           },
           strings: RequiredType.REQUIRED,
         })
@@ -518,17 +522,17 @@ export class Commands {
   /**
    * HELPER
    */
-  public static async displayHelper(parsed: Parsed, storedQueue: StoredQueue, channel: GuildBasedChannel) {
+  public static async displayHelper(parsed: Parsed, storedQueue: StoredQueue, channel: GuildBasedChannel, isInline: boolean) {
     const displayChannel = parsed.request.channel as TextChannel;
     const displayPermission = displayChannel.permissionsFor(displayChannel.guild.me);
     if (!displayPermission) return;
 
     if (displayPermission.has("VIEW_CHANNEL") && displayPermission.has("SEND_MESSAGES") && displayPermission.has("EMBED_LINKS")) {
-      const embeds = await MessagingUtils.generateEmbed(channel);
+      const embeds = await MessagingUtils.generateEmbed(channel, isInline);
       // Remove old display
       await DisplayChannelTable.unstore(channel.id, displayChannel.id);
       // Create new display
-      await DisplayChannelTable.store(channel, displayChannel, embeds);
+      await DisplayChannelTable.store(channel, displayChannel, embeds, isInline);
     } else {
       await parsed
         .reply({
@@ -555,6 +559,7 @@ export class Commands {
           channel: {
             required: RequiredType.OPTIONAL,
           },
+          booleans: RequiredType.OPTIONAL,
         })
       ).length
     ) {
@@ -562,8 +567,9 @@ export class Commands {
     }
 
     const dataPromises = [];
+    const isInline = parsed.boolean === undefined ? true : parsed.boolean;
     for (const queue of parsed.args.channels) {
-      dataPromises.push(this.displayHelper(parsed, await QueueTable.get(queue.id), queue));
+      dataPromises.push(this.displayHelper(parsed, await QueueTable.get(queue.id), queue, isInline));
     }
     await Promise.all(dataPromises);
     await parsed.reply({ content: "Displayed.", messageDisplay: "NONE", commandDisplay: "EPHEMERAL" }).catch(() => null);
@@ -597,7 +603,8 @@ export class Commands {
       return;
     }
 
-    if (queueChannel.type !== "GUILD_TEXT") {
+    // @ts-ignore
+    if (!QUEUABLE_TEXT_CHANNELS.includes(queueChannel.type)) {
       if (member?.voice?.channel?.id !== queueChannel.id || role) {
         await parsed
           .reply({
@@ -1025,7 +1032,8 @@ export class Commands {
     const queueChannel = parsed.channel;
     const author = parsed.request.member as GuildMember;
 
-    if (queueChannel.type !== "GUILD_TEXT") {
+    // @ts-ignore
+    if (QUEUABLE_TEXT_CHANNELS.includes(queueChannel.type)) {
       if (author.voice?.channel?.id !== queueChannel.id) {
         await parsed
           .reply({
@@ -1066,7 +1074,8 @@ export class Commands {
    * HELPER
    */
   private static async dequeueFromQueue(storedGuild: StoredGuild, queueChannel: GuildBasedChannel, members: GuildMember[]) {
-    if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
+    // @ts-ignore
+    if (QUEUABLE_VOICE_CHANNELS.includes(queueChannel.type)) {
       for await (const member of members) {
         await member?.voice?.disconnect().catch(() => null);
       }
@@ -1186,8 +1195,9 @@ export class Commands {
           response += `\`${queue.name}\` was already ${parsed.string}ed.\n`;
         } else {
           await QueueTable.setLock(queue.id, parsed.string === "lock");
-          if (parsed.string === "unlock" && queue.type === "GUILD_VOICE") {
-            queue.members.each((member) => QueueMemberTable.store(queue, member));
+          // @ts-ignore
+          if (parsed.string === "unlock" && QUEUABLE_VOICE_CHANNELS.includes(queue.type)) {
+            (queue as VoiceChannel).members.each((member) => QueueMemberTable.store(queue, member));
           }
           response += `${parsed.string === "lock" ? "Locked " : "Unlocked "} \`${queue.name}\`.\n`;
           await SchedulingUtils.scheduleDisplayUpdate(parsed.storedGuild, queue);
@@ -1511,7 +1521,8 @@ export class Commands {
         return;
       }
       // Display and remove member from the queue
-      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queue.channel.type)) {
+      // @ts-ignore
+      if (QUEUABLE_VOICE_CHANNELS.includes(queue.channel.type)) {
         if (targetChannel) {
           const promises = [];
           for (const queueMember of queueMembers) {
@@ -1944,10 +1955,10 @@ export class Commands {
    */
   private static async storeQueue(parsed: Parsed, channel: GuildBasedChannel, size: number) {
     await QueueTable.store(parsed, channel, size);
-    const response = `Created ${channel} queue.` + (await this.genQueuesList(parsed));
+    const response = `Created ${channel.guild ? channel : ("**" + channel.name + "**")} queue.` + (await this.genQueuesList(parsed));
     await parsed.reply({ content: response }).catch(() => null);
     const storedQueue = await QueueTable.get(channel.id);
-    await this.displayHelper(parsed, storedQueue, channel);
+    await this.displayHelper(parsed, storedQueue, channel, true);
   }
 
   /**
@@ -1984,12 +1995,14 @@ export class Commands {
       if (!size && channelLim) {
         size = channelLim;
       }
-      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type)) {
+      // @ts-ignore
+      if (QUEUABLE_VOICE_CHANNELS.includes(channel.type)) {
         if (channel.permissionsFor(parsed.request.guild.me).has("CONNECT")) {
           await this.storeQueue(parsed, channel, size);
-          if (size && channel.type === "GUILD_VOICE") {
+          // @ts-ignore
+          if (size && QUEUABLE_VOICE_CHANNELS.includes(channel.type)) {
             if (channel.permissionsFor(parsed.request.guild.me).has("MANAGE_CHANNELS")) {
-              await channel.setUserLimit(size).catch(() => null);
+              await (channel as VoiceChannel).setUserLimit(size).catch(() => null);
             } else {
               setTimeout(
                 async () =>
@@ -2393,9 +2406,10 @@ export class Commands {
     for (const queue of parsed.args.channels) {
       dataPromises.push(QueueTable.setMaxMembers(queue.id, parsed.number));
       displayPromises.push(SchedulingUtils.scheduleDisplayUpdate(parsed.storedGuild, queue));
-      if (queue.type === "GUILD_VOICE") {
+      // @ts-ignore
+      if (QUEUABLE_VOICE_CHANNELS.includes(queue.type)) {
         if (queue.permissionsFor(parsed.request.guild.me).has("MANAGE_CHANNELS")) {
-          queue.setUserLimit(parsed.number).catch(() => null);
+          (queue as VoiceChannel).setUserLimit(parsed.number).catch(() => null);
         } else {
           printHelpMessage = true;
         }
@@ -2435,7 +2449,7 @@ export class Commands {
           command: "start",
           channel: {
             required: RequiredType.REQUIRED,
-            type: ["GUILD_VOICE", "GUILD_STAGE_VOICE"],
+            type: QUEUABLE_VOICE_CHANNELS,
           },
         })
       ).length
@@ -2562,7 +2576,7 @@ export class Commands {
           command: "to-me",
           channel: {
             required: RequiredType.REQUIRED,
-            type: ["GUILD_VOICE"],
+            type: QUEUABLE_VOICE_CHANNELS,
           },
           numbers: { required: RequiredType.OPTIONAL, min: 1, max: 999, defaultValue: null },
         })

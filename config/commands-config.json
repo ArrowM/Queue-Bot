@@ -391,6 +391,11 @@
         "description": "Queue channel",
         "type": 7,
         "required": true
+      },
+      {
+        "name": "inline",
+        "description": "Display names inline (default = true)",
+        "type": 5
       }
     ]
   },

@@ -13,7 +13,7 @@ import {
 } from "discord.js";
 
 import { Base } from "./Base";
-import { QueueUpdateRequest, StoredGuild } from "./Interfaces";
+import { QUEUABLE_VOICE_CHANNELS, QueueUpdateRequest, StoredGuild } from "./Interfaces";
 import { SchedulingUtils } from "./SchedulingUtils";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
@@ -32,9 +32,17 @@ export class MessagingUtils {
       return;
     }
 
+    const embedCache = new Map<boolean, MessageEmbed[]>(); // <inline, msg[]>
     // Create an embed list
-    const embeds = await this.generateEmbed(queueChannel);
     for await (const storedDisplay of storedDisplays) {
+      let embeds: MessageEmbed[];
+      if (embedCache.has(storedDisplay.is_inline)) {
+        embeds = embedCache.get(storedDisplay.is_inline);
+      } else {
+        embeds = await this.generateEmbed(queueChannel, storedDisplay.is_inline);
+        embedCache.set(storedDisplay.is_inline, embeds);
+      }
+
       // For each embed list of the queue
       try {
         const displayChannel = (await Base.client.channels.fetch(storedDisplay.display_channel_id).catch(async (e) => {
@@ -59,7 +67,7 @@ export class MessagingUtils {
           } else {
             /* Replace */
             await DisplayChannelTable.unstore(queueChannel.id, displayChannel.id, storedGuild.msg_mode !== 3);
-            await DisplayChannelTable.store(queueChannel, displayChannel, embeds);
+            await DisplayChannelTable.store(queueChannel, displayChannel, embeds, storedDisplay.is_inline);
           }
         }
       } catch (e: any) {
@@ -112,8 +120,9 @@ export class MessagingUtils {
   /**
    *
    * @param queueChannel Discord message object.
+   * @param isInline
    */
-  public static async generateEmbed(queueChannel: GuildBasedChannel): Promise<MessageEmbed[]> {
+  public static async generateEmbed(queueChannel: GuildBasedChannel, isInline: boolean): Promise<MessageEmbed[]> {
     const storedGuild = await QueueGuildTable.get(queueChannel.guild.id);
     const storedQueue = await QueueTable.get(queueChannel.id);
     if (!storedQueue) {
@@ -137,7 +146,8 @@ export class MessagingUtils {
     if (storedQueue.is_locked) {
       description = "Queue is locked.";
     } else {
-      if (["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(queueChannel.type)) {
+      // @ts-ignore
+      if (QUEUABLE_VOICE_CHANNELS.includes(queueChannel.type)) {
         description = `Join ${queueChannel} to join this queue.`;
       } else {
         description = `To interact, click the button or use \`/join\` & \`/leave\`.`;
@@ -191,7 +201,7 @@ export class MessagingUtils {
     const embeds: MessageEmbed[] = [];
     let embedLength = title.length + description.length + firstFieldName.length;
     let fields: EmbedFieldData[] = [];
-    let field: EmbedFieldData = { name: "\u200b", value: "", inline: true };
+    let field: EmbedFieldData = { name: "\u200b", value: "", inline: isInline };
 
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
@@ -201,7 +211,7 @@ export class MessagingUtils {
       }
       if (field.value.length + entry.length >= 1024) {
         fields.push(field);
-        field = { name: "\u200b", value: "", inline: true };
+        field = { name: "\u200b", value: "", inline: isInline };
         embedLength += 1;
       }
       field.value += entry;
@@ -229,7 +239,8 @@ export class MessagingUtils {
 
   public static async getButton(channel: GuildBasedChannel): Promise<MessageActionRow[]> {
     const storedQueue = await QueueTable.get(channel.id);
-    if (!["GUILD_VOICE", "GUILD_STAGE_VOICE"].includes(channel.type) && !storedQueue?.hide_button) {
+    // @ts-ignore
+    if (!QUEUABLE_VOICE_CHANNELS.includes(channel.type) && !storedQueue?.hide_button) {
       return this.button;
     } else {
       return [];

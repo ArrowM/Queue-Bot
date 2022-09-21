@@ -14,7 +14,17 @@ import {
 } from "discord.js";
 
 import { Base } from "./Base";
-import { QueuePair, RequiredType, StoredGuild, StoredQueue } from "./Interfaces";
+import {
+  QUEUABLE_CHANNELS,
+  QUEUABLE_TEXT_CHANNELS,
+  QUEUABLE_VOICE_CHANNELS,
+  QueuableTextChannelTypes,
+  QueuableVoiceChannelTypes,
+  QueuePair,
+  RequiredType,
+  StoredGuild,
+  StoredQueue,
+} from "./Interfaces";
 import { MessagingUtils } from "./MessagingUtils";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
@@ -32,7 +42,7 @@ export class ParsingUtils {
         return false;
       }
       // Check if ADMIN
-      if (member.permissionsIn(request.channel as GuildBasedChannel).has("ADMINISTRATOR")) {
+      if (member.permissionsIn(request.channel as GuildBasedChannel)?.has("ADMINISTRATOR")) {
         return true;
       }
       // Check IDs
@@ -70,7 +80,7 @@ interface RequiredOptions {
 
   channel?: {
     required?: RequiredType; // OPTIONAL means "All" queues are an accepted channel arg
-    type?: ("GUILD_VOICE" | "GUILD_STAGE_VOICE" | "GUILD_TEXT")[];
+    type?: (QueuableTextChannelTypes | number | QueuableVoiceChannelTypes)[];
   };
   members?: RequiredType;
   roles?: RequiredType;
@@ -81,6 +91,7 @@ interface RequiredOptions {
     max: number;
     defaultValue: number;
   };
+  booleans?: RequiredType;
 }
 
 abstract class ParsedBase {
@@ -90,6 +101,7 @@ abstract class ParsedBase {
     roles?: Collection<Snowflake, Role>;
     strings: string[];
     numbers: number[];
+    booleans: boolean[];
   };
   public command: string;
   public request: CommandInteraction | Message;
@@ -103,6 +115,7 @@ abstract class ParsedBase {
     this.args = {
       strings: [],
       numbers: [],
+      booleans: [],
     };
   }
 
@@ -130,6 +143,10 @@ abstract class ParsedBase {
     return this.args.numbers?.[0];
   }
 
+  public get boolean(): boolean {
+    return this.args.booleans?.[0];
+  }
+
   public async setup() {
     this.storedGuild = await QueueGuildTable.get(this.request.guildId);
     if (!this.storedGuild) {
@@ -146,8 +163,10 @@ abstract class ParsedBase {
     const missingArgs = [];
     if (conf.channel?.required && !this.args.channels) {
       missingArgs.push(
-        (conf.channel.type?.includes("GUILD_TEXT") ? "**text** " : "") +
-          (conf.channel.type?.includes("GUILD_VOICE") || conf.channel.type?.includes("GUILD_STAGE_VOICE") ? "**voice** " : "") +
+        // @ts-ignore
+        (QUEUABLE_TEXT_CHANNELS.includes(conf.channel.type) ? "**text** " : "") +
+          // @ts-ignore
+          (QUEUABLE_VOICE_CHANNELS.includes(conf.channel.type) ? "**voice** " : "") +
           "channel"
       );
     }
@@ -165,7 +184,10 @@ abstract class ParsedBase {
       }
     }
     if (conf.strings === RequiredType.REQUIRED && !this.args.strings.length) {
-      missingArgs.push("message");
+      missingArgs.push("string");
+    }
+    if (conf.booleans === RequiredType.REQUIRED && !this.args.booleans.length) {
+      missingArgs.push("boolean");
     }
     // Report missing
     if (missingArgs.length) {
@@ -212,7 +234,8 @@ abstract class ParsedBase {
   public async getChannels(): Promise<Collection<string, GuildBasedChannel>> {
     return (this.cachedChannels =
       this.cachedChannels ||
-      (await this.request.guild.channels.fetch()).filter((ch) => ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(ch?.type)));
+      // @ts-ignore
+      (await this.request.guild.channels.fetch()).filter((ch) => QUEUABLE_CHANNELS.includes(ch?.type)));
   }
 
   protected verifyNumber(min: number, max: number, defaultValue: number): void {
@@ -239,6 +262,10 @@ export class ParsedCommand extends ParsedBase {
     if (conf.numbers) {
       this.args.numbers = this.findArgs(this.request.options.data, "INTEGER") as number[];
     }
+    // Booleans
+    if (conf.booleans) {
+      this.args.booleans = this.findArgs(this.request.options.data, "BOOLEAN") as boolean[];
+    }
     // Members
     if (conf.members) {
       this.args.members = new Collection<Snowflake, GuildMember>();
@@ -258,7 +285,8 @@ export class ParsedCommand extends ParsedBase {
     // Channels
     if (conf.channel) {
       let channel = this.findArgs(this.request.options.data, "CHANNEL")[0] as GuildBasedChannel;
-      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type)) {
+      // @ts-ignore
+      if (channel && QUEUABLE_CHANNELS.includes(channel.type)) {
         this.args.channels = [channel];
       } else {
         let channels = await this.getQueueChannels();
@@ -362,7 +390,8 @@ export class ParsedMessage extends ParsedBase {
     // Channels
     if (conf.channel) {
       let channel = this.request.mentions.channels.first() as GuildBasedChannel;
-      if (channel && ["GUILD_VOICE", "GUILD_STAGE_VOICE", "GUILD_TEXT"].includes(channel.type)) {
+      // @ts-ignore
+      if (channel && QUEUABLE_CHANNELS.includes(channel.type)) {
         this.args.channels = [channel];
       } else {
         let channels = await this.getQueueChannels();

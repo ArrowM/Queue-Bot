@@ -14,6 +14,7 @@ export class DisplayChannelTable {
             table.increments("id").primary();
             table.bigInteger("queue_channel_id");
             table.bigInteger("display_channel_id");
+            table.boolean("is_inline");
             table.bigInteger("message_id");
           })
           .catch((e) => console.error(e));
@@ -43,7 +44,7 @@ export class DisplayChannelTable {
     return Base.knex<DisplayChannel>("display_channels").where("message_id", messageId).first();
   }
 
-  public static async store(queueChannel: GuildBasedChannel, displayChannel: TextChannel, embeds: MessageEmbed[]) {
+  public static async store(queueChannel: GuildBasedChannel, displayChannel: TextChannel, embeds: MessageEmbed[], isInline: boolean) {
     const response = await displayChannel
       .send({
         embeds: embeds,
@@ -57,6 +58,7 @@ export class DisplayChannelTable {
 
     await Base.knex<DisplayChannel>("display_channels").insert({
       display_channel_id: displayChannel.id,
+      is_inline: isInline,
       message_id: response.id,
       queue_channel_id: queueChannel.id,
     });

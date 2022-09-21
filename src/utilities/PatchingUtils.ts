@@ -360,6 +360,10 @@ export class PatchingUtils {
       // ALSO do some 1 time updates for slash commands and nicknames
       this.setNickNames().then();
     }
+    // Add is_inline column
+    if (!(await Base.knex.schema.hasColumn("display_channels", "is_inline"))) {
+      await Base.knex.schema.table("display_channels", (t) => t.boolean("is_inline"));
+    }
   }
 
   private static async setNickNames() {

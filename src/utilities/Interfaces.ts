@@ -23,6 +23,7 @@ export interface BlackWhiteListEntry {
 export interface DisplayChannel {
   id: number;
   display_channel_id: Snowflake;
+  is_inline: boolean;
   message_id: Snowflake;
   queue_channel_id: Snowflake;
 }
@@ -141,3 +142,18 @@ export enum RequiredType {
 }
 
 export type Parsed = ParsedCommand | ParsedMessage;
+
+export enum QueuableTextChannelTypes {
+  GUILD_TEXT = "GUILD_TEXT",
+  GUILD_NEWS = "GUILD_NEWS",
+  GUILD_PUBLIC_THREAD = "GUILD_PUBLIC_THREAD",
+}
+export const QUEUABLE_TEXT_CHANNELS = [...Object.values(QueuableTextChannelTypes), ...Array(16).keys()];
+
+export enum QueuableVoiceChannelTypes {
+  GUILD_VOICE = "GUILD_VOICE",
+  GUILD_STAGE_VOICE = "GUILD_STAGE_VOICE",
+}
+export const QUEUABLE_VOICE_CHANNELS = Object.values(QueuableVoiceChannelTypes);
+
+export const QUEUABLE_CHANNELS = [...QUEUABLE_TEXT_CHANNELS, ...QUEUABLE_VOICE_CHANNELS];
