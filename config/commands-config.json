@@ -989,7 +989,7 @@
           },
           {
             "name": "role",
-            "description": "Revoke a roles's priority in queue",
+            "description": "Revoke a role's priority in queue",
             "type": 1,
             "options": [
               {

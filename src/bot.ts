@@ -35,14 +35,21 @@ let isReady = false;
 const config = Base.config;
 const client = Base.client;
 client.login(config.token).then();
-client.on("error", console.error);
-client.on("shardError", console.error);
+client.on("error", (err) => {
+  console.error("Caught exception:", err);
+});
+client.on("shardError", (_) => {
+  // console.error("Caught exception:", err);
+});
 client.on("uncaughtException", (err, origin) => {
   console.error(
     `Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, {
       depth: null,
     })}`
   );
+});
+process.on("unhandledRejection", (error) => {
+  console.error("Unhandled promise rejection:", error);
 });
 // client.on("rateLimit", (rateLimitInfo) => {
 //   console.error(`Rate limit error:\n${util.inspect(rateLimitInfo, { depth: null })}`);
