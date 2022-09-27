@@ -1033,7 +1033,7 @@ export class Commands {
     const author = parsed.request.member as GuildMember;
 
     // @ts-ignore
-    if (QUEUABLE_TEXT_CHANNELS.includes(queueChannel.type)) {
+    if (QUEUABLE_VOICE_CHANNELS.includes(queueChannel.type)) {
       if (author.voice?.channel?.id !== queueChannel.id) {
         await parsed
           .reply({
