@@ -569,7 +569,9 @@ export class Commands {
     const dataPromises = [];
     const isInline = parsed.boolean === undefined ? true : parsed.boolean;
     for (const queue of parsed.args.channels) {
-      dataPromises.push(this.displayHelper(parsed, await QueueTable.get(queue.id), queue, isInline));
+      if (queue.id) {
+        dataPromises.push(this.displayHelper(parsed, await QueueTable.get(queue.id), queue, isInline));
+      }
     }
     await Promise.all(dataPromises);
     await parsed.reply({ content: "Displayed.", messageDisplay: "NONE", commandDisplay: "EPHEMERAL" }).catch(() => null);
@@ -1955,7 +1957,7 @@ export class Commands {
    */
   private static async storeQueue(parsed: Parsed, channel: GuildBasedChannel, size: number) {
     await QueueTable.store(parsed, channel, size);
-    const response = `Created ${channel.guild ? channel : ("**" + channel.name + "**")} queue.` + (await this.genQueuesList(parsed));
+    const response = `Created ${channel.guild ? channel : "**" + channel.name + "**"} queue.` + (await this.genQueuesList(parsed));
     await parsed.reply({ content: response }).catch(() => null);
     const storedQueue = await QueueTable.get(channel.id);
     await this.displayHelper(parsed, storedQueue, channel, true);
@@ -2483,7 +2485,11 @@ export class Commands {
               // Seems to be reconnecting to a new channel - ignore disconnect
             } catch (error) {
               // Seems to be a real disconnect which SHOULDN'T be recovered from
-              connection.destroy();
+              try {
+                connection.destroy();
+              } catch (e) {
+                // empty
+              }
             }
           });
           await parsed

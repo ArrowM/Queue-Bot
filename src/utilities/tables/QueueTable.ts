@@ -214,7 +214,9 @@ export class QueueTable {
     if ((await QueueTable.getFromGuild(parsed.request.guildId)).length > 25) {
       await parsed.reply({
         content:
-          `WARNING: ${(channel.guild || ("**" + channel.name + "**"))} will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
+          `WARNING: ${
+            channel.guild || "**" + channel.name + "**"
+          } will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
           ` To interact with this new queue, you must use the alternate prefix (\`/altprefix on\`) or delete another queue.`,
       });
     }
