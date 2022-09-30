@@ -297,8 +297,8 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
     case "leave":
       await Commands.leave(parsed);
       return;
-    case "myqueues":
-      await Commands.myQueues(parsed);
+    case "positions":
+      await Commands.positions(parsed);
       return;
   }
 
@@ -408,7 +408,14 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
       }
       return;
     case "dequeue":
-      await Commands.dequeue(parsed);
+      switch (command[1]?.name) {
+        case "user":
+          await Commands.dequeue(parsed, false);
+          return;
+        case "role":
+          await Commands.dequeue(parsed, true);
+          return;
+      }
       return;
     case "lock":
       switch (command[1]?.name) {
@@ -772,7 +779,7 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
   try {
     const storedDisplay = await DisplayChannelTable.getFromMessage(interaction.message.id);
     if (!storedDisplay) {
-      await interaction.reply("An error has occurred").catch(() => null);
+      await interaction.reply("Error: Couldn't find the display message. Please create a new `/display`.").catch(() => null);
       return;
     }
     let queueChannel = (await interaction.guild.channels.fetch(storedDisplay.queue_channel_id).catch(async (e) => {

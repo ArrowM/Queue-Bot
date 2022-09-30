@@ -379,6 +379,25 @@
             "required": true
           }
         ]
+      },
+      {
+        "name": "role",
+        "description": "Dequeue a role",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "role",
+            "description": "Role to dequeue",
+            "type": 8,
+            "required": true
+          }
+        ]
       }
     ]
   },
@@ -752,10 +771,6 @@
     ]
   },
   {
-    "name": "myqueues",
-    "description": "Display the queues you are in with your position"
-  },
-  {
     "name": "next",
     "description": "Pull user(s) from a queue and display their name(s)",
     "options": [
@@ -881,6 +896,18 @@
         "name": "list",
         "description": "List roles and users with permission to use bot commands",
         "type": 1
+      }
+    ]
+  },
+  {
+    "name": "positions",
+    "description": "Display the queues you are in with your position",
+    "options": [
+      {
+        "name": "user",
+        "description": "User to dequeue",
+        "type": 6,
+        "required": true
       }
     ]
   },

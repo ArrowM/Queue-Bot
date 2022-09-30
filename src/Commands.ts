@@ -763,8 +763,8 @@ export class Commands {
           value: "Leave a queue",
         },
         {
-          name: "`/myqueues`" + (alt ? " or `!myqueues`" : ""),
-          value: "Show my queues",
+          name: "`/positions`" + (alt ? " or `!positions`" : ""),
+          value: "Show queue positions of a user",
         },
         {
           name: "`/help setup`" + (alt ? " or `!help setup`" : ""),
@@ -825,7 +825,7 @@ export class Commands {
         },
         {
           name: "`/dequeue`",
-          value: "Dequeue a user",
+          value: "Dequeue a user or role",
         },
         {
           name: "`/lock`",
@@ -1091,9 +1091,9 @@ export class Commands {
   }
 
   /**
-   * Dequeue a user from a specified queue
+   * Dequeue a user or role from a specified queue
    */
-  public static async dequeue(parsed: Parsed) {
+  public static async dequeue(parsed: Parsed, isRole: boolean) {
     if (
       (
         await parsed.parseArgs({
@@ -1101,7 +1101,8 @@ export class Commands {
           channel: {
             required: RequiredType.OPTIONAL,
           },
-          members: RequiredType.REQUIRED,
+          members: isRole ? undefined : RequiredType.REQUIRED,
+          roles: isRole ? RequiredType.REQUIRED : undefined,
         })
       ).length
     ) {
@@ -1112,12 +1113,19 @@ export class Commands {
     const dataPromises = [];
     const displayPromises = [];
     for (const queue of parsed.args.channels) {
-      response += `Dequeue-ed ${parsed.member} from \`${queue.name}\` queue.\n`;
-      dataPromises.push(this.dequeueFromQueue(parsed.storedGuild, queue, [parsed.member]));
+      if (isRole) {
+        response += `Dequeue-ed ${parsed.role} from \`${queue.name}\` queue.\n`;
+        const members = parsed.role.guild.members.cache.filter((member) => member.roles.cache.has(parsed.role.id));
+        dataPromises.push(this.dequeueFromQueue(parsed.storedGuild, queue, [...members.values()]));
+      } else {
+        response += `Dequeue-ed ${parsed.member} from \`${queue.name}\` queue.\n`;
+        dataPromises.push(this.dequeueFromQueue(parsed.storedGuild, queue, [parsed.member]));
+      }
       displayPromises.push(SchedulingUtils.scheduleDisplayUpdate(parsed.storedGuild, queue));
     }
     await Promise.all(dataPromises);
     await Promise.all(displayPromises);
+
     await parsed.reply({ content: response }).catch(() => null);
   }
 
@@ -1424,42 +1432,6 @@ export class Commands {
       .catch(() => null);
   }
 
-  // --------------------------------- MYQUEUES ------------------------------- //
-
-  /**
-   * Display the queues you are in with your position
-   */
-  public static async myQueues(parsed: Parsed) {
-    await parsed.parseArgs({ command: "myqueue" });
-
-    const author = parsed.request.member as GuildMember;
-    const storedChannelIds = (await QueueTable.getFromGuild(author.guild.id)).map((ch) => ch.queue_channel_id);
-    const storedEntries = (await QueueMemberTable.getFromChannels(storedChannelIds, author.id)).slice(0, 25);
-    if (storedEntries?.length < 1) {
-      await parsed
-        .reply({
-          content: `You are in no queues.`,
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    } else {
-      const embed = new MessageEmbed();
-      embed.setTitle(`${author.displayName}'s queues`);
-      for await (const entry of storedEntries) {
-        const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === entry.channel_id);
-        if (!queueChannel) {
-          continue;
-        }
-        const memberIds = (await QueueMemberTable.getFromQueueOrdered(queueChannel)).map((member) => member.member_id);
-        embed.addField(
-          queueChannel.name,
-          `${memberIds.indexOf(author.id) + 1} ${author}` + (entry.personal_message ? ` -- ${entry.personal_message}` : "")
-        );
-      }
-      await parsed.reply({ embeds: [embed], commandDisplay: "EPHEMERAL" }).catch(() => null);
-    }
-  }
-
   // --------------------------------- NEXT ------------------------------- //
 
   /**
@@ -1722,6 +1694,41 @@ export class Commands {
 
     const response = await this.genPermissionList(parsed);
     await parsed.reply({ content: response }).catch(() => null);
+  }
+
+  // --------------------------------- POSITIONS ------------------------------- //
+
+  /**
+   * Display a user's queue positions
+   */
+  public static async positions(parsed: Parsed) {
+    await parsed.parseArgs({ command: "positions", members: RequiredType.REQUIRED });
+
+    const storedChannelIds = (await QueueTable.getFromGuild(parsed.member.guild.id)).map((ch) => ch.queue_channel_id);
+    const storedEntries = (await QueueMemberTable.getFromChannels(storedChannelIds, parsed.member.id)).slice(0, 25);
+    if (storedEntries?.length < 1) {
+      await parsed
+        .reply({
+          content: `${parsed.member} are in no queues.`,
+          commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else {
+      const embed = new MessageEmbed();
+      embed.setTitle(`${parsed.member.displayName}'s queues`);
+      for await (const entry of storedEntries) {
+        const queueChannel = (await parsed.getChannels()).find((ch) => ch.id === entry.channel_id);
+        if (!queueChannel) {
+          continue;
+        }
+        const memberIds = (await QueueMemberTable.getFromQueueOrdered(queueChannel)).map((member) => member.member_id);
+        embed.addField(
+          queueChannel.name,
+          `${memberIds.indexOf(parsed.member.id) + 1} ${parsed.member}` + (entry.personal_message ? ` -- ${entry.personal_message}` : "")
+        );
+      }
+      await parsed.reply({ embeds: [embed], commandDisplay: "EPHEMERAL" }).catch(() => null);
+    }
   }
 
   // --------------------------------- PRIORITY ------------------------------- //

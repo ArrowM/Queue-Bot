@@ -22,7 +22,7 @@ https://user-images.githubusercontent.com/42418080/182225650-5fc2ae04-6012-4d5a-
 `/help` - Display help messages  
 `/join` - Join a text queue / Update queue message after joining  
 `/leave` - Leave a text queue  
-`/myqueues` - Show my queues  
+`/positions` - Show my queues  
 
 ### Privileged Commands  
 Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Users or roles can be granted permission to use privileged commands with `/permission add`.  
