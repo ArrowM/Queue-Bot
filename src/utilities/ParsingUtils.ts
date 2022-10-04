@@ -300,7 +300,7 @@ export class ParsedCommand extends ParsedBase {
           if (this.args.strings[0] === "ALL") {
             this.args.channels = channels;
           } else {
-            channel = channels.find((ch) => ch.id === this.args.strings[0]);
+            channel = channels.find((ch) => ch?.id === this.args.strings[0]);
             if (channel) {
               this.args.channels = [channel];
             }
