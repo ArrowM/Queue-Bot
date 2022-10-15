@@ -8,7 +8,6 @@ import {
   Message,
   MessageEmbedOptions,
   MessageMentionOptions,
-  ReplyMessageOptions,
   Role,
   Snowflake,
 } from "discord.js";
@@ -94,7 +93,7 @@ interface RequiredOptions {
   booleans?: RequiredType;
 }
 
-abstract class ParsedBase {
+export class Parsed {
   public args: {
     channels?: GuildBasedChannel[];
     members?: Collection<Snowflake, GuildMember>;
@@ -104,153 +103,19 @@ abstract class ParsedBase {
     booleans: boolean[];
   };
   public command: string;
-  public request: CommandInteraction | Message;
+  public request: CommandInteraction;
   public storedGuild: StoredGuild;
   public hasPermission: boolean;
   protected cachedChannels: Collection<string, GuildBasedChannel>;
   protected cachedQueues: StoredQueue[];
   protected cachedQueueChannels: QueuePair[];
 
-  protected constructor() {
+  constructor(command: CommandInteraction) {
     this.args = {
       strings: [],
       numbers: [],
       booleans: [],
     };
-  }
-
-  public get member(): GuildMember {
-    return this.args.members ? [...this.args.members.values()][0] : undefined;
-  }
-
-  public get role(): Role {
-    return this.args.roles ? [...this.args.roles.values()][0] : undefined;
-  }
-
-  public get channel(): GuildBasedChannel {
-    return this.args.channels?.[0];
-  }
-
-  public get channelNames(): string {
-    return this.args.channels?.map((c) => "`" + c.name + "`").join(", ");
-  }
-
-  public get string(): string {
-    return this.args.strings?.[0];
-  }
-
-  public get number(): number {
-    return this.args.numbers?.[0];
-  }
-
-  public get boolean(): boolean {
-    return this.args.booleans?.[0];
-  }
-
-  public async setup() {
-    this.storedGuild = await QueueGuildTable.get(this.request.guildId);
-    if (!this.storedGuild) {
-      await QueueGuildTable.store(this.request.guild);
-      this.storedGuild = await QueueGuildTable.get(this.request.guildId);
-    }
-    this.hasPermission = await ParsingUtils.checkPermission(this.request);
-  }
-
-  public abstract parseArgs(_: RequiredOptions): Promise<string[]>;
-  public abstract reply(_: ReplyOptions): Promise<Message>;
-
-  protected async verifyArgs(conf: RequiredOptions): Promise<string[]> {
-    const missingArgs = [];
-    if (conf.channel?.required && !this.args.channels) {
-      missingArgs.push(
-        // @ts-ignore
-        (QUEUABLE_TEXT_CHANNELS.includes(conf.channel.type) ? "**text** " : "") +
-          // @ts-ignore
-          (QUEUABLE_VOICE_CHANNELS.includes(conf.channel.type) ? "**voice** " : "") +
-          "channel"
-      );
-    }
-    if (conf.roles === RequiredType.REQUIRED && !this.args.roles) {
-      missingArgs.push("role");
-    }
-    if (conf.members === RequiredType.REQUIRED && !this.args.members?.size) {
-      missingArgs.push("member");
-    }
-    if (conf.numbers?.required === RequiredType.REQUIRED) {
-      if (this.args.numbers.length) {
-        this.verifyNumber(conf.numbers.min, conf.numbers.max, conf.numbers.defaultValue);
-      } else {
-        missingArgs.push("number");
-      }
-    }
-    if (conf.strings === RequiredType.REQUIRED && !this.args.strings.length) {
-      missingArgs.push("string");
-    }
-    if (conf.booleans === RequiredType.REQUIRED && !this.args.booleans.length) {
-      missingArgs.push("boolean");
-    }
-    // Report missing
-    if (missingArgs.length) {
-      await this.reply({
-        content: "**ERROR**: Missing " + missingArgs.join(" and ") + " argument" + (missingArgs.length > 1 ? "s." : "."),
-        commandDisplay: "EPHEMERAL",
-      }).catch(() => null);
-    }
-    return missingArgs;
-  }
-
-  /**
-   * Get stored queues as StoredQueue[]
-   */
-  private async getStoredQueues(): Promise<StoredQueue[]> {
-    if (this.cachedQueues === undefined) {
-      this.cachedQueues = await QueueTable.getFromGuild(this.request.guildId);
-    }
-    return this.cachedQueues;
-  }
-
-  public async getQueueChannels(): Promise<GuildBasedChannel[]> {
-    return (await this.getQueuePairs()).map((pair) => pair.channel);
-  }
-
-  /**
-   * Get queues as QueuePair[]
-   */
-  public async getQueuePairs(): Promise<QueuePair[]> {
-    const storedQueues = await this.getStoredQueues();
-    const channels = await this.getChannels();
-    if (!this.cachedQueueChannels) {
-      this.cachedQueueChannels = storedQueues.map((stored) => ({
-        stored: stored,
-        channel: channels.find((ch) => ch.id === stored.queue_channel_id),
-      }));
-    }
-    return this.cachedQueueChannels;
-  }
-
-  /**
-   * Get all channels as GuildBasedChannel
-   */
-  public async getChannels(): Promise<Collection<string, GuildBasedChannel>> {
-    return (this.cachedChannels =
-      this.cachedChannels ||
-      // @ts-ignore
-      (await this.request.guild.channels.fetch()).filter((ch) => QUEUABLE_CHANNELS.includes(ch?.type)));
-  }
-
-  protected verifyNumber(min: number, max: number, defaultValue: number): void {
-    for (let i = 0; i < this.args.numbers.length; i++) {
-      let number = this.args.numbers[i];
-      this.args.numbers[i] = number ? Math.max(Math.min(number as number, max), min) : defaultValue;
-    }
-  }
-}
-
-export class ParsedCommand extends ParsedBase {
-  public declare request: CommandInteraction;
-
-  constructor(command: CommandInteraction) {
-    super();
     this.request = command;
   }
 
@@ -361,111 +226,127 @@ export class ParsedCommand extends ParsedBase {
     }
     return accumulator;
   }
-}
 
-export class ParsedMessage extends ParsedBase {
-  public declare request: Message;
-  private lastResponse: Message;
-
-  constructor(message: Message) {
-    super();
-    this.request = message;
+  public get member(): GuildMember {
+    return this.args.members ? [...this.args.members.values()][0] : undefined;
   }
 
-  private static mentionRegex = RegExp(/<(@*?|#)\d+>/g);
+  public get role(): Role {
+    return this.args.roles ? [...this.args.roles.values()][0] : undefined;
+  }
 
-  public async parseArgs(conf: RequiredOptions): Promise<string[]> {
-    this.command = conf.command;
-    this.request.content = this.request.content.slice(conf.command.length + 1);
-    this.request.mentions.members.delete(this.request.guild.me.id); // remove mention of bot
-    let incomingStrings = this.request.content.split(" ");
-    // Members
-    if (conf.members) {
-      this.args.members = this.request.mentions.members;
+  public get channel(): GuildBasedChannel {
+    return this.args.channels?.[0];
+  }
+
+  public get channelNames(): string {
+    return this.args.channels?.map((c) => "`" + c.name + "`").join(", ");
+  }
+
+  public get string(): string {
+    return this.args.strings?.[0];
+  }
+
+  public get number(): number {
+    return this.args.numbers?.[0];
+  }
+
+  public get boolean(): boolean {
+    return this.args.booleans?.[0];
+  }
+
+  public async setup() {
+    this.storedGuild = await QueueGuildTable.get(this.request.guildId);
+    if (!this.storedGuild) {
+      await QueueGuildTable.store(this.request.guild);
+      this.storedGuild = await QueueGuildTable.get(this.request.guildId);
     }
-    // Roles
-    if (conf.roles) {
-      this.args.roles = this.request.mentions.roles;
-    }
-    // Channels
-    if (conf.channel) {
-      let channel = this.request.mentions.channels.first() as GuildBasedChannel;
-      // @ts-ignore
-      if (channel && QUEUABLE_CHANNELS.includes(channel.type)) {
-        this.args.channels = [channel];
-      } else {
-        let channels = await this.getQueueChannels();
-        if (conf.channel.type) {
+    this.hasPermission = await ParsingUtils.checkPermission(this.request);
+  }
+
+  protected async verifyArgs(conf: RequiredOptions): Promise<string[]> {
+    const missingArgs = [];
+    if (conf.channel?.required && !this.args.channels) {
+      missingArgs.push(
+        // @ts-ignore
+        (QUEUABLE_TEXT_CHANNELS.includes(conf.channel.type) ? "**text** " : "") +
           // @ts-ignore
-          channels = channels.filter((ch) => conf.channel.type.includes(ch.type));
-        }
-        if (channels.length === 1) {
-          this.args.channels = channels;
-        } else {
-          if (incomingStrings[0] === "ALL") {
-            if (conf.channel.required === RequiredType.OPTIONAL) {
-              this.args.channels = channels;
-            } else {
-              await this.reply({
-                content: `Can NOT target \`ALL\` queues for this command.`,
-              }).catch(() => null);
-            }
-          }
-          channel = channels.find((ch) => ch.name === this.args.strings[0]);
-          if (channel) {
-            this.args.channels = [channel];
-          }
-          if (this.args.channels) {
-            incomingStrings.splice(0, 1); // Channel found by plaintext. remove it from args
-          } else {
-            if (incomingStrings[0]) {
-              await this.reply({
-                content: `\`${incomingStrings[0]}\` is not a queue.`,
-              }).catch(() => null);
-            } else {
-              await this.reply({
-                content: `Missing queue argument. Did you mean to use \`ALL\`?.`,
-              }).catch(() => null);
-            }
-          }
-        }
+          (QUEUABLE_VOICE_CHANNELS.includes(conf.channel.type) ? "**voice** " : "") +
+          "channel"
+      );
+    }
+    if (conf.roles === RequiredType.REQUIRED && !this.args.roles) {
+      missingArgs.push("role");
+    }
+    if (conf.members === RequiredType.REQUIRED && !this.args.members?.size) {
+      missingArgs.push("member");
+    }
+    if (conf.numbers?.required === RequiredType.REQUIRED) {
+      if (this.args.numbers.length) {
+        this.verifyNumber(conf.numbers.min, conf.numbers.max, conf.numbers.defaultValue);
+      } else {
+        missingArgs.push("number");
       }
     }
-    // Filter mentions
-    incomingStrings = incomingStrings.filter((arg) => !arg.match(ParsedMessage.mentionRegex)?.length);
-    // Strings
-    if (conf.strings) {
-      this.args.strings = incomingStrings.filter((arg) => isNaN(+arg));
+    if (conf.strings === RequiredType.REQUIRED && !this.args.strings.length) {
+      missingArgs.push("string");
     }
-    // Numbers
-    if (conf.numbers) {
-      this.args.numbers = incomingStrings.filter((arg) => !isNaN(+arg)).map((arg) => +arg);
+    if (conf.booleans === RequiredType.REQUIRED && !this.args.booleans.length) {
+      missingArgs.push("boolean");
     }
-    // Verify
-    return this.verifyArgs(conf);
+    // Report missing
+    if (missingArgs.length) {
+      await this.reply({
+        content: "**ERROR**: Missing " + missingArgs.join(" and ") + " argument" + (missingArgs.length > 1 ? "s." : "."),
+        commandDisplay: "EPHEMERAL",
+      }).catch(() => null);
+    }
+    return missingArgs;
   }
 
-  public async reply(options: ReplyOptions): Promise<Message> {
-    const mentions: MessageMentionOptions = options.allowMentions ? null : { parse: [] };
-    const isEphemeral = options.commandDisplay === "EPHEMERAL";
-    const message: ReplyMessageOptions = {
-      content: options.content,
-      embeds: options.embeds,
-      allowedMentions: mentions,
-    };
+  /**
+   * Get stored queues as StoredQueue[]
+   */
+  private async getStoredQueues(): Promise<StoredQueue[]> {
+    if (this.cachedQueues === undefined) {
+      this.cachedQueues = await QueueTable.getFromGuild(this.request.guildId);
+    }
+    return this.cachedQueues;
+  }
 
-    await MessagingUtils.logToLoggingChannel(
-      this.command,
-      options.content,
-      this.request.member as GuildMember,
-      this.storedGuild,
-      isEphemeral
-    );
+  public async getQueueChannels(): Promise<GuildBasedChannel[]> {
+    return (await this.getQueuePairs()).map((pair) => pair.channel);
+  }
 
-    if (options.messageDisplay === "DM") {
-      return (this.lastResponse = (await this.request.author.send(message)) as Message);
-    } else if (options.messageDisplay !== "NONE") {
-      return (this.lastResponse = (await this.request.reply(message)) as Message);
+  /**
+   * Get queues as QueuePair[]
+   */
+  public async getQueuePairs(): Promise<QueuePair[]> {
+    const storedQueues = await this.getStoredQueues();
+    const channels = await this.getChannels();
+    if (!this.cachedQueueChannels) {
+      this.cachedQueueChannels = storedQueues.map((stored) => ({
+        stored: stored,
+        channel: channels.find((ch) => ch.id === stored.queue_channel_id),
+      }));
+    }
+    return this.cachedQueueChannels;
+  }
+
+  /**
+   * Get all channels as GuildBasedChannel
+   */
+  public async getChannels(): Promise<Collection<string, GuildBasedChannel>> {
+    return (this.cachedChannels =
+      this.cachedChannels ||
+      // @ts-ignore
+      (await this.request.guild.channels.fetch()).filter((ch) => QUEUABLE_CHANNELS.includes(ch?.type)));
+  }
+
+  protected verifyNumber(min: number, max: number, defaultValue: number): void {
+    for (let i = 0; i < this.args.numbers.length; i++) {
+      let number = this.args.numbers[i];
+      this.args.numbers[i] = number ? Math.max(Math.min(number as number, max), min) : defaultValue;
     }
   }
 }

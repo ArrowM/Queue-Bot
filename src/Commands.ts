@@ -15,7 +15,6 @@ import { validate as cronValidate } from "node-cron";
 import { Base } from "./utilities/Base";
 import {
   BlackWhiteListEntry,
-  Parsed,
   PriorityEntry,
   QUEUABLE_TEXT_CHANNELS,
   QUEUABLE_VOICE_CHANNELS,
@@ -27,6 +26,7 @@ import {
   StoredQueue,
 } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
+import { Parsed } from "./utilities/ParsingUtils";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
@@ -93,54 +93,6 @@ export class Commands {
     }
   }
 
-  // --------------------------------- ENABLE PREFIX ------------------------------- //
-
-  /**
-   * the current alternate settings
-   */
-  public static async altPrefixGet(parsed: Parsed) {
-    await parsed.parseArgs({ command: "altprefix get" });
-    await parsed
-      .reply({
-        content: "**Alt Prefix** (`!`): " + (parsed.storedGuild.enable_alt_prefix ? "on" : "off"),
-      })
-      .catch(() => null);
-  }
-
-  /**
-   * Enable or disable alternate prefix
-   */
-  public static async altPrefixSet(parsed: Parsed) {
-    if ((await parsed.parseArgs({ command: "altprefix set", strings: RequiredType.REQUIRED })).length) {
-      return;
-    }
-
-    if (["on", "off"].includes(parsed.string.toLowerCase())) {
-      if (
-        (parsed.storedGuild.enable_alt_prefix && parsed.string === "on") ||
-        (!parsed.storedGuild.enable_alt_prefix && parsed.string === "off")
-      ) {
-        await parsed
-          .reply({
-            content: `Alternative prefixes were already ${parsed.string}.`,
-            commandDisplay: "EPHEMERAL",
-          })
-          .catch(() => null);
-      } else {
-        await QueueGuildTable.setAltPrefix(parsed.request.guildId, parsed.string === "on");
-        const response = `Alternative prefixes have been turned **${parsed.string}**.`;
-        await parsed.reply({ content: response }).catch(() => null);
-      }
-    } else {
-      await parsed
-        .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    }
-  }
-
   // --------------------------------- AUTOPULL ------------------------------- //
 
   /**
@@ -155,7 +107,7 @@ export class Commands {
       if (QUEUABLE_VOICE_CHANNELS.includes(queue.channel?.type)) {
         response += `${queue.channel}: ${queue.stored.auto_fill ? "on" : "off"}\n`;
       } else {
-        response += `${queue.channel}: no autopull for text\n`;
+        response += `${queue.channel}: no autopull for text queue\n`;
       }
     }
     await parsed.reply({ content: response }).catch(() => null);
@@ -180,16 +132,7 @@ export class Commands {
       return;
     }
 
-    if (["on", "off"].includes(parsed.string.toLowerCase())) {
-      await this.applyToQueue(parsed, QueueTable.setAutopull, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "autopull");
-    } else {
-      await parsed
-        .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    }
+    await this.applyToQueue(parsed, QueueTable.setAutopull, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "autopull");
   }
 
   // --------------------------------- BLACKLIST / WHITELIST ------------------------------- //\
@@ -405,16 +348,7 @@ export class Commands {
       return;
     }
 
-    if (["on", "off"].includes(parsed.string.toLowerCase())) {
-      await this.applyToQueue(parsed, QueueTable.setHideButton, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "off"], "button");
-    } else {
-      await parsed
-        .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    }
+    await this.applyToQueue(parsed, QueueTable.setHideButton, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "off"], "button");
   }
 
   // --------------------------------- CLEAR ------------------------------- //
@@ -740,7 +674,6 @@ export class Commands {
    */
   public static async help(parsed: Parsed) {
     await parsed.parseArgs({ command: "help" });
-    const alt = parsed.storedGuild.enable_alt_prefix;
 
     const response: MessageEmbedOptions = {
       title: "Commands for Everyone",
@@ -751,23 +684,23 @@ export class Commands {
             "**TEXT**: Click the button under a queue display or use `/join` & `/leave`.\n" + "**VOICE**: Join the matching voice channel.",
         },
         {
-          name: "`/display`" + (alt ? " or `!display`" : ""),
+          name: "`/display`",
           value: "Display a queue",
         },
         {
-          name: "`/join`" + (alt ? " or `!join`" : ""),
+          name: "`/join`",
           value: "Join a text queue / Update queue message after joining",
         },
         {
-          name: "`/leave`" + (alt ? " or `!leave`" : ""),
+          name: "`/leave`",
           value: "Leave a queue",
         },
         {
-          name: "`/positions`" + (alt ? " or `!positions`" : ""),
+          name: "`/positions`",
           value: "Show queue positions of a user",
         },
         {
-          name: "`/help setup`" + (alt ? " or `!help setup`" : ""),
+          name: "`/help setup`",
           value: "Setup & admin commands",
         },
       ],
@@ -907,10 +840,6 @@ export class Commands {
       author: { name: "Privileged Commands" },
       title: "Bot Management",
       fields: [
-        {
-          name: "`/altprefix`",
-          value: "Enable or disable alternate prefix `!`",
-        },
         {
           name: "`/mode`",
           value: "Get/Set display mode",
@@ -1283,39 +1212,30 @@ export class Commands {
       return;
     }
 
-    if (["on", "off"].includes(parsed.string.toLowerCase())) {
-      if (
-        (parsed.storedGuild.disable_mentions && parsed.string === "off") ||
-        (!parsed.storedGuild.disable_mentions && parsed.string === "on")
-      ) {
-        await parsed
-          .reply({
-            content: `Mentions were already ${parsed.string}.`,
-            commandDisplay: "EPHEMERAL",
-          })
-          .catch(() => null);
-      } else {
-        const guild = parsed.request.guild;
-        const disableMentions = parsed.string !== "on";
-        await QueueGuildTable.setDisableMentions(guild.id, disableMentions);
-        await parsed
-          .reply({
-            content: `Set mentions to \`${parsed.string}\`.`,
-          })
-          .catch(() => null);
-        const displayPromises = [];
-        for await (const queue of await parsed.getQueueChannels()) {
-          displayPromises.push(SchedulingUtils.scheduleDisplayUpdate(parsed.storedGuild, queue));
-        }
-        await Promise.all(displayPromises);
-      }
-    } else {
+    if (
+      (parsed.storedGuild.disable_mentions && parsed.string === "off") ||
+      (!parsed.storedGuild.disable_mentions && parsed.string === "on")
+    ) {
       await parsed
         .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
+          content: `Mentions were already ${parsed.string}.`,
           commandDisplay: "EPHEMERAL",
         })
         .catch(() => null);
+    } else {
+      const guild = parsed.request.guild;
+      const disableMentions = parsed.string !== "on";
+      await QueueGuildTable.setDisableMentions(guild.id, disableMentions);
+      await parsed
+        .reply({
+          content: `Set mentions to \`${parsed.string}\`.`,
+        })
+        .catch(() => null);
+      const displayPromises = [];
+      for await (const queue of await parsed.getQueueChannels()) {
+        displayPromises.push(SchedulingUtils.scheduleDisplayUpdate(parsed.storedGuild, queue));
+      }
+      await Promise.all(displayPromises);
     }
   }
 
@@ -1494,24 +1414,30 @@ export class Commands {
           .catch(() => null);
         return;
       }
+
       // Display and remove member from the queue
       // @ts-ignore
       if (QUEUABLE_VOICE_CHANNELS.includes(queue.channel.type)) {
-        if (targetChannel) {
+        if (targetChannel || queue.stored.unmute_on_next) {
           const promises = [];
           for (const queueMember of queueMembers) {
             promises.push(
-              QueueMemberTable.getMemberFromQueueMember(queue.channel, queueMember)
-                .then((m) => m.voice.setChannel(targetChannel))
-                .catch(() => null)
+              QueueMemberTable.getMemberFromQueueMember(queue.channel, queueMember).then((m) => {
+                if (targetChannel) {
+                  m.voice.setChannel(targetChannel).catch(() => null);
+                }
+                if (queue.stored.unmute_on_next) {
+                  console.log("unmuting");
+                  m.voice.setMute(false).catch(console.error);
+                }
+              })
             );
           }
           await Promise.all(promises);
         } else {
           await parsed
             ?.reply({
-              content:
-                "**ERROR**: No target channel. Set a target channel by sending `/start` then dragging the bot to the target channel.",
+              content: "**ERROR**: No target channel and unmute is off. Set a target channel with `/target` or use `/unmute`.",
               commandDisplay: "EPHEMERAL",
             })
             .catch(() => null);
@@ -1571,30 +1497,21 @@ export class Commands {
       return;
     }
 
-    if (["on", "off"].includes(parsed.string.toLowerCase())) {
-      if (
-        (parsed.storedGuild.disable_notifications && parsed.string === "off") ||
-        (!parsed.storedGuild.disable_notifications && parsed.string === "on")
-      ) {
-        await parsed
-          .reply({
-            content: `Notifications were already ${parsed.string}.`,
-            commandDisplay: "EPHEMERAL",
-          })
-          .catch(() => null);
-      } else {
-        await QueueGuildTable.setDisableNotifications(parsed.request.guildId, parsed.string === "off");
-        await parsed
-          .reply({
-            content: `Notifications have been turned **${parsed.string}**.`,
-          })
-          .catch(() => null);
-      }
-    } else {
+    if (
+      (parsed.storedGuild.disable_notifications && parsed.string === "off") ||
+      (!parsed.storedGuild.disable_notifications && parsed.string === "on")
+    ) {
       await parsed
         .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
+          content: `Notifications were already ${parsed.string}.`,
           commandDisplay: "EPHEMERAL",
+        })
+        .catch(() => null);
+    } else {
+      await QueueGuildTable.setDisableNotifications(parsed.request.guildId, parsed.string === "off");
+      await parsed
+        .reply({
+          content: `Notifications have been turned **${parsed.string}**.`,
         })
         .catch(() => null);
     }
@@ -1927,22 +1844,13 @@ export class Commands {
       return;
     }
 
-    if (["on", "off"].includes(parsed.string.toLowerCase())) {
-      const enablePartialPulling = parsed.string.toLowerCase() === "on";
-      await this.applyToQueue(
-        parsed,
-        QueueTable.setPullnum,
-        [ReplaceWith.QUEUE_CHANNEL_ID, parsed.number, enablePartialPulling],
-        "pull number"
-      );
-    } else {
-      await parsed
-        .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    }
+    const enablePartialPulling = parsed.string.toLowerCase() === "on";
+    await this.applyToQueue(
+      parsed,
+      QueueTable.setPullnum,
+      [ReplaceWith.QUEUE_CHANNEL_ID, parsed.number, enablePartialPulling],
+      "pull number"
+    );
   }
 
   // --------------------------------- QUEUES ------------------------------- //
@@ -2113,48 +2021,39 @@ export class Commands {
       return;
     }
 
-    if (!["on", "off"].includes(parsed.string.toLowerCase())) {
-      await parsed
-        .reply({
-          content: "**ERROR**: Missing required argument: `on` or `off`.",
-          commandDisplay: "EPHEMERAL",
-        })
-        .catch(() => null);
-    } else {
-      const guild = parsed.request.guild;
-      const disableRoles = parsed.string === "off";
-      await QueueGuildTable.setDisableRoles(guild.id, disableRoles);
-      await parsed.reply({ content: `Set roles to \`${parsed.string}\`.` }).catch(() => null);
+    const guild = parsed.request.guild;
+    const disableRoles = parsed.string === "off";
+    await QueueGuildTable.setDisableRoles(guild.id, disableRoles);
+    await parsed.reply({ content: `Set roles to \`${parsed.string}\`.` }).catch(() => null);
 
-      const storedQueues = await QueueTable.getFromGuild(guild.id);
-      for await (const storedQueue of storedQueues) {
-        const channel = (await parsed.getChannels()).find((ch) => ch.id === storedQueue.queue_channel_id);
-        if (!channel) {
-          continue;
+    const storedQueues = await QueueTable.getFromGuild(guild.id);
+    for await (const storedQueue of storedQueues) {
+      const channel = (await parsed.getChannels()).find((ch) => ch.id === storedQueue.queue_channel_id);
+      if (!channel) {
+        continue;
+      }
+      // Delete old role
+      const oldRole = await guild.roles.fetch(storedQueue.role_id).catch(() => null as Role);
+      if (oldRole) {
+        await QueueTable.deleteRoleId(channel).catch(() => null);
+        try {
+          await oldRole.delete();
+        } catch (e) {
+          // nothing
         }
-        // Delete old role
-        const oldRole = await guild.roles.fetch(storedQueue.role_id).catch(() => null as Role);
-        if (oldRole) {
-          await QueueTable.deleteRoleId(channel).catch(() => null);
-          try {
-            await oldRole.delete();
-          } catch (e) {
-            // nothing
-          }
+      }
+      // Create role and assign it to members
+      if (parsed.args.strings?.[1]) {
+        await QueueGuildTable.setRolePrefix(guild.id, parsed.args.strings?.[1] + " ");
+      }
+      const role = await QueueTable.createQueueRole(parsed, channel, storedQueue.color);
+      if (role) {
+        const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
+        for await (const queueMember of queueMembers) {
+          await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
         }
-        // Create role and assign it to members
-        if (parsed.args.strings?.[1]) {
-          await QueueGuildTable.setRolePrefix(guild.id, parsed.args.strings?.[1] + " ");
-        }
-        const role = await QueueTable.createQueueRole(parsed, channel, storedQueue.color);
-        if (role) {
-          const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
-          for await (const queueMember of queueMembers) {
-            await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
-          }
-        } else {
-          break; // Failed to create role, don't attempt to create the others
-        }
+      } else {
+        break; // Failed to create role, don't attempt to create the others
       }
     }
   }
@@ -2522,6 +2421,54 @@ export class Commands {
     }
   }
 
+  // --------------------------------- TARGET ------------------------------- //
+
+  /**
+   * Get the current voice queue target channel
+   */
+  public static async targetGet(parsed: Parsed) {
+    await parsed.parseArgs({ command: "target get" });
+
+    let response = "**Target**:\n";
+    for await (const queue of await parsed.getQueuePairs()) {
+      // @ts-ignore
+      response += `${queue.channel}: ` + (queue.stored.target_channel_id ? `<#${queue.stored.target_channel_id}>` : "NONE") + `\n`;
+    }
+    await parsed.reply({ content: response }).catch(() => null);
+  }
+
+  /**
+   * Set the voice queue target channel
+   */
+  public static async targetSet(parsed: Parsed) {
+    if (
+      (
+        await parsed.parseArgs({
+          command: "target set",
+          channel: {
+            required: RequiredType.OPTIONAL,
+            type: QUEUABLE_VOICE_CHANNELS,
+          },
+        })
+      ).length
+    ) {
+      return;
+    }
+
+    let targetValue: any;
+    let targetString: string;
+
+    if ([parsed.args.channels[0]?.id, undefined].includes(parsed.args.channels[1]?.id)) {
+      targetValue = Base.knex.raw("DEFAULT");
+      targetString = "NONE";
+    } else {
+      targetValue = parsed.args.channels[1].id;
+      targetString = `<#${targetValue}>`;
+    }
+
+    await this.applyToQueue(parsed, QueueTable.setTarget, [ReplaceWith.QUEUE_CHANNEL_ID, targetValue], "target channel", targetString);
+  }
+
   // --------------------------------- TIMESTAMPS ------------------------------- //
 
   /**
@@ -2622,5 +2569,43 @@ export class Commands {
     }
 
     await this.pullHelper({ stored: storedQueue, channel: queueChannel }, parsed, targetChannel);
+  }
+
+  // --------------------------------- UNMUTE ------------------------------- //
+
+  /**
+   * the current unmute settings
+   */
+  public static async unmuteGet(parsed: Parsed) {
+    await parsed.parseArgs({ command: "unmute get" });
+
+    let response = "**Unmute**:\n";
+    for await (const queue of await parsed.getQueuePairs()) {
+      // @ts-ignore
+      response += `${queue.channel}: ${queue.stored.unmute_on_next ? "on" : "off"}\n`;
+    }
+    await parsed.reply({ content: response }).catch(() => null);
+  }
+
+  /**
+   * Toggle automatic pull of users from a queue
+   */
+  public static async unmuteSet(parsed: Parsed) {
+    if (
+      (
+        await parsed.parseArgs({
+          command: "unmute set",
+          channel: {
+            required: RequiredType.OPTIONAL,
+            type: QUEUABLE_VOICE_CHANNELS,
+          },
+          strings: RequiredType.REQUIRED,
+        })
+      ).length
+    ) {
+      return;
+    }
+
+    await this.applyToQueue(parsed, QueueTable.setUnmute, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "unmute");
   }
 }

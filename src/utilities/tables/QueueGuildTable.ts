@@ -17,7 +17,6 @@ export class QueueGuildTable {
             table.boolean("disable_mentions");
             table.boolean("disable_notifications");
             table.boolean("disable_roles");
-            table.boolean("enable_alt_prefix");
             table.bigInteger("logging_channel_id");
             table.integer("logging_channel_level");
             table.integer("msg_mode");
@@ -52,10 +51,6 @@ export class QueueGuildTable {
 
   public static async setMessageMode(guildId: Snowflake, mode: number) {
     await QueueGuildTable.get(guildId).update("msg_mode", mode);
-  }
-
-  public static async setAltPrefix(guildId: Snowflake, value: boolean) {
-    await QueueGuildTable.get(guildId).update("enable_alt_prefix", value);
   }
 
   public static async setTimestamps(guildId: Snowflake, value: string) {

@@ -1,40 +1,5 @@
 [
   {
-    "name": "altprefix",
-    "description": "altprefix",
-    "options": [
-      {
-        "name": "get",
-        "description": "Get the current alternate prefix settings",
-        "type": 1,
-        "options": []
-      },
-      {
-        "name": "set",
-        "description": "Enable or disable alternate prefix",
-        "type": 1,
-        "options": [
-          {
-            "name": "status",
-            "description": "Enable or disable alternate prefix",
-            "type": 3,
-            "required": true,
-            "choices": [
-              {
-                "name": "on",
-                "value": "on"
-              },
-              {
-                "name": "off",
-                "value": "off"
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
     "name": "autopull",
     "description": "autopull",
     "options": [
@@ -1378,6 +1343,37 @@
     ]
   },
   {
+    "name": "target",
+    "description": "target",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current voice queue target channel",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Set the voice queue target channel",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Voice queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "target",
+            "description": "Voice channel",
+            "type": 7,
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "timestamps",
     "description": "Display timestamps next to users",
     "options": [
@@ -1440,6 +1436,47 @@
         "type": 4,
         "min_value": 1,
         "max_value": 999
+      }
+    ]
+  },
+  {
+    "name": "unmute",
+    "description": "unmute",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current unmute-on-next settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Unmute users when they are pulled from queue",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Voice queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "status",
+            "description": "On or off",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
+          }
+        ]
       }
     ]
   },

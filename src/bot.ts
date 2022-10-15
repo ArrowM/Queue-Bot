@@ -3,7 +3,6 @@ import {
   GuildBasedChannel,
   GuildMember,
   Interaction,
-  Message,
   PartialGuildMember,
   StageChannel,
   VoiceChannel,
@@ -15,9 +14,9 @@ import util from "util";
 
 import { Commands } from "./Commands";
 import { Base } from "./utilities/Base";
-import { Parsed, StoredQueue } from "./utilities/Interfaces";
+import { StoredQueue } from "./utilities/Interfaces";
 import { MessagingUtils } from "./utilities/MessagingUtils";
-import { ParsedCommand, ParsedMessage } from "./utilities/ParsingUtils";
+import { Parsed } from "./utilities/ParsingUtils";
 import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
@@ -81,7 +80,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       } else if (!interaction.guild?.id) {
         await interaction.reply("Commands can only be used in servers.");
       } else {
-        const parsed = new ParsedCommand(interaction);
+        const parsed = new Parsed(interaction);
         await parsed.setup();
 
         const commands: CommandArg[] = [{ name: parsed.request.commandName, value: undefined }];
@@ -91,41 +90,6 @@ client.on("interactionCreate", async (interaction: Interaction) => {
           obj = obj?.[0]?.options;
         }
         await processCommand(parsed, commands);
-      }
-    }
-  } catch (e: any) {
-    console.error(e);
-  }
-});
-
-function isTextCommand(message: Message): boolean {
-  if (message.content[0] === "!") {
-    message.content = message.content.slice(1).trimStart();
-    return true;
-  } else if (message.guild.me?.id) {
-    const regExp = RegExp(`^<@!?${message.guild.me.id}>`);
-    if (regExp.test(message.content)) {
-      // Remove bot mention from content
-      message.content = message.content.slice(message.content.indexOf(">") + 1).trimStart();
-      return true;
-    }
-  }
-  return false;
-}
-
-client.on("messageCreate", async (message) => {
-  try {
-    const guildId = message.guild?.id;
-    if (isReady && guildId && isTextCommand(message)) {
-      const parsed = new ParsedMessage(message);
-      await parsed.setup();
-      if (parsed.storedGuild.enable_alt_prefix) {
-        await processCommand(
-          parsed,
-          message.content.split(" ").map((str) => {
-            return { name: str, value: undefined };
-          })
-        );
       }
     }
   } catch (e: any) {
@@ -307,16 +271,6 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
   }
   // -- ADMIN COMMANDS --
   switch (command[0]?.name) {
-    case "altprefix":
-      switch (command[1]?.name) {
-        case "get":
-          await Commands.altPrefixGet(parsed);
-          return;
-        case "set":
-          await Commands.altPrefixSet(parsed);
-          return;
-      }
-      return;
     case "autopull":
       switch (command[1]?.name) {
         case "get":
@@ -592,6 +546,16 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
     case "start":
       await Commands.start(parsed);
       return;
+    case "target":
+      switch (command[1]?.name) {
+        case "get":
+          await Commands.targetGet(parsed);
+          return;
+        case "set":
+          await Commands.targetSet(parsed);
+          return;
+      }
+      return;
     case "timestamps":
       switch (command[1]?.name) {
         case "get":
@@ -604,6 +568,16 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
       return;
     case "to-me":
       await Commands.toMe(parsed);
+      return;
+    case "unmute":
+      switch (command[1]?.name) {
+        case "get":
+          await Commands.unmuteGet(parsed);
+          return;
+        case "set":
+          await Commands.unmuteSet(parsed);
+          return;
+      }
       return;
     case "whitelist":
       switch (command[1]?.name) {

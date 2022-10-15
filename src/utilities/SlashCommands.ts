@@ -9,7 +9,8 @@ import {
 } from "discord-slash-commands-client";
 
 import { Base } from "./Base";
-import { Parsed, QUEUABLE_CHANNELS, QUEUABLE_TEXT_CHANNELS, QUEUABLE_VOICE_CHANNELS } from "./Interfaces";
+import { QUEUABLE_CHANNELS, QUEUABLE_TEXT_CHANNELS, QUEUABLE_VOICE_CHANNELS } from "./Interfaces";
+import { Parsed } from "./ParsingUtils";
 import { QueueTable } from "./tables/QueueTable";
 
 interface SlashUpdateMessage {
@@ -20,7 +21,7 @@ interface SlashUpdateMessage {
 }
 export class SlashCommands {
   public static readonly DONT_MODIFY = ["logging"];
-  public static readonly GLOBAL_COMMANDS = ["altprefix", "help", "queues", "permission"];
+  public static readonly GLOBAL_COMMANDS = ["help", "queues", "permission"];
   public static readonly MULTI_QUEUE_COMMANDS = [
     "autopull",
     "blacklist",
@@ -36,10 +37,12 @@ export class SlashCommands {
     "schedule",
     "shuffle",
     "to-me",
+    "unmute",
     "whitelist",
   ];
+  public static readonly NO_QUEUE_COMMANDS = ["target"];
   public static readonly TEXT_COMMANDS = ["button"];
-  public static readonly VOICE_COMMANDS = ["autopull", "start", "to-me"];
+  public static readonly VOICE_COMMANDS = ["autopull", "start", "target", "to-me", "unmute"];
   public static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
 
   private static readonly commandRegistrationCache = new Map<Snowflake, number>();
@@ -83,6 +86,10 @@ export class SlashCommands {
           });
           if (this.MULTI_QUEUE_COMMANDS.includes(name)) {
             choices.push({ name: "ALL", value: "ALL" });
+          }
+          // For /target
+          if (this.NO_QUEUE_COMMANDS.includes(name) && option.description.toLowerCase().includes("voice channel")) {
+            choices.push({ name: "NONE", value: "NONE" });
           }
           // Modify
           options[i] = {

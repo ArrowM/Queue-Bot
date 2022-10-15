@@ -1,8 +1,6 @@
 /* eslint-disable unused-imports/no-unused-vars */
 import { ColorResolvable, GuildBasedChannel, Snowflake } from "discord.js";
 
-import { ParsedCommand, ParsedMessage } from "./ParsingUtils";
-
 // ------ TABLES ------
 
 export interface AdminPermission {
@@ -50,6 +48,7 @@ export interface StoredQueue {
   queue_channel_id: Snowflake;
   role_id: Snowflake;
   target_channel_id: Snowflake;
+  unmute_on_next: boolean;
 }
 
 export interface StoredGuild {
@@ -57,7 +56,6 @@ export interface StoredGuild {
   disable_mentions: boolean;
   disable_notifications: boolean;
   disable_roles: boolean;
-  enable_alt_prefix: boolean;
   guild_id: Snowflake;
   logging_channel_id: Snowflake;
   logging_channel_level: number;
@@ -140,8 +138,6 @@ export enum RequiredType {
   REQUIRED = "REQUIRED",
   OPTIONAL = "OPTIONAL",
 }
-
-export type Parsed = ParsedCommand | ParsedMessage;
 
 export enum QueuableTextChannelTypes {
   GUILD_TEXT = "GUILD_TEXT",

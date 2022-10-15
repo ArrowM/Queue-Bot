@@ -448,6 +448,10 @@ export class PatchingUtils {
       }
       await Base.knex.schema.alterTable("queue_channels", (t) => t.dropColumn("clear_schedule"));
     }
+    // Add unmute_on_next column
+    if (!(await Base.knex.schema.hasColumn("queue_channels", "unmute_on_next"))) {
+      await Base.knex.schema.table("queue_channels", (t) => t.boolean("unmute_on_next"));
+    }
   }
 
   private static async tableQueueGuilds() {
@@ -461,12 +465,7 @@ export class PatchingUtils {
       }
       await Base.knex.schema.table("queue_guilds", (t) => t.dropColumn("msg_on_update"));
     }
-    // Add cleanup_commands
-    if (!(await Base.knex.schema.hasColumn("queue_guilds", "cleanup_commands"))) {
-      await Base.knex.schema.table("queue_guilds", (t) => t.text("cleanup_commands"));
-      await Base.knex<StoredGuild>("queue_guilds").update("cleanup_commands", "off");
-    }
-    // Move columns to channel t
+    // Move columns to channel table
     if (await Base.knex.schema.hasColumn("queue_guilds", "color")) {
       if (!(await Base.knex.schema.hasColumn("queue_channels", "color"))) {
         await Base.knex.schema.table("queue_channels", (t) => t.text("color"));
@@ -491,10 +490,6 @@ export class PatchingUtils {
         t.dropColumn("color");
         t.dropColumn("cleanup_commands");
       });
-    }
-    // add enable_alt_prefix
-    if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {
-      await Base.knex.schema.alterTable("queue_guilds", (t) => t.boolean("enable_alt_prefix"));
     }
     // add disable_mentions
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "disable_mentions"))) {
@@ -532,6 +527,10 @@ export class PatchingUtils {
     // Add role_prefix
     if (!(await Base.knex.schema.hasColumn("queue_guilds", "role_prefix"))) {
       await Base.knex.schema.table("queue_guilds", (t) => t.text("role_prefix"));
+    }
+    // Remove alt_prefix
+    if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {
+      await Base.knex.schema.table("queue_guilds", (t) => t.dropColumn("enable_alt_prefix"));
     }
   }
 

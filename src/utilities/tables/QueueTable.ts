@@ -2,7 +2,8 @@ import { Collection, ColorResolvable, DiscordAPIError, Guild, GuildBasedChannel,
 import { Knex } from "knex";
 
 import { Base } from "../Base";
-import { Parsed, QUEUABLE_VOICE_CHANNELS, StoredQueue } from "../Interfaces";
+import { QUEUABLE_VOICE_CHANNELS, StoredQueue } from "../Interfaces";
+import { Parsed } from "../ParsingUtils";
 import { SchedulingUtils } from "../SchedulingUtils";
 import { SlashCommands } from "../SlashCommands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
@@ -30,6 +31,7 @@ export class QueueTable {
             table.integer("max_members");
             table.integer("pull_num");
             table.bigInteger("target_channel_id");
+            table.boolean("unmute_on_next");
           })
           .catch((e) => console.error(e));
       }
@@ -99,6 +101,10 @@ export class QueueTable {
       }
       await member.roles.add(role);
     }
+  }
+
+  public static async setUnmute(queueChannelId: Snowflake, value: boolean) {
+    await QueueTable.get(queueChannelId).update("unmute_on_next", value ? 1 : 0);
   }
 
   public static async deleteRoleId(queueChannel: GuildBasedChannel) {
@@ -217,7 +223,7 @@ export class QueueTable {
           `WARNING: ${
             channel.guild || "**" + channel.name + "**"
           } will not be available in slash commands due to a Discord limit of 25 choices per command parameter. ` +
-          ` To interact with this new queue, you must use the alternate prefix (\`/altprefix on\`) or delete another queue.`,
+          ` To interact with this new queue, you must delete another queue.`,
       });
     }
   }
