@@ -25,6 +25,7 @@ import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import { QueueTable } from "./utilities/tables/QueueTable";
+import {LastPulledTable} from "./utilities/tables/LastPulledTable";
 
 // Setup client
 console.time("READY. Bot started in");
@@ -653,6 +654,11 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           }
         }
         await Promise.all([
+          async () => {
+            if (storedOldQueueChannel.unmute_on_next) {
+              member.voice.setMute(true).catch(() => null);
+            }
+          },
           QueueMemberTable.store(newVoiceChannel, member),
           SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel),
           MessagingUtils.logToLoggingChannel("join", `${member} joined ${newVoiceChannel}.`, member, storedGuild, true),
@@ -674,6 +680,11 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           );
         } else {
           await Promise.all([
+            async () => {
+              if (storedOldQueueChannel.unmute_on_next) {
+                member.voice.setMute(false).catch(() => null);
+              }
+            },
             QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period),
             SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel),
             MessagingUtils.logToLoggingChannel("leave", `${member} left ${oldVoiceChannel}.`, member, storedGuild, true),
@@ -716,12 +727,10 @@ async function fillTargetChannel(
         if (!storedSrcChannel.enable_partial_pull && storedMembers.length < storedSrcChannel.pull_num) {
           const displayChannel = await DisplayChannelTable.getFirstChannelFromQueue(srcChannel.guild, srcChannel.id);
           await displayChannel?.send(
-            `${srcChannel} only has **${storedMembers.length}** member${storedMembers.length > 1 ? "s" : ""}, **${
-              storedSrcChannel.pull_num
-            }** are needed. ` +
-              `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${
-                storedMembers.length > 1 ? "s" : ""
-              }, use \`/pullnum\` and enable \`partial_pulling\`.`,
+            `${srcChannel} only has **${storedMembers.length}** member${storedMembers.length > 1 ? "s" : ""}, ` +
+              `**${storedSrcChannel.pull_num}** are needed. To allow pulling of fewer than ` +
+              `**${storedSrcChannel.pull_num}** member${storedMembers.length > 1 ? "s" : ""}, ` +
+              `use \`/pullnum\` and enable \`partial_pulling\`.`,
           );
           return;
         }
@@ -734,9 +743,12 @@ async function fillTargetChannel(
       const promises = [];
       for (const storedMember of storedMembers) {
         promises.push(
-          QueueMemberTable.getMemberFromQueueMemberId(srcChannel, storedMember.member_id).then((m) =>
-            m?.voice.setChannel(dstChannel).catch(() => null),
-          ),
+          QueueMemberTable.getMemberFromQueueMemberId(srcChannel, storedMember.member_id).then((member) => {
+            member?.voice.setChannel(dstChannel).catch(() => null);
+            if (storedSrcChannel.unmute_on_next) {
+              member.voice.setMute(false).catch(() => null);
+            }
+          }),
         );
       }
       await Promise.all(promises);
