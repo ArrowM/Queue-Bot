@@ -2627,7 +2627,6 @@ export class Commands {
           command: "unmute set",
           channel: {
             required: RequiredType.OPTIONAL,
-            type: QUEUABLE_VOICE_CHANNELS,
           },
           strings: RequiredType.REQUIRED,
         })
