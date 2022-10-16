@@ -42,7 +42,7 @@ export class SlashCommands {
   ];
   public static readonly NO_QUEUE_COMMANDS = ["target"];
   public static readonly TEXT_COMMANDS = ["button"];
-  public static readonly VOICE_COMMANDS = ["autopull", "start", "target", "to-me", "unmute"];
+  public static readonly VOICE_COMMANDS = ["autopull", "start", "target", "to-me"];
   public static readonly slashClient = new SlashClient(Base.config.token, Base.config.clientId);
 
   private static readonly commandRegistrationCache = new Map<Snowflake, number>();
@@ -64,7 +64,7 @@ export class SlashCommands {
   private static modifyQueue(
     name: string,
     options: ApplicationCommandOption[],
-    queueChannels: GuildBasedChannel[]
+    queueChannels: GuildBasedChannel[],
   ): ApplicationCommandOption[] {
     for (let i = options.length - 1; i >= 0; i--) {
       const option = options[i];
@@ -165,7 +165,7 @@ export class SlashCommands {
 
     const commands = (await this.slashClient.getCommands({ guildID: guildId }).catch(() => [])) as ApplicationCommand[];
     const filteredCommands = commands.filter(
-      (cmd) => !this.GLOBAL_COMMANDS.includes(cmd.name) && cmd.application_id === Base.client.user.id
+      (cmd) => !this.GLOBAL_COMMANDS.includes(cmd.name) && cmd.application_id === Base.client.user.id,
     );
 
     const msgTest = "Unregistering queue commands. This will take about 2 minutes...";

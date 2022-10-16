@@ -1,4 +1,4 @@
-import { Snowflake } from "discord.js";
+import { Collection, GuildBasedChannel, Snowflake } from "discord.js";
 
 import { Base } from "../Base";
 import { Schedule, ScheduleCommand } from "../Interfaces";
@@ -59,5 +59,14 @@ export class ScheduleTable {
       query = query.where("command", command);
     }
     await query;
+  }
+
+  public static async validate(queueChannel: GuildBasedChannel, channels: Collection<Snowflake, GuildBasedChannel>): Promise<void> {
+    const storedEntries = await ScheduleTable.getFromQueue(queueChannel.id);
+    for await (const entry of storedEntries) {
+      if (!channels.some((c) => c?.id === entry.queue_channel_id)) {
+        await ScheduleTable.unstore(queueChannel.id);
+      }
+    }
   }
 }

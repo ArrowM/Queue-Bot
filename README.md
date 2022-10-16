@@ -18,11 +18,11 @@ https://user-images.githubusercontent.com/42418080/182225650-5fc2ae04-6012-4d5a-
 ## Commands  
 
 ### Commands for Everyone
-`/display` - Display a queue  
+`/display` - DDisplay the users in a queue. These messages stay updated  
 `/help` - Display help messages  
 `/join` - Join a text queue / Update queue message after joining  
 `/leave` - Leave a text queue  
-`/positions` - Show my queues  
+`/positions` - Display a member's queue positions  
 
 ### Privileged Commands  
 Privileged commands are restricted to the server owner, administrators, and users with any of the following roles: `mod`, `moderator`, `admin`, `administrator`. Users or roles can be granted permission to use privileged commands with `/permission add`.  
@@ -34,15 +34,15 @@ If a command that expects a channel name is not given one, the current text chan
 `/button` - Get/Set whether a \"Join / Leave\" button appears under a text queue display  
 `/clear` - Clear a queue  
 `/color` - Get/Set color of queue displays  
+`/dequeue` - Dequeue a user  
 `/enqueue` - Add a specified user or role to a text queue / Update queue message  
 `/graceperiod` - Get/Set how long users can leave a queue before losing their position  
 `/header` - Get/Set a header on display messages  
-`/dequeue` - Dequeue a user  
 `/lock` - Lock or unlock a queue. Locked queues can still be left  
 `/logging` - Get/Set a dedicated logging channel for bot messages  
 `/mentions` - Get/Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/move` - Move a user to a new position in a queue  
-`/next` - Pull from a text queue  
+`/next` - Pull the next user(s) from a queue and display their name(s) 
 `/pullnum` - Get/Set the default # of users to pull when autopull is off or when using the `/next` command  
 `/queues` - Add/Delete/List queues  
 `/roles` - Get/Set whether queue members are assigned a role named `In queue: ...`  
@@ -52,7 +52,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/target` - Get/Set voice queue target channels  
 `/timestamps` - Get/Set whether to display timestamps next to users  
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
-`/unmute` - Get/Set whether users are unmuted when they are pulled from a queue  
+`/unmute` - Un-mute users when they are pulled from queue and re-mute them on the next pull  
 `/whitelist` - Add/Delete/List/Clear users or roles from a queue whitelist  
 
 **Bot Management**  

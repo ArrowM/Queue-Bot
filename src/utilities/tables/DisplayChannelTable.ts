@@ -99,7 +99,7 @@ export class DisplayChannelTable {
   public static async validate(
     guild: Guild,
     queueChannel: GuildBasedChannel,
-    channels: Collection<Snowflake, GuildBasedChannel>
+    channels: Collection<Snowflake, GuildBasedChannel>,
   ): Promise<boolean> {
     let updateRequired = false;
     const storedEntries = await DisplayChannelTable.getFromQueue(queueChannel.id);

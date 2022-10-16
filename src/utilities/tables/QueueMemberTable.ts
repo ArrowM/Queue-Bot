@@ -61,12 +61,12 @@ export class QueueMemberTable {
   /**
    * WARNING THIS MIGHT BE SLOW
    */
-  public static async getMemberFromQueueMember(queueChannel: GuildBasedChannel, queueMember: QueueMember): Promise<GuildMember> {
+  public static async getMemberFromQueueMemberId(queueChannel: GuildBasedChannel, memberId: Snowflake): Promise<GuildMember> {
     try {
-      return await queueChannel.guild.members.fetch(queueMember.member_id);
+      return await queueChannel.guild.members.fetch(memberId);
     } catch (e: any) {
       if ([403, 404].includes(e.httpStatus)) {
-        await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [queueMember.member_id]);
+        await QueueMemberTable.unstore(queueChannel.guild.id, queueChannel.id, [memberId]);
       }
       return undefined;
     }
@@ -170,7 +170,7 @@ export class QueueMemberTable {
           .catch(() => null as GuildMember)
           .then((m) => {
             m?.roles.remove(role.id).catch(() => null);
-          })
+          }),
       );
     }
     await Promise.all(promises);

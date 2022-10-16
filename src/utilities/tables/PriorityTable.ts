@@ -58,7 +58,7 @@ export class PriorityTable {
   public static async validate(
     guild: Guild,
     members: Collection<Snowflake, GuildMember>,
-    roles: Collection<Snowflake, Role>
+    roles: Collection<Snowflake, Role>,
   ): Promise<boolean> {
     let updateRequired = false;
     const storedEntries = await PriorityTable.getMany(guild.id);

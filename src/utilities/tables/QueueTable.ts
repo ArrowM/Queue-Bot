@@ -8,6 +8,7 @@ import { SchedulingUtils } from "../SchedulingUtils";
 import { SlashCommands } from "../SlashCommands";
 import { BlackWhiteListTable } from "./BlackWhiteListTable";
 import { DisplayChannelTable } from "./DisplayChannelTable";
+import { LastPulledTable } from "./LastPulledTable";
 import { QueueGuildTable } from "./QueueGuildTable";
 import { QueueMemberTable } from "./QueueMemberTable";
 import { ScheduleTable } from "./ScheduleTable";
@@ -95,7 +96,7 @@ export class QueueTable {
     await QueueTable.get(queueChannel.id).update("role_id", role.id);
     const queueMembers = await QueueMemberTable.getFromQueueUnordered(queueChannel);
     for await (const queueMember of queueMembers) {
-      const member = await QueueMemberTable.getMemberFromQueueMember(queueChannel, queueMember);
+      const member = await QueueMemberTable.getMemberFromQueueMemberId(queueChannel, queueMember.member_id);
       if (!member) {
         continue;
       }
@@ -243,7 +244,7 @@ export class QueueTable {
         BlackWhiteListTable.unstore(2, queueChannel.queue_channel_id),
         DisplayChannelTable.unstore(queueChannel.queue_channel_id),
         QueueMemberTable.unstore(guildId, queueChannel.queue_channel_id),
-        ScheduleTable.unstore(queueChannel.queue_channel_id)
+        ScheduleTable.unstore(queueChannel.queue_channel_id),
       );
     }
     await Promise.all(promises);
@@ -261,7 +262,7 @@ export class QueueTable {
     guild: Guild,
     channels: Collection<Snowflake, GuildBasedChannel>,
     members: Collection<Snowflake, GuildMember>,
-    roles: Collection<Snowflake, Role>
+    roles: Collection<Snowflake, Role>,
   ) {
     const storedEntries = await QueueTable.getFromGuild(guild.id);
     for await (const entry of storedEntries) {
@@ -273,6 +274,8 @@ export class QueueTable {
         const results = await Promise.all([
           BlackWhiteListTable.validate(queueChannel, members, roles),
           DisplayChannelTable.validate(guild, queueChannel, channels),
+          LastPulledTable.validate(queueChannel, members),
+          ScheduleTable.validate(queueChannel, channels),
           QueueMemberTable.validate(queueChannel, members),
         ]);
         if (results.includes(true)) {

@@ -1,7 +1,7 @@
 [
   {
     "name": "autopull",
-    "description": "autopull",
+    "description": "Get/Set automatic pull from a voice queue",
     "options": [
       {
         "name": "get",
@@ -42,7 +42,7 @@
   },
   {
     "name": "blacklist",
-    "description": "Add / Delete / List / Clear users or roles from a queue blacklist",
+    "description": "Add/Delete/List/Clear users or roles from a queue blacklist",
     "options": [
       {
         "name": "add",
@@ -142,7 +142,7 @@
   },
   {
     "name": "button",
-    "description": "button",
+    "description": "Get/Set whether a \"Join / Leave\" button appears under a text queue display",
     "options": [
       {
         "name": "get",
@@ -195,7 +195,7 @@
   },
   {
     "name": "color",
-    "description": "color",
+    "description": "Get/Set color of queue displays",
     "options": [
       {
         "name": "get",
@@ -324,7 +324,7 @@
   },
   {
     "name": "dequeue",
-    "description": "Dequeue a user or role",
+    "description": "Dequeue a user",
     "options": [
       {
         "name": "user",
@@ -439,7 +439,7 @@
   },
   {
     "name": "graceperiod",
-    "description": "graceperiod",
+    "description": "Get/Set how long users can leave a queue before losing their position",
     "options": [
       {
         "name": "get",
@@ -472,7 +472,7 @@
   },
   {
     "name": "header",
-    "description": "header",
+    "description": "Get/Set a header on display messages",
     "options": [
       {
         "name": "get",
@@ -597,7 +597,7 @@
   },
   {
     "name": "logging",
-    "description": "logging",
+    "description": "Get/Set a dedicated logging channel for bot messages",
     "options": [
       {
         "name": "get",
@@ -637,7 +637,7 @@
   },
   {
     "name": "mentions",
-    "description": "mentions",
+    "description": "Get/Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
     "options": [
       {
         "name": "get",
@@ -672,7 +672,7 @@
   },
   {
     "name": "mode",
-    "description": "mode",
+    "description": "Get/Set display mode",
     "options": [
       {
         "name": "get",
@@ -737,7 +737,7 @@
   },
   {
     "name": "next",
-    "description": "Pull user(s) from a queue and display their name(s)",
+    "description": "Pull the next user(s) from a queue and display their name(s)",
     "options": [
       {
         "name": "queue",
@@ -791,7 +791,7 @@
   },
   {
     "name": "permission",
-    "description": "Add / Delete / List / Clear users and roles with bot permissions",
+    "description": "Add/Delete/List/Clear users and roles with bot permissions",
     "options": [
       {
         "name": "add",
@@ -866,7 +866,7 @@
   },
   {
     "name": "positions",
-    "description": "Display the queues you are in with your position",
+    "description": "Display a member's queue positions",
     "options": [
       {
         "name": "user",
@@ -878,7 +878,7 @@
   },
   {
     "name": "pullnum",
-    "description": "pullnum",
+    "description": "Get/Set the default # of users to pull when autopull is off or when using the `/next` command",
     "options": [
       {
         "name": "get",
@@ -927,7 +927,7 @@
   },
   {
     "name": "priority",
-    "description": "priority",
+    "description": "Add/Delete/List/Clear users and roles with queue priority",
     "options": [
       {
         "name": "add",
@@ -1002,7 +1002,7 @@
   },
   {
     "name": "queues",
-    "description": "Add / Delete / List queues",
+    "description": "Add/Delete/List queues",
     "options": [
       {
         "name": "add",
@@ -1046,7 +1046,7 @@
   },
   {
     "name": "roles",
-    "description": "Get / Set whether queue members are assigned a role named \"In queue: ...\"",
+    "description": "Get/Set whether queue members are assigned a role named \"In queue: ...\"",
     "options": [
       {
         "name": "get",
@@ -1299,7 +1299,7 @@
   },
   {
     "name": "size",
-    "description": "size",
+    "description": "Get/Set size limit of a queue",
     "options": [
       {
         "name": "get",
@@ -1344,7 +1344,7 @@
   },
   {
     "name": "target",
-    "description": "target",
+    "description": "Get/Set voice queue target channels",
     "options": [
       {
         "name": "get",
@@ -1375,7 +1375,7 @@
   },
   {
     "name": "timestamps",
-    "description": "Display timestamps next to users",
+    "description": "Get/Set whether to display timestamps next to users",
     "options": [
       {
         "name": "get",
@@ -1441,7 +1441,7 @@
   },
   {
     "name": "unmute",
-    "description": "unmute",
+    "description": "Un-mute users when they are pulled from queue and re-mute them on the next pull",
     "options": [
       {
         "name": "get",
@@ -1451,12 +1451,12 @@
       },
       {
         "name": "set",
-        "description": "Unmute users when they are pulled from queue",
+        "description": "un-mute users when they are pulled from queue and re-mute them on the next pull",
         "type": 1,
         "options": [
           {
             "name": "queue",
-            "description": "Voice queue channel",
+            "description": "Queue channel",
             "type": 7,
             "required": true
           },
@@ -1482,7 +1482,7 @@
   },
   {
     "name": "whitelist",
-    "description": "Add / Delete / List / Clear users or roles from a queue whitelist",
+    "description": "Add/Delete/List/Clear users or roles from a queue whitelist",
     "options": [
       {
         "name": "add",

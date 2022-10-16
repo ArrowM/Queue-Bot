@@ -17,6 +17,8 @@
     "no-unused-expressions": "error",
     "no-undef": "off",
 
+    "comma-dangle": ["error", "always-multiline"],
+
     "simple-import-sort/imports": "error",
 
     "no-unused-vars": "off", // or "@typescript-eslint/no-unused-vars": "off",

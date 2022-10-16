@@ -5,7 +5,7 @@
   "main": "build/bot.js",
   "scripts": {
     "build": "tsc -p .",
-    "lint": "eslint src/**/*.ts --fix && prettier --write --loglevel warn src/**/*.ts",
+    "lint": "prettier --write --loglevel warn src/**/*.ts && eslint --fix -- src/**/*.ts",
     "start": "cd build && node bot.js",
     "restart": "tsc -p . && pm2 restart bot",
     "restart:flush": "tsc -p . && pm2 stop bot && pm2 flush bot && pm2 start bot"

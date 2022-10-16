@@ -31,6 +31,7 @@ import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import { AdminPermissionTable } from "./utilities/tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./utilities/tables/BlackWhiteListTable";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
+import { LastPulledTable } from "./utilities/tables/LastPulledTable";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
@@ -53,7 +54,7 @@ export class Commands {
     func: (..._: any[]) => Promise<void>,
     values?: any[],
     printName?: string,
-    printValue?: string
+    printValue?: string,
   ) {
     const dataPromises = [];
     const displayPromises = [];
@@ -75,8 +76,8 @@ export class Commands {
               default:
                 return val;
             }
-          })
-        )
+          }),
+        ),
       );
       displayPromises.push(SchedulingUtils.scheduleDisplayUpdate(parsed.storedGuild, queue));
     }
@@ -150,7 +151,7 @@ export class Commands {
             BlackWhiteListTable.unstore(type, entry.queue_channel_id, entry.role_member_id);
             removedAny = true;
           }
-        })
+        }),
       );
     }
     await Promise.all(promises);
@@ -162,7 +163,7 @@ export class Commands {
               content: `Removed 1 or more invalid members/roles from the ${type ? "white" : "black"}list.`,
             })
             .catch(() => null),
-        1000
+        1000,
       );
     }
   }
@@ -580,7 +581,7 @@ export class Commands {
             if (e.author === "Queue Bot") {
               errorAccumulator += e.message;
             }
-          })
+          }),
         );
       }
       await Promise.all(promises);
@@ -745,6 +746,10 @@ export class Commands {
           value: "Get/Set color of queue displays",
         },
         {
+          name: "`/dequeue`",
+          value: "Dequeue a user or role",
+        },
+        {
           name: "`/enqueue user` & `/enqueue role`",
           value: "Add a specified user or role to a queue",
         },
@@ -755,10 +760,6 @@ export class Commands {
         {
           name: "`/header`",
           value: "Get/Set a header on display messages",
-        },
-        {
-          name: "`/dequeue`",
-          value: "Dequeue a user or role",
         },
         {
           name: "`/lock`",
@@ -806,12 +807,20 @@ export class Commands {
           value: "Get/Set the size limits of queues",
         },
         {
+          name: "`/target`",
+          value: "Get/Set voice queue target channels",
+        },
+        {
           name: "`/timestamps`",
           value: "Display timestamps next to users",
         },
         {
           name: "`/to-me`",
           value: "Pull user(s) from a voice queue to you and display their name(s)",
+        },
+        {
+          name: "`/unmute`",
+          value: "Un-mute users when they are pulled from queue and re-mute them on the next pull",
         },
         {
           name: "`/whitelist`",
@@ -1014,7 +1023,7 @@ export class Commands {
       await QueueMemberTable.unstore(
         storedGuild.guild_id,
         queueChannel.id,
-        members.map((m) => m.id)
+        members.map((m) => m.id),
       );
     }
   }
@@ -1397,6 +1406,24 @@ export class Commands {
     targetChannel =
       targetChannel || (queue.channel.guild.channels.cache.get(queue.stored.target_channel_id) as VoiceChannel | StageChannel);
 
+    if (queue.stored.unmute_on_next) {
+      let previousMembers = await LastPulledTable.get(queue.channel.id);
+      const promises = [];
+      for (const previousMember of previousMembers) {
+        promises.push(
+          LastPulledTable.unstore(previousMember.id),
+          QueueMemberTable.getMemberFromQueueMemberId(queue.channel, previousMember.member_id).then((m) => {
+            m.voice?.setMute(true).catch(() => null);
+            // TODO - add option to move previous members back to OG channel
+            // if (targetChannel) {
+            //   m.voice.setChannel(targetChannel).catch(() => null);
+            // }
+          }),
+        );
+        await Promise.all(promises);
+      }
+    }
+
     if (queueMembers.length > 0) {
       // Check enable_partial_pull
       if (!queue.stored.enable_partial_pull && queueMembers.length < amount) {
@@ -1422,15 +1449,15 @@ export class Commands {
           const promises = [];
           for (const queueMember of queueMembers) {
             promises.push(
-              QueueMemberTable.getMemberFromQueueMember(queue.channel, queueMember).then((m) => {
+              QueueMemberTable.getMemberFromQueueMemberId(queue.channel, queueMember.member_id).then((m) => {
                 if (targetChannel) {
                   m.voice.setChannel(targetChannel).catch(() => null);
                 }
                 if (queue.stored.unmute_on_next) {
-                  console.log("unmuting");
-                  m.voice.setMute(false).catch(console.error);
+                  m.voice.setMute(false).catch(() => null);
                 }
-              })
+              }),
+              LastPulledTable.store(queue.channel.id, queueMember.member_id),
             );
           }
           await Promise.all(promises);
@@ -1447,13 +1474,14 @@ export class Commands {
         const promises = [];
         for (const queueMember of queueMembers) {
           promises.push(
-            QueueMemberTable.getMemberFromQueueMember(queue.channel, queueMember).then((member) => {
+            QueueMemberTable.getMemberFromQueueMemberId(queue.channel, queueMember.member_id).then((member) => {
               if (member && !storedGuild.disable_notifications) {
                 member
                   .send(`You were just pulled from the ${queue.channel} queue ` + `in \`${queue.channel.guild.name}\`. Thanks for waiting!`)
                   .catch(() => null);
               }
-            })
+            }),
+            LastPulledTable.store(queue.channel.id, queueMember.member_id),
           );
         }
         await Promise.all(promises);
@@ -1468,7 +1496,7 @@ export class Commands {
       await QueueMemberTable.unstore(
         queue.channel.guild.id,
         queue.channel.id,
-        queueMembers.map((member) => member.member_id)
+        queueMembers.map((member) => member.member_id),
       );
       await SchedulingUtils.scheduleDisplayUpdate(storedGuild, queue.channel);
     } else {
@@ -1641,7 +1669,7 @@ export class Commands {
         const memberIds = (await QueueMemberTable.getFromQueueOrdered(queueChannel)).map((member) => member.member_id);
         embed.addField(
           queueChannel.name,
-          `${memberIds.indexOf(parsed.member.id) + 1} ${parsed.member}` + (entry.personal_message ? ` -- ${entry.personal_message}` : "")
+          `${memberIds.indexOf(parsed.member.id) + 1} ${parsed.member}` + (entry.personal_message ? ` -- ${entry.personal_message}` : ""),
         );
       }
       await parsed.reply({ embeds: [embed], commandDisplay: "EPHEMERAL" }).catch(() => null);
@@ -1663,7 +1691,7 @@ export class Commands {
             PriorityTable.unstore(parsed.storedGuild.guild_id, entry.role_member_id);
             removedAny = true;
           }
-        })
+        }),
       );
     }
     await Promise.all(promises);
@@ -1675,7 +1703,7 @@ export class Commands {
               content: `Removed 1 or more invalid members/roles from the priority list.`,
             })
             .catch(() => null),
-        1000
+        1000,
       );
     }
   }
@@ -1708,7 +1736,7 @@ export class Commands {
       // Get members for each queue channel
       const storedMembers = await QueueMemberTable.getFromQueueUnordered(queue.channel);
       for await (const storedMember of storedMembers) {
-        const queueMember = await QueueMemberTable.getMemberFromQueueMember(queue.channel, storedMember);
+        const queueMember = await QueueMemberTable.getMemberFromQueueMemberId(queue.channel, storedMember.member_id);
         if (!queueMember) {
           continue;
         }
@@ -1849,7 +1877,7 @@ export class Commands {
       parsed,
       QueueTable.setPullnum,
       [ReplaceWith.QUEUE_CHANNEL_ID, parsed.number, enablePartialPulling],
-      "pull number"
+      "pull number",
     );
   }
 
@@ -1932,7 +1960,7 @@ export class Commands {
                       commandDisplay: "EPHEMERAL",
                     })
                     .catch(() => null),
-                1000
+                1000,
               );
             }
           }
@@ -2606,6 +2634,13 @@ export class Commands {
       return;
     }
 
-    await this.applyToQueue(parsed, QueueTable.setUnmute, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "unmute");
+    if (parsed.request.guild.me.permissions.has("MUTE_MEMBERS")) {
+      await this.applyToQueue(parsed, QueueTable.setUnmute, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "unmute");
+    } else {
+      await parsed.reply({
+        content:
+          "**ERROR**: Missing mute permission. Click on my profile, and hit the invite link in the description (all bot data will persist).",
+      });
+    }
   }
 }

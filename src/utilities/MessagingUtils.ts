@@ -252,7 +252,7 @@ export class MessagingUtils {
     content: string,
     author: GuildMember,
     storedGuild: StoredGuild,
-    isEphemeral: boolean
+    isEphemeral: boolean,
   ): Promise<void> {
     const loggingChannelId = storedGuild.logging_channel_id;
     const loggingChannelLevel = storedGuild.logging_channel_level;

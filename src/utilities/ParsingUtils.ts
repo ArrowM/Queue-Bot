@@ -196,7 +196,7 @@ export class Parsed {
       options.content,
       this.request.member as GuildMember,
       this.storedGuild,
-      isEphemeral
+      isEphemeral,
     );
 
     if (this.request.replied) {
@@ -272,7 +272,7 @@ export class Parsed {
         (QUEUABLE_TEXT_CHANNELS.includes(conf.channel.type) ? "**text** " : "") +
           // @ts-ignore
           (QUEUABLE_VOICE_CHANNELS.includes(conf.channel.type) ? "**voice** " : "") +
-          "channel"
+          "channel",
       );
     }
     if (conf.roles === RequiredType.REQUIRED && !this.args.roles) {

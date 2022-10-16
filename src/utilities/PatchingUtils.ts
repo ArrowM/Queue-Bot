@@ -21,6 +21,7 @@ import { SlashCommands } from "./SlashCommands";
 import { AdminPermissionTable } from "./tables/AdminPermissionTable";
 import { BlackWhiteListTable } from "./tables/BlackWhiteListTable";
 import { DisplayChannelTable } from "./tables/DisplayChannelTable";
+import { LastPulledTable } from "./tables/LastPulledTable";
 import { PriorityTable } from "./tables/PriorityTable";
 import { QueueGuildTable } from "./tables/QueueGuildTable";
 import { QueueMemberTable } from "./tables/QueueMemberTable";
@@ -81,7 +82,7 @@ export class PatchingUtils {
         let progressCnt = 0;
         if (SlashCommands.GLOBAL_COMMANDS.includes(cmd.name)) {
           const globalCommand = ((await SlashCommands.slashClient.getCommands().catch(() => [])) as ApplicationCommand[]).find(
-            (c) => c.name === cmd.name
+            (c) => c.name === cmd.name,
           );
           if (globalCommand) {
             await SlashCommands.slashClient.deleteCommand(globalCommand.id).catch(() => null);
@@ -216,6 +217,9 @@ export class PatchingUtils {
     }
     if (!(await Base.knex.schema.hasTable("schedules"))) {
       await ScheduleTable.initTable();
+    }
+    if (!(await Base.knex.schema.hasTable("last_pulled"))) {
+      await LastPulledTable.initTable();
     }
   }
 
@@ -434,7 +438,7 @@ export class PatchingUtils {
     if (await Base.knex.schema.hasColumn("queue_channels", "clear_schedule")) {
       await this.tableSchedules();
       const entries = await Base.knex<StoredQueue & { clear_schedule: string; clear_utc_offset: string }>("queue_channels").whereNotNull(
-        "clear_schedule"
+        "clear_schedule",
       );
       for await (let entry of entries) {
         await Base.knex<Schedule>("schedules")

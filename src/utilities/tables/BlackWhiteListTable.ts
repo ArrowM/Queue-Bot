@@ -31,7 +31,7 @@ export class BlackWhiteListTable {
           .where("role_member_id", id)
           .where("type", type)
           .first()
-          .then((r) => r != null)
+          .then((r) => r != null),
       );
     }
     return (await Promise.all(promises)).includes(true);
@@ -98,7 +98,7 @@ export class BlackWhiteListTable {
   public static async validate(
     queueChannel: GuildBasedChannel,
     members: Collection<Snowflake, GuildMember>,
-    roles: Collection<Snowflake, Role>
+    roles: Collection<Snowflake, Role>,
   ): Promise<boolean> {
     const promises = [];
     for await (const type of [0, 1]) {

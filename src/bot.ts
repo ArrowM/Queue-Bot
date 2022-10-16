@@ -44,7 +44,7 @@ client.on("uncaughtException", (err, origin) => {
   console.error(
     `Caught exception:\n${util.inspect(err, { depth: null })}\nException origin:\n${util.inspect(origin, {
       depth: null,
-    })}`
+    })}`,
   );
 });
 process.on("unhandledRejection", (error) => {
@@ -161,7 +161,7 @@ async function memberUpdate(member: GuildMember | PartialGuildMember) {
         member.guild.channels
           .fetch(queueMember.channel_id)
           .catch(() => null)
-          .then((ch) => SchedulingUtils.scheduleDisplayUpdate(storedGuild, ch))
+          .then((ch) => SchedulingUtils.scheduleDisplayUpdate(storedGuild, ch)),
       );
     }
     await Promise.all(promises);
@@ -669,7 +669,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           member.voice.setChannel(oldVoiceChannel).catch(() => null);
           await setTimeout(
             async () => await fillTargetChannel(storedOldQueueChannel, oldVoiceChannel, newVoiceChannel).catch(() => null),
-            1000
+            1000,
           );
         } else {
           await QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
@@ -701,7 +701,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
 async function fillTargetChannel(
   storedSrcChannel: StoredQueue,
   srcChannel: VoiceChannel | StageChannel,
-  dstChannel: VoiceChannel | StageChannel
+  dstChannel: VoiceChannel | StageChannel,
 ) {
   const guild = srcChannel.guild;
   // Check to see if I have perms to drag other users into this channel.
@@ -719,7 +719,7 @@ async function fillTargetChannel(
             }** are needed. ` +
               `To allow pulling of fewer than **${storedSrcChannel.pull_num}** member${
                 storedMembers.length > 1 ? "s" : ""
-              }, use \`/pullnum\` and enable \`partial_pulling\`.`
+              }, use \`/pullnum\` and enable \`partial_pulling\`.`,
           );
           return;
         }
@@ -732,7 +732,9 @@ async function fillTargetChannel(
       const promises = [];
       for (const storedMember of storedMembers) {
         promises.push(
-          QueueMemberTable.getMemberFromQueueMember(srcChannel, storedMember).then((m) => m?.voice.setChannel(dstChannel).catch(() => null))
+          QueueMemberTable.getMemberFromQueueMemberId(srcChannel, storedMember.member_id).then((m) =>
+            m?.voice.setChannel(dstChannel).catch(() => null),
+          ),
         );
       }
       await Promise.all(promises);
@@ -789,7 +791,7 @@ async function joinLeaveButton(interaction: ButtonInteraction) {
       `${member} ${storedQueueMember ? "left" : "joined"} ${queueChannel}.`,
       member,
       storedGuild,
-      true
+      true,
     );
   } catch (e: any) {
     if (e.author === "Queue Bot") {

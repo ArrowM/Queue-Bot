@@ -26,6 +26,12 @@ export interface DisplayChannel {
   queue_channel_id: Snowflake;
 }
 
+export interface LastPulled {
+  id: number;
+  channel_id: Snowflake;
+  member_id: Snowflake;
+}
+
 export interface PriorityEntry {
   id: number;
   guild_id: Snowflake;
