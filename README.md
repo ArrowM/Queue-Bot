@@ -18,7 +18,7 @@ https://user-images.githubusercontent.com/42418080/182225650-5fc2ae04-6012-4d5a-
 ## Commands  
 
 ### Commands for Everyone
-`/display` - DDisplay the users in a queue. These messages stay updated  
+`/display` - Display the users in a queue. These messages stay updated  
 `/help` - Display help messages  
 `/join` - Join a text queue / Update queue message after joining  
 `/leave` - Leave a text queue  
