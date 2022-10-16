@@ -1023,7 +1023,7 @@ export class Commands {
       await QueueMemberTable.unstore(
         storedGuild.guild_id,
         queueChannel.id,
-        members.map((m) => m.id),
+        members.map((member) => member.id),
       );
     }
   }
@@ -1337,7 +1337,7 @@ export class Commands {
     }
 
     let queueMembers = await QueueMemberTable.getFromQueueOrdered(queueChannel);
-    const memberPosition = queueMembers.map((m) => m.member_id).indexOf(member.id);
+    const memberPosition = queueMembers.map((member) => member.member_id).indexOf(member.id);
     const min = Math.min(position - 1, memberPosition);
     const max = Math.min(queueMembers.length, Math.max(position - 1, memberPosition));
     queueMembers = queueMembers.slice(min, max + 1);
@@ -1412,18 +1412,18 @@ export class Commands {
       for (const previousMember of previousMembers) {
         promises.push(
           LastPulledTable.unstore(previousMember.id),
-          QueueMemberTable.getMemberFromQueueMemberId(queue.channel, previousMember.member_id).then((m) => {
-            if (m.voice.channelId === previousMember.channel_id) {
-              m.voice?.setMute(true).catch(() => null);
+          QueueMemberTable.getMemberFromQueueMemberId(queue.channel, previousMember.member_id).then((member) => {
+            if (member.voice?.channelId === previousMember.voice_channel_id) {
+              member.voice.setMute(true).catch(() => null);
             }
             // TODO - add option to move previous members back to OG channel
             // if (targetChannel) {
-            //   m.voice.setChannel(targetChannel).catch(() => null);
+            //   member.voice.setChannel(targetChannel).catch(() => null);
             // }
           }),
         );
-        await Promise.all(promises);
       }
+      await Promise.all(promises);
     }
 
     if (queueMembers.length > 0) {
@@ -1451,15 +1451,15 @@ export class Commands {
           const promises = [];
           for (const queueMember of queueMembers) {
             promises.push(
-              QueueMemberTable.getMemberFromQueueMemberId(queue.channel, queueMember.member_id).then((m) => {
+              QueueMemberTable.getMemberFromQueueMemberId(queue.channel, queueMember.member_id).then((member) => {
                 if (targetChannel) {
-                  m.voice.setChannel(targetChannel).catch(() => null);
+                  member.voice.setChannel(targetChannel).catch(() => null);
                 }
                 if (queue.stored.unmute_on_next) {
-                  m.voice.setMute(false).catch(() => null);
+                  member.voice.setMute(false).catch(() => null);
                 }
+                LastPulledTable.store(queue.channel.id, member.voice?.channelId, queueMember.member_id);
               }),
-              LastPulledTable.store(queue.channel.id, queueMember.member_id),
             );
           }
           await Promise.all(promises);
@@ -1482,8 +1482,11 @@ export class Commands {
                   .send(`You were just pulled from the ${queue.channel} queue ` + `in \`${queue.channel.guild.name}\`. Thanks for waiting!`)
                   .catch(() => null);
               }
+              if (queue.stored.unmute_on_next && member.voice) {
+                LastPulledTable.store(queue.channel.id, member.voice.channelId, member.id);
+                member.voice.setMute(false).catch(() => null);
+              }
             }),
-            LastPulledTable.store(queue.channel.id, queueMember.member_id),
           );
         }
         await Promise.all(promises);

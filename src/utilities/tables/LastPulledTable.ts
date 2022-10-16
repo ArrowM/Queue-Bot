@@ -11,7 +11,8 @@ export class LastPulledTable {
         await Base.knex.schema
           .createTable("last_pulled", (table) => {
             table.increments("id").primary();
-            table.bigInteger("channel_id");
+            table.bigInteger("queue_channel_id");
+            table.bigInteger("voice_channel_id");
             table.bigInteger("member_id");
           })
           .catch((e) => console.error(e));
@@ -20,12 +21,13 @@ export class LastPulledTable {
   }
 
   public static async get(channelId: Snowflake) {
-    return Base.knex<LastPulled>("last_pulled").where("channel_id", channelId);
+    return Base.knex<LastPulled>("last_pulled").where("queue_channel_id", channelId);
   }
 
-  public static async store(channelId: Snowflake, memberId: Snowflake) {
+  public static async store(queueChannelId: Snowflake, voiceChannelId: Snowflake, memberId: Snowflake) {
     await Base.knex<LastPulled>("last_pulled").insert({
-      channel_id: channelId,
+      queue_channel_id: queueChannelId,
+      voice_channel_id: voiceChannelId,
       member_id: memberId,
     });
   }

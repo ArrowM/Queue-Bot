@@ -28,7 +28,8 @@ export interface DisplayChannel {
 
 export interface LastPulled {
   id: number;
-  channel_id: Snowflake;
+  queue_channel_id: Snowflake;
+  voice_channel_id: Snowflake;
   member_id: Snowflake;
 }
 
