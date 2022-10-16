@@ -627,12 +627,12 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
     const storedOldQueueChannel = oldVoiceChannel ? await QueueTable.get(oldVoiceChannel.id) : undefined;
     const storedNewQueueChannel = newVoiceChannel ? await QueueTable.get(newVoiceChannel.id) : undefined;
 
+    // Ignore when the bot moves between queues or when it starts and stops
     if (Base.isMe(member) && ((storedOldQueueChannel && storedNewQueueChannel) || !oldVoiceChannel || !newVoiceChannel)) {
-      // Ignore when the bot moves between queues or when it starts and stops
       return;
     }
+    // Joined queue channel
     if (storedNewQueueChannel && !Base.isMe(member)) {
-      // Joined queue channel
       try {
         if (storedNewQueueChannel.target_channel_id) {
           const targetChannel = (await member.guild.channels.fetch(storedNewQueueChannel.target_channel_id).catch(() => null)) as
@@ -652,17 +652,18 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             await QueueTable.setTarget(newVoiceChannel.id, Base.knex.raw("DEFAULT"));
           }
         }
-        await QueueMemberTable.store(newVoiceChannel, member);
-        await SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel);
-
-        await MessagingUtils.logToLoggingChannel("join", `${member} joined ${newVoiceChannel}.`, member, storedGuild, true);
+        await Promise.all([
+          QueueMemberTable.store(newVoiceChannel, member),
+          SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel),
+          MessagingUtils.logToLoggingChannel("join", `${member} joined ${newVoiceChannel}.`, member, storedGuild, true),
+        ]);
       } catch (e: any) {
         // skip display update if failure
       }
     }
+    // Left queue channel
     if (storedOldQueueChannel) {
       try {
-        // Left queue channel
         if (Base.isMe(member) && newVoiceChannel) {
           await QueueTable.setTarget(oldVoiceChannel.id, newVoiceChannel.id);
           // move bot back
@@ -672,17 +673,18 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             1000,
           );
         } else {
-          await QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
-          await SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel);
-
-          await MessagingUtils.logToLoggingChannel("leave", `${member} left ${oldVoiceChannel}.`, member, storedGuild, true);
+          await Promise.all([
+            QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period),
+            SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel),
+            MessagingUtils.logToLoggingChannel("leave", `${member} left ${oldVoiceChannel}.`, member, storedGuild, true),
+          ]);
         }
       } catch (e: any) {
         // skip display update if failure
       }
     }
+    // Check if leaving target channel
     if (!Base.isMe(member) && oldVoiceChannel) {
-      // Check if leaving target channel
       const storedQueues = await QueueTable.getFromTarget(oldVoiceChannel.id);
       // Randomly pick a queue to pull from
       const storedQueue = storedQueues[~~(Math.random() * storedQueues.length)];

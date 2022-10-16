@@ -1413,7 +1413,9 @@ export class Commands {
         promises.push(
           LastPulledTable.unstore(previousMember.id),
           QueueMemberTable.getMemberFromQueueMemberId(queue.channel, previousMember.member_id).then((m) => {
-            m.voice?.setMute(true).catch(() => null);
+            if (m.voice.channelId === previousMember.channel_id) {
+              m.voice?.setMute(true).catch(() => null);
+            }
             // TODO - add option to move previous members back to OG channel
             // if (targetChannel) {
             //   m.voice.setChannel(targetChannel).catch(() => null);

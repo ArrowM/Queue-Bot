@@ -637,7 +637,7 @@
   },
   {
     "name": "mentions",
-    "description": "Get/Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue",
+    "description": "Get/Set whether users are displayed as mentions (on), or normal text (off)",
     "options": [
       {
         "name": "get",
