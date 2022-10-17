@@ -1,6 +1,7 @@
 import { DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice";
 import cronstrue from "cronstrue";
 import {
+  Collection,
   GuildBasedChannel,
   GuildMember,
   MessageEmbed,
@@ -1397,6 +1398,12 @@ export class Commands {
 
     if (parsed.request.guild.me.permissions.has("MUTE_MEMBERS")) {
       await this.applyToQueue(parsed, QueueTable.setMute, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "unmute");
+      if (parsed.channel.isVoice) {
+        const members = parsed.channel.members as Collection<string, GuildMember>;
+        for (const member of members.values()) {
+          member.voice.setMute(true).then();
+        }
+      }
     } else {
       await parsed.reply({
         content:

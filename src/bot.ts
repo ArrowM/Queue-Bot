@@ -694,7 +694,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
     // Handle mutes
     if (storedNewQueueChannel?.mute) {
       member.voice.setMute(true).catch(() => null);
-    } else if (storedOldQueueChannel && !storedOldQueueChannel.mute) {
+    } else if (storedOldQueueChannel && storedOldQueueChannel.mute) {
       member.voice.setMute(false).catch(() => null);
     }
   } catch (e: any) {
