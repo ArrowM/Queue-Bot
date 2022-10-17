@@ -32,7 +32,7 @@ export class QueueTable {
             table.integer("max_members");
             table.integer("pull_num");
             table.bigInteger("target_channel_id");
-            table.boolean("unmute_on_next");
+            table.boolean("mute");
           })
           .catch((e) => console.error(e));
       }
@@ -104,8 +104,8 @@ export class QueueTable {
     }
   }
 
-  public static async setUnmute(queueChannelId: Snowflake, value: boolean) {
-    await QueueTable.get(queueChannelId).update("unmute_on_next", value ? 1 : 0);
+  public static async setMute(queueChannelId: Snowflake, value: boolean) {
+    await QueueTable.get(queueChannelId).update("mute", value ? 1 : 0);
   }
 
   public static async deleteRoleId(queueChannel: GuildBasedChannel) {

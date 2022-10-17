@@ -37,7 +37,7 @@ export class SlashCommands {
     "schedule",
     "shuffle",
     "to-me",
-    "unmute",
+    "mute",
     "whitelist",
   ];
   public static readonly NO_QUEUE_COMMANDS = ["target"];
@@ -138,7 +138,12 @@ export class SlashCommands {
         }
         const liveCommand = liveCommands.find((cmd) => cmd.name === excludedTextCommand);
         if (liveCommand) {
-          await this.slashClient.deleteCommand(liveCommand.id, guildId).catch(console.error);
+          await this.slashClient.deleteCommand(liveCommand.id, guildId).catch((e) => {
+            // TODO does this work?
+            if (![403, 404].includes(e.httpStatus)) {
+              console.error(e);
+            }
+          });
         }
         await this.editProgress(slashUpdateMessage);
       }
@@ -194,7 +199,12 @@ export class SlashCommands {
     const queueChannels = [...(await QueueTable.fetchFromGuild(guild)).values()].slice(0, 25); // max # of options is 25
     if (queueChannels.length) {
       cmd = await this.modifyQueueArg(cmd, queueChannels);
-      await SlashCommands.slashClient.createCommand(cmd, guild.id).catch(console.error);
+      await SlashCommands.slashClient.createCommand(cmd, guild.id).catch((e) => {
+        // TODO does this work?
+        if (![403, 404].includes(e.httpStatus)) {
+          console.error(e);
+        }
+      });
     }
   }
 
@@ -207,8 +217,11 @@ export class SlashCommands {
       } else {
         await this.modify(guild.id, parsed, queueChannels);
       }
-    } catch (e: any) {
-      console.error(e);
+    } catch (e) {
+      // TODO does this work?
+      if (![403, 404].includes(e["httpStatus"])) {
+        console.error(e);
+      }
     }
   }
 

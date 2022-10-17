@@ -452,9 +452,13 @@ export class PatchingUtils {
       }
       await Base.knex.schema.alterTable("queue_channels", (t) => t.dropColumn("clear_schedule"));
     }
-    // Add unmute_on_next column
+    // Migrate unmute_on_next to mute column
     if (!(await Base.knex.schema.hasColumn("queue_channels", "unmute_on_next"))) {
-      await Base.knex.schema.table("queue_channels", (t) => t.boolean("unmute_on_next"));
+      await Base.knex.schema.table("queue_channels", (t) => t.renameColumn("unmute_on_next", "mute"));
+    }
+    // Add mute column
+    if (!(await Base.knex.schema.hasColumn("queue_channels", "mute"))) {
+      await Base.knex.schema.table("queue_channels", (t) => t.boolean("mute"));
     }
   }
 

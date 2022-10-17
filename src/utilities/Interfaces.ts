@@ -55,7 +55,7 @@ export interface StoredQueue {
   queue_channel_id: Snowflake;
   role_id: Snowflake;
   target_channel_id: Snowflake;
-  unmute_on_next: boolean;
+  mute: boolean;
 }
 
 export interface StoredGuild {

@@ -735,6 +735,48 @@
       }
     ]
   },
+
+  {
+    "name": "mute",
+    "description": "Server mute users in queue and unmute them when they are pulled",
+    "options": [
+      {
+        "name": "get",
+        "description": "Get the current mute settings",
+        "type": 1,
+        "options": []
+      },
+      {
+        "name": "set",
+        "description": "Server mute users in queue and unmute them when they are pulled",
+        "type": 1,
+        "options": [
+          {
+            "name": "queue",
+            "description": "Queue channel",
+            "type": 7,
+            "required": true
+          },
+          {
+            "name": "status",
+            "description": "On or off",
+            "type": 3,
+            "required": true,
+            "choices": [
+              {
+                "name": "on",
+                "value": "on"
+              },
+              {
+                "name": "off",
+                "value": "off"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   {
     "name": "next",
     "description": "Pull the next user(s) from a queue and display their name(s)",
@@ -1436,47 +1478,6 @@
         "type": 4,
         "min_value": 1,
         "max_value": 999
-      }
-    ]
-  },
-  {
-    "name": "unmute",
-    "description": "Un-mute users when they are pulled from queue and re-mute them on the next pull",
-    "options": [
-      {
-        "name": "get",
-        "description": "Get the current unmute-on-next settings",
-        "type": 1,
-        "options": []
-      },
-      {
-        "name": "set",
-        "description": "un-mute users when they are pulled from queue and re-mute them on the next pull",
-        "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Queue channel",
-            "type": 7,
-            "required": true
-          },
-          {
-            "name": "status",
-            "description": "On or off",
-            "type": 3,
-            "required": true,
-            "choices": [
-              {
-                "name": "on",
-                "value": "on"
-              },
-              {
-                "name": "off",
-                "value": "off"
-              }
-            ]
-          }
-        ]
       }
     ]
   },

@@ -25,7 +25,6 @@ import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
 import { QueueTable } from "./utilities/tables/QueueTable";
-import {LastPulledTable} from "./utilities/tables/LastPulledTable";
 
 // Setup client
 console.time("READY. Bot started in");
@@ -570,13 +569,13 @@ async function processCommand(parsed: Parsed, command: CommandArg[]) {
     case "to-me":
       await Commands.toMe(parsed);
       return;
-    case "unmute":
+    case "mute":
       switch (command[1]?.name) {
         case "get":
-          await Commands.unmuteGet(parsed);
+          await Commands.muteGet(parsed);
           return;
         case "set":
-          await Commands.unmuteSet(parsed);
+          await Commands.muteSet(parsed);
           return;
       }
       return;
@@ -653,16 +652,9 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             await QueueTable.setTarget(newVoiceChannel.id, Base.knex.raw("DEFAULT"));
           }
         }
-        await Promise.all([
-          new Promise(() => {
-            if (storedNewQueueChannel.unmute_on_next) {
-              member.voice.setMute(true).catch(() => null);
-            }
-          }),
-          QueueMemberTable.store(newVoiceChannel, member),
-          SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel),
-          MessagingUtils.logToLoggingChannel("join", `${member} joined ${newVoiceChannel}.`, member, storedGuild, true),
-        ]);
+        await QueueMemberTable.store(newVoiceChannel, member);
+        SchedulingUtils.scheduleDisplayUpdate(storedGuild, newVoiceChannel).then();
+        MessagingUtils.logToLoggingChannel("join", `${member} joined ${newVoiceChannel}.`, member, storedGuild, true).then();
       } catch (e: any) {
         // skip display update if failure
       }
@@ -679,16 +671,9 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             1000,
           );
         } else {
-          await Promise.all([
-            new Promise(() => {
-              if (storedOldQueueChannel.unmute_on_next) {
-                member.voice.setMute(false).catch(() => null);
-              }
-            }),
-            QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period),
-            SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel),
-            MessagingUtils.logToLoggingChannel("leave", `${member} left ${oldVoiceChannel}.`, member, storedGuild, true),
-          ]);
+          await QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
+          SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel).then();
+          MessagingUtils.logToLoggingChannel("leave", `${member} left ${oldVoiceChannel}.`, member, storedGuild, true).then();
         }
       } catch (e: any) {
         // skip display update if failure
@@ -705,6 +690,12 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
           await fillTargetChannel(storedQueue, queueChannel, oldVoiceChannel);
         }
       }
+    }
+    // Handle mutes
+    if (storedNewQueueChannel?.mute) {
+      member.voice.setMute(true).catch(() => null);
+    } else if (storedOldQueueChannel && !storedOldQueueChannel.mute) {
+      member.voice.setMute(false).catch(() => null);
     }
   } catch (e: any) {
     console.error(e);
@@ -745,7 +736,7 @@ async function fillTargetChannel(
         promises.push(
           QueueMemberTable.getMemberFromQueueMemberId(srcChannel, storedMember.member_id).then((member) => {
             member?.voice.setChannel(dstChannel).catch(() => null);
-            if (storedSrcChannel.unmute_on_next) {
+            if (storedSrcChannel.mute) {
               member.voice.setMute(false).catch(() => null);
             }
           }),

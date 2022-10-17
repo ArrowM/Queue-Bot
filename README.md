@@ -42,6 +42,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/logging` - Get/Set a dedicated logging channel for bot messages  
 `/mentions` - Get/Set whether users are displayed as mentions (on), or normal text (off). Normal text helps avoid the @invalid-user issue  
 `/move` - Move a user to a new position in a queue  
+`/mute` - Server mute users in queue and unmute them when they are pulled  
 `/next` - Pull the next user(s) from a queue and display their name(s) 
 `/pullnum` - Get/Set the default # of users to pull when autopull is off or when using the `/next` command  
 `/queues` - Add/Delete/List queues  
@@ -52,7 +53,6 @@ If a command that expects a channel name is not given one, the current text chan
 `/target` - Get/Set voice queue target channels  
 `/timestamps` - Get/Set whether to display timestamps next to users  
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
-`/unmute` - Un-mute users when they are pulled from queue and re-mute them on the next pull  
 `/whitelist` - Add/Delete/List/Clear users or roles from a queue whitelist  
 
 **Bot Management**  

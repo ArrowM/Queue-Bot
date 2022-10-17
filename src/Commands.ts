@@ -779,6 +779,10 @@ export class Commands {
           value: "Move a user to a new position in a queue",
         },
         {
+          name: "`/mute`",
+          value: "Server mute users in queue and unmute them when they are pulled",
+        },
+        {
           name: "`/next`",
           value: "Pull from a text queue",
         },
@@ -817,10 +821,6 @@ export class Commands {
         {
           name: "`/to-me`",
           value: "Pull user(s) from a voice queue to you and display their name(s)",
-        },
-        {
-          name: "`/unmute`",
-          value: "Un-mute users when they are pulled from queue and re-mute them on the next pull",
         },
         {
           name: "`/whitelist`",
@@ -1361,6 +1361,50 @@ export class Commands {
       .catch(() => null);
   }
 
+  // --------------------------------- MUTE ------------------------------- //
+
+  /**
+   * Get the current mute settings
+   */
+  public static async muteGet(parsed: Parsed) {
+    await parsed.parseArgs({ command: "mute get" });
+
+    let response = "**Unmute**:\n";
+    for await (const queue of await parsed.getQueuePairs()) {
+      // @ts-ignore
+      response += `${queue.channel}: ${queue.stored.mute ? "on" : "off"}\n`;
+    }
+    await parsed.reply({ content: response }).catch(() => null);
+  }
+
+  /**
+   * Server mute users in queue and unmute them when they are pulled
+   */
+  public static async muteSet(parsed: Parsed) {
+    if (
+      (
+        await parsed.parseArgs({
+          command: "unmute set",
+          channel: {
+            required: RequiredType.OPTIONAL,
+          },
+          strings: RequiredType.REQUIRED,
+        })
+      ).length
+    ) {
+      return;
+    }
+
+    if (parsed.request.guild.me.permissions.has("MUTE_MEMBERS")) {
+      await this.applyToQueue(parsed, QueueTable.setMute, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "unmute");
+    } else {
+      await parsed.reply({
+        content:
+          "**ERROR**: Missing mute permission. Click on my profile, and hit the invite link in the description (all bot data will persist).",
+      });
+    }
+  }
+
   // --------------------------------- NEXT ------------------------------- //
 
   /**
@@ -1406,7 +1450,7 @@ export class Commands {
     targetChannel =
       targetChannel || (queue.channel.guild.channels.cache.get(queue.stored.target_channel_id) as VoiceChannel | StageChannel);
 
-    if (queue.stored.unmute_on_next) {
+    if (queue.stored.mute) {
       let previousMembers = await LastPulledTable.get(queue.channel.id);
       const promises = [];
       for (const previousMember of previousMembers) {
@@ -1447,7 +1491,7 @@ export class Commands {
       // Display and remove member from the queue
       // @ts-ignore
       if (QUEUABLE_VOICE_CHANNELS.includes(queue.channel.type)) {
-        if (targetChannel || queue.stored.unmute_on_next) {
+        if (targetChannel || queue.stored.mute) {
           const promises = [];
           for (const queueMember of queueMembers) {
             promises.push(
@@ -1455,7 +1499,7 @@ export class Commands {
                 if (targetChannel) {
                   member.voice.setChannel(targetChannel).catch(() => null);
                 }
-                if (queue.stored.unmute_on_next) {
+                if (queue.stored.mute) {
                   member.voice.setMute(false).catch(() => null);
                 }
                 LastPulledTable.store(queue.channel.id, member.voice?.channelId, queueMember.member_id);
@@ -1466,7 +1510,7 @@ export class Commands {
         } else {
           await parsed
             ?.reply({
-              content: "**ERROR**: No target channel and unmute is off. Set a target channel with `/target` or use `/unmute`.",
+              content: "**ERROR**: No target channel and mute is off. Set a target channel with `/target` or use `/mute`.",
               commandDisplay: "EPHEMERAL",
             })
             .catch(() => null);
@@ -1482,7 +1526,7 @@ export class Commands {
                   .send(`You were just pulled from the ${queue.channel} queue ` + `in \`${queue.channel.guild.name}\`. Thanks for waiting!`)
                   .catch(() => null);
               }
-              if (queue.stored.unmute_on_next && member.voice) {
+              if (queue.stored.mute && member.voice) {
                 LastPulledTable.store(queue.channel.id, member.voice.channelId, member.id);
                 member.voice.setMute(false).catch(() => null);
               }
@@ -2602,49 +2646,5 @@ export class Commands {
     }
 
     await this.pullHelper({ stored: storedQueue, channel: queueChannel }, parsed, targetChannel);
-  }
-
-  // --------------------------------- UNMUTE ------------------------------- //
-
-  /**
-   * the current unmute settings
-   */
-  public static async unmuteGet(parsed: Parsed) {
-    await parsed.parseArgs({ command: "unmute get" });
-
-    let response = "**Unmute**:\n";
-    for await (const queue of await parsed.getQueuePairs()) {
-      // @ts-ignore
-      response += `${queue.channel}: ${queue.stored.unmute_on_next ? "on" : "off"}\n`;
-    }
-    await parsed.reply({ content: response }).catch(() => null);
-  }
-
-  /**
-   * Toggle automatic pull of users from a queue
-   */
-  public static async unmuteSet(parsed: Parsed) {
-    if (
-      (
-        await parsed.parseArgs({
-          command: "unmute set",
-          channel: {
-            required: RequiredType.OPTIONAL,
-          },
-          strings: RequiredType.REQUIRED,
-        })
-      ).length
-    ) {
-      return;
-    }
-
-    if (parsed.request.guild.me.permissions.has("MUTE_MEMBERS")) {
-      await this.applyToQueue(parsed, QueueTable.setUnmute, [ReplaceWith.QUEUE_CHANNEL_ID, parsed.string === "on"], "unmute");
-    } else {
-      await parsed.reply({
-        content:
-          "**ERROR**: Missing mute permission. Click on my profile, and hit the invite link in the description (all bot data will persist).",
-      });
-    }
   }
 }
