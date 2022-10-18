@@ -21,6 +21,7 @@ import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
+import {LastPulledTable} from "./utilities/tables/LastPulledTable";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";
@@ -645,11 +646,18 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
               (!targetChannel.userLimit || targetChannel.members.filter((member) => !member.user.bot).size < targetChannel.userLimit)
             ) {
               member.voice.setChannel(targetChannel).catch(() => null);
+              LastPulledTable.store(newVoiceChannel.id, newVoiceChannel.id, member.id).then();
               return;
             }
           } else {
             // Target has been deleted - clean it up
             await QueueTable.setTarget(newVoiceChannel.id, Base.knex.raw("DEFAULT"));
+          }
+        } else {
+          if (newVoiceChannel.members.size === 1 && storedNewQueueChannel.mute) {
+            // First person in empty channel. Skips queue.
+            LastPulledTable.store(newVoiceChannel.id, newVoiceChannel.id, member.id).then();
+            return;
           }
         }
         await QueueMemberTable.store(newVoiceChannel, member);
@@ -671,6 +679,7 @@ async function processVoice(oldVoiceState: VoiceState, newVoiceState: VoiceState
             1000,
           );
         } else {
+          LastPulledTable.unstore2(newVoiceChannel.id, member.id).then();
           await QueueMemberTable.unstore(member.guild.id, oldVoiceChannel.id, [member.id], storedOldQueueChannel.grace_period);
           SchedulingUtils.scheduleDisplayUpdate(storedGuild, oldVoiceChannel).then();
           MessagingUtils.logToLoggingChannel("leave", `${member} left ${oldVoiceChannel}.`, member, storedGuild, true).then();

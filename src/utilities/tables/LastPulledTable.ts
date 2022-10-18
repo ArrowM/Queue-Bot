@@ -37,6 +37,13 @@ export class LastPulledTable {
     await query.delete();
   }
 
+  public static async unstore2(voiceId: Snowflake, memberId: Snowflake) {
+    let query = Base.knex<LastPulled>("last_pulled")
+      .where("voice_channel_id", voiceId)
+      .andWhere("member_id", memberId);
+    await query.delete();
+  }
+
   public static async validate(queueChannel: GuildBasedChannel, members: Collection<Snowflake, GuildMember>) {
     const storedEntries = await this.get(queueChannel.id);
     const promises = [];

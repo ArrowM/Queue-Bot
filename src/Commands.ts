@@ -1457,27 +1457,27 @@ export class Commands {
     targetChannel =
       targetChannel || (queue.channel.guild.channels.cache.get(queue.stored.target_channel_id) as VoiceChannel | StageChannel);
 
-    if (queue.stored.mute) {
-      let previousMembers = await LastPulledTable.get(queue.channel.id);
-      const promises = [];
-      for (const previousMember of previousMembers) {
-        promises.push(
-          LastPulledTable.unstore(previousMember.id),
-          QueueMemberTable.getMemberFromQueueMemberId(queue.channel, previousMember.member_id).then((member) => {
-            if (member.voice?.channelId === previousMember.voice_channel_id) {
-              member.voice.setMute(true).catch(() => null);
-            }
-            // TODO - add option to move previous members back to OG channel
-            // if (targetChannel) {
-            //   member.voice.setChannel(targetChannel).catch(() => null);
-            // }
-          }),
-        );
-      }
-      await Promise.all(promises);
-    }
-
     if (queueMembers.length > 0) {
+      if (queue.stored.mute) {
+        let previousMembers = await LastPulledTable.get(queue.channel.id);
+        const promises = [];
+        for (const previousMember of previousMembers) {
+          promises.push(
+            LastPulledTable.unstore(previousMember.id),
+            QueueMemberTable.getMemberFromQueueMemberId(queue.channel, previousMember.member_id).then((member) => {
+              if (member.voice?.channelId === previousMember.voice_channel_id) {
+                member.voice.setMute(true).catch(() => null);
+              }
+              // TODO - add option to move previous members back to OG channel
+              // if (targetChannel) {
+              //   member.voice.setChannel(targetChannel).catch(() => null);
+              // }
+            }),
+          );
+        }
+        await Promise.all(promises);
+      }
+
       // Check enable_partial_pull
       if (!queue.stored.enable_partial_pull && queueMembers.length < amount) {
         await parsed
