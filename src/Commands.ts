@@ -1401,7 +1401,7 @@ export class Commands {
       if (parsed.channel.isVoice) {
         const members = parsed.channel.members as Collection<string, GuildMember>;
         for (const member of members.values()) {
-          member.voice.setMute(true).then();
+          member.voice.setMute(true).catch(() => null);
         }
       }
     } else {

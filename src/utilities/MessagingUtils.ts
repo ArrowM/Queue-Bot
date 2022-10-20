@@ -131,7 +131,9 @@ export class MessagingUtils {
     let queueMembers = await QueueMemberTable.getFromQueueOrdered(queueChannel);
 
     // Title
-    let title = `${storedQueue.is_locked ? "🔒 " : ""}${queueChannel.name}`;
+    let title = `${storedQueue.is_locked ? "🔒 " : ""}`
+      + `${storedQueue.mute ? "🔇 " : ""}`
+      + queueChannel.name;
     if (storedQueue.target_channel_id) {
       const targetChannel = queueChannel.guild.channels.cache.get(storedQueue.target_channel_id);
       if (targetChannel) {
@@ -282,7 +284,12 @@ export class MessagingUtils {
             },
           ],
         })
-        .catch(() => null);
+        .catch(async (e) => {
+            if ([403, 404].includes(e.httpStatus)) {
+              // Handled deleted display channels
+              await QueueGuildTable.setLoggingChannel(storedGuild.guild_id, Base.knex.raw("DEFAULT"), "default");
+            }
+        });
     }
   }
 
