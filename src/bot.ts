@@ -21,7 +21,7 @@ import { PatchingUtils } from "./utilities/PatchingUtils";
 import { SchedulingUtils } from "./utilities/SchedulingUtils";
 import { SlashCommands } from "./utilities/SlashCommands";
 import { DisplayChannelTable } from "./utilities/tables/DisplayChannelTable";
-import {LastPulledTable} from "./utilities/tables/LastPulledTable";
+import { LastPulledTable } from "./utilities/tables/LastPulledTable";
 import { PriorityTable } from "./utilities/tables/PriorityTable";
 import { QueueGuildTable } from "./utilities/tables/QueueGuildTable";
 import { QueueMemberTable } from "./utilities/tables/QueueMemberTable";

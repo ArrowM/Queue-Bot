@@ -38,9 +38,7 @@ export class LastPulledTable {
   }
 
   public static async unstore2(voiceId: Snowflake, memberId: Snowflake) {
-    let query = Base.knex<LastPulled>("last_pulled")
-      .where("voice_channel_id", voiceId)
-      .andWhere("member_id", memberId);
+    let query = Base.knex<LastPulled>("last_pulled").where("voice_channel_id", voiceId).andWhere("member_id", memberId);
     await query.delete();
   }
 

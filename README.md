@@ -16,6 +16,7 @@ https://user-images.githubusercontent.com/42418080/182225650-5fc2ae04-6012-4d5a-
 2. Use `/help setup` and follow the instructions  
 
 ## Commands  
+Most commands will be hidden until you have at least one queue.  
 
 ### Commands for Everyone
 `/display` - Display the users in a queue. These messages stay updated  

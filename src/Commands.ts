@@ -1192,7 +1192,7 @@ export class Commands {
       return;
     }
 
-    const level = parsed.string || "default";
+    const level = parsed.string === "everything" ? "everything" : "default";
     await QueueGuildTable.setLoggingChannel(parsed.request.guildId, parsed.channel?.id, level);
     const response = parsed.channel ? `Set logging channel to ${parsed.channel}. Level = **${level}**.` : `Unset logging channel.`;
 

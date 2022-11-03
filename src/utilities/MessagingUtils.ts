@@ -46,7 +46,7 @@ export class MessagingUtils {
       // For each embed list of the queue
       try {
         const displayChannel = (await Base.client.channels.fetch(storedDisplay.display_channel_id).catch(async (e) => {
-          if ([403, 404].includes(e.httpStatus)) {
+          if (e.httpStatus === 404) {
             // Handled deleted display channels
             await DisplayChannelTable.unstore(queueChannel.id, storedDisplay.display_channel_id);
           }
@@ -131,9 +131,7 @@ export class MessagingUtils {
     let queueMembers = await QueueMemberTable.getFromQueueOrdered(queueChannel);
 
     // Title
-    let title = `${storedQueue.is_locked ? "🔒 " : ""}`
-      + `${storedQueue.mute ? "🔇 " : ""}`
-      + queueChannel.name;
+    let title = `${storedQueue.is_locked ? "🔒 " : ""}` + `${storedQueue.mute ? "🔇 " : ""}` + queueChannel.name;
     if (storedQueue.target_channel_id) {
       const targetChannel = queueChannel.guild.channels.cache.get(storedQueue.target_channel_id);
       if (targetChannel) {
@@ -259,9 +257,14 @@ export class MessagingUtils {
     const loggingChannelId = storedGuild.logging_channel_id;
     const loggingChannelLevel = storedGuild.logging_channel_level;
     if (loggingChannelId && (!isEphemeral || loggingChannelLevel === 1)) {
-      const loggingChannel = (await author.guild.channels.fetch(loggingChannelId)) as TextBasedChannel;
+      const loggingChannel = (await author.guild.channels.fetch(loggingChannelId).catch(async (e) => {
+        if (e.httpStatus === 404) {
+          // Handled deleted display channels
+          await QueueGuildTable.setLoggingChannel(storedGuild.guild_id, Base.knex.raw("DEFAULT"), "default");
+        }
+      })) as TextBasedChannel;
       await loggingChannel
-        .send({
+        ?.send({
           allowedMentions: { users: [] },
           embeds: [
             {
@@ -285,10 +288,10 @@ export class MessagingUtils {
           ],
         })
         .catch(async (e) => {
-            if ([403, 404].includes(e.httpStatus)) {
-              // Handled deleted display channels
-              await QueueGuildTable.setLoggingChannel(storedGuild.guild_id, Base.knex.raw("DEFAULT"), "default");
-            }
+          if (e.httpStatus === 404) {
+            // Handled deleted display channels
+            await QueueGuildTable.setLoggingChannel(storedGuild.guild_id, Base.knex.raw("DEFAULT"), "default");
+          }
         });
     }
   }

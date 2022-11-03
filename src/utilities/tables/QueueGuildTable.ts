@@ -1,11 +1,11 @@
 import { Guild, Snowflake } from "discord.js";
+import { Knex } from "knex";
 
 import { Base } from "../Base";
 import { StoredGuild } from "../Interfaces";
 import { AdminPermissionTable } from "./AdminPermissionTable";
 import { PriorityTable } from "./PriorityTable";
 import { QueueTable } from "./QueueTable";
-import {Knex} from "knex";
 
 export class QueueGuildTable {
   // Create & update database table if necessary
@@ -45,7 +45,7 @@ export class QueueGuildTable {
     await QueueGuildTable.get(guildId).update("disable_roles", value);
   }
 
-  public static async setLoggingChannel(guildId: Snowflake, channelId: Snowflake | Knex.Raw, level: string) {
+  public static async setLoggingChannel(guildId: Snowflake, channelId: Snowflake | Knex.Raw, level: "default" | "everything") {
     const loggingNum = level === "everything" ? 1 : 0;
     await QueueGuildTable.get(guildId).update("logging_channel_id", channelId).update("logging_channel_level", loggingNum);
   }
