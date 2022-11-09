@@ -1385,37 +1385,6 @@
     ]
   },
   {
-    "name": "target",
-    "description": "Get/Set voice queue target channels",
-    "options": [
-      {
-        "name": "get",
-        "description": "Get the current voice queue target channel",
-        "type": 1,
-        "options": []
-      },
-      {
-        "name": "set",
-        "description": "Set the voice queue target channel",
-        "type": 1,
-        "options": [
-          {
-            "name": "queue",
-            "description": "Voice queue channel",
-            "type": 7,
-            "required": true
-          },
-          {
-            "name": "target",
-            "description": "Voice channel",
-            "type": 7,
-            "required": true
-          }
-        ]
-      }
-    ]
-  },
-  {
     "name": "timestamps",
     "description": "Get/Set whether to display timestamps next to users",
     "options": [
