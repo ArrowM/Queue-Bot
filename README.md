@@ -32,7 +32,7 @@ If a command that expects a channel name is not given one, the current text chan
 **Queue Management**  
 `/autopull` - Get/Set automatic pull from a voice queue  
 `/blacklist` - Add/Delete/List/Clear users or roles from a queue blacklist  
-`/button` - Get/Set whether a \"Join / Leave\" button appears under a text queue display  
+`/button` - Get/Set whether a "Join / Leave" button appears under a text queue display  
 `/clear` - Clear a queue  
 `/color` - Get/Set color of queue displays  
 `/dequeue` - Dequeue a user  
