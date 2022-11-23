@@ -279,7 +279,7 @@
          },
          {
             "title": "Slash Commands",
-            "description": "**IMPORTANT**: The bot needs new permissions. Do not dequeue the bot (this will delete your data). **Use this [INVITE LINK](https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=2438032400&scope=applications.commands%20bot) to update the permissions**. After this message is sent, it make take up to an hour for the slash commands to show up for everyone.\n​",
+            "description": "**IMPORTANT**: The bot needs new permissions. Do not dequeue the bot (this will delete your data). **Use this [INVITE LINK](https://discord.com/api/oauth2/authorize?client_id=679018301543677959&permissions=290475024&scope=applications.commands%20bot) to update the permissions**. After this message is sent, it make take up to an hour for the slash commands to show up for everyone.\n​",
             "color": 16711680,
             "fields": [
                {

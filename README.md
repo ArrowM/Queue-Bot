@@ -12,7 +12,7 @@ https://user-images.githubusercontent.com/42418080/182225650-5fc2ae04-6012-4d5a-
 *Example of Queue Bot usage*
 
 ## Getting Started  
-1. Invite the bot to your server: **[INVITE LINK](https://discord.com/oauth2/authorize?client_id=679018301543677959&permissions=2438032400&scope=bot%20applications.commands)**  
+1. Invite the bot to your server: **[INVITE LINK](https://discord.com/oauth2/authorize?client_id=679018301543677959&permissions=290475024&scope=bot%20applications.commands)**  
 2. Use `/help setup` and follow the instructions  
 
 ## Commands  
@@ -86,7 +86,7 @@ If a command that expects a channel name is not given one, the current text chan
    `npm start`  
    If you get an error at boot, there is something wrong in your config.json. When you close command prompt, the bot will stop.  
 7. Invite the bot with the following url after replacing `CLIENT_ID` with your own client id:  
-   https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=2438032400&scope=applications.commands%20bot
+   https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=290475024&scope=applications.commands%20bot
 8. **Optional**. Make the bot run in the background.  
      9a. In command prompt, enter `npm install pm2 -g`  
      9b. To start the bot, enter `pm2 start build/bot.js --time`  

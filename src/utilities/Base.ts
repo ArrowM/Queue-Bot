@@ -19,7 +19,7 @@ export class Base {
   static readonly inviteURL =
     `https://discord.com/api/oauth2/authorize?client_id=` +
     Base.config.clientId +
-    `&permissions=2438032400&scope=applications.commands%20bot`;
+    `&permissions=290475024&scope=applications.commands%20bot`;
   static readonly knex = knex({
     client: Base.config.databaseType,
     connection: {
