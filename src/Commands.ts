@@ -2122,18 +2122,18 @@ export class Commands {
           // nothing
         }
       }
-      // Create role and assign it to members
-      if (parsed.args.strings?.[1]) {
-        await QueueGuildTable.setRolePrefix(guild.id, parsed.args.strings?.[1] + " ");
-      }
-      const role = await QueueTable.createQueueRole(parsed, channel, storedQueue.color);
-      if (role) {
-        const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
-        for await (const queueMember of queueMembers) {
-          await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
+      if (!disableRoles) {
+        // Create role and assign it to members
+        if (parsed.args.strings?.[1]) {
+          await QueueGuildTable.setRolePrefix(guild.id, parsed.args.strings?.[1] + " ");
         }
-      } else {
-        break; // Failed to create role, don't attempt to create the others
+        const role = await QueueTable.createQueueRole(parsed, channel, storedQueue.color);
+        if (role) {
+          const queueMembers = await QueueMemberTable.getFromQueueUnordered(channel);
+          for await (const queueMember of queueMembers) {
+            await guild.members.fetch(queueMember.member_id).then((member) => member.roles.add(role));
+          }
+        }
       }
     }
   }
