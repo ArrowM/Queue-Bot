@@ -453,7 +453,7 @@ export class PatchingUtils {
       await Base.knex.schema.alterTable("queue_channels", (t) => t.dropColumn("clear_schedule"));
     }
     // Migrate unmute_on_next to mute column
-    if (!(await Base.knex.schema.hasColumn("queue_channels", "unmute_on_next"))) {
+    if ((await Base.knex.schema.hasColumn("queue_channels", "unmute_on_next"))) {
       await Base.knex.schema.table("queue_channels", (t) => t.renameColumn("unmute_on_next", "mute"));
     }
     // Add mute column
