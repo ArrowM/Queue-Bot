@@ -537,7 +537,7 @@ export class PatchingUtils {
       await Base.knex.schema.table("queue_guilds", (t) => t.text("role_prefix"));
     }
     // Remove alt_prefix
-    if (!(await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix"))) {
+    if (await Base.knex.schema.hasColumn("queue_guilds", "enable_alt_prefix")) {
       await Base.knex.schema.table("queue_guilds", (t) => t.dropColumn("enable_alt_prefix"));
     }
   }
