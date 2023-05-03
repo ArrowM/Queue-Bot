@@ -51,6 +51,7 @@ If a command that expects a channel name is not given one, the current text chan
 `/schedule` - Add/Delete/List scheduled commands  
 `/shuffle` - Shuffle a queue  
 `/size` - Get/Set size limit of a queue  
+`/target` - Get/Set voice queue target channels  
 `/timestamps` - Get/Set whether to display timestamps next to users  
 `/to-me` - Pull user(s) from a voice queue to you and display their name(s)  
 `/whitelist` - Add/Delete/List/Clear users or roles from a queue whitelist  

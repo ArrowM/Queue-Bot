@@ -812,6 +812,10 @@ export class Commands {
           value: "Get/Set the size limits of queues",
         },
         {
+          name: "`/target`",
+          value: "Get/Set voice queue target channels",
+        },
+        {
           name: "`/timestamps`",
           value: "Display timestamps next to users",
         },
