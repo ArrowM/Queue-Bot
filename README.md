@@ -1,7 +1,7 @@
   
 # Queue-Bot  
 
-[![TopGG]([https://top.gg/api/widget/status/679018301543677959.svg?noavatar=true](https://top.gg/api/widget/679018301543677959.svg))](https://top.gg/bot/679018301543677959)  
+[![TopGG](https://top.gg/api/widget/679018301543677959.svg)](https://top.gg/bot/679018301543677959)  
 [![BuyMeACoffee](https://img.shields.io/badge/BuyMeACoffee-Donate-ff9004.svg?logo=CoffeeScript&style=flat-square)](https://www.buymeacoffee.com/Arroww)  
 [![Discord Support Server](https://img.shields.io/discord/678645128755150863?label=Discord&style=flat-square)](https://discord.gg/RbmfnP3)  
 
