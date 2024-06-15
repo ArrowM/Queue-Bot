@@ -2,7 +2,6 @@
    <h1>Queue Bot</h1>
 </div>
 
-
 **Queue Bot** is a Discord bot that provides live user queues, is customizable, and easy to use. Built
 with [Discord.js](https://discord.js.org/).
 
@@ -11,6 +10,10 @@ with [Discord.js](https://discord.js.org/).
   <a href="https://github.com/ArrowM/Queue-Bot">🗃️ GitHub</a> | 
   <a href="https://www.buymeacoffee.com/Arroww">💖 Donate</a>
 </p>
+
+<div align="center">
+  <video src="docs/video/demo.mp4" width="778"></video>
+</div>
 
 ## Getting started
 
