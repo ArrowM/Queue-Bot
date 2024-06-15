@@ -2,8 +2,8 @@
    <h1>Queue Bot</h1>
 </div>
 
-**Queue Bot** is a Discord bot that provides live user queues, is customizable, and easy to use. Built
-with [Discord.js](https://discord.js.org/).
+**Queue Bot** is a Discord bot that provides live user queues with powerful and easy customization.
+Built with [Discord.js](https://discord.js.org/).
 
 <p align="center">
   <a href="https://discord.gg/RbmfnP3">⛑️ Support server</a> | 
