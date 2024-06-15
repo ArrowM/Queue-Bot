@@ -11,10 +11,6 @@ with [Discord.js](https://discord.js.org/).
   <a href="https://www.buymeacoffee.com/Arroww">💖 Donate</a>
 </p>
 
-<div align="center">
-   <video src="https://github.com/ArrowM/Queue-Bot/raw/master/docs/video/demo.mp4" width="778"></video>
-</div>
-
 ## Getting started
 
 1. [Invite the bot to your server](https://discord.com/oauth2/authorize?client_id=679018301543677959).
@@ -25,6 +21,12 @@ with [Discord.js](https://discord.js.org/).
    with `/pull`.
 5. **Explore other commands** - `/help general` explains how to join and leave queues. `/help admin` explains how admins
    can manage queues.
+
+## Demo
+
+<div align="center">
+   <video src="https://github.com/ArrowM/Queue-Bot/assets/42418080/6ed3e61c-50df-4504-b4f3-4f2f50464a6b" width="778"></video>
+</div>
 
 ## Commands for everyone
 
