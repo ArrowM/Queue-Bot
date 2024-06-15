@@ -12,7 +12,7 @@ with [Discord.js](https://discord.js.org/).
 </p>
 
 <div align="center">
-  <video src="docs/video/demo.mp4" width="778"></video>
+  <iframe width="778" height="700" src="https://github.com/ArrowM/Queue-Bot/raw/master/docs/video/demo.mp4" frameborder="0" allowfullscreen></iframe>
 </div>
 
 ## Getting started
