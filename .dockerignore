@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+Dockerfile
+docker-compose.yml
+.dockerignore
+.git
+.gitignore
+.idea
+
+db/main.sqlite
+db/backups

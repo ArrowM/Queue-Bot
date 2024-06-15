@@ -1,0 +1,36 @@
+{
+  "name": "queue-bot",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "scripts": {
+    "setup": "npm ci && drizzle-kit push",
+    "start": "node --loader @swc-node/register/esm --no-warnings --enable-source-maps --env-file .env src/index.ts",
+    "dock": "docker-compose up --build -d && docker logs -f queue-bot",
+    "lint": "eslint src --fix"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^2.1.0",
+    "@swc-node/register": "^1.9.2",
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^20.11.22",
+    "@types/node-cron": "^3.0.11",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "eslint-plugin-simple-import-sort": "^12.0.0",
+    "eslint-plugin-unused-imports": "^3.1.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cronstrue": "^2.48.0",
+    "date-fns": "^3.6.0",
+    "discord.js": "^14.14.1",
+    "drizzle-kit": "^0.22.1",
+    "drizzle-orm": "^0.31.0",
+    "lodash-es": "^4.17.21",
+    "moize": "^6.1.6",
+    "node-cron": "^3.0.3",
+    "topgg-autoposter": "^2.0.2"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "tsconfig.json",
+    "sourceType": "module"
+  },
+  "plugins": [
+    "simple-import-sort",
+    "unused-imports"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@stylistic/disable-legacy"
+  ],
+  "root": true,
+  "rules": {
+    // TypeScript Specific Rules
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+
+    // General JavaScript Rules
+    "comma-dangle": ["error", "always-multiline"],
+    "no-unused-expressions": "error",
+    "no-undef": "off",
+    "no-unused-vars": "off",
+    "unused-imports/no-unused-imports": "error",
+    "simple-import-sort/imports": "error",
+
+    // Formatting and Stylistic Rules
+    "brace-style": ["error", "stroustrup", { "allowSingleLine": true }],
+    "comma-spacing": ["error", { "before": false, "after": true }],
+    "comma-style": ["error", "last"],
+    "curly": ["error", "multi-line", "consistent"],
+    "dot-location": ["error", "property"],
+    "indent": ["error", "tab", { "SwitchCase": 1 }],
+    "max-nested-callbacks": ["error", { "max": 4 }],
+    "max-statements-per-line": ["error", { "max": 2 }],
+    "no-case-declarations": "off",
+    "no-empty-function": ["error", { "allow": ["constructors"] }],
+    "no-floating-decimal": "error",
+    "no-inner-declarations": "off",
+    "no-lonely-if": "error",
+    "no-multi-spaces": "error",
+    "no-multiple-empty-lines": ["error", { "max": 2, "maxEOF": 0, "maxBOF": 0 }],
+    "no-trailing-spaces": "error",
+    "no-var": "error",
+    "object-curly-spacing": ["error", "always"],
+    "prefer-const": "error",
+    "quotes": ["error", "double", { "avoidEscape": true, "allowTemplateLiterals": true }],
+    "semi": ["error", "always"],
+    "space-before-blocks": "error",
+    "space-before-function-paren": ["error", {
+      "anonymous": "never",
+      "named": "never",
+      "asyncArrow": "always"
+    }],
+    "space-infix-ops": "error",
+    "space-unary-ops": "error",
+    "spaced-comment": ["error", "always", {
+      "line": {
+        "markers": ["/"],
+        "exceptions": ["-", "+"]
+      },
+      "block": {
+        "balanced": true
+      }
+    }],
+    "yoda": ["error", "never"]
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.ts"]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: queue-bot
+    restart: always
+    command: ["npm", "start"]
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"
