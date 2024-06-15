@@ -25,7 +25,7 @@ Built with [Discord.js](https://discord.js.org/).
 ## Demo
 
 <div align="center">
-   <video src="https://github.com/ArrowM/Queue-Bot/assets/42418080/6ed3e61c-50df-4504-b4f3-4f2f50464a6b" width="778"></video>
+   <video src="https://github.com/ArrowM/Queue-Bot/assets/42418080/157a3864-dfe9-421e-a0ba-9784b5092e64" width="778"></video>
 </div>
 
 ## Commands for everyone
