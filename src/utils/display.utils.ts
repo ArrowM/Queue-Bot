@@ -24,7 +24,7 @@ import { incrementGuildStat } from "../db/db-scheduled-tasks.ts";
 import { type DbDisplay, type DbMember, type DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
 import type { Button } from "../types/button.types.ts";
-import { Color, DisplayUpdateType } from "../types/db.types.ts";
+import { Color, DisplayUpdateType, Scope } from "../types/db.types.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 import type { CustomError } from "./error.utils.ts";
 import { InteractionUtils } from "./interaction.utils.ts";
@@ -346,7 +346,7 @@ export namespace DisplayUtils {
 				const dstStr = queue.voiceDestinationChannelId ? ` to ${channelMention(queue.voiceDestinationChannelId)}` : "";
 				descriptionParts.push(`- ${pullMethodStr} pulling members from ${srcStr}${dstStr}`);
 			}
-			else if (queue.buttonsToggle) {
+			else if ([Scope.NonAdmin, Scope.All].includes(queue.displayButtons)) {
 				descriptionParts.push(`${commandMention("join")}, ${commandMention("leave")}, or click the buttons below.`);
 			}
 			else {
@@ -389,19 +389,22 @@ export namespace DisplayUtils {
 	}
 
 	function getButtonRow(queue: DbQueue) {
-		if (queue.buttonsToggle) {
-			const actionRowBuilder = new ActionRowBuilder<ButtonBuilder>();
-			if (!queue?.voiceOnlyToggle) {
-				actionRowBuilder.addComponents(
-					buildButton(BUTTONS.get(JoinButton.ID)),
-					buildButton(BUTTONS.get(LeaveButton.ID))
-				);
-			}
+		if (queue.displayButtons === Scope.None) return;
+
+		const actionRowBuilder = new ActionRowBuilder<ButtonBuilder>();
+
+		if ([Scope.NonAdmin, Scope.All].includes(queue.displayButtons) && !queue.voiceOnlyToggle) {
 			actionRowBuilder.addComponents(
+				buildButton(BUTTONS.get(JoinButton.ID)),
+				buildButton(BUTTONS.get(LeaveButton.ID)),
 				buildButton(BUTTONS.get(MyPositionsButton.ID)),
-				buildButton(BUTTONS.get(PullButton.ID))
 			);
-			return [actionRowBuilder.toJSON()];
 		}
+
+		if ([Scope.Admin, Scope.All].includes(queue.displayButtons)) {
+			actionRowBuilder.addComponents(buildButton(BUTTONS.get(PullButton.ID)));
+		}
+
+		return [actionRowBuilder.toJSON()];
 	}
 }

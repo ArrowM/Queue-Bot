@@ -7,11 +7,11 @@ import { AutopullToggleOption } from "./options/autopull-toggle.option.ts";
 import { BadgeToggleOption } from "./options/badge-toggle.option.ts";
 import { BlacklistedOption } from "./options/blacklisted.option.ts";
 import { BlacklistedsOption } from "./options/blacklisteds.option.ts";
-import { ButtonsToggleOption } from "./options/buttons-toggle.option.ts";
 import { ColorOption } from "./options/color.option.ts";
 import { CommandOption } from "./options/command.option.ts";
 import { CronOption } from "./options/cron.option.ts";
 import { DisplayOption } from "./options/display.option.ts";
+import { DisplayButtonsOption } from "./options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "./options/display-update-type.option.ts";
 import { DisplaysOption } from "./options/displays.option.ts";
 import { HeaderOption } from "./options/header.option.ts";
@@ -63,7 +63,7 @@ export const OPTIONS = new Collection<string, BaseOption>([
 	[BadgeToggleOption.ID, new BadgeToggleOption()],
 	[BlacklistedOption.ID, new BlacklistedOption()],
 	[BlacklistedsOption.ID, new BlacklistedsOption()],
-	[ButtonsToggleOption.ID, new ButtonsToggleOption()],
+	[DisplayButtonsOption.ID, new DisplayButtonsOption()],
 	[ColorOption.ID, new ColorOption()],
 	[CommandOption.ID, new CommandOption()],
 	[CronOption.ID, new CronOption()],

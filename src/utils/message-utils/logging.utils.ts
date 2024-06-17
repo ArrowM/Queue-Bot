@@ -1,7 +1,7 @@
 import { EmbedBuilder, type GuildTextBasedChannel, Message } from "discord.js";
 
 import type { Store } from "../../db/store.ts";
-import { LogScope } from "../../types/db.types.ts";
+import { Scope } from "../../types/db.types.ts";
 
 export namespace LoggingUtils {
 	export async function log(store: Store, isAdmin: boolean, originalMessage: Message | string) {
@@ -41,8 +41,8 @@ export namespace LoggingUtils {
 		}
 
 		if (
-			isAdmin && ([LogScope.Admin, LogScope.All].includes(logScope)) ||
-			!isAdmin && ([LogScope.NonAdmin, LogScope.All].includes(logScope))
+			isAdmin && ([Scope.Admin, Scope.All].includes(logScope)) ||
+			!isAdmin && ([Scope.NonAdmin, Scope.All].includes(logScope))
 		) {
 			try {
 				return await logChannel.send({ embeds });

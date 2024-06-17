@@ -10,7 +10,7 @@ import { and, eq, isNull, or } from "drizzle-orm";
 import { compact, isNil, omitBy } from "lodash-es";
 import moize from "moize";
 
-import { ArchivedMemberReason, type GuildStat, type LogScope } from "../types/db.types.ts";
+import { ArchivedMemberReason, type GuildStat, type Scope } from "../types/db.types.ts";
 import type { AnyInteraction } from "../types/interaction.types.ts";
 import {
 	AdminAlreadyExistsError,
@@ -400,7 +400,7 @@ export class Store {
 	//                           Updates
 	// ====================================================================
 
-	updateGuild(guild: { logChannelId: Snowflake, logScope: LogScope }) {
+	updateGuild(guild: { logChannelId: Snowflake, logScope: Scope }) {
 		// Ensure the guild is in the database
 		this.insertGuild({ guildId: this.guild.id });
 		return db

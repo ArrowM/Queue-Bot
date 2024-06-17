@@ -7,9 +7,9 @@ import {
 	ArchivedMemberReason,
 	Color,
 	DisplayUpdateType,
-	LogScope,
 	MemberDisplayType,
 	ScheduleCommand,
+	Scope,
 	TimestampType,
 } from "../types/db.types.ts";
 
@@ -17,7 +17,7 @@ export const GUILD_TABLE = sqliteTable("guild", ({
 	guildId: text("guild_id").$type<Snowflake>().primaryKey(),
 
 	logChannelId: text("log_channel_id").$type<Snowflake | null>(),
-	logScope: text("log_scope").$type<LogScope | null>(),
+	logScope: text("log_scope").$type<Scope | null>(),
 
 	joinTime: integer("joinTime").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
 	lastUpdateTime: integer("last_updated_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
@@ -60,9 +60,9 @@ export const QUEUE_TABLE = sqliteTable("queue", ({
 	// configurable queue properties
 	autopullToggle: integer("autopull_toggle", { mode: "boolean" }).notNull().default(false),
 	badgeToggle: integer("badge_toggle", { mode: "boolean" }).notNull().default(true),
-	buttonsToggle: integer("buttons_toggle", { mode: "boolean" }).notNull().default(true),
 	color: text("color").$type<ColorResolvable>().notNull().default(get(Color, process.env.DEFAULT_COLOR) as ColorResolvable),
 	displayUpdateType: text("display_update_type").$type<DisplayUpdateType>().notNull().default(DisplayUpdateType.Edit),
+	displayButtons: text("display_buttons").$type<Scope>().notNull().default(Scope.All),
 	header: text("header"),
 	inlineToggle: integer("inline_toggle", { mode: "boolean" }).notNull().default(false),
 	lockToggle: integer("lock_toggle", { mode: "boolean" }).notNull().default(false),
