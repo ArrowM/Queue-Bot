@@ -6,8 +6,8 @@ export interface OptionParams {
 	// description of option in Discord UI
 	description: string;
 
-	// name of option in Discord UI
-	name?: string;
+	// id & display name of option in Discord UI
+	id?: string;
 	// whether the option should be autocompleted
 	autocomplete?: boolean;
 	// types of channels that can be selected

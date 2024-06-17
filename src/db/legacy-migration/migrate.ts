@@ -13,7 +13,7 @@ import {
 	TimestampType,
 } from "../../types/db.types.ts";
 import { ClientUtils } from "../../utils/client.utils.ts";
-import { Db, db, DB_FILEPATH } from "../db.ts";
+import { db, DB_FILEPATH } from "../db.ts";
 import { QUEUE_TABLE } from "../schema.ts";
 import { Store } from "../store.ts";
 import type {
@@ -65,8 +65,6 @@ export async function checkForMigration() {
 				fs.copyFileSync(DB_FILEPATH, backupPath);
 
 				await migrate();
-
-				Db.reload();
 			}
 		}
 	}

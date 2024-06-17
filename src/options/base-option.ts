@@ -21,10 +21,8 @@ import type { OptionParams } from "../types/option.types.ts";
 import { type CHOICE_ALL, CHOICE_SOME, type Mentionable } from "../types/parsing.types.ts";
 
 export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBase = any> {
-	// id
+	// id & display name of option in Discord UI
 	id: string;
-	// display name of option in Discord UI
-	_name: string;
 	// description of option in Discord UI
 	description: string;
 	// whether the option should be autocompleted
@@ -42,49 +40,47 @@ export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBas
 	// whether the option is required
 	required?: boolean;
 
-	get name() {
-		return this._name ?? this.id;
+	get identifier() {
+		return this.config?.id ?? this.id;
 	}
 
-	constructor(config?: OptionParams) {
-		this._name = config?.name;
-		this.description = config?.description;
-		this.autocomplete = config?.autocomplete ?? this.autocomplete;
-		this.channelTypes = config?.channelTypes ?? this.channelTypes;
-		this.choices = config?.choices ?? this.choices;
-		this.extraChoices = config?.extraChoices ?? this.extraChoices;
-		this.defaultValue = config?.defaultValue ?? this.defaultValue;
-		this.minValue = config?.minValue ?? this.minValue;
-		this.required = config?.required ?? this.required;
-	}
+	constructor(
+		public config?: OptionParams
+	) { }
 
 	get(inter: AutocompleteInteraction | SlashInteraction): unknown {
-		let selection = inter.parser.cache.get(this.name);
+		let selection = inter.parser.cache.get(this.identifier);
 		if (selection == undefined) {
 			selection = this.getUncached(inter);
-			inter.parser.cache.set(this.name, selection);
+			inter.parser.cache.set(this.identifier, selection);
 		}
 		return selection;
 	}
 
 	build = (optionBuilder: BuilderType): BuilderType => {
-		optionBuilder
-			.setName(this.name)
-			.setDescription(this.buildDescription());
-		if (this.required) {
-			optionBuilder.setRequired(this.required);
+		const id = this.config?.id ?? this.id;
+		const autocomplete = this.config?.autocomplete ?? this.autocomplete;
+		const channelTypes = this.config?.channelTypes ?? this.channelTypes;
+		const choices = this.config?.choices ?? this.choices;
+		const minValue = this.config?.minValue ?? this.minValue;
+		const required = this.config?.required ?? this.required;
+
+		optionBuilder.setName(id).setDescription(this.buildDescription());
+
+		if (required) {
+			optionBuilder.setRequired(required);
 		}
-		if (this.autocomplete) {
-			(optionBuilder as any).setAutocomplete(this.autocomplete);
+		if (autocomplete) {
+			(optionBuilder as any).setAutocomplete(autocomplete);
 		}
-		if (this.choices) {
-			(optionBuilder as any).setChoices(...this.choices);
+		if (choices) {
+			(optionBuilder as any).setChoices(...choices);
 		}
-		if (this.channelTypes) {
-			(optionBuilder as any).addChannelTypes(...this.channelTypes);
+		if (channelTypes) {
+			(optionBuilder as any).addChannelTypes(...channelTypes);
 		}
-		if (this.minValue != undefined) {
-			(optionBuilder as any).setMinValue(this.minValue);
+		if (minValue != undefined) {
+			(optionBuilder as any).setMinValue(minValue);
 		}
 
 		return optionBuilder;
@@ -97,13 +93,16 @@ export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBas
 	protected abstract getUncached(inter: AutocompleteInteraction | SlashInteraction): unknown;
 
 	private buildDescription(): string {
-		let description = this.description;
+		let description = this.config?.description;
+		const defaultValue = this.config?.defaultValue ?? this.defaultValue;
+
 		if (this.defaultValue != undefined) {
-			description += ` [default: ${this.defaultValue}]`;
+			description += ` [default: ${defaultValue}]`;
 		}
 		if (description.length > 100) {
-			throw new Error(`Error creating option ${this.name}. description length must be <= 100 (attempted: ${description.length})`);
+			throw new Error(`Error creating option ${this.identifier}. description length must be <= 100 (attempted: ${description.length})`);
 		}
+
 		return description;
 	}
 }
@@ -139,7 +138,7 @@ export abstract class StringOption extends BaseOption<SlashCommandStringOption> 
 	}
 
 	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
-		return inter.options.getString(this.name);
+		return inter.options.getString(this.identifier);
 	}
 }
 
@@ -157,7 +156,7 @@ export abstract class BooleanOption extends BaseOption<SlashCommandBooleanOption
 	}
 
 	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
-		return inter.options.getBoolean(this.name);
+		return inter.options.getBoolean(this.identifier);
 	}
 }
 
@@ -174,7 +173,7 @@ export abstract class IntegerOption extends BaseOption<SlashCommandIntegerOption
 	}
 
 	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
-		return inter.options.getInteger(this.name);
+		return inter.options.getInteger(this.identifier);
 	}
 }
 
@@ -191,7 +190,7 @@ export abstract class ChannelOption extends BaseOption<SlashCommandChannelOption
 	}
 
 	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
-		return (inter as SlashInteraction).options.getChannel(this.name);
+		return (inter as SlashInteraction).options.getChannel(this.identifier);
 	}
 }
 
@@ -208,7 +207,7 @@ export abstract class RoleOption extends BaseOption<SlashCommandRoleOption> {
 	}
 
 	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
-		return (inter as SlashInteraction).options.getRole(this.name);
+		return (inter as SlashInteraction).options.getRole(this.identifier);
 	}
 }
 
@@ -225,6 +224,6 @@ export abstract class MentionableOption extends BaseOption<SlashCommandMentionab
 	}
 
 	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
-		return (inter as SlashInteraction).options.getMentionable(this.name);
+		return (inter as SlashInteraction).options.getMentionable(this.identifier);
 	}
 }
