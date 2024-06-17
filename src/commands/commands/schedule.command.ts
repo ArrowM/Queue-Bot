@@ -186,7 +186,7 @@ export class ScheduleCommand extends AdminCommand {
 				"Some commands can be ran on a schedule using the cron schedule format. " +
 				"https://crontab.guru/examples.html has common schedules. " +
 				"ChatGPT can probably also help you with a schedule. " +
-				"The highest frequency schedule you can set is once a minute.",
+				"The highest frequency schedule you can set is once a minute."
 			)];
 
 		await inter.respond({ embeds });

@@ -21,7 +21,13 @@ import { NotificationAction } from "../types/notification.types.ts";
 import type { Mentionable } from "../types/parsing.types.ts";
 import { BlacklistUtils } from "./blacklist.utils.ts";
 import { DisplayUtils } from "./display.utils.ts";
-import { CustomError, NotOnQueueWhitelistError, OnQueueBlacklistError, QueueFullError, QueueLockedError } from "./error.utils.ts";
+import {
+	CustomError,
+	NotOnQueueWhitelistError,
+	OnQueueBlacklistError,
+	QueueFullError,
+	QueueLockedError,
+} from "./error.utils.ts";
 import { LoggingUtils } from "./message-utils/logging.utils.ts";
 import { map } from "./misc.utils.ts";
 import { NotificationUtils } from "./notification.utils.ts";
@@ -36,7 +42,7 @@ export namespace MemberUtils {
 			if (mentionable instanceof GuildMember) {
 				for (const queue of queues.values()) {
 					insertedMembers.push(
-						await insertJsMember({ store, queue, jsMember: mentionable }),
+						await insertJsMember({ store, queue, jsMember: mentionable })
 					);
 				}
 			}
@@ -45,7 +51,7 @@ export namespace MemberUtils {
 				for (const queue of queues.values()) {
 					for (const jsMember of role.members.values()) {
 						insertedMembers.push(
-							await insertJsMember({ store, queue, jsMember }),
+							await insertJsMember({ store, queue, jsMember })
 						);
 					}
 				}
@@ -68,7 +74,7 @@ export namespace MemberUtils {
 				verifyMemberEligibility(store, queue, jsMember);
 			}
 
-			const priority = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
+			const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
 			const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
 			let positionTime = BigInt(Date.now());
 
@@ -98,7 +104,7 @@ export namespace MemberUtils {
 				queueId: queue.id,
 				userId: jsMember.id,
 				message,
-				priority,
+				priorityOrder,
 				positionTime,
 			});
 
@@ -223,14 +229,14 @@ export namespace MemberUtils {
 				members.splice(originalPosition, 1);
 				members.splice(newPosition, 0, member);
 				members.forEach((member, i) =>
-					store.updateMember({ ...member, positionTime: positions[i] }),
+					store.updateMember({ ...member, positionTime: positions[i] })
 				);
 			}
 			else if (originalPosition < newPosition) {
 				members.splice(originalPosition, 1);
 				members.splice(newPosition - 1, 0, member);
 				members.forEach((member, i) =>
-					store.updateMember({ ...member, positionTime: positions[i] }),
+					store.updateMember({ ...member, positionTime: positions[i] })
 				);
 			}
 
@@ -304,7 +310,7 @@ export namespace MemberUtils {
 		const queues = members.map(member => QueryUtils.selectQueue({ guildId: store.guild.id, id: member.queueId }));
 
 		const embeds = await Promise.all(queues.map(queue =>
-			MemberUtils.getMemberDisplayLine(store, queue, userId),
+			MemberUtils.getMemberDisplayLine(store, queue, userId)
 		));
 
 		if (!embeds.length) {
@@ -348,10 +354,10 @@ export namespace MemberUtils {
 				const members = store.dbMembers().filter(member => member.queueId === queue.id);
 				return Promise.all(
 					members.map((member) =>
-						MemberUtils.modifyMemberRoles(store, member.userId, roleId, modification),
-					),
+						MemberUtils.modifyMemberRoles(store, member.userId, roleId, modification)
+					)
 				);
-			}),
+			})
 		);
 	}
 

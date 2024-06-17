@@ -29,7 +29,7 @@ export namespace NotificationUtils {
 				store.jsMember(member.userId).then(member => {
 					member?.user?.send(message).catch(() => null);
 				});
-			}),
+			})
 		);
 	}
 }

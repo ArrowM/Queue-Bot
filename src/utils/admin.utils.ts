@@ -13,8 +13,8 @@ export namespace AdminUtils {
 					guildId: store.guild.id,
 					subjectId: mentionable.id,
 					isRole: mentionable instanceof Role,
-				}),
-			),
+				})
+			)
 		);
 	}
 
@@ -29,7 +29,7 @@ export namespace AdminUtils {
 			(admin.subjectId === member.id) ||
 			(Array.isArray(member.roles)
 				? member.roles.some(role => role.id === admin.subjectId)
-				: member.roles.cache.has(admin.subjectId)),
+				: member.roles.cache.has(admin.subjectId))
 		);
 		return isDiscordAdmin() || isBotAdmin();
 	}

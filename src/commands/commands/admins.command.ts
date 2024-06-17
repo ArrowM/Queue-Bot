@@ -65,11 +65,27 @@ export class AdminsCommand extends EveryoneCommand {
 	// ====================================================================
 
 	static readonly ADD_OPTIONS = {
-		mentionable1: new MentionableOption({ required: true, name: "mentionable_1", description: "User or role to grant admin status to" }),
-		mentionable2: new MentionableOption({ name: "mentionable_2", description: "User or role to grant admin status to" }),
-		mentionable3: new MentionableOption({ name: "mentionable_3", description: "User or role to grant admin status to" }),
-		mentionable4: new MentionableOption({ name: "mentionable_4", description: "User or role to grant admin status to" }),
-		mentionable5: new MentionableOption({ name: "mentionable_5", description: "User or role to grant admin status to" }),
+		mentionable1: new MentionableOption({
+			required: true,
+			name: "mentionable_1",
+			description: "User or role to grant admin status to",
+		}),
+		mentionable2: new MentionableOption({
+			name: "mentionable_2",
+			description: "User or role to grant admin status to",
+		}),
+		mentionable3: new MentionableOption({
+			name: "mentionable_3",
+			description: "User or role to grant admin status to",
+		}),
+		mentionable4: new MentionableOption({
+			name: "mentionable_4",
+			description: "User or role to grant admin status to",
+		}),
+		mentionable5: new MentionableOption({
+			name: "mentionable_5",
+			description: "User or role to grant admin status to",
+		}),
 	};
 
 	static async admins_add(inter: SlashInteraction) {

@@ -21,7 +21,7 @@ export class ButtonHandler implements Handler {
 		if (button) {
 			const isAdmin = button.adminOnly;
 
-			this.inter.respond = (message: (InteractionReplyOptions | string), log = false) =>
+			this.inter.respond = (message: InteractionReplyOptions | string, log = false) =>
 				InteractionUtils.respond(this.inter, isAdmin, message, log);
 
 			this.inter.log = (originalMessage: Message | string) =>

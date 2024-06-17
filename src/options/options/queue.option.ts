@@ -27,16 +27,17 @@ export class QueueOption extends CustomOption {
 	}
 
 	static findQueue(dbQueues: Collection<bigint, DbQueue>, idString: string): DbQueue {
+		let queue: DbQueue | undefined;
 		try {
-			const queue = dbQueues.get(BigInt(idString));
-			if (queue) {
-				return queue;
-			}
-			else {
-				throw new QueueNotFoundError();
-			}
+			queue = dbQueues.get(BigInt(idString));
 		}
 		catch {
+			queue = null;
+		}
+		if (queue) {
+			return queue;
+		}
+		else {
 			throw new QueueNotFoundError();
 		}
 	}

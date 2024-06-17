@@ -29,16 +29,17 @@ export class ScheduleOption extends CustomOption {
 	}
 
 	static findSchedule(schedules: Collection<bigint, DbSchedule>, idString: string): DbSchedule {
+		let schedule: DbSchedule | undefined;
 		try {
-			const schedule = schedules.get(BigInt(idString));
-			if (schedule) {
-				return schedule;
-			}
-			else {
-				throw new ScheduleNotFoundError();
-			}
+			schedule = schedules.get(BigInt(idString));
 		}
 		catch {
+			schedule = null;
+		}
+		if (schedule) {
+			return schedule;
+		}
+		else {
 			throw new ScheduleNotFoundError();
 		}
 	}

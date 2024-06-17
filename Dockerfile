@@ -8,7 +8,7 @@ COPY package*.json ./
 # Copy DB Requirements
 COPY .env ./
 COPY drizzle.config.ts ./
-COPY ./db/migrations ./db/migrations
+COPY data/migrations ./data/migrations
 COPY ./src/types ./src/types
 COPY ./src/db/schema.ts ./src/db/schema.ts
 

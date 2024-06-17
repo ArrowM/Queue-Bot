@@ -75,7 +75,11 @@ export class BlacklistCommand extends AdminCommand {
 
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to blacklist from" }),
-		mentionable1: new MentionableOption({ required: true, name: "mentionable_1", description: "User or role to blacklist" }),
+		mentionable1: new MentionableOption({
+			required: true,
+			name: "mentionable_1",
+			description: "User or role to blacklist",
+		}),
 		mentionable2: new MentionableOption({ name: "mentionable_2", description: "User or role to blacklist" }),
 		mentionable3: new MentionableOption({ name: "mentionable_3", description: "User or role to blacklist" }),
 		mentionable4: new MentionableOption({ name: "mentionable_4", description: "User or role to blacklist" }),

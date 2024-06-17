@@ -242,7 +242,7 @@ export class QueuesCommand extends AdminCommand {
 					const confirmed = await inter.promptConfirmOrCancel(
 						`You are enabling ${inlineCode(VoiceOnlyToggleOption.ID)} for the '${queueMention(queue)}' queue. ` +
 						`There are ${members.size} member${members.size === 1 ? "" : "s"} in the '${queueMention(queue)}' queue that will be cleared if you proceed. ` +
-						"Do you wish to proceed?",
+						"Do you wish to proceed?"
 					);
 					if (!confirmed) {
 						await inter.respond("Cancelled queue update. No changes have been made.");
@@ -306,7 +306,7 @@ export class QueuesCommand extends AdminCommand {
 		}
 
 		const updatedQueues = db.transaction(() =>
-			queues.map((queue) => inter.store.updateQueue({ id: queue.id, ...updatedProperties })),
+			queues.map((queue) => inter.store.updateQueue({ id: queue.id, ...updatedProperties }))
 		);
 
 		if (updatedProperties.roleId) {

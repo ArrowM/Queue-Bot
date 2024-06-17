@@ -28,16 +28,17 @@ export class PrioritizedOption extends CustomOption {
 	}
 
 	static findPrioritized(prioritizeds: Collection<bigint, DbPrioritized>, idString: string): DbPrioritized {
+		let prioritized: DbPrioritized | undefined;
 		try {
-			const prioritized = prioritizeds.find(entry => entry.id === BigInt(idString));
-			if (prioritized) {
-				return prioritized;
-			}
-			else {
-				throw new PrioritizedNotFoundError();
-			}
+			prioritized = prioritizeds.find(entry => entry.id === BigInt(idString));
 		}
 		catch {
+			prioritized = null;
+		}
+		if (prioritized) {
+			return prioritized;
+		}
+		else {
 			throw new PrioritizedNotFoundError();
 		}
 	}

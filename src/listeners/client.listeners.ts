@@ -1,6 +1,6 @@
 import { Events } from "discord.js";
 
-import { CLIENT } from "../client/CLIENT.ts";
+import { CLIENT } from "../client/client.ts";
 import { ClientHandler } from "../handlers/client.handler.ts";
 import { InteractionHandler } from "../handlers/interaction.handler.ts";
 

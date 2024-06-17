@@ -4,16 +4,17 @@ import {
 	ActivityType,
 	ApplicationCommand,
 	type Collection,
+	type DiscordAPIError,
 	type GuildResolvable,
 	REST,
 	Routes,
 	type Snowflake,
 	TextChannel,
 } from "discord.js";
-import { chunk } from "lodash-es";
+import { groupBy } from "lodash-es";
 import AutoPoster from "topgg-autoposter";
 
-import { CLIENT } from "../client/CLIENT.ts";
+import { CLIENT } from "../client/client.ts";
 import { COMMANDS } from "../commands/commands.loader.ts";
 import { QueryUtils } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
@@ -46,7 +47,15 @@ export namespace ClientUtils {
 	}
 
 	export async function getGuild(guildId: string) {
-		return await CLIENT.guilds.fetch(guildId);
+		try {
+			return await CLIENT.guilds.fetch(guildId);
+		}
+		catch (e) {
+			const { status } = e as DiscordAPIError;
+			if (status == 404) {
+				QueryUtils.deleteGuild({ guildId });
+			}
+		}
 	}
 
 	export async function login() {
@@ -95,7 +104,7 @@ export namespace ClientUtils {
 				console.log("[1] send patch notes to patch notes channel");
 				console.log("[2] mark patch note as already sent");
 				console.log("[3] skip");
-				userInput = (await new Promise(resolve => process.stdin.once("data", resolve))).toString().trim();
+				userInput = (await new Promise(resolve => process.stdin.once("data", resolve)))?.toString().trim();
 			}
 			if (userInput === "1") {
 				await patchNotesChannel.send({ embeds });
@@ -123,20 +132,12 @@ export namespace ClientUtils {
 	export async function checkForOfflineVoiceChanges() {
 		// Force fetch of all guilds
 		await CLIENT.guilds.fetch();
-		const voices = QueryUtils.selectAllVoices();
-		const chunkedVoices = chunk(voices, 10);
-		for (let i = 0; i < chunkedVoices.length; i++) {
-			const voiceChunk = chunkedVoices[i];
-			const promises = voiceChunk.map(async voice => {
-				const guild = await getGuild(voice.guildId);
-				const store = new Store(guild);
-				const queueIds = store.dbQueues().map(queue => queue.id);
-				DisplayUtils.requestDisplaysUpdate(store, queueIds, { updateTypeOverride: DisplayUpdateType.Edit });
-			});
-			if (i < chunkedVoices.length - 1) {
-				promises.push(new Promise(resolve => setTimeout(resolve, 3000)));
-			}
-			await Promise.all(promises);
+		for (const guildId of Object.keys(groupBy(QueryUtils.selectAllVoices(), "guildId"))) {
+			const store = new Store(await getGuild(guildId));
+			const queueIds = store.dbQueues().map(queue => queue.id);
+			DisplayUtils.requestDisplaysUpdate(store, queueIds, { updateTypeOverride: DisplayUpdateType.Edit });
+			// rate limit
+			await new Promise(resolve => setTimeout(resolve, 200));
 		}
 	}
 }

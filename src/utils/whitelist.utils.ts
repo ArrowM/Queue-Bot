@@ -23,7 +23,7 @@ export namespace WhitelistUtils {
 							subjectId: mentionable.id,
 							isRole: mentionable instanceof Role,
 							reason,
-						}),
+						})
 					);
 				}
 			}

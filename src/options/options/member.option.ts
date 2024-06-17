@@ -28,16 +28,17 @@ export class MemberOption extends CustomOption {
 	}
 
 	static findMember(members: Collection<bigint, DbMember>, idString: string): DbMember {
+		let member: DbMember | undefined;
 		try {
-			const member = members.get(BigInt(idString));
-			if (member) {
-				return member;
-			}
-			else {
-				throw new MemberNotFoundError();
-			}
+			member = members.get(BigInt(idString));
 		}
 		catch {
+			member = null;
+		}
+		if (member) {
+			return member;
+		}
+		else {
 			throw new MemberNotFoundError();
 		}
 	}

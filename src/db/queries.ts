@@ -41,7 +41,7 @@ export namespace QueryUtils {
 		return db
 			.delete(GUILD_TABLE)
 			.where(
-				eq(GUILD_TABLE.guildId, by.guildId),
+				eq(GUILD_TABLE.guildId, by.guildId)
 			)
 			.returning().get();
 	}
@@ -76,9 +76,9 @@ export namespace QueryUtils {
 	// Displays
 
 	export function selectDisplay(by:
-		{ guildId: Snowflake, id: bigint } |
-		{ guildId: Snowflake, lastMessageId: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint, displayChannelId: Snowflake },
+																	{ guildId: Snowflake, id: bigint } |
+																	{ guildId: Snowflake, lastMessageId: Snowflake } |
+																	{ guildId: Snowflake, queueId: bigint, displayChannelId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectDisplayById.get(by);
@@ -92,9 +92,9 @@ export namespace QueryUtils {
 	}
 
 	export function selectManyDisplays(by:
-		{ guildId: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint } |
-		{ guildId: Snowflake, displayChannelId: Snowflake },
+																			 { guildId: Snowflake } |
+																			 { guildId: Snowflake, queueId: bigint } |
+																			 { guildId: Snowflake, displayChannelId: Snowflake }
 	) {
 		if ("guildId" in by) {
 			return selectManyDisplaysByGuildId.all(by);
@@ -110,8 +110,8 @@ export namespace QueryUtils {
 	// Members
 
 	export function selectMember(by:
-		{ guildId: Snowflake, id: bigint } |
-		{ guildId: Snowflake, queueId: bigint, userId?: Snowflake },
+																 { guildId: Snowflake, id: bigint } |
+																 { guildId: Snowflake, queueId: bigint, userId?: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectMemberById.get(by);
@@ -128,8 +128,8 @@ export namespace QueryUtils {
 	 * Selects members in position order
 	 */
 	export function selectManyMembers(by:
-		{ guildId: Snowflake, userId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint, count?: number },
+																			{ guildId: Snowflake, userId?: Snowflake } |
+																			{ guildId: Snowflake, queueId: bigint, count?: number }
 	) {
 		if ("guildId" in by && "userId" in by) {
 			return selectManyMembersByGuildIdAndUserId.all(by);
@@ -153,8 +153,8 @@ export namespace QueryUtils {
 	}
 
 	export function selectManySchedules(by:
-		{ guildId: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint },
+																				{ guildId: Snowflake } |
+																				{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by) {
 			return selectManySchedulesByGuildId.all(by);
@@ -176,7 +176,7 @@ export namespace QueryUtils {
 		return db
 			.delete(SCHEDULE_TABLE)
 			.where(
-				eq(SCHEDULE_TABLE.id, by.id),
+				eq(SCHEDULE_TABLE.id, by.id)
 			)
 			.returning().get();
 	}
@@ -184,8 +184,8 @@ export namespace QueryUtils {
 	// Whitelisted
 
 	export function selectWhitelisted(by:
-		{ guildId: Snowflake, id: bigint } |
-		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake },
+																			{ guildId: Snowflake, id: bigint } |
+																			{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectWhitelistedById.get(by);
@@ -196,8 +196,8 @@ export namespace QueryUtils {
 	}
 
 	export function selectManyWhitelisted(by:
-		{ guildId: Snowflake, subjectId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint },
+																					{ guildId: Snowflake, subjectId?: Snowflake } |
+																					{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "subjectId" in by) {
 			return selectManyWhitelistedByGuildIdAndSubjectId.all(by);
@@ -213,8 +213,8 @@ export namespace QueryUtils {
 	// Blacklisted
 
 	export function selectBlacklisted(by:
-		{ guildId: Snowflake, id: bigint } |
-		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake },
+																			{ guildId: Snowflake, id: bigint } |
+																			{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectBlacklistedById.get(by);
@@ -225,8 +225,8 @@ export namespace QueryUtils {
 	}
 
 	export function selectManyBlacklisted(by:
-		{ guildId: Snowflake, subjectId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint },
+																					{ guildId: Snowflake, subjectId?: Snowflake } |
+																					{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "subjectId" in by) {
 			return selectManyBlacklistedByGuildIdAndSubjectId.all(by);
@@ -242,8 +242,8 @@ export namespace QueryUtils {
 	// Prioritized
 
 	export function selectPrioritized(by:
-		{ guildId: Snowflake, id: bigint } |
-		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake },
+																			{ guildId: Snowflake, id: bigint } |
+																			{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectPrioritizedById.get(by);
@@ -254,8 +254,8 @@ export namespace QueryUtils {
 	}
 
 	export function selectManyPrioritized(by:
-		{ guildId: Snowflake, subjectId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint },
+																					{ guildId: Snowflake, subjectId?: Snowflake } |
+																					{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "subjectId" in by) {
 			return selectManyPrioritizedByGuildIdAndSubjectId.all(by);
@@ -271,8 +271,8 @@ export namespace QueryUtils {
 	// Admins
 
 	export function selectAdmin(by:
-		{ guildId: Snowflake, id: bigint } |
-		{ guildId: Snowflake, subjectId: Snowflake },
+																{ guildId: Snowflake, id: bigint } |
+																{ guildId: Snowflake, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectAdminById.get(by);
@@ -283,8 +283,8 @@ export namespace QueryUtils {
 	}
 
 	export function selectManyAdmins(by:
-		{ guildId: Snowflake, subjectId: Snowflake } |
-		{ guildId: Snowflake },
+																		 { guildId: Snowflake, subjectId: Snowflake } |
+																		 { guildId: Snowflake }
 	) {
 		if ("subjectId" in by) {
 			return selectManyAdminsBySubjectId.all(by);
@@ -297,8 +297,8 @@ export namespace QueryUtils {
 	// Archived Members
 
 	export function selectArchivedMember(by:
-		{ guildId: Snowflake, id: bigint } |
-		{ guildId: Snowflake, queueId: bigint, userId: Snowflake },
+																				 { guildId: Snowflake, id: bigint } |
+																				 { guildId: Snowflake, queueId: bigint, userId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectArchivedMemberById.get(by);
@@ -309,8 +309,8 @@ export namespace QueryUtils {
 	}
 
 	export function selectManyArchivedMembers(by:
-		{ guildId: Snowflake, userId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint },
+																							{ guildId: Snowflake, userId?: Snowflake } |
+																							{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "userId" in by) {
 			return selectManyArchivedMembersByGuildIdAndUserId.all(by);
@@ -350,7 +350,7 @@ export namespace QueryUtils {
 		.select()
 		.from(GUILD_TABLE)
 		.where(
-			eq(GUILD_TABLE.guildId, sql.placeholder("guildId")),
+			eq(GUILD_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -361,7 +361,7 @@ export namespace QueryUtils {
 		.from(QUEUE_TABLE)
 		.where(and(
 			eq(QUEUE_TABLE.guildId, sql.placeholder("guildId")),
-			eq(QUEUE_TABLE.id, sql.placeholder("id")),
+			eq(QUEUE_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -369,7 +369,7 @@ export namespace QueryUtils {
 		.select()
 		.from(QUEUE_TABLE)
 		.where(
-			eq(QUEUE_TABLE.guildId, sql.placeholder("guildId")),
+			eq(QUEUE_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -380,7 +380,7 @@ export namespace QueryUtils {
 		.from(VOICE_TABLE)
 		.where(and(
 			eq(VOICE_TABLE.guildId, sql.placeholder("guildId")),
-			eq(VOICE_TABLE.id, sql.placeholder("id")),
+			eq(VOICE_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -388,7 +388,7 @@ export namespace QueryUtils {
 		.select()
 		.from(VOICE_TABLE)
 		.where(
-			eq(VOICE_TABLE.guildId, sql.placeholder("guildId")),
+			eq(VOICE_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -399,7 +399,7 @@ export namespace QueryUtils {
 		.from(DISPLAY_TABLE)
 		.where(and(
 			eq(DISPLAY_TABLE.guildId, sql.placeholder("guildId")),
-			eq(DISPLAY_TABLE.id, sql.placeholder("id")),
+			eq(DISPLAY_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -408,7 +408,7 @@ export namespace QueryUtils {
 		.from(DISPLAY_TABLE)
 		.where(and(
 			eq(DISPLAY_TABLE.guildId, sql.placeholder("guildId")),
-			eq(DISPLAY_TABLE.lastMessageId, sql.placeholder("lastMessageId")),
+			eq(DISPLAY_TABLE.lastMessageId, sql.placeholder("lastMessageId"))
 		))
 		.prepare();
 
@@ -418,7 +418,7 @@ export namespace QueryUtils {
 		.where(and(
 			eq(DISPLAY_TABLE.guildId, sql.placeholder("guildId")),
 			eq(DISPLAY_TABLE.queueId, sql.placeholder("queueId")),
-			eq(DISPLAY_TABLE.displayChannelId, sql.placeholder("displayChannelId")),
+			eq(DISPLAY_TABLE.displayChannelId, sql.placeholder("displayChannelId"))
 		))
 		.prepare();
 
@@ -426,7 +426,7 @@ export namespace QueryUtils {
 		.select()
 		.from(DISPLAY_TABLE)
 		.where(
-			eq(DISPLAY_TABLE.guildId, sql.placeholder("guildId")),
+			eq(DISPLAY_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -435,7 +435,7 @@ export namespace QueryUtils {
 		.from(DISPLAY_TABLE)
 		.where(and(
 			eq(DISPLAY_TABLE.guildId, sql.placeholder("guildId")),
-			eq(DISPLAY_TABLE.queueId, sql.placeholder("queueId")),
+			eq(DISPLAY_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.prepare();
 
@@ -444,7 +444,7 @@ export namespace QueryUtils {
 		.from(DISPLAY_TABLE)
 		.where(and(
 			eq(DISPLAY_TABLE.guildId, sql.placeholder("guildId")),
-			eq(DISPLAY_TABLE.displayChannelId, sql.placeholder("displayChannelId")),
+			eq(DISPLAY_TABLE.displayChannelId, sql.placeholder("displayChannelId"))
 		))
 		.prepare();
 
@@ -452,8 +452,8 @@ export namespace QueryUtils {
 
 	const MEMBER_ORDER = [
 		// Raw SQL for CASE statement to handle NULL values
-		sql`CASE WHEN ${MEMBER_TABLE.priority} IS NULL THEN 1 ELSE 0 END`,
-		MEMBER_TABLE.priority,
+		sql`CASE WHEN ${MEMBER_TABLE.priorityOrder} IS NULL THEN 1 ELSE 0 END`,
+		MEMBER_TABLE.priorityOrder,
 		MEMBER_TABLE.positionTime,
 	];
 
@@ -462,7 +462,7 @@ export namespace QueryUtils {
 		.from(MEMBER_TABLE)
 		.where(and(
 			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(MEMBER_TABLE.id, sql.placeholder("id")),
+			eq(MEMBER_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -472,7 +472,7 @@ export namespace QueryUtils {
 		.where(and(
 			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId")),
 			eq(MEMBER_TABLE.queueId, sql.placeholder("queueId")),
-			eq(MEMBER_TABLE.userId, sql.placeholder("userId")),
+			eq(MEMBER_TABLE.userId, sql.placeholder("userId"))
 		))
 		.prepare();
 
@@ -481,7 +481,7 @@ export namespace QueryUtils {
 		.from(MEMBER_TABLE)
 		.where(and(
 			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(MEMBER_TABLE.queueId, sql.placeholder("queueId")),
+			eq(MEMBER_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.orderBy(...MEMBER_ORDER)
 		.prepare();
@@ -491,7 +491,7 @@ export namespace QueryUtils {
 		.from(MEMBER_TABLE)
 		.where(and(
 			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(MEMBER_TABLE.userId, sql.placeholder("userId")),
+			eq(MEMBER_TABLE.userId, sql.placeholder("userId"))
 		))
 		.orderBy(...MEMBER_ORDER)
 		.prepare();
@@ -500,7 +500,7 @@ export namespace QueryUtils {
 		.select()
 		.from(MEMBER_TABLE)
 		.where(
-			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId")),
+			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.orderBy(...MEMBER_ORDER)
 		.prepare();
@@ -510,7 +510,7 @@ export namespace QueryUtils {
 		.from(MEMBER_TABLE)
 		.where(and(
 			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(MEMBER_TABLE.queueId, sql.placeholder("queueId")),
+			eq(MEMBER_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.orderBy(...MEMBER_ORDER)
 		.limit(sql.placeholder("count"))
@@ -521,7 +521,7 @@ export namespace QueryUtils {
 		.from(MEMBER_TABLE)
 		.where(and(
 			eq(MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(MEMBER_TABLE.queueId, sql.placeholder("queueId")),
+			eq(MEMBER_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.orderBy(...MEMBER_ORDER)
 		.prepare();
@@ -532,7 +532,7 @@ export namespace QueryUtils {
 		.select()
 		.from(SCHEDULE_TABLE)
 		.where(
-			eq(SCHEDULE_TABLE.id, sql.placeholder("id")),
+			eq(SCHEDULE_TABLE.id, sql.placeholder("id"))
 		)
 		.prepare();
 
@@ -540,7 +540,7 @@ export namespace QueryUtils {
 		.select()
 		.from(SCHEDULE_TABLE)
 		.where(
-			eq(SCHEDULE_TABLE.guildId, sql.placeholder("guildId")),
+			eq(SCHEDULE_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -549,7 +549,7 @@ export namespace QueryUtils {
 		.from(SCHEDULE_TABLE)
 		.where(and(
 			eq(SCHEDULE_TABLE.guildId, sql.placeholder("guildId")),
-			eq(SCHEDULE_TABLE.queueId, sql.placeholder("queueId")),
+			eq(SCHEDULE_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.prepare();
 
@@ -560,7 +560,7 @@ export namespace QueryUtils {
 		.from(WHITELISTED_TABLE)
 		.where(and(
 			eq(WHITELISTED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(WHITELISTED_TABLE.id, sql.placeholder("id")),
+			eq(WHITELISTED_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -570,7 +570,7 @@ export namespace QueryUtils {
 		.where(and(
 			eq(WHITELISTED_TABLE.guildId, sql.placeholder("guildId")),
 			eq(WHITELISTED_TABLE.queueId, sql.placeholder("queueId")),
-			eq(WHITELISTED_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(WHITELISTED_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -579,7 +579,7 @@ export namespace QueryUtils {
 		.from(WHITELISTED_TABLE)
 		.where(and(
 			eq(WHITELISTED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(WHITELISTED_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(WHITELISTED_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -587,7 +587,7 @@ export namespace QueryUtils {
 		.select()
 		.from(WHITELISTED_TABLE)
 		.where(
-			eq(WHITELISTED_TABLE.guildId, sql.placeholder("guildId")),
+			eq(WHITELISTED_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -596,7 +596,7 @@ export namespace QueryUtils {
 		.from(WHITELISTED_TABLE)
 		.where(and(
 			eq(WHITELISTED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(WHITELISTED_TABLE.queueId, sql.placeholder("queueId")),
+			eq(WHITELISTED_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.prepare();
 
@@ -607,7 +607,7 @@ export namespace QueryUtils {
 		.from(BLACKLISTED_TABLE)
 		.where(and(
 			eq(BLACKLISTED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(BLACKLISTED_TABLE.id, sql.placeholder("id")),
+			eq(BLACKLISTED_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -617,7 +617,7 @@ export namespace QueryUtils {
 		.where(and(
 			eq(BLACKLISTED_TABLE.guildId, sql.placeholder("guildId")),
 			eq(BLACKLISTED_TABLE.queueId, sql.placeholder("queueId")),
-			eq(BLACKLISTED_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(BLACKLISTED_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -626,7 +626,7 @@ export namespace QueryUtils {
 		.from(BLACKLISTED_TABLE)
 		.where(and(
 			eq(BLACKLISTED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(BLACKLISTED_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(BLACKLISTED_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -634,7 +634,7 @@ export namespace QueryUtils {
 		.select()
 		.from(BLACKLISTED_TABLE)
 		.where(
-			eq(BLACKLISTED_TABLE.guildId, sql.placeholder("guildId")),
+			eq(BLACKLISTED_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -643,7 +643,7 @@ export namespace QueryUtils {
 		.from(BLACKLISTED_TABLE)
 		.where(and(
 			eq(BLACKLISTED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(BLACKLISTED_TABLE.queueId, sql.placeholder("queueId")),
+			eq(BLACKLISTED_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.prepare();
 
@@ -654,7 +654,7 @@ export namespace QueryUtils {
 		.from(PRIORITIZED_TABLE)
 		.where(and(
 			eq(PRIORITIZED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(PRIORITIZED_TABLE.id, sql.placeholder("id")),
+			eq(PRIORITIZED_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -664,7 +664,7 @@ export namespace QueryUtils {
 		.where(and(
 			eq(PRIORITIZED_TABLE.guildId, sql.placeholder("guildId")),
 			eq(PRIORITIZED_TABLE.queueId, sql.placeholder("queueId")),
-			eq(PRIORITIZED_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(PRIORITIZED_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -672,7 +672,7 @@ export namespace QueryUtils {
 		.select()
 		.from(PRIORITIZED_TABLE)
 		.where(
-			eq(PRIORITIZED_TABLE.guildId, sql.placeholder("guildId")),
+			eq(PRIORITIZED_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -681,7 +681,7 @@ export namespace QueryUtils {
 		.from(PRIORITIZED_TABLE)
 		.where(and(
 			eq(PRIORITIZED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(PRIORITIZED_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(PRIORITIZED_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -690,7 +690,7 @@ export namespace QueryUtils {
 		.from(PRIORITIZED_TABLE)
 		.where(and(
 			eq(PRIORITIZED_TABLE.guildId, sql.placeholder("guildId")),
-			eq(PRIORITIZED_TABLE.queueId, sql.placeholder("queueId")),
+			eq(PRIORITIZED_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.prepare();
 
@@ -701,7 +701,7 @@ export namespace QueryUtils {
 		.from(ADMIN_TABLE)
 		.where(and(
 			eq(ADMIN_TABLE.guildId, sql.placeholder("guildId")),
-			eq(ADMIN_TABLE.id, sql.placeholder("id")),
+			eq(ADMIN_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -710,7 +710,7 @@ export namespace QueryUtils {
 		.from(ADMIN_TABLE)
 		.where(and(
 			eq(ADMIN_TABLE.guildId, sql.placeholder("guildId")),
-			eq(ADMIN_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(ADMIN_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -719,7 +719,7 @@ export namespace QueryUtils {
 		.from(ADMIN_TABLE)
 		.where(and(
 			eq(ADMIN_TABLE.guildId, sql.placeholder("guildId")),
-			eq(ADMIN_TABLE.subjectId, sql.placeholder("subjectId")),
+			eq(ADMIN_TABLE.subjectId, sql.placeholder("subjectId"))
 		))
 		.prepare();
 
@@ -727,7 +727,7 @@ export namespace QueryUtils {
 		.select()
 		.from(ADMIN_TABLE)
 		.where(
-			eq(ADMIN_TABLE.guildId, sql.placeholder("guildId")),
+			eq(ADMIN_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -738,7 +738,7 @@ export namespace QueryUtils {
 		.from(ARCHIVED_MEMBER_TABLE)
 		.where(and(
 			eq(ARCHIVED_MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(ARCHIVED_MEMBER_TABLE.id, sql.placeholder("id")),
+			eq(ARCHIVED_MEMBER_TABLE.id, sql.placeholder("id"))
 		))
 		.prepare();
 
@@ -748,7 +748,7 @@ export namespace QueryUtils {
 		.where(and(
 			eq(ARCHIVED_MEMBER_TABLE.guildId, sql.placeholder("guildId")),
 			eq(ARCHIVED_MEMBER_TABLE.queueId, sql.placeholder("queueId")),
-			eq(ARCHIVED_MEMBER_TABLE.userId, sql.placeholder("userId")),
+			eq(ARCHIVED_MEMBER_TABLE.userId, sql.placeholder("userId"))
 		))
 		.prepare();
 
@@ -757,7 +757,7 @@ export namespace QueryUtils {
 		.from(ARCHIVED_MEMBER_TABLE)
 		.where(and(
 			eq(ARCHIVED_MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(ARCHIVED_MEMBER_TABLE.userId, sql.placeholder("userId")),
+			eq(ARCHIVED_MEMBER_TABLE.userId, sql.placeholder("userId"))
 		))
 		.prepare();
 
@@ -765,7 +765,7 @@ export namespace QueryUtils {
 		.select()
 		.from(ARCHIVED_MEMBER_TABLE)
 		.where(
-			eq(ARCHIVED_MEMBER_TABLE.guildId, sql.placeholder("guildId")),
+			eq(ARCHIVED_MEMBER_TABLE.guildId, sql.placeholder("guildId"))
 		)
 		.prepare();
 
@@ -774,7 +774,7 @@ export namespace QueryUtils {
 		.from(ARCHIVED_MEMBER_TABLE)
 		.where(and(
 			eq(ARCHIVED_MEMBER_TABLE.guildId, sql.placeholder("guildId")),
-			eq(ARCHIVED_MEMBER_TABLE.queueId, sql.placeholder("queueId")),
+			eq(ARCHIVED_MEMBER_TABLE.queueId, sql.placeholder("queueId"))
 		))
 		.prepare();
 }

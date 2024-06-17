@@ -30,7 +30,7 @@ export class CommandHandler implements Handler {
 			this.inter.promptConfirmOrCancel = (message: string) =>
 				InteractionUtils.promptConfirmOrCancel(this.inter, message);
 
-			this.inter.respond = (message: (InteractionReplyOptions | string), log = false) =>
+			this.inter.respond = (message: InteractionReplyOptions | string, log = false) =>
 				InteractionUtils.respond(this.inter, isAdmin, message, log);
 
 			this.inter.log = (originalMessage: Message | string) =>

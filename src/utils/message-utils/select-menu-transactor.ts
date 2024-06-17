@@ -79,8 +79,8 @@ export class SelectMenuTransactor {
 				.map(option =>
 					new StringSelectMenuOptionBuilder()
 						.setLabel(option.name)
-						.setValue(`${option.value}`),
-				),
+						.setValue(`${option.value}`)
+				)
 			)
 			.setMinValues(1)
 			.setMaxValues(options.length);

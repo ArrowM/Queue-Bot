@@ -19,7 +19,6 @@ export const VOICE_CHANNEL_TYPE = [
 export const TIMEZONES = Intl.supportedValuesOf("timeZone");
 export const LOWER_TIMEZONES = TIMEZONES.map(tz => tz.toLowerCase());
 
-
 export type PendingGuildUpdates = {
 	[K in Snowflake]?: {
 		[P in GuildStat]?: number;

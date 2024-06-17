@@ -33,12 +33,12 @@ export namespace ClientHandler {
 		await QueueUtils.updateQueues(
 			store,
 			store.dbQueues().filter(queue => queue.roleInQueueId === role.id),
-			{ roleInQueueId: null },
+			{ roleInQueueId: null }
 		);
 		await QueueUtils.updateQueues(
 			store,
 			store.dbQueues().filter(queue => queue.roleOnPullId === role.id),
-			{ roleOnPullId: null },
+			{ roleOnPullId: null }
 		);
 	}
 

@@ -28,16 +28,17 @@ export class DisplayOption extends CustomOption {
 	}
 
 	static findDisplay(displays: Collection<bigint, DbDisplay>, idString: string): DbDisplay {
+		let display: DbDisplay | undefined;
 		try {
-			const display = displays.get(BigInt(idString));
-			if (display) {
-				return display;
-			}
-			else {
-				throw new DisplayNotFoundError();
-			}
+			display = displays.get(BigInt(idString));
 		}
 		catch {
+			display = null;
+		}
+		if (display) {
+			return display;
+		}
+		else {
 			throw new DisplayNotFoundError();
 		}
 	}

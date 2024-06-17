@@ -120,12 +120,14 @@ export namespace ScheduleUtils {
 					console.error(`Error: ${message}`);
 					console.error(`Stack Trace: ${stack}`);
 				}
-			}, { timezone: schedule.timezone }),
+			}, { timezone: schedule.timezone })
 		);
 	}
 
 	async function executeScheduledCommand(scheduleId: bigint) {
-		const { store, queue, schedule } = await getScheduleContext(scheduleId);
+		const context = await getScheduleContext(scheduleId) as { store: Store, queue: DbQueue, schedule: DbSchedule };
+		if (!context) return;
+		const { store, queue, schedule } = context;
 
 		switch (schedule.command) {
 			case ScheduleCommand.Clear:
@@ -147,33 +149,15 @@ export namespace ScheduleUtils {
 	}
 
 	async function getScheduleContext(scheduleId: bigint) {
-		let store, queue, schedule;
-
-		try {
-			schedule = QueryUtils.selectSchedule({ id: scheduleId });
-		}
-		catch (e) {
+		const schedule = QueryUtils.selectSchedule({ id: scheduleId });
+		if (!schedule) {
 			deleteSchedules([schedule.id]);
-			throw e;
+			return;
 		}
-
-		try {
-			const guild = await ClientUtils.getGuild(schedule.guildId);
-			store = new Store(guild);
-		}
-		catch (e) {
-			QueryUtils.deleteGuild({ guildId: schedule.guildId });
-			throw e;
-		}
-
-		try {
-			queue = QueryUtils.selectQueue({ guildId: schedule.guildId, id: schedule.queueId });
-		}
-		catch (e) {
-			store.deleteQueue({ id: queue.id });
-			throw e;
-		}
-
+		const queue = QueryUtils.selectQueue({ guildId: schedule.guildId, id: schedule.queueId });
+		const guild = await ClientUtils.getGuild(schedule.guildId);
+		if (!guild) return;
+		const store = new Store(guild);
 		return { store, queue, schedule };
 	}
 }

@@ -156,12 +156,12 @@ export const MEMBER_TABLE = sqliteTable("member", ({
 	message: text("message"),
 	positionTime: integer("position_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
 	joinTime: integer("join_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
-	priority: integer("priority"),
+	priorityOrder: integer("priority_order"),
 }),
 (table) => ({
 	unq: unique().on(table.queueId, table.userId),
 	guildIdIndex: index("member_guild_id_index").on(table.guildId),
-	priorityIndex: index("member_priority_index").on(table.priority),
+	priorityOrderIndex: index("member_priority_order_index").on(table.priorityOrder),
 	positionTimeIndex: index("member_position_time_index").on(table.positionTime),
 }));
 

@@ -25,16 +25,17 @@ export class AdminOption extends CustomOption {
 	}
 
 	static findAdmin(admins: Collection<bigint, DbAdmin>, idString: string): DbAdmin {
+		let admin: DbAdmin | undefined;
 		try {
-			const admin = admins.get(BigInt(idString));
-			if (admin) {
-				return admin;
-			}
-			else {
-				throw new AdminNotFoundError();
-			}
+			admin = admins.get(BigInt(idString));
 		}
 		catch {
+			admin = null;
+		}
+		if (admin) {
+			return admin;
+		}
+		else {
 			throw new AdminNotFoundError();
 		}
 	}

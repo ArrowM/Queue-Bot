@@ -25,7 +25,7 @@ export namespace PriorityUtils {
 							isRole: mentionable instanceof Role,
 							priorityOrder,
 							reason,
-						}),
+						})
 					);
 				}
 			}
@@ -70,8 +70,8 @@ export namespace PriorityUtils {
 			const members = store.dbMembers().filter(member => member.queueId === queueId);
 			for (const member of members.values()) {
 				const jsMember = await store.jsMember(member.userId);
-				const priority = getMemberPriority(store, queueId, jsMember);
-				store.updateMember({ ...member, priority });
+				const priorityOrder = getMemberPriority(store, queueId, jsMember);
+				store.updateMember({ ...member, priorityOrder });
 			}
 		}
 		DisplayUtils.requestDisplaysUpdate(store, queueIds);

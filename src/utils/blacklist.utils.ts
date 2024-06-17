@@ -25,7 +25,7 @@ export namespace BlacklistUtils {
 							subjectId: mentionable.id,
 							isRole: mentionable instanceof Role,
 							reason,
-						}),
+						})
 					);
 					// delete members
 					const by = (mentionable instanceof Role) ? { roleId: mentionable.id } : { userId: mentionable.id };

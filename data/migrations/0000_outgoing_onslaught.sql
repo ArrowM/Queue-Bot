@@ -67,7 +67,7 @@ CREATE TABLE `member` (
 	`message` text,
 	`position_time` integer NOT NULL,
 	`join_time` integer NOT NULL,
-	`priority` integer,
+	`priority_order` integer,
 	FOREIGN KEY (`guild_id`) REFERENCES `guild`(`guild_id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`queue_id`) REFERENCES `queue`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -111,7 +111,7 @@ CREATE TABLE `queue` (
 	`role_on_pull_id` text,
 	`size` integer,
 	`time_display_type` text DEFAULT 'off',
-	`destination_channel_id` text,
+	`voice_destination_channel_id` text,
 	`voice_only_toggle` integer DEFAULT false NOT NULL,
 	FOREIGN KEY (`guild_id`) REFERENCES `guild`(`guild_id`) ON UPDATE no action ON DELETE cascade
 );
@@ -159,7 +159,7 @@ CREATE UNIQUE INDEX `blacklisted_queue_id_subject_id_unique` ON `blacklisted` (`
 CREATE INDEX `display_guild_id_index` ON `display` (`guild_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `display_queue_id_display_channel_id_unique` ON `display` (`queue_id`,`display_channel_id`);--> statement-breakpoint
 CREATE INDEX `member_guild_id_index` ON `member` (`guild_id`);--> statement-breakpoint
-CREATE INDEX `member_priority_index` ON `member` (`priority`);--> statement-breakpoint
+CREATE INDEX `member_priority_order_index` ON `member` (`priority_order`);--> statement-breakpoint
 CREATE INDEX `member_position_time_index` ON `member` (`position_time`);--> statement-breakpoint
 CREATE UNIQUE INDEX `member_queue_id_user_id_unique` ON `member` (`queue_id`,`user_id`);--> statement-breakpoint
 CREATE INDEX `prioritized_guild_id_index` ON `prioritized` (`guild_id`);--> statement-breakpoint

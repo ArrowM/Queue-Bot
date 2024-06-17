@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7e4a92ca-7062-449e-bd6f-e1539502683e",
+  "id": "e444d711-27cd-4067-9917-6a0e35dfc7eb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "admin": {
@@ -525,8 +525,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "priority": {
-          "name": "priority",
+        "priority_order": {
+          "name": "priority_order",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -541,10 +541,10 @@
           ],
           "isUnique": false
         },
-        "member_priority_index": {
-          "name": "member_priority_index",
+        "member_priority_order_index": {
+          "name": "member_priority_order_index",
           "columns": [
-            "priority"
+            "priority_order"
           ],
           "isUnique": false
         },
@@ -883,8 +883,8 @@
           "autoincrement": false,
           "default": "'off'"
         },
-        "destination_channel_id": {
-          "name": "destination_channel_id",
+        "voice_destination_channel_id": {
+          "name": "voice_destination_channel_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

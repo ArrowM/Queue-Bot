@@ -28,16 +28,17 @@ export class BlacklistedOption extends CustomOption {
 	}
 
 	static findBlacklisted(blacklisteds: Collection<bigint, DbBlacklisted>, idString: string): DbBlacklisted {
+		let blacklisted: DbBlacklisted | undefined;
 		try {
-			const blacklisted = blacklisteds.find(entry => entry.id === BigInt(idString));
-			if (blacklisted) {
-				return blacklisted;
-			}
-			else {
-				throw new BlacklistedNotFoundError();
-			}
+			blacklisted = blacklisteds.find(entry => entry.id === BigInt(idString));
 		}
 		catch {
+			blacklisted = null;
+		}
+		if (blacklisted) {
+			return blacklisted;
+		}
+		else {
 			throw new BlacklistedNotFoundError();
 		}
 	}

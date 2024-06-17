@@ -54,7 +54,7 @@ export namespace DisplayUtils {
 	export function deleteDisplays(store: Store, displayIds: bigint[]) {
 		// delete from db
 		const deletedDisplays = displayIds.map(displayId =>
-			store.deleteDisplay({ id: displayId }),
+			store.deleteDisplay({ id: displayId })
 		);
 		const updatedQueueIds = uniq(deletedDisplays.map(display => display.queueId));
 
@@ -70,7 +70,7 @@ export namespace DisplayUtils {
 
 	setInterval(() => {
 		PENDING_QUEUE_IDS.forEach((store, queueId) =>
-			updateDisplays(store, queueId),
+			updateDisplays(store, queueId)
 		);
 		UPDATED_QUEUE_IDS.clear();
 		PENDING_QUEUE_IDS.clear();
@@ -99,7 +99,7 @@ export namespace DisplayUtils {
 		store: Store,
 		member: DbMember,
 		position: number,
-		rightPadding = 0,
+		rightPadding = 0
 	) {
 		const idxStr = inlineCode(position.toString().padEnd(rightPadding));
 		return `${idxStr}${await memberMention(store, member)}\n`;
@@ -223,7 +223,7 @@ export namespace DisplayUtils {
 					.setDescription(
 						`Hey ${store.inter.member}, I just tried to display the '${queueMention(queue)}' queue in ${channelMention(display.displayChannelId)}, but something went wrong. ` +
 						(isPermissionError ? bold(`It looks like a permission issue, please check the bot's perms in ${channelMention(display.displayChannelId)}. `) : "") +
-						`Here's the error:${codeBlock(message)}`,
+						`Here's the error:${codeBlock(message)}`
 					);
 				if (!isPermissionError) {
 					embed.setFooter({ text: "This error has been logged and will be investigated by the developers." });
@@ -254,8 +254,8 @@ export namespace DisplayUtils {
 
 		const memberDisplayLines = compact(await Promise.all(
 			members.map(async (member, index) =>
-				createMemberDisplayLine(store, member, index + 1, rightPadding),
-			),
+				createMemberDisplayLine(store, member, index + 1, rightPadding)
+			)
 		));
 
 		/**
@@ -362,7 +362,7 @@ export namespace DisplayUtils {
 			}
 		}
 
-		if (members.some(m => !isNil(m.priority))) {
+		if (members.some(m => !isNil(m.priorityOrder))) {
 			descriptionParts.push("- '✨' indicates priority.");
 		}
 
@@ -394,12 +394,12 @@ export namespace DisplayUtils {
 			if (!queue?.voiceOnlyToggle) {
 				actionRowBuilder.addComponents(
 					buildButton(BUTTONS.get(JoinButton.ID)),
-					buildButton(BUTTONS.get(LeaveButton.ID)),
+					buildButton(BUTTONS.get(LeaveButton.ID))
 				);
 			}
 			actionRowBuilder.addComponents(
 				buildButton(BUTTONS.get(MyPositionsButton.ID)),
-				buildButton(BUTTONS.get(PullButton.ID)),
+				buildButton(BUTTONS.get(PullButton.ID))
 			);
 			return [actionRowBuilder.toJSON()];
 		}

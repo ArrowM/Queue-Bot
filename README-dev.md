@@ -2,6 +2,7 @@
   * [Running Locally](#running-locally)
     * [Option 1: Install and run with Docker (recommended)](#option-1-install-and-run-with-docker-recommended)
     * [Option 2: Manually install and run](#option-2-manually-install-and-run)
+  * [How is data stored and accessed?](#how-is-data-stored-and-accessed)
   * [How to create and edit commands](#how-to-create-and-edit-commands)
     * [Adding commands](#adding-commands)
     * [Adding command options](#adding-command-options)
@@ -9,6 +10,7 @@
     * [Util files](#util-files)
     * [Database changes](#database-changes)
   * [Misc](#misc)
+  * [Migrating from the legacy project (pre 06/2024)](#migrating-from-the-legacy-project-pre-062024)
 <!-- TOC -->
 
 ## Running Locally
@@ -47,6 +49,15 @@ Run the bot:
 ```bash
 npm start
 ```
+
+## How is data stored and accessed?
+
+The bot uses a SQLite database, which is stored in the `data/main.sqlite` file.
+The database is managed by the `drizzle` package.
+The schema is defined in the `src/db/schema.ts` file.
+Query statements are defined in the `src/db/queries.ts` file.
+Modification statements are defined in the `src/db/store.ts` file.
+A store is created and attached to each bot interaction.
 
 ## How to create and edit commands
 
@@ -91,3 +102,27 @@ npm run lint
 ```
 
 This project is designed to run without compiling thanks to `@swc-node/register/esm`.
+
+## Migrating from the legacy project (pre 06/2024)
+
+Open a terminal and navigate to the following directory in this project: `data/migrations/legacy-export`.
+
+Export the old database tables to csv files.
+The following command will perform the export for Postgres:
+
+```bash
+psql -d queue -Atc "SELECT tablename FROM pg_tables WHERE schemaname='public'" | xargs -I{} psql -d queue -c "\copy {} to 'legacy_export/{}.csv' csv header"
+```
+*If you have a different database name, replace `queue` with your database name.*
+
+Then in the `.env` file, update `CHECK_FOR_LEGACY_MIGRATION` to be true:
+
+```.env
+CHECK_FOR_LEGACY_MIGRATION=true
+```
+
+When the `CHECK_FOR_LEGACY_MIGRATION` is set to true, will check the `legacy-export` directory.
+If it finds the csv files, it will prompt you to confirm via console input that you want to import the data.
+If confirmed, it will create a dated backup of the database (main.sqlite), then merge the legacy data into the database.
+
+Once the data is imported, `CHECK_FOR_LEGACY_MIGRATION` should be set back to false.

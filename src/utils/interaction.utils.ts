@@ -19,7 +19,7 @@ import { CustomError } from "./error.utils.ts";
 import { LoggingUtils } from "./message-utils/logging.utils.ts";
 
 export namespace InteractionUtils {
-	export async function respond(inter: AnyInteraction, isAdmin: boolean, message: (InteractionReplyOptions | string), log = false) {
+	export async function respond(inter: AnyInteraction, isAdmin: boolean, message: InteractionReplyOptions | string, log = false) {
 		const interaction = inter as any;
 
 		let response: Message;

@@ -28,16 +28,17 @@ export class WhitelistedOption extends CustomOption {
 	}
 
 	static findWhitelisted(whitelisteds: Collection<bigint, DbWhitelisted>, idString: string): DbWhitelisted {
+		let whitelisted: DbWhitelisted | undefined;
 		try {
-			const whitelisted = whitelisteds.find(entry => entry.id === BigInt(idString));
-			if (whitelisted) {
-				return whitelisted;
-			}
-			else {
-				throw new WhitelistedNotFoundError();
-			}
+			whitelisted = whitelisteds.find(entry => entry.id === BigInt(idString));
 		}
 		catch {
+			whitelisted = null;
+		}
+		if (whitelisted) {
+			return whitelisted;
+		}
+		else {
 			throw new WhitelistedNotFoundError();
 		}
 	}

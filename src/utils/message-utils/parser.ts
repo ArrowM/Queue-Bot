@@ -27,43 +27,43 @@ export class Parser<T extends AutocompleteInteraction | SlashInteraction> {
 
 	getScopedVoices(queues: Collection<bigint, DbQueue>) {
 		return this.inter.store.dbVoices().filter(voice =>
-			queues.has(voice.queueId),
+			queues.has(voice.queueId)
 		);
 	}
 
 	getScopedMembers(queues: Collection<bigint, DbQueue>) {
 		return this.inter.store.dbMembers().filter(member =>
-			queues.has(member.queueId),
+			queues.has(member.queueId)
 		);
 	}
 
 	getScopedDisplays(queues: Collection<bigint, DbQueue>) {
 		return this.inter.store.dbDisplays().filter(display =>
-			queues.has(display.queueId),
+			queues.has(display.queueId)
 		);
 	}
 
 	getScopedSchedules(queues: Collection<bigint, DbQueue>) {
 		return this.inter.store.dbSchedules().filter(schedule =>
-			queues.has(schedule.queueId),
+			queues.has(schedule.queueId)
 		);
 	}
 
 	getScopedBlacklisted(queues: Collection<bigint, DbQueue>) {
 		return this.inter.store.dbBlacklisted().filter(blacklisted =>
-			queues.has(blacklisted.queueId),
+			queues.has(blacklisted.queueId)
 		);
 	}
 
 	getScopedWhitelisted(queues: Collection<bigint, DbQueue>) {
 		return this.inter.store.dbWhitelisted().filter(whitelisted =>
-			queues.has(whitelisted.queueId),
+			queues.has(whitelisted.queueId)
 		);
 	}
 
 	getScopedPrioritized(queues: Collection<bigint, DbQueue>) {
 		return this.inter.store.dbPrioritized().filter(prioritized =>
-			(queues.has(prioritized.queueId)),
+			(queues.has(prioritized.queueId))
 		);
 	}
 }

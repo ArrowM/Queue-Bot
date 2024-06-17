@@ -1,4 +1,11 @@
-import { type DiscordAPIError, Guild, type GuildBasedChannel, type GuildMember, type Role, type Snowflake } from "discord.js";
+import {
+	type DiscordAPIError,
+	Guild,
+	type GuildBasedChannel,
+	type GuildMember,
+	type Role,
+	type Snowflake,
+} from "discord.js";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { compact, isNil, omitBy } from "lodash-es";
 import moize from "moize";
@@ -62,7 +69,7 @@ export class Store {
 
 	constructor(
 		public guild: Guild,
-		public inter?: AnyInteraction,
+		public inter?: AnyInteraction
 	) {
 	}
 
@@ -97,7 +104,7 @@ export class Store {
 			.set({ logChannelId: null })
 			.where(and(
 				eq(GUILD_TABLE.guildId, this.guild.id),
-				eq(GUILD_TABLE.logChannelId, channelId),
+				eq(GUILD_TABLE.logChannelId, channelId)
 			));
 	}
 
@@ -115,7 +122,7 @@ export class Store {
 
 	async jsChannels(channelIds: Snowflake[]) {
 		return toCollection<Snowflake, GuildBasedChannel>("id",
-			compact(await Promise.all(channelIds.map(id => this.jsChannel(id)))),
+			compact(await Promise.all(channelIds.map(id => this.jsChannel(id))))
 		);
 	}
 
@@ -133,7 +140,7 @@ export class Store {
 
 	async jsMembers(userIds: Snowflake[]) {
 		return toCollection<Snowflake, GuildMember>("id",
-			compact(await Promise.all(userIds.map(id => this.jsMember(id)))),
+			compact(await Promise.all(userIds.map(id => this.jsMember(id))))
 		);
 	}
 
@@ -154,7 +161,7 @@ export class Store {
 
 	async jsRoles(roleIds: Snowflake[]) {
 		return toCollection<Snowflake, Role>("id",
-			compact(await Promise.all(roleIds.map(id => this.jsRole(id)))),
+			compact(await Promise.all(roleIds.map(id => this.jsRole(id))))
 		);
 	}
 
@@ -410,7 +417,7 @@ export class Store {
 			.set(omitBy(queue, isNil))
 			.where(and(
 				eq(QUEUE_TABLE.id, queue.id),
-				eq(QUEUE_TABLE.guildId, this.guild.id),
+				eq(QUEUE_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -422,7 +429,7 @@ export class Store {
 			.set(omitBy(voice, isNil))
 			.where(and(
 				eq(VOICE_TABLE.id, voice.id),
-				eq(VOICE_TABLE.guildId, this.guild.id),
+				eq(VOICE_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -434,7 +441,7 @@ export class Store {
 			.set(omitBy(display, isNil))
 			.where(and(
 				eq(DISPLAY_TABLE.id, display.id),
-				eq(DISPLAY_TABLE.guildId, this.guild.id),
+				eq(DISPLAY_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -446,7 +453,7 @@ export class Store {
 			.set(omitBy(member, isNil))
 			.where(and(
 				eq(MEMBER_TABLE.id, member.id),
-				eq(MEMBER_TABLE.guildId, this.guild.id),
+				eq(MEMBER_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -458,7 +465,7 @@ export class Store {
 			.set(omitBy(schedule, isNil))
 			.where(and(
 				eq(SCHEDULE_TABLE.id, schedule.id),
-				eq(SCHEDULE_TABLE.guildId, this.guild.id),
+				eq(SCHEDULE_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -470,7 +477,7 @@ export class Store {
 			.set(omitBy(whitelisted, isNil))
 			.where(and(
 				eq(WHITELISTED_TABLE.id, whitelisted.id),
-				eq(WHITELISTED_TABLE.guildId, this.guild.id),
+				eq(WHITELISTED_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -482,7 +489,7 @@ export class Store {
 			.set(omitBy(blacklisted, isNil))
 			.where(and(
 				eq(BLACKLISTED_TABLE.id, blacklisted.id),
-				eq(BLACKLISTED_TABLE.guildId, this.guild.id),
+				eq(BLACKLISTED_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -494,7 +501,7 @@ export class Store {
 			.set(omitBy(prioritized, isNil))
 			.where(and(
 				eq(PRIORITIZED_TABLE.id, prioritized.id),
-				eq(PRIORITIZED_TABLE.guildId, this.guild.id),
+				eq(PRIORITIZED_TABLE.guildId, this.guild.id)
 			))
 			.returning().get();
 	}
@@ -522,8 +529,8 @@ export class Store {
 	}
 
 	deleteManyVoices(by:
-		{ id: bigint } |
-		{ channelId: Snowflake },
+										 { id: bigint } |
+										 { channelId: Snowflake }
 	) {
 		this.dbVoices.clear();
 		const cond = "channelId" in by
@@ -533,9 +540,9 @@ export class Store {
 	}
 
 	deleteDisplay(by:
-		{ id: bigint } |
-		{ lastMessageId: Snowflake } |
-		{ queueId: bigint, displayChannelId: Snowflake },
+									{ id: bigint } |
+									{ lastMessageId: Snowflake } |
+									{ queueId: bigint, displayChannelId: Snowflake }
 	) {
 		this.dbDisplays.clear();
 		const cond = this.createCondition(DISPLAY_TABLE, by);
@@ -543,8 +550,8 @@ export class Store {
 	}
 
 	deleteManyDisplays(by:
-		{ queueId?: bigint } |
-		{ displayChannelId?: Snowflake },
+											 { queueId?: bigint } |
+											 { displayChannelId?: Snowflake }
 	) {
 		this.dbDisplays.clear();
 		const cond = this.createCondition(DISPLAY_TABLE, by);
@@ -552,9 +559,9 @@ export class Store {
 	}
 
 	deleteMember(by:
-			{ id: bigint } |
-			{ queueId: bigint, userId?: Snowflake },
-	reason: ArchivedMemberReason,
+								 { id: bigint } |
+								 { queueId: bigint, userId?: Snowflake },
+							 reason: ArchivedMemberReason
 	) {
 		this.dbMembers.clear();
 		const deletedMember = db.transaction(() => {
@@ -578,9 +585,9 @@ export class Store {
 	}
 
 	deleteManyMembers(by:
-			{ userId?: Snowflake } |
-			{ queueId: bigint, count?: number },
-	reason: ArchivedMemberReason,
+											{ userId?: Snowflake } |
+											{ queueId: bigint, count?: number },
+	reason: ArchivedMemberReason
 	) {
 		let deletedMembers: DbMember[];
 		db.transaction(() => {
@@ -594,7 +601,7 @@ export class Store {
 			deletedMembers = db.delete(MEMBER_TABLE).where(cond).returning().all();
 
 			deletedMembers.forEach(deletedMember =>
-				this.insertArchivedMember({ ...deletedMember, reason }),
+				this.insertArchivedMember({ ...deletedMember, reason })
 			);
 		});
 		return deletedMembers;
@@ -613,8 +620,8 @@ export class Store {
 	}
 
 	deleteWhitelisted(by:
-		{ id: bigint } |
-		{ queueId: bigint, subjectId: bigint },
+											{ id: bigint } |
+											{ queueId: bigint, subjectId: bigint }
 	) {
 		this.dbWhitelisted.clear();
 		const cond = this.createCondition(WHITELISTED_TABLE, by);
@@ -622,8 +629,8 @@ export class Store {
 	}
 
 	deleteManyWhitelisted(by:
-		{ subjectId?: Snowflake } |
-		{ queueId: bigint },
+													{ subjectId?: Snowflake } |
+													{ queueId: bigint }
 	) {
 		this.dbWhitelisted.clear();
 		const cond = this.createCondition(WHITELISTED_TABLE, by);
@@ -631,8 +638,8 @@ export class Store {
 	}
 
 	deleteBlacklisted(by:
-		{ id: bigint } |
-		{ queueId: bigint, subjectId: Snowflake },
+											{ id: bigint } |
+											{ queueId: bigint, subjectId: Snowflake }
 	) {
 		this.dbBlacklisted.clear();
 		const cond = this.createCondition(BLACKLISTED_TABLE, by);
@@ -640,8 +647,8 @@ export class Store {
 	}
 
 	deleteManyBlacklisted(by:
-		{ subjectId?: Snowflake } |
-		{ queueId: bigint },
+													{ subjectId?: Snowflake } |
+													{ queueId: bigint }
 	) {
 		this.dbBlacklisted.clear();
 		const cond = this.createCondition(BLACKLISTED_TABLE, by);
@@ -649,8 +656,8 @@ export class Store {
 	}
 
 	deletePrioritized(by:
-		{ id: bigint } |
-		{ queueId: bigint, subjectId: bigint },
+											{ id: bigint } |
+											{ queueId: bigint, subjectId: bigint }
 	) {
 		this.dbPrioritized.clear();
 		const cond = this.createCondition(PRIORITIZED_TABLE, by);
@@ -658,8 +665,8 @@ export class Store {
 	}
 
 	deleteManyPrioritized(by:
-		{ subjectId?: Snowflake } |
-		{ queueId: bigint },
+													{ subjectId?: Snowflake } |
+													{ queueId: bigint }
 	) {
 		this.dbPrioritized.clear();
 		const cond = this.createCondition(PRIORITIZED_TABLE, by);
@@ -667,8 +674,8 @@ export class Store {
 	}
 
 	deleteAdmin(by:
-		{ id: bigint } |
-		{ subjectId: Snowflake },
+								{ id: bigint } |
+								{ subjectId: Snowflake }
 	) {
 		this.dbAdmins.clear();
 		const cond = this.createCondition(ADMIN_TABLE, by);

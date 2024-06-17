@@ -18,17 +18,17 @@ export class HelpCommand extends EveryoneCommand {
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName("setup")
-				.setDescription("Get help with setting up"),
+				.setDescription("Get help with setting up")
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName("general")
-				.setDescription("Get help with general tasks like joining and leaving queues"),
+				.setDescription("Get help with general tasks like joining and leaving queues")
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName("admin")
-				.setDescription("Get help with admin tasks like managing queues"),
+				.setDescription("Get help with admin tasks like managing queues")
 		);
 
 	// ====================================================================
@@ -43,7 +43,7 @@ export class HelpCommand extends EveryoneCommand {
 					.setColor(Color.Indigo)
 					.setDescription(
 						"Hello there, I'm Queue Bot! I provide live user queues.\n" +
-						"Here are the steps to get started with me. ",
+						"Here are the steps to get started with me. "
 					)
 					.addFields({
 						name: "1. Create queues",
@@ -80,7 +80,7 @@ export class HelpCommand extends EveryoneCommand {
 						"Hello there, I'm Queue Bot! I provide live user queues.\n" +
 						"Here are the commands available to everyone. " +
 						"Some commands have required and optional arguments, so be sure to read them! " +
-						"Options can be selected by typing and hitting tab will auto-complete. ",
+						"Options can be selected by typing and hitting tab will auto-complete. "
 					)
 					.addFields({
 						name: commandMention("help"),
@@ -119,7 +119,7 @@ export class HelpCommand extends EveryoneCommand {
 					.setDescription(
 						"Hello there, I'm Queue Bot! I provide live user queues.\n" +
 						`Here are the commands only available to server admins and users added via ${commandMention("admins", "add")}. ` +
-						`Some commands have additional subcommands like ${inlineCode("add")} or ${inlineCode("delete")}. `,
+						`Some commands have additional subcommands like ${inlineCode("add")} or ${inlineCode("delete")}. `
 					)
 					.addFields({
 						name: commandMention("admins", "get"),

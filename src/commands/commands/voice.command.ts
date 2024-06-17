@@ -117,7 +117,10 @@ export class VoiceCommand extends AdminCommand {
 
 	static readonly ADD_SOURCE_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to set source voice channel" }),
-		sourceVoiceChannel: new VoiceSourceChannelOption({ required: true, description: "Voice channel to pull members from" }),
+		sourceVoiceChannel: new VoiceSourceChannelOption({
+			required: true,
+			description: "Voice channel to pull members from",
+		}),
 		joinSync: new JoinSyncToggleOption({ description: "Toggle whether members are enqueued on voice join" }),
 		leaveSync: new LeaveSyncToggleOption({ description: "Toggle whether members are dequeued on voice leave" }),
 	};
@@ -135,7 +138,7 @@ export class VoiceCommand extends AdminCommand {
 				const confirmed = await inter.promptConfirmOrCancel(
 					`The '${queueMention(queue)}' queue has ${inlineCode(VoiceOnlyToggleOption.ID)} enabled. ` +
 					`There are ${members.size} member${members.size === 1 ? "" : "s"} in the '${queueMention(queue)}' queue that will be cleared if you proceed. ` +
-					"Do you wish to proceed?",
+					"Do you wish to proceed?"
 				);
 				if (!confirmed) {
 					await inter.respond("Cancelled voice integration addition. No changes have been made.");
@@ -150,7 +153,7 @@ export class VoiceCommand extends AdminCommand {
 		if (nonVoiceOnlyQueues.length) {
 			await inter.respond(
 				`${inlineCode(VoiceOnlyToggleOption.ID)} is not enabled for the '${queuesMention(nonVoiceOnlyQueues)}' queue${nonVoiceOnlyQueues.length > 1 ? "s" : ""}. ` +
-				`Members will still be able to join via buttons or commands. ${inlineCode(VoiceOnlyToggleOption.ID)} can be changed with ${commandMention("queues", "set")}.`,
+				`Members will still be able to join via buttons or commands. ${inlineCode(VoiceOnlyToggleOption.ID)} can be changed with ${commandMention("queues", "set")}.`
 			);
 		}
 
@@ -224,7 +227,10 @@ export class VoiceCommand extends AdminCommand {
 
 	static readonly SET_DESTINATION_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to set destination voice channel" }),
-		voiceDestinationChannel: new VoiceDestinationChannelOption({ required: true, description: "Voice channel to push members to" }),
+		voiceDestinationChannel: new VoiceDestinationChannelOption({
+			required: true,
+			description: "Voice channel to push members to",
+		}),
 	};
 
 	static async voice_set_destination(inter: SlashInteraction) {

@@ -41,14 +41,14 @@ export function queuesMention(queues: ArrayOrCollection<bigint, DbQueue>): strin
 
 export async function membersMention(store: Store, members: ArrayOrCollection<bigint, DbMember>) {
 	return (await Promise.all(
-		map(members, async (member) => `- ${await memberMention(store, member)}`),
+		map(members, async (member) => `- ${await memberMention(store, member)}`)
 	)).join("\n");
 }
 
 export async function memberMention(store: Store, member: DbMember) {
 	const { timestampType, memberDisplayType } = store.dbQueues().get(member.queueId);
 	const timeStr = formatTimestamp(member.joinTime, timestampType);
-	const prioStr = member.priority ? "✨" : "";
+	const prioStr = isNil(member.priorityOrder) ? "✨" : "";
 	const msgStr = member.message ? ` -- ${member.message}` : "";
 
 	const jsMember = await store.jsMember(member.userId);

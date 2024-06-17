@@ -28,16 +28,17 @@ export class VoiceOption extends CustomOption {
 	}
 
 	static findVoice(voices: Collection<bigint, DbVoice>, idString: string): DbVoice {
+		let voice: DbVoice | undefined;
 		try {
-			const voice = voices.find(entry => entry.id === BigInt(idString));
-			if (voice) {
-				return voice;
-			}
-			else {
-				throw new VoiceNotFoundError();
-			}
+			voice = voices.find(entry => entry.id === BigInt(idString));
 		}
 		catch {
+			voice = null;
+		}
+		if (voice) {
+			return voice;
+		}
+		else {
 			throw new VoiceNotFoundError();
 		}
 	}

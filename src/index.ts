@@ -1,12 +1,9 @@
-// 1. Load signal handlers
-// 3. Start client
-import * as Client from "./client/CLIENT.ts";
-// 2. Load database connection
-import * as DB from "./db/db.ts";
-import * as NodeSignalHandler from "./listeners/node.listeners.ts";
+import { Client } from "./client/client.ts";
+import { Db } from "./db/db.ts";
+import { NodeListeners } from "./listeners/node.listeners.ts";
 
-NodeSignalHandler.load();
+NodeListeners.load();
 
-DB.load();
+Db.load();
 
 Client.start();
