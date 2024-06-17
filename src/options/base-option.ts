@@ -58,7 +58,7 @@ export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBas
 	}
 
 	build = (optionBuilder: BuilderType): BuilderType => {
-		const id = this.config?.id ?? this.id;
+		const id = this.identifier;
 		const autocomplete = this.config?.autocomplete ?? this.autocomplete;
 		const channelTypes = this.config?.channelTypes ?? this.channelTypes;
 		const choices = this.config?.choices ?? this.choices;

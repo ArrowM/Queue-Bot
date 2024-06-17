@@ -73,11 +73,11 @@ export class MembersCommand extends AdminCommand {
 
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to add members to" }),
-		mentionable1: new MentionableOption({ name: "mentionable_1", required: true, description: "User or role to add" }),
-		mentionable2: new MentionableOption({ name: "mentionable_2", description: "User or role to add" }),
-		mentionable3: new MentionableOption({ name: "mentionable_3", description: "User or role to add" }),
-		mentionable4: new MentionableOption({ name: "mentionable_4", description: "User or role to add" }),
-		mentionable5: new MentionableOption({ name: "mentionable_5", description: "User or role to add" }),
+		mentionable1: new MentionableOption({ id: "mentionable_1", required: true, description: "User or role to add" }),
+		mentionable2: new MentionableOption({ id: "mentionable_2", description: "User or role to add" }),
+		mentionable3: new MentionableOption({ id: "mentionable_3", description: "User or role to add" }),
+		mentionable4: new MentionableOption({ id: "mentionable_4", description: "User or role to add" }),
+		mentionable5: new MentionableOption({ id: "mentionable_5", description: "User or role to add" }),
 	};
 
 	static async members_add(inter: SlashInteraction) {

@@ -7,9 +7,9 @@ import { CLIENT } from "../../client/client.ts";
 import {
 	Color,
 	DisplayUpdateType,
-	LogScope,
 	MemberDisplayType,
 	ScheduleCommand,
+	Scope,
 	TimestampType,
 } from "../../types/db.types.ts";
 import { ClientUtils } from "../../utils/client.utils.ts";
@@ -161,7 +161,7 @@ async function convertAndInsert() {
 			store.insertGuild({
 				guildId: legacyGuild.guild_id,
 				logChannelId: legacyGuild.logging_channel_id,
-				logScope: legacyGuild.logging_channel_level ? LogScope.All : undefined,
+				logScope: legacyGuild.logging_channel_level ? Scope.All : undefined,
 			});
 
 			for (const legacyQueue of legacyQueueChannels.filter(legacy => legacy.guild_id == legacyGuild.guild_id)) {
@@ -176,8 +176,8 @@ async function convertAndInsert() {
 							name: name,
 							guildId: legacyGuild.guild_id,
 							autopullToggle: legacyQueue.auto_fill,
-							buttonsToggle: !legacyQueue.hide_button,
 							color: get(Color, legacyQueue.color) ?? QUEUE_TABLE.color.default,
+							displayButtons: legacyQueue.hide_button ? Scope.None : Scope.All,
 							displayUpdateType: (legacyGuild.msg_mode === 1) ? DisplayUpdateType.Edit : (legacyGuild.msg_mode === 2) ? DisplayUpdateType.Replace : DisplayUpdateType.New,
 							header: legacyQueue.header,
 							lockToggle: legacyQueue.is_locked,

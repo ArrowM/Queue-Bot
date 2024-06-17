@@ -21,11 +21,9 @@ export class ButtonHandler implements Handler {
 		if (button) {
 			const isAdmin = button.adminOnly;
 
-			this.inter.respond = (message: InteractionReplyOptions | string, log = false) =>
-				InteractionUtils.respond(this.inter, isAdmin, message, log);
+			this.inter.respond = (message: InteractionReplyOptions | string, log = false) => InteractionUtils.respond(this.inter, isAdmin, message, log);
 
-			this.inter.log = (originalMessage: Message | string) =>
-				LoggingUtils.log(this.inter.store, isAdmin, originalMessage);
+			this.inter.log = (originalMessage: Message | string) => LoggingUtils.log(this.inter.store, isAdmin, originalMessage);
 
 			if (isAdmin) {
 				AdminUtils.verifyIsAdmin(this.inter.store, this.inter.member);

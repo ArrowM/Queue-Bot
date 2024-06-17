@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e444d711-27cd-4067-9917-6a0e35dfc7eb",
+  "id": "6d4e0faa-1a76-494f-ac73-1f254d073c6f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "admin": {
@@ -760,14 +760,6 @@
           "autoincrement": false,
           "default": true
         },
-        "buttons_toggle": {
-          "name": "buttons_toggle",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
         "color": {
           "name": "color",
           "type": "text",
@@ -783,6 +775,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'edit'"
+        },
+        "display_buttons": {
+          "name": "display_buttons",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'all'"
         },
         "header": {
           "name": "header",

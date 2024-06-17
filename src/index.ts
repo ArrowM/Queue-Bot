@@ -4,6 +4,6 @@ import { NodeListeners } from "./listeners/node.listeners.ts";
 
 NodeListeners.load();
 
-Db.load();
+Db.printLoadMessage();
 
 Client.start();

@@ -75,15 +75,11 @@ export class WhitelistCommand extends AdminCommand {
 
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to whitelist in" }),
-		mentionable1: new MentionableOption({
-			required: true,
-			name: "mentionable_1",
-			description: "User or role to whitelist",
-		}),
-		mentionable2: new MentionableOption({ name: "mentionable_2", description: "User or role to whitelist" }),
-		mentionable3: new MentionableOption({ name: "mentionable_3", description: "User or role to whitelist" }),
-		mentionable4: new MentionableOption({ name: "mentionable_4", description: "User or role to whitelist" }),
-		mentionable5: new MentionableOption({ name: "mentionable_5", description: "User or role to whitelist" }),
+		mentionable1: new MentionableOption({ required: true, id: "mentionable_1", description: "User or role to whitelist" }),
+		mentionable2: new MentionableOption({ id: "mentionable_2", description: "User or role to whitelist" }),
+		mentionable3: new MentionableOption({ id: "mentionable_3", description: "User or role to whitelist" }),
+		mentionable4: new MentionableOption({ id: "mentionable_4", description: "User or role to whitelist" }),
+		mentionable5: new MentionableOption({ id: "mentionable_5", description: "User or role to whitelist" }),
 		reason: new ReasonOption({ description: "Reason for whitelisting" }),
 	};
 

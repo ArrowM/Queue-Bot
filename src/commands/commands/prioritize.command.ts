@@ -84,15 +84,11 @@ export class PrioritizeCommand extends AdminCommand {
 
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to prioritize in" }),
-		mentionable1: new MentionableOption({
-			required: true,
-			name: "mentionable_1",
-			description: "User or role to prioritize",
-		}),
-		mentionable2: new MentionableOption({ name: "mentionable_2", description: "User or role to prioritize" }),
-		mentionable3: new MentionableOption({ name: "mentionable_3", description: "User or role to prioritize" }),
-		mentionable4: new MentionableOption({ name: "mentionable_4", description: "User or role to prioritize" }),
-		mentionable5: new MentionableOption({ name: "mentionable_5", description: "User or role to prioritize" }),
+		mentionable1: new MentionableOption({ required: true, id: "mentionable_1", description: "User or role to prioritize" }),
+		mentionable2: new MentionableOption({ id: "mentionable_2", description: "User or role to prioritize" }),
+		mentionable3: new MentionableOption({ id: "mentionable_3", description: "User or role to prioritize" }),
+		mentionable4: new MentionableOption({ id: "mentionable_4", description: "User or role to prioritize" }),
+		mentionable5: new MentionableOption({ id: "mentionable_5", description: "User or role to prioritize" }),
 		reason: new ReasonOption({ description: "Reason for the priority" }),
 		priorityOrder: new PriorityOrderOption({ description: "Lower priority orders go first" }),
 	};
