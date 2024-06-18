@@ -2,7 +2,6 @@ import { Collection, type GuildMember, type Snowflake } from "discord.js";
 
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 
-
 export function toCollection<K, V>(property: string | number, list: V[]) {
 	return new Collection<K, V>(list.map(item => [(item as any)[property] as K, item]));
 }

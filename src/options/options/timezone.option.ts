@@ -12,7 +12,7 @@ export class TimezoneOption extends CustomOption {
 
 	getAutocompletions = TimezoneOption.getAutocompletions;
 
-	// force return type to be DbAdmin
+	// force return type to be String
 	get(inter: AutocompleteInteraction | SlashInteraction) {
 		return super.get(inter) as Promise<string>;
 	}

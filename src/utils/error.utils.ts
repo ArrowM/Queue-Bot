@@ -55,7 +55,7 @@ export class MemberNotFoundError extends AbstractError {
 export class ScheduleNotFoundError extends AbstractError {
 	message = "Schedule not found";
 	embeds = [
-		new EmbedBuilder().setDescription(`Schedules can be created with ${commandMention("schedules", "add")}.`),
+		new EmbedBuilder().setDescription(`Schedules can be created with ${commandMention("schedule", "add")}.`),
 	];
 }
 

@@ -108,8 +108,8 @@ export function timeMention(seconds: bigint) {
 	return str;
 }
 
-export function propertyMention(propertName: string) {
-	return bold(convertCamelCaseToTitleCase(propertName));
+export function propertyMention(propertyName: string) {
+	return bold(convertCamelCaseToTitleCase(propertyName));
 }
 
 const GLOBAL_HIDDEN_PROPERTIES = ["id", "guildId", "queueId", "isRole"];
@@ -134,30 +134,29 @@ export function describeTable<T extends object>(options: {
 	const entryLabelProperty = "entryLabelProperty" in options ? options.entryLabelProperty : null;
 	const entryLabel = "entryLabel" in options ? options.entryLabel : null;
 
-	function formatPropertyLabel(property: string, isDefaultValue: boolean): string {
-		let label = convertCamelCaseToTitleCase(stripIdSuffix(property));
-
-		const valueFormatter = propertyFormatters[property];
-		if (valueFormatter) {
-			label = valueFormatter(label);
+	function formatPropertyLabel(entry: T, property: string, isDefaultValue: boolean): string {
+		const label = convertCamelCaseToTitleCase(stripIdSuffix(property));
+		const formatter = propertyFormatters[property];
+		if (formatter) {
+			return formatter(label);
 		}
-
-		return isDefaultValue ? label : bold(label);
+		else {
+			return isDefaultValue ? label : bold(label);
+		}
 	}
 
 	function formatPropertyValue(entry: T, property: string): string {
 		const value = (entry as any)[property];
-		const valueFormatter = propertyFormatters[property];
-		if ("isRole" in entry) {
-			const isRole = (entry as any).isRole;
-			const subjectId = (entry as any).subjectId;
-			return isRole ? roleMention(subjectId) : userMention(subjectId);
+		const formatter = propertyFormatters[property];
+		if (formatter) {
+			return formatter(value);
 		}
-		else if (valueFormatter) {
-			return valueFormatter(value);
+		else if (property === "subjectId") {
+			const subjectId = (entry as any).subjectId;
+			return (entry as any).isRole ? roleMention(subjectId) : userMention(subjectId);
 		}
 		else {
-			return inlineCode(String((entry as any)[property]));
+			return inlineCode(String(value));
 		}
 	}
 
@@ -168,7 +167,7 @@ export function describeTable<T extends object>(options: {
 
 		if (isNil(value) && isNil(defaultValue)) return "";
 
-		const formattedLabel = formatPropertyLabel(property, isDefaultValue);
+		const formattedLabel = formatPropertyLabel(entry, property, isDefaultValue);
 		const formattedValue = formatPropertyValue(entry, property) ?? "";
 		const formattedOverriddenDefaultValue =
 			(property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";

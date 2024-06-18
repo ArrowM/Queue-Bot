@@ -5,6 +5,7 @@ import { isNil, omitBy } from "lodash-es";
 import { type DbQueue, SCHEDULE_TABLE } from "../../db/schema.ts";
 import { CommandOption } from "../../options/options/command.option.ts";
 import { CronOption } from "../../options/options/cron.option.ts";
+import { CustomCronOption } from "../../options/options/custom-cron.option.ts";
 import { MessageChannelOption } from "../../options/options/message-channel.option.ts";
 import { QueuesOption } from "../../options/options/queues.option.ts";
 import { ReasonOption } from "../../options/options/reason.option.ts";
@@ -17,7 +18,7 @@ import { ScheduleUtils } from "../../utils/schedule.utils.ts";
 import { describeTable, queuesMention, scheduleMention } from "../../utils/string.utils.ts";
 
 export class ScheduleCommand extends AdminCommand {
-	static readonly ID = "schedules";
+	static readonly ID = "schedule";
 
 	schedule_get = ScheduleCommand.schedule_get;
 	schedule_add = ScheduleCommand.schedule_add;
@@ -97,8 +98,9 @@ export class ScheduleCommand extends AdminCommand {
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to create scheduled command for" }),
 		command: new CommandOption({ required: true, description: "Command to schedule" }),
-		cron: new CronOption({ required: true, description: "Cron schedule" }),
 		timezone: new TimezoneOption({ required: true, description: "Timezone for the schedule" }),
+		cron: new CronOption({ required: true, description: "Cron schedule" }),
+		customCron: new CustomCronOption({ description: "Custom cron schedule" }),
 		messageChannel: new MessageChannelOption({ description: "Channel to send command messages" }),
 		reason: new ReasonOption({ description: "Reason for the schedule" }),
 	};
@@ -108,13 +110,17 @@ export class ScheduleCommand extends AdminCommand {
 		const schedule = {
 			guildId: inter.guildId,
 			command: ScheduleCommand.ADD_OPTIONS.command.get(inter),
-			cron: ScheduleCommand.ADD_OPTIONS.cron.get(inter),
 			timezone: await ScheduleCommand.ADD_OPTIONS.timezone.get(inter),
+			cron: ScheduleCommand.ADD_OPTIONS.cron.get(inter),
 			...omitBy({
 				messageChannelId: ScheduleCommand.ADD_OPTIONS.messageChannel.get(inter)?.id,
 				reason: ScheduleCommand.ADD_OPTIONS.reason.get(inter),
 			}, isNil),
 		};
+
+		if (schedule.cron === "custom") {
+			schedule.cron = ScheduleCommand.ADD_OPTIONS.customCron.get(inter);
+		}
 
 		const {
 			updatedQueueIds,
@@ -132,8 +138,9 @@ export class ScheduleCommand extends AdminCommand {
 	static readonly SET_OPTIONS = {
 		schedules: new SchedulesOption({ required: true, description: "Scheduled commands to update" }),
 		command: new CommandOption({ description: "Command to schedule" }),
-		cron: new CronOption({ description: "Cron schedule" }),
 		timezone: new TimezoneOption({ description: "Timezone for the schedule" }),
+		cron: new CronOption({ description: "Cron schedule" }),
+		customCron: new CustomCronOption({ description: "Custom cron schedule" }),
 		messageChannelId: new MessageChannelOption({ description: "Channel to send command messages" }),
 		reason: new ReasonOption({ description: "Reason for the schedule" }),
 	};
@@ -142,11 +149,15 @@ export class ScheduleCommand extends AdminCommand {
 		const schedules = await ScheduleCommand.SET_OPTIONS.schedules.get(inter);
 		const scheduleUpdate = omitBy({
 			command: ScheduleCommand.SET_OPTIONS.command.get(inter),
-			cron: ScheduleCommand.SET_OPTIONS.cron.get(inter),
 			timezone: ScheduleCommand.SET_OPTIONS.timezone.get(inter),
+			cron: ScheduleCommand.SET_OPTIONS.cron.get(inter),
 			messageChannelId: ScheduleCommand.SET_OPTIONS.messageChannelId.get(inter),
 			reason: ScheduleCommand.SET_OPTIONS.reason.get(inter),
 		}, isNil);
+
+		if (scheduleUpdate.cron === "custom") {
+			scheduleUpdate.cron = ScheduleCommand.ADD_OPTIONS.customCron.get(inter);
+		}
 
 		const {
 			updatedQueueIds,

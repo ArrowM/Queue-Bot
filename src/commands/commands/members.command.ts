@@ -31,7 +31,7 @@ export class MembersCommand extends AdminCommand {
 			subcommand
 				.setName("get")
 				.setDescription("Alias for /show");
-			Object.values(MembersCommand.ADD_OPTIONS).forEach(option => option.addToCommand(subcommand));
+			Object.values(MembersCommand.GET_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
 		.addSubcommand(subcommand => {
@@ -144,6 +144,12 @@ export class MembersCommand extends AdminCommand {
 	static async members_delete(inter: SlashInteraction) {
 		const queues = await MembersCommand.DELETE_OPTIONS.queues.get(inter);
 		const members = await MembersCommand.DELETE_OPTIONS.members.get(inter);
+
+		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}?`);
+		if (!confirmed) {
+			await inter.respond("Cancelled delete");
+			return;
+		}
 
 		const deletedMembers = await MemberUtils.deleteMembers({
 			store: inter.store,

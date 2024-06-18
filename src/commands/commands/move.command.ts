@@ -1,10 +1,11 @@
-import { bold, SlashCommandBuilder, userMention } from "discord.js";
+import { bold, EmbedBuilder, SlashCommandBuilder, userMention } from "discord.js";
 
 import { MemberOption } from "../../options/options/member.option.ts";
 import { PositionOption } from "../../options/options/position.option.ts";
 import { QueueOption } from "../../options/options/queue.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
+import { CustomError } from "../../utils/error.utils.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
 import { queueMention } from "../../utils/string.utils.ts";
 
@@ -38,7 +39,10 @@ export class MoveCommand extends AdminCommand {
 		// Validate position
 		const members = inter.store.dbMembers().filter(member => member.queueId === queue.id);
 		if (position < 1 || position > members.size) {
-			throw new Error("Invalid position");
+			throw new CustomError({
+				message: "Invalid position",
+				embeds: [new EmbedBuilder().setDescription(`Position must be between 1 and ${members.size}.`)],
+			});
 		}
 
 		MemberUtils.moveMember(inter.store, queue, member, position - 1);

@@ -10,6 +10,7 @@ import { BlacklistedsOption } from "./options/blacklisteds.option.ts";
 import { ColorOption } from "./options/color.option.ts";
 import { CommandOption } from "./options/command.option.ts";
 import { CronOption } from "./options/cron.option.ts";
+import { CustomCronOption } from "./options/custom-cron.option.ts";
 import { DisplayOption } from "./options/display.option.ts";
 import { DisplayButtonsOption } from "./options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "./options/display-update-type.option.ts";
@@ -67,6 +68,7 @@ export const OPTIONS = new Collection<string, BaseOption>([
 	[ColorOption.ID, new ColorOption()],
 	[CommandOption.ID, new CommandOption()],
 	[CronOption.ID, new CronOption()],
+	[CustomCronOption.ID, new CustomCronOption()],
 	[DisplayOption.ID, new DisplayOption()],
 	[DisplaysOption.ID, new DisplaysOption()],
 	[DisplayUpdateTypeOption.ID, new DisplayUpdateTypeOption()],
