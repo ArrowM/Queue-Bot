@@ -15,17 +15,17 @@ export class HelpCommand extends EveryoneCommand {
 	data = new SlashCommandBuilder()
 		.setName(HelpCommand.ID)
 		.setDescription("Get help")
-		.addSubcommand((subcommand) =>
+		.addSubcommand(subcommand =>
 			subcommand
 				.setName("setup")
 				.setDescription("Get help with setting up")
 		)
-		.addSubcommand((subcommand) =>
+		.addSubcommand(subcommand =>
 			subcommand
 				.setName("general")
 				.setDescription("Get help with general tasks like joining and leaving queues")
 		)
-		.addSubcommand((subcommand) =>
+		.addSubcommand(subcommand =>
 			subcommand
 				.setName("admin")
 				.setDescription("Get help with admin tasks like managing queues")

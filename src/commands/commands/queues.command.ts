@@ -49,35 +49,35 @@ export class QueuesCommand extends AdminCommand {
 	data = new SlashCommandBuilder()
 		.setName(QueuesCommand.ID)
 		.setDescription("Manage queues")
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("get")
 				.setDescription("Get queues properties");
 			Object.values(QueuesCommand.GET_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("add")
 				.setDescription("Create a queue");
 			Object.values(QueuesCommand.ADD_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("set")
 				.setDescription("Set queue properties");
 			Object.values(QueuesCommand.SET_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("reset")
 				.setDescription("Reset queue properties");
 			Object.values(QueuesCommand.RESET_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("delete")
 				.setDescription("Delete a queue");

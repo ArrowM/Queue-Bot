@@ -29,35 +29,35 @@ export class ScheduleCommand extends AdminCommand {
 	data = new SlashCommandBuilder()
 		.setName(ScheduleCommand.ID)
 		.setDescription("Manage scheduled commands")
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("get")
 				.setDescription("Get scheduled commands");
 			Object.values(ScheduleCommand.GET_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("add")
 				.setDescription("Create a scheduled command");
 			Object.values(ScheduleCommand.ADD_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("set")
 				.setDescription("Update a scheduled command");
 			Object.values(ScheduleCommand.SET_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("delete")
 				.setDescription("Delete a scheduled command");
 			Object.values(ScheduleCommand.DELETE_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
-		.addSubcommand((subcommand) => {
+		.addSubcommand(subcommand => {
 			subcommand
 				.setName("help")
 				.setDescription("Info about creating schedules");
