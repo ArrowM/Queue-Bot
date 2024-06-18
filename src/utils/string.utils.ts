@@ -136,6 +136,7 @@ export function describeTable<T extends object>(options: {
 
 	function formatPropertyLabel(entry: T, property: string, isDefaultValue: boolean): string {
 		const label = convertCamelCaseToTitleCase(stripIdSuffix(property));
+
 		const formatter = propertyFormatters[property];
 		if (formatter) {
 			return formatter(label);
@@ -146,14 +147,16 @@ export function describeTable<T extends object>(options: {
 	}
 
 	function formatPropertyValue(entry: T, property: string): string {
-		const value = (entry as any)[property];
+		let value = (entry as any)[property];
+
+		if (property === "subjectId") {
+			const subjectId = (entry as any).subjectId;
+			value = (entry as any).isRole ? roleMention(subjectId) : userMention(subjectId);
+		}
+
 		const formatter = propertyFormatters[property];
 		if (formatter) {
 			return formatter(value);
-		}
-		else if (property === "subjectId") {
-			const subjectId = (entry as any).subjectId;
-			return (entry as any).isRole ? roleMention(subjectId) : userMention(subjectId);
 		}
 		else {
 			return inlineCode(String(value));
