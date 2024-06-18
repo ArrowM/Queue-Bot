@@ -59,7 +59,7 @@ export class InteractionHandler implements Handler {
 				});
 			}
 
-			if (log !== false) {
+			if (log) {
 				console.error(`Error (guildId=${this.inter.guildId}): ${message}`);
 				console.error(`Stack Trace: ${stack}`);
 			}
