@@ -88,10 +88,10 @@ export function scheduleMention(schedule: DbSchedule) {
 	return `will ${schedule.command} ${humanReadableSchedule} (${schedule.timezone})${schedule.reason ? ` - ${schedule.reason}` : ""}`;
 }
 
-export function timeMention(seconds: number) {
-	seconds = Number(seconds);
-	const numMinutes = Math.floor(seconds / 60);
-	const numSecondsRemainder = seconds % 60;
+export function timeMention(seconds: bigint) {
+	const secondsNum = Number(seconds);
+	const numMinutes = Math.floor(secondsNum / 60);
+	const numSecondsRemainder = secondsNum % 60;
 	let str = "";
 
 	if (numMinutes > 0) {

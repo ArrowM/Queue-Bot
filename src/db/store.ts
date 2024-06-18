@@ -205,15 +205,16 @@ export class Store {
 
 	// replace on conflict
 	insertVoice(newVoice: NewVoice) {
+		const voice = omitBy(newVoice, isNil) as NewVoice;
 		return db.transaction(() => {
 			this.incrementGuildStat("voicesAdded");
 			this.dbVoices.clear();
 			return db
 				.insert(VOICE_TABLE)
-				.values(omitBy(newVoice, isNil) as NewVoice)
+				.values(voice)
 				.onConflictDoUpdate({
 					target: [VOICE_TABLE.queueId, VOICE_TABLE.sourceChannelId],
-					set: newVoice,
+					set: voice,
 				})
 				.returning().get();
 		});
@@ -221,15 +222,16 @@ export class Store {
 
 	// replace on conflict
 	insertDisplay(newDisplay: NewDisplay) {
+		const display = omitBy(newDisplay, isNil) as NewDisplay;
 		return db.transaction(() => {
 			this.incrementGuildStat("displaysAdded");
 			this.dbDisplays.clear();
 			return db
 				.insert(DISPLAY_TABLE)
-				.values(omitBy(newDisplay, isNil) as NewDisplay)
+				.values(display)
 				.onConflictDoUpdate({
 					target: [DISPLAY_TABLE.queueId, DISPLAY_TABLE.displayChannelId],
-					set: newDisplay,
+					set: display,
 				})
 				.returning().get();
 		});
@@ -237,15 +239,16 @@ export class Store {
 
 	// replace on conflict
 	insertMember(newMember: NewMember) {
+		const member = omitBy(newMember, isNil) as NewMember;
 		return db.transaction(() => {
 			this.incrementGuildStat("membersAdded");
 			this.dbMembers.clear();
 			return db
 				.insert(MEMBER_TABLE)
-				.values(omitBy(newMember, isNil) as NewMember)
+				.values(member)
 				.onConflictDoUpdate({
 					target: [MEMBER_TABLE.queueId, MEMBER_TABLE.userId],
-					set: newMember,
+					set: member,
 				})
 				.returning().get();
 		});
@@ -353,10 +356,10 @@ export class Store {
 			this.dbArchivedMembers.clear();
 			return db
 				.insert(ARCHIVED_MEMBER_TABLE)
-				.values({ ...newArchivedMember, archivedTime: BigInt(Date.now()) })
+				.values(newArchivedMember)
 				.onConflictDoUpdate({
 					target: [ARCHIVED_MEMBER_TABLE.queueId, ARCHIVED_MEMBER_TABLE.userId],
-					set: newArchivedMember,
+					set: { ...newArchivedMember, archivedTime: BigInt(Date.now()) },
 				})
 				.returning().get();
 		});

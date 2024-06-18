@@ -10,7 +10,7 @@ import { DisplayUtils } from "./display.utils.ts";
 import { filterDbObjectsOnJsMember } from "./misc.utils.ts";
 
 export namespace PriorityUtils {
-	export function insertPrioritized(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, mentionables: Mentionable[], priorityOrder?: number, reason?: string) {
+	export function insertPrioritized(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, mentionables: Mentionable[], priorityOrder?: bigint, reason?: string) {
 		return db.transaction(() => {
 			const _queues = queues instanceof Collection ? [...queues.values()] : queues;
 			const insertedPrioritized = [];
@@ -59,7 +59,7 @@ export namespace PriorityUtils {
 		});
 	}
 
-	export function getMemberPriority(store: Store, queueId: bigint, jsMember: GuildMember): number | null {
+	export function getMemberPriority(store: Store, queueId: bigint, jsMember: GuildMember): bigint | null {
 		const prioritizedOfQueue = store.dbPrioritized().filter(prioritized => queueId === prioritized.queueId);
 		const prioritizedOfMember = filterDbObjectsOnJsMember(prioritizedOfQueue, jsMember);
 		return prioritizedOfMember.size ? min(prioritizedOfMember.map(prioritized => prioritized.priorityOrder)) : undefined;

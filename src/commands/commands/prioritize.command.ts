@@ -84,7 +84,11 @@ export class PrioritizeCommand extends AdminCommand {
 
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to prioritize in" }),
-		mentionable1: new MentionableOption({ required: true, id: "mentionable_1", description: "User or role to prioritize" }),
+		mentionable1: new MentionableOption({
+			required: true,
+			id: "mentionable_1",
+			description: "User or role to prioritize",
+		}),
 		mentionable2: new MentionableOption({ id: "mentionable_2", description: "User or role to prioritize" }),
 		mentionable3: new MentionableOption({ id: "mentionable_3", description: "User or role to prioritize" }),
 		mentionable4: new MentionableOption({ id: "mentionable_4", description: "User or role to prioritize" }),
@@ -102,8 +106,16 @@ export class PrioritizeCommand extends AdminCommand {
 			PrioritizeCommand.ADD_OPTIONS.mentionable4.get(inter),
 			PrioritizeCommand.ADD_OPTIONS.mentionable5.get(inter),
 		];
-		const priorityOrder = PrioritizeCommand.ADD_OPTIONS.priorityOrder.get(inter);
+		const _priorityOrder = PrioritizeCommand.ADD_OPTIONS.priorityOrder.get(inter);
 		const reason = PrioritizeCommand.ADD_OPTIONS.reason.get(inter);
+
+		let priorityOrder: bigint;
+		try {
+			priorityOrder = BigInt(_priorityOrder);
+		}
+		catch {
+			priorityOrder = undefined;
+		}
 
 		const {
 			updatedQueueIds,
@@ -127,8 +139,16 @@ export class PrioritizeCommand extends AdminCommand {
 
 	static async prioritize_update(inter: SlashInteraction) {
 		const prioritizeds = await PrioritizeCommand.UPDATE_OPTIONS.prioritizeds.get(inter);
-		const priorityOrder = PrioritizeCommand.UPDATE_OPTIONS.priorityOrder.get(inter);
+		const _priorityOrder = PrioritizeCommand.UPDATE_OPTIONS.priorityOrder.get(inter);
 		const reason = PrioritizeCommand.UPDATE_OPTIONS.reason.get(inter);
+
+		let priorityOrder: bigint;
+		try {
+			priorityOrder = BigInt(_priorityOrder);
+		}
+		catch {
+			priorityOrder = undefined;
+		}
 
 		const {
 			updatedPrioritized,

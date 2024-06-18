@@ -80,13 +80,13 @@ export namespace MemberUtils {
 
 			if (queue.rejoinCooldownPeriod && archivedMember?.reason === ArchivedMemberReason.Pulled) {
 				const msSincePulled = BigInt(Date.now()) - archivedMember.archivedTime;
-				const msCooldownRemaining = BigInt(queue.rejoinCooldownPeriod * 1000) - msSincePulled;
+				const msCooldownRemaining = (queue.rejoinCooldownPeriod * 1000n) - msSincePulled;
 				if (msCooldownRemaining > 0) {
 					throw new CustomError({
 						message: "You are currently in a cooldown period and cannot rejoin the queue",
 						embeds: [
 							new EmbedBuilder()
-								.setDescription(`You can rejoin the queue in ${timeMention(Number(msCooldownRemaining / 1000n))}.`),
+								.setDescription(`You can rejoin the queue in ${timeMention(msCooldownRemaining / 1000n)}.`),
 						],
 					});
 				}

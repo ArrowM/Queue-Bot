@@ -183,10 +183,10 @@ async function convertAndInsert() {
 							lockToggle: legacyQueue.is_locked,
 							memberDisplayType: legacyGuild.disable_mentions ? MemberDisplayType.Plaintext : MemberDisplayType.Mention,
 							notificationsToggle: !legacyGuild.disable_notifications,
-							pullBatchSize: legacyQueue.pull_num,
-							rejoinGracePeriod: legacyQueue.grace_period,
+							pullBatchSize: BigInt(legacyQueue.pull_num),
+							rejoinGracePeriod: BigInt(legacyQueue.grace_period),
 							roleInQueueId: legacyQueue.role_id,
-							size: legacyQueue.max_members,
+							size: BigInt(legacyQueue.max_members),
 							timestampType:
 								legacyGuild.timestamps === "date" ? TimestampType.Date :
 									legacyGuild.timestamps === "time" ? TimestampType.Time :
@@ -227,7 +227,7 @@ async function convertAndInsert() {
 						message: legacyMember.personal_message,
 						joinTime: BigInt(new Date(legacyMember.display_time).getTime()),
 						positionTime: BigInt(new Date(legacyMember.created_at).getTime()),
-						priorityOrder: legacyMember.is_priority ? 5 : undefined,
+						priorityOrder: legacyMember.is_priority ? 5n : undefined,
 					});
 				}
 
@@ -266,7 +266,7 @@ async function convertAndInsert() {
 						queueId: queue.id,
 						subjectId: legacyPrio.role_member_id,
 						isRole: legacyPrio.is_role,
-						priorityOrder: 5,
+						priorityOrder: 5n,
 					});
 				}
 
