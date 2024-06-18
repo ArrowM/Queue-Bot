@@ -2,7 +2,7 @@ import cronstrue from "cronstrue";
 import { type Collection, EmbedBuilder, inlineCode, SlashCommandBuilder } from "discord.js";
 import { isNil, omitBy } from "lodash-es";
 
-import { type DbQueue, type DbSchedule, SCHEDULE_TABLE } from "../../db/schema.ts";
+import { type DbQueue, SCHEDULE_TABLE } from "../../db/schema.ts";
 import { CommandOption } from "../../options/options/command.option.ts";
 import { CronOption } from "../../options/options/cron.option.ts";
 import { MessageChannelOption } from "../../options/options/message-channel.option.ts";
@@ -110,8 +110,10 @@ export class ScheduleCommand extends AdminCommand {
 			command: ScheduleCommand.ADD_OPTIONS.command.get(inter),
 			cron: ScheduleCommand.ADD_OPTIONS.cron.get(inter),
 			timezone: await ScheduleCommand.ADD_OPTIONS.timezone.get(inter),
-			messageChannelId: ScheduleCommand.ADD_OPTIONS.messageChannel.get(inter)?.id,
-			reason: ScheduleCommand.ADD_OPTIONS.reason.get(inter),
+			...omitBy({
+				messageChannelId: ScheduleCommand.ADD_OPTIONS.messageChannel.get(inter)?.id,
+				reason: ScheduleCommand.ADD_OPTIONS.reason.get(inter),
+			}, isNil),
 		};
 
 		const {
@@ -144,7 +146,7 @@ export class ScheduleCommand extends AdminCommand {
 			timezone: ScheduleCommand.SET_OPTIONS.timezone.get(inter),
 			messageChannelId: ScheduleCommand.SET_OPTIONS.messageChannelId.get(inter),
 			reason: ScheduleCommand.SET_OPTIONS.reason.get(inter),
-		}, isNil) as Partial<DbSchedule>;
+		}, isNil);
 
 		const {
 			updatedQueueIds,
