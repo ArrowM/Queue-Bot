@@ -1,4 +1,4 @@
-import { type Collection, SlashCommandBuilder } from "discord.js";
+import { channelMention, type Collection, SlashCommandBuilder } from "discord.js";
 
 import { type DbQueue, DISPLAY_TABLE } from "../../db/schema.ts";
 import { DisplaysOption } from "../../options/options/displays.option.ts";
@@ -61,7 +61,8 @@ export class DisplaysCommand extends AdminCommand {
 			tableLabel: "Displays",
 			entryLabelProperty: "displayChannelId",
 			entries: [...displays.values()],
-			hiddenProperties: [DISPLAY_TABLE.lastMessageId.name],
+			propertyFormatters: { displayChannelId: (id) => channelMention(id) },
+			hiddenProperties: ["lastMessageId"],
 		});
 
 		await inter.respond(descriptionMessage);

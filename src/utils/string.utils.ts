@@ -146,23 +146,19 @@ export function describeTable<T extends object>(options: {
 	}
 
 	function formatPropertyValue(entry: T, property: string): string {
-		let value: any;
-		// handle mentionable properties
+		const value = (entry as any)[property];
+		const valueFormatter = propertyFormatters[property];
 		if ("isRole" in entry) {
 			const isRole = (entry as any).isRole;
 			const subjectId = (entry as any).subjectId;
-			value = isRole ? roleMention(subjectId) : userMention(subjectId);
+			return isRole ? roleMention(subjectId) : userMention(subjectId);
+		}
+		else if (valueFormatter) {
+			return valueFormatter(value);
 		}
 		else {
-			value = inlineCode(String((entry as any)[property]));
+			return inlineCode(String((entry as any)[property]));
 		}
-
-		const valueFormatter = propertyFormatters[property];
-		if (valueFormatter) {
-			value = valueFormatter(value);
-		}
-
-		return value;
 	}
 
 	function formatDescriptionProperty(entry: T, property: string): string {
@@ -186,7 +182,7 @@ export function describeTable<T extends object>(options: {
 			.map(property => formatDescriptionProperty(entry, property as string))
 			.filter(Boolean);
 
-		return descriptionLines.length > 0 ? `${descriptionLines.join("\n")}\n` : "";
+		return descriptionLines.length > 0 ? `${descriptionLines.join("\n")}` : "";
 	}
 
 	function formatEntry(entry: T): string {
@@ -209,7 +205,7 @@ export function describeTable<T extends object>(options: {
 		return { content: `No ${tableLabel.toLowerCase()} found.` };
 	}
 
-	return { content: `${tableLabel}:`, embeds };
+	return { embeds };
 }
 
 // Helpers
