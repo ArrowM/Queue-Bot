@@ -23,7 +23,7 @@ import {
 import { toCollection } from "../utils/misc.utils.ts";
 import { db } from "./db.ts";
 import { incrementGuildStat as _incrementGuildStat } from "./db-scheduled-tasks.ts";
-import { QueryUtils } from "./queries.ts";
+import { Queries } from "./queries.ts";
 import {
 	ADMIN_TABLE,
 	ARCHIVED_MEMBER_TABLE,
@@ -77,19 +77,19 @@ export class Store {
 	//                           Common data
 	// ====================================================================
 
-	dbGuild = moize(() => QueryUtils.selectGuild({ guildId: this.guild.id }));
-	dbQueues = moize(() => toCollection<bigint, DbQueue>("id", QueryUtils.selectManyQueues({ guildId: this.guild.id })));
-	dbVoices = moize(() => toCollection<bigint, DbVoice>("id", QueryUtils.selectManyVoices({ guildId: this.guild.id })));
-	dbDisplays = moize(() => toCollection<bigint, DbDisplay>("id", QueryUtils.selectManyDisplays({ guildId: this.guild.id })));
+	dbGuild = moize(() => Queries.selectGuild({ guildId: this.guild.id }));
+	dbQueues = moize(() => toCollection<bigint, DbQueue>("id", Queries.selectManyQueues({ guildId: this.guild.id })));
+	dbVoices = moize(() => toCollection<bigint, DbVoice>("id", Queries.selectManyVoices({ guildId: this.guild.id })));
+	dbDisplays = moize(() => toCollection<bigint, DbDisplay>("id", Queries.selectManyDisplays({ guildId: this.guild.id })));
 	// DbMembers is **ordered by positionTime**.
-	dbMembers = moize(() => toCollection<bigint, DbMember>("id", QueryUtils.selectManyMembers({ guildId: this.guild.id })));
-	dbSchedules = moize(() => toCollection<bigint, DbSchedule>("id", QueryUtils.selectManySchedules({ guildId: this.guild.id })));
-	dbWhitelisted = moize(() => toCollection<bigint, DbWhitelisted>("id", QueryUtils.selectManyWhitelisted({ guildId: this.guild.id })));
-	dbBlacklisted = moize(() => toCollection<bigint, DbBlacklisted>("id", QueryUtils.selectManyBlacklisted({ guildId: this.guild.id })));
-	dbPrioritized = moize(() => toCollection<bigint, DbPrioritized>("id", QueryUtils.selectManyPrioritized({ guildId: this.guild.id })));
-	dbAdmins = moize(() => toCollection<bigint, DbAdmin>("id", QueryUtils.selectManyAdmins({ guildId: this.guild.id })));
+	dbMembers = moize(() => toCollection<bigint, DbMember>("id", Queries.selectManyMembers({ guildId: this.guild.id })));
+	dbSchedules = moize(() => toCollection<bigint, DbSchedule>("id", Queries.selectManySchedules({ guildId: this.guild.id })));
+	dbWhitelisted = moize(() => toCollection<bigint, DbWhitelisted>("id", Queries.selectManyWhitelisted({ guildId: this.guild.id })));
+	dbBlacklisted = moize(() => toCollection<bigint, DbBlacklisted>("id", Queries.selectManyBlacklisted({ guildId: this.guild.id })));
+	dbPrioritized = moize(() => toCollection<bigint, DbPrioritized>("id", Queries.selectManyPrioritized({ guildId: this.guild.id })));
+	dbAdmins = moize(() => toCollection<bigint, DbAdmin>("id", Queries.selectManyAdmins({ guildId: this.guild.id })));
 	// dbArchivedMembers is **unordered**.
-	dbArchivedMembers = moize(() => toCollection<bigint, DbArchivedMember>("id", QueryUtils.selectManyArchivedMembers({ guildId: this.guild.id })));
+	dbArchivedMembers = moize(() => toCollection<bigint, DbArchivedMember>("id", Queries.selectManyArchivedMembers({ guildId: this.guild.id })));
 
 	// ====================================================================
 	//                           Discord.js
@@ -573,7 +573,7 @@ export class Store {
 				return db.delete(MEMBER_TABLE).where(cond).returning().get();
 			}
 			else {
-				const member = QueryUtils.selectMember({ ...by, guildId: this.guild.id });
+				const member = Queries.selectMember({ ...by, guildId: this.guild.id });
 				if (member) {
 					return db.delete(MEMBER_TABLE).where(eq(MEMBER_TABLE.id, member.id)).returning().get();
 				}
@@ -596,7 +596,7 @@ export class Store {
 		db.transaction(() => {
 			this.dbMembers.clear();
 			const cond = ("count" in by)
-				? or(...QueryUtils.selectManyMembers({
+				? or(...Queries.selectManyMembers({
 					...by,
 					guildId: this.guild.id,
 				}).map(member => eq(MEMBER_TABLE.id, member.id)))

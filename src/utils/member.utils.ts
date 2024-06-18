@@ -11,7 +11,7 @@ import {
 import { isNil, shuffle } from "lodash-es";
 
 import { db } from "../db/db.ts";
-import { QueryUtils } from "../db/queries.ts";
+import { Queries } from "../db/queries.ts";
 import { type DbMember, type DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
 import { ArchivedMemberReason } from "../types/db.types.ts";
@@ -306,8 +306,8 @@ export namespace MemberUtils {
 	}
 
 	export async function describeMyPositions(store: Store, userId: Snowflake) {
-		const members = QueryUtils.selectManyMembers({ guildId: store.guild.id, userId });
-		const queues = members.map(member => QueryUtils.selectQueue({ guildId: store.guild.id, id: member.queueId }));
+		const members = Queries.selectManyMembers({ guildId: store.guild.id, userId });
+		const queues = members.map(member => Queries.selectQueue({ guildId: store.guild.id, id: member.queueId }));
 
 		const embeds = await Promise.all(queues.map(queue =>
 			MemberUtils.getMemberDisplayLine(store, queue, userId)

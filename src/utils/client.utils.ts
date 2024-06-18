@@ -16,7 +16,7 @@ import AutoPoster from "topgg-autoposter";
 
 import { CLIENT } from "../client/client.ts";
 import { COMMANDS } from "../commands/commands.loader.ts";
-import { QueryUtils } from "../db/queries.ts";
+import { Queries } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
 import { Color, DisplayUpdateType } from "../types/db.types.ts";
 import { DisplayUtils } from "./display.utils.ts";
@@ -53,7 +53,7 @@ export namespace ClientUtils {
 		catch (e) {
 			const { status } = e as DiscordAPIError;
 			if (status == 404) {
-				QueryUtils.deleteGuild({ guildId });
+				Queries.deleteGuild({ guildId });
 			}
 		}
 	}
@@ -84,7 +84,7 @@ export namespace ClientUtils {
 
 	export async function checkForPatchNotes() {
 		// Check if any patch notes have not been read
-		const dbPatchNotes = QueryUtils.selectAllPatchNotes();
+		const dbPatchNotes = Queries.selectAllPatchNotes();
 		const unreadFileNames = fs.readdirSync("./patch-notes")
 			.filter(fileNames => !dbPatchNotes.some(dbPatchNote => dbPatchNote.fileName == fileNames));
 		if (unreadFileNames.length === 0) return;
@@ -108,11 +108,11 @@ export namespace ClientUtils {
 			}
 			if (userInput === "1") {
 				await patchNotesChannel.send({ embeds });
-				QueryUtils.insertPatchNotes({ fileName });
+				Queries.insertPatchNotes({ fileName });
 				console.log(`Sent ${fileName}. Continuing...`);
 			}
 			else if (userInput === "2") {
-				QueryUtils.insertPatchNotes({ fileName });
+				Queries.insertPatchNotes({ fileName });
 				console.log(`Marked '${fileName}' as sent. Continuing...`);
 			}
 			else {
@@ -132,7 +132,7 @@ export namespace ClientUtils {
 	export async function checkForOfflineVoiceChanges() {
 		// Force fetch of all guilds
 		await CLIENT.guilds.fetch();
-		for (const guildId of Object.keys(groupBy(QueryUtils.selectAllVoices(), "guildId"))) {
+		for (const guildId of Object.keys(groupBy(Queries.selectAllVoices(), "guildId"))) {
 			const store = new Store(await getGuild(guildId));
 			const queueIds = store.dbQueues().map(queue => queue.id);
 			DisplayUtils.requestDisplaysUpdate(store, queueIds, { updateTypeOverride: DisplayUpdateType.Edit });

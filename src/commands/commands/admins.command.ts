@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from "discord.js";
 import { compact } from "lodash-es";
 
-import { QueryUtils } from "../../db/queries.ts";
+import { Queries } from "../../db/queries.ts";
 import { ADMIN_TABLE } from "../../db/schema.ts";
 import { AdminsOption } from "../../options/options/admins.option.ts";
 import { MentionableOption } from "../../options/options/mentionable.option.ts";
@@ -47,7 +47,7 @@ export class AdminsCommand extends EveryoneCommand {
 	// ====================================================================
 
 	static async admins_get(inter: SlashInteraction) {
-		const admins = QueryUtils.selectManyAdmins({ guildId: inter.guildId });
+		const admins = Queries.selectManyAdmins({ guildId: inter.guildId });
 
 		const descriptionMessage = describeTable({
 			store: inter.store,

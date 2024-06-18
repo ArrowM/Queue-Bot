@@ -25,7 +25,7 @@ import {
  *
  * ⚠️ IMPORTANT ⚠️: Queries must be written to include guildId!
  */
-export namespace QueryUtils {
+export namespace Queries {
 
 	// ====================================================================
 	//                           Queries

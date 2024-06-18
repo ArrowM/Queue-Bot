@@ -42,7 +42,7 @@ export namespace WhitelistUtils {
 	}
 
 	export function isBlockedByWhitelist(store: Store, queueId: bigint, jsMember: GuildMember): boolean {
-		const whitelistedOfQueue = store.dbWhitelisted().filter(blacklisted => queueId === blacklisted.queueId);
+		const whitelistedOfQueue = store.dbWhitelisted().filter(whitelisted => queueId === whitelisted.queueId);
 		if (whitelistedOfQueue.size === 0) return false;
 		const whitelistedOfMember = filterDbObjectsOnJsMember(whitelistedOfQueue, jsMember);
 		return whitelistedOfMember.size === 0;

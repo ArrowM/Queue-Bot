@@ -21,6 +21,7 @@ import { LeaveButton } from "../buttons/buttons/leave.button.ts";
 import { MyPositionsButton } from "../buttons/buttons/my-positions.button.ts";
 import { PullButton } from "../buttons/buttons/pull.button.ts";
 import { incrementGuildStat } from "../db/db-scheduled-tasks.ts";
+import { Queries } from "../db/queries.ts";
 import { type DbDisplay, type DbMember, type DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
 import type { Button } from "../types/button.types.ts";
@@ -29,7 +30,14 @@ import type { ArrayOrCollection } from "../types/misc.types.ts";
 import type { CustomError } from "./error.utils.ts";
 import { InteractionUtils } from "./interaction.utils.ts";
 import { map } from "./misc.utils.ts";
-import { commandMention, memberMention, queueMention, scheduleMention, timeMention } from "./string.utils.ts";
+import {
+	commandMention,
+	memberMention,
+	mentionablesMention,
+	queueMention,
+	scheduleMention,
+	timeMention,
+} from "./string.utils.ts";
 
 export namespace DisplayUtils {
 	export async function insertDisplays(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, displayChannelId: Snowflake) {
@@ -362,6 +370,11 @@ export namespace DisplayUtils {
 			}
 		}
 
+		const whitelisted = Queries.selectManyWhitelisted({ guildId: store.guild.id, queueId: queue.id });
+		if (whitelisted.length) {
+			descriptionParts.push(`- Only whitelisted members may join: ${mentionablesMention(whitelisted)}.`);
+		}
+
 		if (members.some(m => !isNil(m.priorityOrder))) {
 			descriptionParts.push("- '✨' indicates priority.");
 		}
@@ -397,7 +410,7 @@ export namespace DisplayUtils {
 			actionRowBuilder.addComponents(
 				buildButton(BUTTONS.get(JoinButton.ID)),
 				buildButton(BUTTONS.get(LeaveButton.ID)),
-				buildButton(BUTTONS.get(MyPositionsButton.ID)),
+				buildButton(BUTTONS.get(MyPositionsButton.ID))
 			);
 		}
 

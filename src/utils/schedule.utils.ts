@@ -2,7 +2,7 @@ import type { Collection } from "discord.js";
 import { uniq } from "lodash-es";
 import { schedule as cron, type ScheduledTask, validate } from "node-cron";
 
-import { QueryUtils } from "../db/queries.ts";
+import { Queries } from "../db/queries.ts";
 import { type DbQueue, type DbSchedule, type NewSchedule } from "../db/schema.ts";
 import { Store } from "../db/store.ts";
 import { ArchivedMemberReason, DisplayUpdateType, ScheduleCommand } from "../types/db.types.ts";
@@ -60,7 +60,7 @@ export namespace ScheduleUtils {
 				return store.deleteSchedule({ id });
 			}
 			else {
-				return QueryUtils.deleteSchedule({ guildId: store.guild.id, id });
+				return Queries.deleteSchedule({ guildId: store.guild.id, id });
 			}
 		}
 
@@ -100,7 +100,7 @@ export namespace ScheduleUtils {
 	}
 
 	export function loadSchedules() {
-		const dbSchedules = QueryUtils.selectAllSchedules();
+		const dbSchedules = Queries.selectAllSchedules();
 		console.time(`Loaded ${dbSchedules.length} schedules`);
 		dbSchedules.forEach(sch => registerWithCronLibrary(sch));
 		console.timeEnd(`Loaded ${dbSchedules.length} schedules`);
@@ -149,12 +149,12 @@ export namespace ScheduleUtils {
 	}
 
 	async function getScheduleContext(scheduleId: bigint) {
-		const schedule = QueryUtils.selectSchedule({ id: scheduleId });
+		const schedule = Queries.selectSchedule({ id: scheduleId });
 		if (!schedule) {
 			deleteSchedules([schedule.id]);
 			return;
 		}
-		const queue = QueryUtils.selectQueue({ guildId: schedule.guildId, id: schedule.queueId });
+		const queue = Queries.selectQueue({ guildId: schedule.guildId, id: schedule.queueId });
 		const guild = await ClientUtils.getGuild(schedule.guildId);
 		if (!guild) return;
 		const store = new Store(guild);

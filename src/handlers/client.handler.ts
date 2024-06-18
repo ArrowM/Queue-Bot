@@ -11,7 +11,7 @@ import {
 } from "discord.js";
 import { compact, shuffle } from "lodash-es";
 
-import { QueryUtils } from "../db/queries.ts";
+import { Queries } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
 import { ArchivedMemberReason } from "../types/db.types.ts";
 import { DisplayUtils } from "../utils/display.utils.ts";
@@ -21,7 +21,7 @@ import { QueueUtils } from "../utils/queue.utils.ts";
 export namespace ClientHandler {
 	export function handleGuildDelete(guild: Guild) {
 		try {
-			QueryUtils.deleteGuild({ guildId: guild.id });
+			Queries.deleteGuild({ guildId: guild.id });
 		}
 		catch {
 			// ignore
