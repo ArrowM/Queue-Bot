@@ -92,7 +92,7 @@ export class NotOnQueueWhitelistError extends AbstractError {
 }
 
 export class OnQueueBlacklistError extends AbstractError {
-	message = "Failed to join queue you are on the queue blacklist";
+	message = "Failed to join queue because you are on the queue blacklist";
 }
 
 export class QueueAlreadyExistsError extends AbstractError {

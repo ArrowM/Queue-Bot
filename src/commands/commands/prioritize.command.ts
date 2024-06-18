@@ -12,7 +12,13 @@ import { Color } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
 import { PriorityUtils } from "../../utils/priority.utils.ts";
-import { describeTable, mentionableMention, mentionablesMention, queuesMention } from "../../utils/string.utils.ts";
+import {
+	describeTable,
+	mentionableMention,
+	mentionablesMention,
+	queueMention,
+	queuesMention,
+} from "../../utils/string.utils.ts";
 
 export class PrioritizeCommand extends AdminCommand {
 	static readonly ID = "prioritize";
@@ -182,9 +188,14 @@ export class PrioritizeCommand extends AdminCommand {
 			updatedQueueIds,
 			deletedPrioritized,
 		} = PriorityUtils.deletePrioritized(inter.store, prioritizeds.map(prioritized => prioritized.id));
-		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 
-		await inter.respond(`Un-prioritized ${deletedPrioritized.map(mentionableMention).join(", ")}.`, true);
+		const prioritizedStr = deletedPrioritized.map(prioritized => {
+			const queue = inter.store.dbQueues().get(prioritized.queueId);
+			return `- ${mentionableMention(prioritized)} in ${queueMention(queue)}`;
+		}).join("\n");
+		await inter.respond(`Un-prioritized:\n${prioritizedStr}`, true);
+
+		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 		await this.prioritize_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 }

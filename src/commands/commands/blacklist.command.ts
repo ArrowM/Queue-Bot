@@ -11,7 +11,13 @@ import { Color } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { BlacklistUtils } from "../../utils/blacklist.utils.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
-import { describeTable, mentionableMention, mentionablesMention, queuesMention } from "../../utils/string.utils.ts";
+import {
+	describeTable,
+	mentionableMention,
+	mentionablesMention,
+	queueMention,
+	queuesMention,
+} from "../../utils/string.utils.ts";
 
 export class BlacklistCommand extends AdminCommand {
 	static readonly ID = "blacklist";
@@ -120,11 +126,17 @@ export class BlacklistCommand extends AdminCommand {
 		const blacklisteds = await BlacklistCommand.DELETE_OPTIONS.blacklisteds.get(inter);
 
 		const {
+			deletedBlacklisted,
 			updatedQueueIds,
 		} = BlacklistUtils.deleteBlacklisted(inter.store, blacklisteds.map(blacklisted => blacklisted.id));
-		const updatedQueues = updatedQueueIds.map(id => inter.store.dbQueues().get(id));
 
-		await inter.respond(`Un-blacklisted ${blacklisteds.map(mentionableMention).join(", ")}.`, true);
+		const blacklistedStr = deletedBlacklisted.map(blacklisted => {
+			const queue = inter.store.dbQueues().get(blacklisted.queueId);
+			return `- ${mentionableMention(blacklisted)} in ${queueMention(queue)}`;
+		}).join("\n");
+		await inter.respond(`Un-blacklisted:\n${blacklistedStr}`, true);
+
+		const updatedQueues = updatedQueueIds.map(id => inter.store.dbQueues().get(id));
 		await this.blacklist_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 }
