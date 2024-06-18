@@ -175,6 +175,6 @@ dist
 # Finder (MacOS) folder config
 .DS_Store
 
-data/main.sqlite
+data/main-old.sqlite
 data/backups/
 data/migrations/legacy-export/

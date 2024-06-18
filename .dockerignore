@@ -7,5 +7,5 @@ docker-compose.yml
 .gitignore
 .idea
 
-data/main.sqlite
+data/main-old.sqlite
 data/backups
