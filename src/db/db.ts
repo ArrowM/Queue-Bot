@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema.ts";
 
 export const DB_FILEPATH = "data/main.sqlite";
-export const DB_BACKUP_DIRECTORY = "db/backups";
+export const DB_BACKUP_DIRECTORY = "data/backups";
 export let db = drizzle(Database(DB_FILEPATH).defaultSafeIntegers(), { schema });
 
 export namespace Db {
