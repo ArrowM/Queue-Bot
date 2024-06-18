@@ -54,6 +54,7 @@ export class AdminsCommand extends EveryoneCommand {
 			table: ADMIN_TABLE,
 			tableLabel: "Admins",
 			entryLabelProperty: "subjectId",
+			propertyFormatters: { subjectId: mention => `- ${mention}` },
 			entries: admins,
 			color: Color.DarkRed,
 		});

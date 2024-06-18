@@ -66,7 +66,7 @@ export const QUEUE_TABLE = sqliteTable("queue", ({
 	header: text("header"),
 	inlineToggle: integer("inline_toggle", { mode: "boolean" }).notNull().default(false),
 	lockToggle: integer("lock_toggle", { mode: "boolean" }).notNull().default(false),
-	memberDisplayType: text("member_display_type").$type<MemberDisplayType>().notNull().default(MemberDisplayType.Mentio as any),
+	memberDisplayType: text("member_display_type").$type<MemberDisplayType>().notNull().default(MemberDisplayType.Mention as any),
 	notificationsToggle: integer("notifications_toggle", { mode: "boolean" }).notNull().default(true),
 	pullBatchSize: integer("pull_batch_size").$type<bigint>().notNull().default(1 as any),
 	pullMessage: text("pull_message"),
