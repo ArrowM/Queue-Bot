@@ -34,7 +34,7 @@ Built with [Discord.js](https://discord.js.org/).
 `/join` - join a queue  
 `/leave` - leave a queue  
 `/positions` - get your positions in all queues  
-`/show` - show queue(s)
+`/show` - show queue(s)  
 
 ## Commands for admins
 
@@ -42,9 +42,10 @@ Restricted to users with the **Administrator** permission and users added via `/
 
 `/admins` - manage admin users and roles  
 `/blacklist` - manage blacklisted users and roles  
-`/clear` - clear a queue  
+`/whitelist` - manage whitelisted users and roles  
+`/clear` - remove all members from queue(s)  
 `/displays` - manage display channels  
-`/logging` - manage logging channels
+`/logging` - manage logging channels  
 `/members` - manage queue members  
 `/move` - change the position of a queue member  
 `/prioritize` - manage prioritized users and roles  
@@ -53,4 +54,3 @@ Restricted to users with the **Administrator** permission and users added via `/
 `/schedules` - manage scheduled commands  
 `/shuffle` - shuffle queue(s)  
 `/voice` - manage voice integrations  
-`/whitelist` - manage whitelisted users and roles  

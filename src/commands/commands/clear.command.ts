@@ -17,7 +17,7 @@ export class ClearCommand extends AdminCommand {
 
 	data = new SlashCommandBuilder()
 		.setName(ClearCommand.ID)
-		.setDescription("Clear a queue. (shortcut for /members delete ALL)")
+		.setDescription("Remove all members from queue(s). (same as /members delete ALL)")
 		.addStringOption(ClearCommand.CLEAR_OPTIONS.queues.build);
 
 	// ====================================================================
