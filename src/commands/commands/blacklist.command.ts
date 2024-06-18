@@ -1,4 +1,5 @@
 import { type Collection, SlashCommandBuilder } from "discord.js";
+import { compact } from "lodash-es";
 
 import { BLACKLISTED_TABLE, type DbQueue } from "../../db/schema.ts";
 import { BlacklistedsOption } from "../../options/options/blacklisteds.option.ts";
@@ -85,13 +86,13 @@ export class BlacklistCommand extends AdminCommand {
 
 	static async blacklist_add(inter: SlashInteraction) {
 		const queues = await BlacklistCommand.ADD_OPTIONS.queues.get(inter);
-		const mentionables = [
+		const mentionables = compact([
 			BlacklistCommand.ADD_OPTIONS.mentionable1.get(inter),
 			BlacklistCommand.ADD_OPTIONS.mentionable2.get(inter),
 			BlacklistCommand.ADD_OPTIONS.mentionable3.get(inter),
 			BlacklistCommand.ADD_OPTIONS.mentionable4.get(inter),
 			BlacklistCommand.ADD_OPTIONS.mentionable5.get(inter),
-		];
+		]);
 		const reason = BlacklistCommand.ADD_OPTIONS.reason.get(inter);
 
 		const {

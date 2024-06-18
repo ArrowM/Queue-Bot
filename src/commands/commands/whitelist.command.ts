@@ -1,4 +1,5 @@
 import { type Collection, SlashCommandBuilder } from "discord.js";
+import { compact } from "lodash-es";
 
 import { type DbQueue, WHITELISTED_TABLE } from "../../db/schema.ts";
 import { MentionableOption } from "../../options/options/mentionable.option.ts";
@@ -85,13 +86,13 @@ export class WhitelistCommand extends AdminCommand {
 
 	static async whitelist_add(inter: SlashInteraction) {
 		const queues = await WhitelistCommand.ADD_OPTIONS.queues.get(inter);
-		const mentionables = [
+		const mentionables = compact([
 			WhitelistCommand.ADD_OPTIONS.mentionable1.get(inter),
 			WhitelistCommand.ADD_OPTIONS.mentionable2.get(inter),
 			WhitelistCommand.ADD_OPTIONS.mentionable3.get(inter),
 			WhitelistCommand.ADD_OPTIONS.mentionable4.get(inter),
 			WhitelistCommand.ADD_OPTIONS.mentionable5.get(inter),
-		];
+		]);
 		const reason = WhitelistCommand.ADD_OPTIONS.reason.get(inter);
 
 		const {

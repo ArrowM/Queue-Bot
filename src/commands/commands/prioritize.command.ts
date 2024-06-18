@@ -1,4 +1,5 @@
 import { type Collection, SlashCommandBuilder } from "discord.js";
+import { compact } from "lodash-es";
 
 import { type DbQueue, PRIORITIZED_TABLE } from "../../db/schema.ts";
 import { MentionableOption } from "../../options/options/mentionable.option.ts";
@@ -99,13 +100,13 @@ export class PrioritizeCommand extends AdminCommand {
 
 	static async prioritize_add(inter: SlashInteraction) {
 		const queues = await PrioritizeCommand.ADD_OPTIONS.queues.get(inter);
-		const mentionables = [
+		const mentionables = compact([
 			PrioritizeCommand.ADD_OPTIONS.mentionable1.get(inter),
 			PrioritizeCommand.ADD_OPTIONS.mentionable2.get(inter),
 			PrioritizeCommand.ADD_OPTIONS.mentionable3.get(inter),
 			PrioritizeCommand.ADD_OPTIONS.mentionable4.get(inter),
 			PrioritizeCommand.ADD_OPTIONS.mentionable5.get(inter),
-		];
+		]);
 		const _priorityOrder = PrioritizeCommand.ADD_OPTIONS.priorityOrder.get(inter);
 		const reason = PrioritizeCommand.ADD_OPTIONS.reason.get(inter);
 

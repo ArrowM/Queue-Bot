@@ -1,4 +1,5 @@
 import { type Collection, SlashCommandBuilder } from "discord.js";
+import { compact } from "lodash-es";
 
 import type { DbQueue } from "../../db/schema.ts";
 import { MembersOption } from "../../options/options/members.option.ts";
@@ -82,13 +83,13 @@ export class MembersCommand extends AdminCommand {
 
 	static async members_add(inter: SlashInteraction) {
 		const queues = await MembersCommand.ADD_OPTIONS.queues.get(inter);
-		const mentionables = [
+		const mentionables = compact([
 			MembersCommand.ADD_OPTIONS.mentionable1.get(inter),
 			MembersCommand.ADD_OPTIONS.mentionable2.get(inter),
 			MembersCommand.ADD_OPTIONS.mentionable3.get(inter),
 			MembersCommand.ADD_OPTIONS.mentionable4.get(inter),
 			MembersCommand.ADD_OPTIONS.mentionable5.get(inter),
-		];
+		]);
 
 		const insertedMembers = await MemberUtils.insertMentionables(inter.store, mentionables, queues);
 

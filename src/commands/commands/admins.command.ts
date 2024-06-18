@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
+import { compact } from "lodash-es";
 
 import { QueryUtils } from "../../db/queries.ts";
 import { ADMIN_TABLE } from "../../db/schema.ts";
@@ -73,13 +74,13 @@ export class AdminsCommand extends EveryoneCommand {
 	};
 
 	static async admins_add(inter: SlashInteraction) {
-		const mentionables = [
+		const mentionables = compact([
 			AdminsCommand.ADD_OPTIONS.mentionable1.get(inter),
 			AdminsCommand.ADD_OPTIONS.mentionable2.get(inter),
 			AdminsCommand.ADD_OPTIONS.mentionable3.get(inter),
 			AdminsCommand.ADD_OPTIONS.mentionable4.get(inter),
 			AdminsCommand.ADD_OPTIONS.mentionable5.get(inter),
-		];
+		]);
 
 		const insertedAdmins = AdminUtils.insertAdmins(inter.store, mentionables);
 
