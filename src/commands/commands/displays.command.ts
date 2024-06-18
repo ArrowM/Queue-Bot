@@ -59,8 +59,9 @@ export class DisplaysCommand extends AdminCommand {
 			store: inter.store,
 			table: DISPLAY_TABLE,
 			tableLabel: "Displays",
-			entryLabelProperty: "channelId",
+			entryLabelProperty: "displayChannelId",
 			entries: [...displays.values()],
+			hiddenProperties: [DISPLAY_TABLE.lastMessageId.name],
 		});
 
 		await inter.respond(descriptionMessage);
