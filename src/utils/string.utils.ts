@@ -53,7 +53,7 @@ export async function memberMention(store: Store, member: DbMember) {
 
 	const jsMember = await store.jsMember(member.userId);
 	const discriminator = jsMember?.user?.discriminator ? ("#" + jsMember?.user?.discriminator) : "";
-	const username = jsMember.user?.username;
+	const username = jsMember?.user?.username;
 	const isPlaintextMention = memberDisplayType === MemberDisplayType.Plaintext && username;
 	const nameStr = isPlaintextMention ? `${username}${discriminator}` : jsMember;
 
