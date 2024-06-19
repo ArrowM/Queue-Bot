@@ -97,7 +97,7 @@ export class Store {
 
 	async cleanupMissingChannel(channelId: Snowflake) {
 		this.deleteManyDisplays({ displayChannelId: channelId });
-		this.deleteManyVoices({ channelId });
+		this.deleteManyVoices({ sourceChannelId: channelId });
 		// Unset instance of the log channel id
 		db
 			.update(GUILD_TABLE)
@@ -542,12 +542,10 @@ export class Store {
 
 	deleteManyVoices(by:
 										 { id: bigint } |
-										 { channelId: Snowflake }
+										 { sourceChannelId: Snowflake }
 	) {
 		this.dbVoices.clear();
-		const cond = "channelId" in by
-			? this.createCondition(VOICE_TABLE, { sourceChannelId: by.channelId, destinationChannelId: by.channelId }, "OR")
-			: this.createCondition(VOICE_TABLE, by);
+		const cond = this.createCondition(VOICE_TABLE, by);
 		return db.delete(VOICE_TABLE).where(cond).returning().all();
 	}
 

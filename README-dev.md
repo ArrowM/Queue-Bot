@@ -26,17 +26,11 @@ See [Discord.js guide](https://discordjs.guide/preparations/setting-up-a-bot-app
 
 Update the `.env` file with your bot's TOKEN and CLIENT_ID.
 
-[Install Docker](https://docs.docker.com/get-docker/).
-
 ### Option 1: Install and run with Docker (recommended)
 
-Run the setup script (**run each time you update the project**):
+[Install Docker](https://docs.docker.com/get-docker/).
 
-```bash
-docker build -t queue-bot .
-```
-
-Start the bot in a detached container:
+Setup and start the bot in a detached container (the same command will be used to start the bot in future runs):
 
 ```bash
 docker compose up -d

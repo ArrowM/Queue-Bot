@@ -105,7 +105,7 @@ export async function loadExportData() {
 	}))
 	);
 
-	console.log("All streams have completed.");
+	console.log("To be migrated:");
 	console.log("adminPermission length", legacyAdminPermission.length);
 	console.log("blackWhiteList length", legacyBlackWhiteList.length);
 	console.log("displayChannels length", legacyDisplayChannels.length);

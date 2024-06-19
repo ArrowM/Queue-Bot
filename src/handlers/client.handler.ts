@@ -57,7 +57,7 @@ export namespace ClientHandler {
 			const store = new Store(channel.guild);
 			const updated = compact([
 				...store.deleteManyDisplays({ displayChannelId: channel.id }),
-				...store.deleteManyVoices({ channelId: channel.id }),
+				...store.deleteManyVoices({ sourceChannelId: channel.id }),
 			]);
 			updated.forEach(({ queueId }) => DisplayUtils.requestDisplayUpdate(store, queueId));
 		}
