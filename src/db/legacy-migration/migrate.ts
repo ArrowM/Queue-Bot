@@ -37,8 +37,15 @@ const legacySchedules: Schedules[] = [];
 export async function checkForMigration() {
 	const skipMigrationFlag = process.env.CHECK_FOR_LEGACY_MIGRATION;
 	if (skipMigrationFlag.toLowerCase() === "true") {
-		console.log(`Checking for legacy migration... (${LEGACY_EXPORT_DIR})`);
-		if (fs.readdirSync(LEGACY_EXPORT_DIR).length) {
+		let migrationFiles;
+		try {
+			migrationFiles = fs.readdirSync(LEGACY_EXPORT_DIR);
+		}
+		catch (e) {
+			console.error("Error reading legacy migration directory:", e);
+			return;
+		}
+		if (migrationFiles?.length) {
 			console.log();
 			console.log("Legacy migration found. Proceeding...");
 			console.log();
