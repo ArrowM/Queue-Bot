@@ -182,7 +182,7 @@ function backup() {
 			console.error("Failed to create backup:", err);
 		}
 		else {
-			console.log(`Backup created successfully: ${backupFilepath}`);
+			console.log(`Backup created: ${backupFilepath}`);
 		}
 	});
 }

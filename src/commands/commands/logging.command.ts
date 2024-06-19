@@ -48,7 +48,10 @@ export class LoggingCommand extends AdminCommand {
 			.setColor(Color.LightGrey);
 
 		if (dbGuild.logChannelId && dbGuild.logScope) {
-			embed.setDescription(`- Log Channel = ${channelMention(dbGuild.logChannelId)}\n- Log Scope = ${inlineCode(dbGuild.logScope)}`);
+			embed.setDescription(
+				`- Log Channel = ${channelMention(dbGuild.logChannelId)}\n` +
+				`- Log Scope = ${inlineCode(dbGuild.logScope)}`
+			);
 		}
 		else {
 			embed.setDescription("No logging configured");

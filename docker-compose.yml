@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data # Bind mount for database
+      - ./.env:/app/.env # Bind mount for .env file
     container_name: queue-bot
     restart: always
     command: ["npm", "start"]

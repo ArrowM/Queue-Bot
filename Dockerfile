@@ -1,28 +1,29 @@
 # ---- Base ----
-FROM node:22-alpine AS base
+# if current-alpine is not working, try node:22-alpine
+FROM node:current-alpine AS base
 
 WORKDIR /app
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
-# Copy DB Requirements
-COPY .env ./
-COPY drizzle.config.ts ./
-COPY data/migrations ./data/migrations
-COPY ./src/types ./src/types
-COPY ./src/db/schema.ts ./src/db/schema.ts
 
 # ---- Dependencies ----
 FROM base AS dependencies
 
-# Install npm dependencies, including node-gyp
-RUN npm run setup
+# Install npm dependencies
+RUN npm ci
+
+# ---- Database ----
+FROM dependencies AS database
 
 # Copy all source files
 COPY . .
 
+# Run database migrations
+RUN npm run db-push
+
 # ---- Production ----
-FROM dependencies AS production
+FROM database AS production
 
 # Default command to start the application
-CMD ["npm", "start"]
+ENTRYPOINT ["npm", "start"]
