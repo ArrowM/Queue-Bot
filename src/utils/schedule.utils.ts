@@ -14,6 +14,8 @@ import { MemberUtils } from "./member.utils.ts";
 import { map } from "./misc.utils.ts";
 
 export namespace ScheduleUtils {
+	export const DEFAULT_TIMEZONE = "america/chicago";
+
 	export function insertSchedules(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, schedule: Omit<NewSchedule, "queueId">) {
 		// validate
 		validateCron(schedule.cron);
@@ -120,7 +122,7 @@ export namespace ScheduleUtils {
 					console.error(`Error: ${message}`);
 					console.error(`Stack Trace: ${stack}`);
 				}
-			}, { timezone: schedule.timezone })
+			}, { timezone: schedule.timezone ?? DEFAULT_TIMEZONE })
 		);
 	}
 

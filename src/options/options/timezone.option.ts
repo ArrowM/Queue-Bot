@@ -1,16 +1,17 @@
 import { groupBy } from "lodash-es";
 import moize from "moize";
 
-import { SCHEDULE_TABLE } from "../../db/schema.ts";
 import { MAX_SELECT_MENU_OPTIONS, type UIOption } from "../../types/handler.types.ts";
 import type { AutocompleteInteraction, SlashInteraction } from "../../types/interaction.types.ts";
 import { LOWER_TIMEZONES } from "../../types/misc.types.ts";
+import { ScheduleUtils } from "../../utils/schedule.utils.ts";
 import { type AutoCompleteOptions, CustomOption } from "../base-option.ts";
+import DEFAULT_TIMEZONE = ScheduleUtils.DEFAULT_TIMEZONE;
 
 export class TimezoneOption extends CustomOption {
 	static readonly ID = "timezone";
 	id = TimezoneOption.ID;
-	defaultValue = SCHEDULE_TABLE.timezone.default;
+	defaultValue = DEFAULT_TIMEZONE;
 
 	getAutocompletions = TimezoneOption.getAutocompletions;
 
