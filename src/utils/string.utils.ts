@@ -13,7 +13,7 @@ import {
 	userMention,
 } from "discord.js";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
-import { groupBy, isNil, omit } from "lodash-es";
+import { compact, concat, groupBy, isNil } from "lodash-es";
 
 import { type DbMember, type DbQueue, type DbSchedule } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
@@ -83,11 +83,11 @@ export function commandMention(commandName: string, subcommandName?: string) {
 }
 
 export function scheduleMention(schedule: DbSchedule) {
-	const command = bold(schedule.command);
-	const humanReadableSchedule = cronstrue.toString(schedule.cron);
+	const command = upperFirst(schedule.command);
+	const humanReadableSchedule = bold(lowerFirst(cronstrue.toString(schedule.cron)));
 	const timezone = schedule.timezone ? `(${schedule.timezone})` : "";
 	const reason = schedule.reason ? ` - ${schedule.reason}` : "";
-	return `will ${command} ${humanReadableSchedule} ${timezone}${reason}.`.trimEnd();
+	return `${command}s ${humanReadableSchedule} ${timezone}${reason}`.trimEnd() + ".";
 }
 
 export function timeMention(seconds: bigint) {
@@ -130,11 +130,11 @@ export function describeTable<T extends object>(options: {
 	{ entryLabelProperty?: string } | { entryLabel?: string }
 	)) {
 	const { store, table, tableLabel, color, entries } = options;
-	const hiddenProperties = options.hiddenProperties ?? [];
 	const propertyFormatters = options.propertyFormatters ?? {};
 	const queueIdProperty = "queueIdProperty" in options ? options.queueIdProperty : "queueId";
 	const entryLabelProperty = "entryLabelProperty" in options ? options.entryLabelProperty : null;
 	const entryLabel = "entryLabel" in options ? options.entryLabel : null;
+	const hiddenProperties = compact(concat(GLOBAL_HIDDEN_PROPERTIES, options.hiddenProperties, entryLabelProperty));
 
 	function formatPropertyLabel(property: string, isDefaultValue: boolean): string {
 		let label = convertCamelCaseToTitleCase(stripIdSuffix(property));
@@ -167,36 +167,28 @@ export function describeTable<T extends object>(options: {
 		}
 	}
 
-	function formatPropertyLine(entry: T, property: string): string {
-		const value = (entry as any)[property];
-		const defaultValue = (table as any)[property]?.default;
-		const isDefaultValue = value == defaultValue;
+	function formatEntryDescriptionLines(entry: T): string[] {
+		return Object.keys(entry)
+			.filter(property => !hiddenProperties.includes(property))
+			.map(property => {
+				const value = (entry as any)[property];
+				const defaultValue = (table as any)[property]?.default;
+				const isDefaultValue = value == defaultValue;
 
-		if (isNil(value) && isNil(defaultValue)) return;
+				if (isNil(value) && isNil(defaultValue)) return;
 
-		const formattedLabel = formatPropertyLabel(property, isDefaultValue);
-		const formattedValue = formatPropertyValue(entry, property) ?? "";
-		const formattedOverriddenDefaultValue = (property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
+				const formattedLabel = formatPropertyLabel(property, isDefaultValue);
+				const formattedValue = formatPropertyValue(entry, property) ?? "";
+				const formattedOverriddenDefaultValue = (property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
 
-		return `- ${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();
-	}
-
-	function formatEntryDescription(entry: T): string[] {
-		const descriptionProperties = omit(entry, [...GLOBAL_HIDDEN_PROPERTIES, ...hiddenProperties, entryLabelProperty]);
-		return Object.keys(descriptionProperties)
-			.map(property => formatPropertyLine(entry, property as string))
-			.filter(Boolean);
+				return `  - ${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();
+			});
 	}
 
 	function formatEntry(entry: T): string {
 		const label = entryLabelProperty ? formatPropertyValue(entry, entryLabelProperty) : entryLabel;
-		const description = formatEntryDescription(entry);
-		if (description.length === 0) {
-			return `- ${label}`;
-		}
-		else {
-			return [label, ...description].join("\n");
-		}
+		const descriptionLines = formatEntryDescriptionLines(entry);
+		return compact(concat(`- ${label}`, descriptionLines)).join("\n");
 	}
 
 	const embeds = Object.entries(groupBy(entries, queueIdProperty)).map(([queueId, queueEntries]) => {
@@ -241,4 +233,12 @@ function convertCamelCaseToTitleCase(input: string): string {
 		.replace(/([A-Z])/g, " $1") // Insert a space before each uppercase letter
 		.toLowerCase() // Convert to lowercase
 		.replace(/^./, str => str.toUpperCase()); // Capitalize the first letter
+}
+
+function lowerFirst(input: string): string {
+	return input.charAt(0).toLowerCase() + input.slice(1);
+}
+
+function upperFirst(input: string): string {
+	return input.charAt(0).toUpperCase() + input.slice(1);
 }

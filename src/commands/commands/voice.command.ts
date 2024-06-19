@@ -1,4 +1,4 @@
-import { channelMention, type Collection, inlineCode, SlashCommandBuilder } from "discord.js";
+import { channelMention, type Collection, EmbedBuilder, inlineCode, SlashCommandBuilder } from "discord.js";
 import { isNil, omitBy, partition } from "lodash-es";
 
 import { type DbQueue, VOICE_TABLE } from "../../db/schema.ts";
@@ -27,6 +27,7 @@ export class VoiceCommand extends AdminCommand {
 	voice_delete_source = VoiceCommand.voice_delete_source;
 	voice_set_destination = VoiceCommand.voice_set_destination;
 	voice_disable_destination = VoiceCommand.voice_disable_destination;
+	voice_help = VoiceCommand.voice_help;
 
 	data = new SlashCommandBuilder()
 		.setName(VoiceCommand.ID)
@@ -71,6 +72,12 @@ export class VoiceCommand extends AdminCommand {
 				.setName("disable_destination")
 				.setDescription("Reset voice destination channel (also possible with /queues reset)");
 			Object.values(VoiceCommand.DISABLE_DESTINATION_OPTIONS).forEach(option => option.addToCommand(subcommand));
+			return subcommand;
+		})
+		.addSubcommand(subcommand => {
+			subcommand
+				.setName("help")
+				.setDescription("Info about voice integrations");
 			return subcommand;
 		});
 
@@ -256,5 +263,25 @@ export class VoiceCommand extends AdminCommand {
 		await QueueUtils.updateQueues(inter.store, queues, { voiceDestinationChannelId: null });
 
 		await inter.respond(`Unset voice destination channel of '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
+	}
+
+	// ====================================================================
+	//                           /voice help
+	// ====================================================================
+
+	static async voice_help(inter: SlashInteraction) {
+		await inter.respond({
+			embeds: [
+				new EmbedBuilder()
+					.setTitle("Voice Integrations")
+					.setColor(Color.Indigo)
+					.setDescription(
+						"- Voice integrations allow members to join queues by entering source voice channels.\n" +
+						"- If than one source has been set, one will be picked at random.\n" +
+						"- If a destination voice channel is set (there may only be one), members will be moved to that channel when they are pulled.\n" +
+						`- Queues may be configured to only allow members to join via voice channels via ${commandMention("queues", "set")} \`voice_only\`.`
+					),
+			],
+		}, true);
 	}
 }

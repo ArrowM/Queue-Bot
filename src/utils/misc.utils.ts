@@ -47,3 +47,7 @@ export function BigIntSafe(value: any) {
 		return null;
 	}
 }
+
+export function formatFileDate(date: Date) {
+	return date.toISOString().slice(0, -5).replace("T", "__").replace(/\D/g, "_");
+}

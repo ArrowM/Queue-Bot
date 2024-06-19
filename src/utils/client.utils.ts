@@ -55,6 +55,9 @@ export namespace ClientUtils {
 			if (status == 404) {
 				Queries.deleteGuild({ guildId });
 			}
+			else {
+				console.error(e);
+			}
 		}
 	}
 
@@ -137,7 +140,7 @@ export namespace ClientUtils {
 			const queueIds = store.dbQueues().map(queue => queue.id);
 			DisplayUtils.requestDisplaysUpdate(store, queueIds, { updateTypeOverride: DisplayUpdateType.Edit });
 			// rate limit
-			await new Promise(resolve => setTimeout(resolve, 200));
+			await new Promise(resolve => setTimeout(resolve, 500));
 		}
 	}
 }

@@ -12,6 +12,7 @@ import { ReasonOption } from "../../options/options/reason.option.ts";
 import { SchedulesOption } from "../../options/options/schedules.option.ts";
 import { TimezoneOption } from "../../options/options/timezone.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
+import { Color } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
 import { ScheduleUtils } from "../../utils/schedule.utils.ts";
@@ -204,6 +205,7 @@ export class ScheduleCommand extends AdminCommand {
 	static async schedule_help(inter: SlashInteraction) {
 		const embeds = [new EmbedBuilder()
 			.setTitle("Scheduled Commands")
+			.setColor(Color.Indigo)
 			.setDescription(
 				"Some commands can be ran on a schedule using the cron schedule format. " +
 				"https://crontab.guru/examples.html has common schedules. " +

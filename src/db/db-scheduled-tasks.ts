@@ -13,6 +13,7 @@ import { schedule as cron } from "node-cron";
 import type { GuildStat } from "../types/db.types.ts";
 import type { PendingGuildUpdates } from "../types/misc.types.ts";
 import { ClientUtils } from "../utils/client.utils.ts";
+import { formatFileDate } from "../utils/misc.utils.ts";
 import { db, DB_BACKUP_DIRECTORY, DB_FILEPATH } from "./db.ts";
 import {
 	ADMIN_TABLE,
@@ -173,8 +174,7 @@ function backup() {
 	console.log("Creating backup...");
 
 	// Get backup filepath
-	const dateStr = new Date().toLocaleString("en-US", { hour12: false }).replace(/\D/g, "_");
-	const backupFilepath = `${DB_BACKUP_DIRECTORY}/main_${dateStr}.sqlite`;
+	const backupFilepath = `${DB_BACKUP_DIRECTORY}/main_${formatFileDate(new Date)}.sqlite`;
 
 	// Copy the SQLite database file to the backup location
 	fs.copyFile(DB_FILEPATH, backupFilepath, (err) => {

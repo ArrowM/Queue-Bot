@@ -13,6 +13,7 @@ import {
 	TimestampType,
 } from "../../types/db.types.ts";
 import { ClientUtils } from "../../utils/client.utils.ts";
+import { formatFileDate } from "../../utils/misc.utils.ts";
 import { db, DB_FILEPATH } from "../db.ts";
 import { QUEUE_TABLE } from "../schema.ts";
 import { Store } from "../store.ts";
@@ -61,7 +62,7 @@ export async function checkForMigration() {
 				console.log();
 
 				// Backup current database
-				const backupPath = `data/main-pre-migration-${new Date().toISOString().replace(/:/g, "-")}.sqlite`;
+				const backupPath = `data/main-pre-migration-${formatFileDate(new Date)}.sqlite`;
 				fs.copyFileSync(DB_FILEPATH, backupPath);
 
 				await migrate();
@@ -149,11 +150,16 @@ async function convertAndInsert() {
 
 	await db.transaction(async () => {
 		for (let i = 0; i < legacyQueueGuilds.length; i++) {
-			const legacyGuild = legacyQueueGuilds[i];
+			// rate limit
+			if (i % 5 === 4) {
+				await new Promise(resolve => setTimeout(resolve, 1000));
+			}
+			// log progress
 			if (i % 25 === 24 || i === legacyQueueGuilds.length - 1) {
 				console.log(`Converting guild ${i + 1} of ${legacyQueueGuilds.length}`);
 			}
 
+			const legacyGuild = legacyQueueGuilds[i];
 			const jsGuild = await ClientUtils.getGuild(legacyGuild.guild_id);
 			if (!jsGuild) continue;
 			const store = new Store(jsGuild);

@@ -376,7 +376,7 @@ export namespace DisplayUtils {
 		}
 
 		if (members.some(m => !isNil(m.priorityOrder))) {
-			descriptionParts.push("- '✨' indicates priority.");
+			descriptionParts.push("- ✨ indicates priority.");
 		}
 
 		if (roleInQueueId) {

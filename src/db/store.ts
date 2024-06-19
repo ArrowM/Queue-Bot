@@ -98,7 +98,7 @@ export class Store {
 	async cleanupMissingChannel(channelId: Snowflake) {
 		this.deleteManyDisplays({ displayChannelId: channelId });
 		this.deleteManyVoices({ channelId });
-		// Delete the log channel if it is missing
+		// Unset instance of the log channel id
 		db
 			.update(GUILD_TABLE)
 			.set({ logChannelId: null })
@@ -117,6 +117,9 @@ export class Store {
 			if (status == 404) {
 				await this.cleanupMissingChannel(channelId);
 			}
+			else {
+				console.error(e);
+			}
 		}
 	}
 
@@ -134,6 +137,9 @@ export class Store {
 			const { status } = e as DiscordAPIError;
 			if (status == 404) {
 				this.deleteManyMembers({ userId }, ArchivedMemberReason.NotFound);
+			}
+			else {
+				console.error(e);
 			}
 		}
 	}
@@ -155,6 +161,9 @@ export class Store {
 				this.deleteManyBlacklisted({ subjectId: roleId });
 				this.deleteManyPrioritized({ subjectId: roleId });
 				this.deleteAdmin({ subjectId: roleId });
+			}
+			else {
+				console.error(e);
 			}
 		}
 	}
