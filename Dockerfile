@@ -13,14 +13,11 @@ FROM base AS dependencies
 # Install npm dependencies
 RUN npm ci
 
-# ---- Files ----
-FROM dependencies AS files
+# ---- Production ----
+FROM dependencies AS production
 
 # Copy all source files
 COPY . .
-
-# ---- Production ----
-FROM database AS production
 
 # Default command to start the application
 ENTRYPOINT ["npm", "docker:start"]
