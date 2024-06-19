@@ -26,7 +26,7 @@ export class VoiceCommand extends AdminCommand {
 	voice_set_source = VoiceCommand.voice_set_source;
 	voice_delete_source = VoiceCommand.voice_delete_source;
 	voice_set_destination = VoiceCommand.voice_set_destination;
-	voice_disable_destination = VoiceCommand.voice_disable_destination;
+	voice_reset_destination = VoiceCommand.voice_reset_destination;
 	voice_help = VoiceCommand.voice_help;
 
 	data = new SlashCommandBuilder()
@@ -69,9 +69,9 @@ export class VoiceCommand extends AdminCommand {
 		})
 		.addSubcommand(subcommand => {
 			subcommand
-				.setName("disable_destination")
+				.setName("reset_destination")
 				.setDescription("Reset voice destination channel (also possible with /queues reset)");
-			Object.values(VoiceCommand.DISABLE_DESTINATION_OPTIONS).forEach(option => option.addToCommand(subcommand));
+			Object.values(VoiceCommand.RESET_DESTINATION_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
 		.addSubcommand(subcommand => {
@@ -250,15 +250,15 @@ export class VoiceCommand extends AdminCommand {
 	}
 
 	// ====================================================================
-	//                           /voice disable_destination
+	//                           /voice reset_destination
 	// ====================================================================
 
-	static readonly DISABLE_DESTINATION_OPTIONS = {
-		queues: new QueuesOption({ required: true, description: "Queue(s) to disable destination voice channel" }),
+	static readonly RESET_DESTINATION_OPTIONS = {
+		queues: new QueuesOption({ required: true, description: "Queue(s) to reset destination voice channel" }),
 	};
 
-	static async voice_disable_destination(inter: SlashInteraction) {
-		const queues = await VoiceCommand.DISABLE_DESTINATION_OPTIONS.queues.get(inter);
+	static async voice_reset_destination(inter: SlashInteraction) {
+		const queues = await VoiceCommand.RESET_DESTINATION_OPTIONS.queues.get(inter);
 
 		await QueueUtils.updateQueues(inter.store, queues, { voiceDestinationChannelId: null });
 
