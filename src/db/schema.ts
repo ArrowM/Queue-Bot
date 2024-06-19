@@ -187,7 +187,7 @@ export const SCHEDULE_TABLE = sqliteTable("schedule", ({
 	queueId: integer("queue_id").$type<bigint>().notNull().references(() => QUEUE_TABLE.id, { onDelete: "cascade" }),
 	command: text("command").notNull().$type<ScheduleCommand | null>(),
 	cron: text("cron").notNull(),
-	timezone: text("timezone").notNull(),
+	timezone: text("timezone"),
 	messageChannelId: text("user_id").$type<Snowflake | null>(),
 	reason: text("reason"),
 }),

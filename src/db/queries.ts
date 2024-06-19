@@ -76,9 +76,9 @@ export namespace Queries {
 	// Displays
 
 	export function selectDisplay(by:
-																	{ guildId: Snowflake, id: bigint } |
-																	{ guildId: Snowflake, lastMessageId: Snowflake } |
-																	{ guildId: Snowflake, queueId: bigint, displayChannelId: Snowflake }
+		{ guildId: Snowflake, id: bigint } |
+		{ guildId: Snowflake, lastMessageId: Snowflake } |
+		{ guildId: Snowflake, queueId: bigint, displayChannelId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectDisplayById.get(by);
@@ -92,9 +92,9 @@ export namespace Queries {
 	}
 
 	export function selectManyDisplays(by:
-																			 { guildId: Snowflake } |
-																			 { guildId: Snowflake, queueId: bigint } |
-																			 { guildId: Snowflake, displayChannelId: Snowflake }
+		 { guildId: Snowflake } |
+		 { guildId: Snowflake, queueId: bigint } |
+		 { guildId: Snowflake, displayChannelId: Snowflake }
 	) {
 		if ("guildId" in by) {
 			return selectManyDisplaysByGuildId.all(by);
@@ -110,8 +110,8 @@ export namespace Queries {
 	// Members
 
 	export function selectMember(by:
-																 { guildId: Snowflake, id: bigint } |
-																 { guildId: Snowflake, queueId: bigint, userId?: Snowflake }
+		{ guildId: Snowflake, id: bigint } |
+		{ guildId: Snowflake, queueId: bigint, userId?: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectMemberById.get(by);
@@ -128,8 +128,8 @@ export namespace Queries {
 	 * Selects members in position order
 	 */
 	export function selectManyMembers(by:
-																			{ guildId: Snowflake, userId?: Snowflake } |
-																			{ guildId: Snowflake, queueId: bigint, count?: number }
+		{ guildId: Snowflake, userId?: Snowflake } |
+		{ guildId: Snowflake, queueId: bigint, count?: number }
 	) {
 		if ("guildId" in by && "userId" in by) {
 			return selectManyMembersByGuildIdAndUserId.all(by);
@@ -153,8 +153,8 @@ export namespace Queries {
 	}
 
 	export function selectManySchedules(by:
-																				{ guildId: Snowflake } |
-																				{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake } |
+		{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by) {
 			return selectManySchedulesByGuildId.all(by);
@@ -184,8 +184,8 @@ export namespace Queries {
 	// Whitelisted
 
 	export function selectWhitelisted(by:
-																			{ guildId: Snowflake, id: bigint } |
-																			{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
+		{ guildId: Snowflake, id: bigint } |
+		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectWhitelistedById.get(by);
@@ -196,8 +196,8 @@ export namespace Queries {
 	}
 
 	export function selectManyWhitelisted(by:
-																					{ guildId: Snowflake, subjectId?: Snowflake } |
-																					{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, subjectId?: Snowflake } |
+		{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "subjectId" in by) {
 			return selectManyWhitelistedByGuildIdAndSubjectId.all(by);
@@ -213,8 +213,8 @@ export namespace Queries {
 	// Blacklisted
 
 	export function selectBlacklisted(by:
-																			{ guildId: Snowflake, id: bigint } |
-																			{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
+		{ guildId: Snowflake, id: bigint } |
+		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectBlacklistedById.get(by);
@@ -225,8 +225,8 @@ export namespace Queries {
 	}
 
 	export function selectManyBlacklisted(by:
-																					{ guildId: Snowflake, subjectId?: Snowflake } |
-																					{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, subjectId?: Snowflake } |
+		{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "subjectId" in by) {
 			return selectManyBlacklistedByGuildIdAndSubjectId.all(by);
@@ -242,8 +242,8 @@ export namespace Queries {
 	// Prioritized
 
 	export function selectPrioritized(by:
-																			{ guildId: Snowflake, id: bigint } |
-																			{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
+		{ guildId: Snowflake, id: bigint } |
+		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectPrioritizedById.get(by);
@@ -254,8 +254,8 @@ export namespace Queries {
 	}
 
 	export function selectManyPrioritized(by:
-																					{ guildId: Snowflake, subjectId?: Snowflake } |
-																					{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, subjectId?: Snowflake } |
+		{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "subjectId" in by) {
 			return selectManyPrioritizedByGuildIdAndSubjectId.all(by);
@@ -271,8 +271,8 @@ export namespace Queries {
 	// Admins
 
 	export function selectAdmin(by:
-																{ guildId: Snowflake, id: bigint } |
-																{ guildId: Snowflake, subjectId: Snowflake }
+		{ guildId: Snowflake, id: bigint } |
+		{ guildId: Snowflake, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectAdminById.get(by);
@@ -283,8 +283,8 @@ export namespace Queries {
 	}
 
 	export function selectManyAdmins(by:
-																		 { guildId: Snowflake, subjectId: Snowflake } |
-																		 { guildId: Snowflake }
+		{ guildId: Snowflake, subjectId: Snowflake } |
+		{ guildId: Snowflake }
 	) {
 		if ("subjectId" in by) {
 			return selectManyAdminsBySubjectId.all(by);
@@ -297,8 +297,8 @@ export namespace Queries {
 	// Archived Members
 
 	export function selectArchivedMember(by:
-																				 { guildId: Snowflake, id: bigint } |
-																				 { guildId: Snowflake, queueId: bigint, userId: Snowflake }
+		 { guildId: Snowflake, id: bigint } |
+		 { guildId: Snowflake, queueId: bigint, userId: Snowflake }
 	) {
 		if ("id" in by) {
 			return selectArchivedMemberById.get(by);
@@ -309,8 +309,8 @@ export namespace Queries {
 	}
 
 	export function selectManyArchivedMembers(by:
-																							{ guildId: Snowflake, userId?: Snowflake } |
-																							{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, userId?: Snowflake } |
+		{ guildId: Snowflake, queueId: bigint }
 	) {
 		if ("guildId" in by && "userId" in by) {
 			return selectManyArchivedMembersByGuildIdAndUserId.all(by);

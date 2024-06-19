@@ -388,7 +388,7 @@ export namespace DisplayUtils {
 		}
 
 		if (schedules.size) {
-			descriptionParts.push(schedules.map(scheduleMention).sort().join("\n"));
+			descriptionParts.push(schedules.sort().map(schedule => `- ${scheduleMention(schedule)}`).join("\n"));
 		}
 
 		return descriptionParts.join("\n");

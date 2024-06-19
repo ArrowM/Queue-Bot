@@ -15,7 +15,7 @@ import { AdminCommand } from "../../types/command.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
 import { ScheduleUtils } from "../../utils/schedule.utils.ts";
-import { describeTable, queuesMention, scheduleMention } from "../../utils/string.utils.ts";
+import { describeTable, scheduleMention } from "../../utils/string.utils.ts";
 
 export class ScheduleCommand extends AdminCommand {
 	static readonly ID = "schedule";
@@ -98,9 +98,9 @@ export class ScheduleCommand extends AdminCommand {
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to create scheduled command for" }),
 		command: new CommandOption({ required: true, description: "Command to schedule" }),
-		timezone: new TimezoneOption({ required: true, description: "Timezone for the schedule" }),
 		cron: new CronOption({ required: true, description: "Cron schedule" }),
 		customCron: new CustomCronOption({ description: "Custom cron schedule" }),
+		timezone: new TimezoneOption({ description: "Timezone for the schedule" }),
 		messageChannel: new MessageChannelOption({ description: "Channel to send command messages" }),
 		reason: new ReasonOption({ description: "Reason for the schedule" }),
 	};
@@ -110,9 +110,9 @@ export class ScheduleCommand extends AdminCommand {
 		const schedule = {
 			guildId: inter.guildId,
 			command: ScheduleCommand.ADD_OPTIONS.command.get(inter),
-			timezone: await ScheduleCommand.ADD_OPTIONS.timezone.get(inter),
 			cron: ScheduleCommand.ADD_OPTIONS.cron.get(inter),
 			...omitBy({
+				timezone: await ScheduleCommand.ADD_OPTIONS.timezone.get(inter),
 				messageChannelId: ScheduleCommand.ADD_OPTIONS.messageChannel.get(inter)?.id,
 				reason: ScheduleCommand.ADD_OPTIONS.reason.get(inter),
 			}, isNil),
@@ -123,11 +123,14 @@ export class ScheduleCommand extends AdminCommand {
 		}
 
 		const {
+			insertedSchedules,
 			updatedQueueIds,
 		} = ScheduleUtils.insertSchedules(inter.store, queues, schedule);
-		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 
-		await inter.respond(`Scheduled ${schedule.command} for the '${queuesMention(updatedQueues)}' queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
+		const schedulesStr = insertedSchedules.map(schedule => `- ${scheduleMention(schedule)}`).join("\n");
+		await inter.respond(`Created schedule${insertedSchedules.length > 1 ? "s" : ""}.\n${schedulesStr}`, true);
+
+		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 		await this.schedule_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 
@@ -138,9 +141,9 @@ export class ScheduleCommand extends AdminCommand {
 	static readonly SET_OPTIONS = {
 		schedules: new SchedulesOption({ required: true, description: "Scheduled commands to update" }),
 		command: new CommandOption({ description: "Command to schedule" }),
-		timezone: new TimezoneOption({ description: "Timezone for the schedule" }),
 		cron: new CronOption({ description: "Cron schedule" }),
 		customCron: new CustomCronOption({ description: "Custom cron schedule" }),
+		timezone: new TimezoneOption({ description: "Timezone for the schedule" }),
 		messageChannelId: new MessageChannelOption({ description: "Channel to send command messages" }),
 		reason: new ReasonOption({ description: "Reason for the schedule" }),
 	};
@@ -149,8 +152,8 @@ export class ScheduleCommand extends AdminCommand {
 		const schedules = await ScheduleCommand.SET_OPTIONS.schedules.get(inter);
 		const scheduleUpdate = omitBy({
 			command: ScheduleCommand.SET_OPTIONS.command.get(inter),
-			timezone: ScheduleCommand.SET_OPTIONS.timezone.get(inter),
 			cron: ScheduleCommand.SET_OPTIONS.cron.get(inter),
+			timezone: ScheduleCommand.SET_OPTIONS.timezone.get(inter),
 			messageChannelId: ScheduleCommand.SET_OPTIONS.messageChannelId.get(inter),
 			reason: ScheduleCommand.SET_OPTIONS.reason.get(inter),
 		}, isNil);
@@ -160,11 +163,14 @@ export class ScheduleCommand extends AdminCommand {
 		}
 
 		const {
+			updatedSchedules,
 			updatedQueueIds,
 		} = ScheduleUtils.updateSchedules(inter.store, schedules, scheduleUpdate);
-		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 
-		await inter.respond(`Updated ${schedules.size} schedule${schedules.size ? "s" : ""}.`, true);
+		const schedulesStr = updatedSchedules.map(schedule => `- ${scheduleMention(schedule)}`).join("\n");
+		await inter.respond(`Created schedule${updatedSchedules.length > 1 ? "s" : ""}.\n${schedulesStr}`, true);
+
+		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 		await this.schedule_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 

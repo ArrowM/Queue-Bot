@@ -6,7 +6,7 @@ import { Queries } from "../db/queries.ts";
 import { type DbQueue, type DbSchedule, type NewSchedule } from "../db/schema.ts";
 import { Store } from "../db/store.ts";
 import { ArchivedMemberReason, DisplayUpdateType, ScheduleCommand } from "../types/db.types.ts";
-import { type ArrayOrCollection, TIMEZONES } from "../types/misc.types.ts";
+import { type ArrayOrCollection, LOWER_TIMEZONES } from "../types/misc.types.ts";
 import { ClientUtils } from "./client.utils.ts";
 import { DisplayUtils } from "./display.utils.ts";
 import { InvalidCronError } from "./error.utils.ts";
@@ -94,7 +94,7 @@ export namespace ScheduleUtils {
 	}
 
 	export function validateTimezone(timezone: string) {
-		if (!TIMEZONES.includes(timezone)) {
+		if (!LOWER_TIMEZONES.includes(timezone)) {
 			throw new Error("Invalid timezone");
 		}
 	}

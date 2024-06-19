@@ -83,9 +83,12 @@ export function commandMention(commandName: string, subcommandName?: string) {
 }
 
 export function scheduleMention(schedule: DbSchedule) {
+	const command = bold(schedule.command);
 	let humanReadableSchedule = cronstrue.toString(schedule.cron);
 	humanReadableSchedule = humanReadableSchedule.charAt(0).toLowerCase() + humanReadableSchedule.slice(1);
-	return `will ${schedule.command} ${humanReadableSchedule} (${schedule.timezone})${schedule.reason ? ` - ${schedule.reason}` : ""}`;
+	const timezone = schedule.timezone ? `(${schedule.timezone})` : "";
+	const reason = schedule.reason ? ` - ${schedule.reason}` : "";
+	return `will ${command} ${humanReadableSchedule} ${timezone}${reason}.`;
 }
 
 export function timeMention(seconds: bigint) {

@@ -7,6 +7,7 @@ export class CronOption extends StringOption {
 	choices: UIOption[] = [
 		{ name: "Custom (set custom_cron option)", value: "custom" },
 		{ name: "Every minute", value: "* * * * *" },
+		{ name: "Every 5 minutes", value: "*/5 * * * *" },
 		{ name: "Every 15 minutes", value: "*/15 * * * *" },
 		{ name: "Every 30 minutes", value: "*/30 * * * *" },
 		{ name: "Every hour", value: "0 * * * *" },
