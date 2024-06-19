@@ -101,13 +101,18 @@ export namespace ClientUtils {
 
 			// wait for console confirmation
 			let userInput = null;
-			while (!["1", "2", "3"].includes(userInput)) {
-				console.log("");
-				console.log(`Patch notes for '${fileName}' have not been sent. Enter a number to continue:`);
-				console.log("[1] send patch notes to patch notes channel");
-				console.log("[2] mark patch note as already sent");
-				console.log("[3] skip");
-				userInput = (await new Promise(resolve => process.stdin.once("data", resolve)))?.toString().trim();
+			if (process.env.FORCE_SEND_PATCH_NOTES) {
+				userInput = "1";
+			}
+			else {
+				while (!["1", "2", "3"].includes(userInput)) {
+					console.log("");
+					console.log(`Patch notes for '${fileName}' have not been sent. Enter a number to continue:`);
+					console.log("[1] send patch notes to patch notes channel");
+					console.log("[2] mark patch note as already sent");
+					console.log("[3] skip");
+					userInput = (await new Promise(resolve => process.stdin.once("data", resolve)))?.toString().trim();
+				}
 			}
 			if (userInput === "1") {
 				await patchNotesChannel.send({ embeds });

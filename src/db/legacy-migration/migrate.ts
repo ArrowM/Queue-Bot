@@ -1,17 +1,10 @@
 import csv from "csv-parser";
 import fs from "fs";
-import { get, isEmpty } from "lodash-es";
+import { get } from "lodash-es";
 import moment from "moment-timezone";
 
 import { CLIENT } from "../../client/client.ts";
-import {
-	Color,
-	DisplayUpdateType,
-	MemberDisplayType,
-	ScheduleCommand,
-	Scope,
-	TimestampType,
-} from "../../types/db.types.ts";
+import { Color, DisplayUpdateType, MemberDisplayType, ScheduleCommand, Scope, TimestampType } from "../../types/db.types.ts";
 import { ClientUtils } from "../../utils/client.utils.ts";
 import { formatFileDate } from "../../utils/misc.utils.ts";
 import { db, DB_FILEPATH } from "../db.ts";
@@ -47,32 +40,20 @@ export async function checkForMigration() {
 		console.log(`Checking for legacy migration... (${LEGACY_EXPORT_DIR})`);
 		if (fs.readdirSync(LEGACY_EXPORT_DIR).length) {
 			console.log();
-			console.log("Legacy migration detected.");
+			console.log("Legacy migration found. Proceeding...");
 			console.log();
-			console.warn(
-				"If you proceed with migration:\n" +
-				"!  1. Your database (data/main.sqlite) will be backed up to (data/main-pre-migration-${date}.sqlite)\n" +
-				"!  2. Then the data from legacy-export will be merged into your database.\n" +
-				"!  Do you wish to proceed with migration? [Y/n]"
-			);
 
-			const userInput = (await new Promise(resolve => process.stdin.once("data", resolve)))?.toString().toLowerCase().trim();
-			if (isEmpty(userInput) || userInput === "y") {
-				console.log("Proceeding with legacy migration...");
-				console.log();
+			// Backup current database
+			const backupPath = `data/main-pre-migration-${formatFileDate(new Date)}.sqlite`;
+			fs.copyFileSync(DB_FILEPATH, backupPath);
 
-				// Backup current database
-				const backupPath = `data/main-pre-migration-${formatFileDate(new Date)}.sqlite`;
-				fs.copyFileSync(DB_FILEPATH, backupPath);
+			await migrate();
 
-				await migrate();
-			}
-			else {
-				console.log("Migration skipped.");
-			}
+			await markComplete();
 		}
 	}
 }
+
 
 export async function migrate() {
 	await loadExportData();
@@ -292,4 +273,34 @@ async function convertAndInsert() {
 	console.log();
 	console.log("Conversion and insertion complete.");
 	console.log();
+}
+
+export async function markComplete() {
+	const completedDir = `completed-${formatFileDate(new Date)}`;
+	fs.mkdirSync(completedDir);
+	fs.readdir(LEGACY_EXPORT_DIR, (err, files) => {
+		if (err) {
+			console.error("Error reading directory:", err);
+			return;
+		}
+
+		// Filter for CSV files
+		const csvFiles = files.filter(file => file.toLowerCase().endsWith(".csv"));
+
+		// Move each CSV file to destination directory
+		csvFiles.forEach(file => {
+			const sourceFile = `${LEGACY_EXPORT_DIR}/${file}`;
+			const destFile = `${completedDir}/${file}`;
+
+			// Rename (move) file
+			fs.rename(sourceFile, destFile, err => {
+				if (err) {
+					console.error(`Error moving ${file}:`, err);
+				}
+				else {
+					console.log(`Moved ${file} to ${LEGACY_EXPORT_DIR}`);
+				}
+			});
+		});
+	});
 }
