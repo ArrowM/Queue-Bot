@@ -88,15 +88,15 @@ export namespace ClientUtils {
 	export async function checkForPatchNotes() {
 		// Check if any patch notes have not been read
 		const dbPatchNotes = Queries.selectAllPatchNotes();
-		const unreadFileNames = fs.readdirSync("./patch-notes")
+		const fileNamesOfUnsentPatchNotes = fs.readdirSync("./patch-notes")
 			.filter(fileNames => !dbPatchNotes.some(dbPatchNote => dbPatchNote.fileName == fileNames));
-		if (unreadFileNames.length === 0) return;
+		if (fileNamesOfUnsentPatchNotes.length === 0) return;
 
 		// Use dynamic import to load the .ts file
 		const patchNotesChannelId = process.env.PATCH_NOTES_CHANNEL_ID;
 		if (!patchNotesChannelId) return;
 		const patchNotesChannel = CLIENT.channels.cache.get(patchNotesChannelId) as TextChannel;
-		for (const fileName of unreadFileNames) {
+		for (const fileName of fileNamesOfUnsentPatchNotes) {
 			const { embeds } = await import(`../../patch-notes/${fileName}`);
 
 			// wait for console confirmation
