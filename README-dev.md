@@ -30,7 +30,13 @@ Update the `.env` file with your bot's TOKEN and CLIENT_ID.
 
 [Install Docker](https://docs.docker.com/get-docker/).
 
-Setup and start the bot in a detached container (the same command will be used to start the bot in future runs):
+Setup (**run each time you update the project**):
+
+```bash
+docker compose build
+````
+
+Start the bot in a detached container:
 
 ```bash
 docker compose up -d
