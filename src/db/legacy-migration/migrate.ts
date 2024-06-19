@@ -134,139 +134,189 @@ async function convertAndInsert() {
 
 	await db.transaction(async () => {
 		for (let i = 0; i < legacyQueueGuilds.length; i++) {
-			// rate limit
-			if (i % 5 === 4) {
-				await new Promise(resolve => setTimeout(resolve, 1000));
-			}
-			// log progress
-			if (i % 25 === 24 || i === legacyQueueGuilds.length - 1) {
-				console.log(`Converting guild ${i + 1} of ${legacyQueueGuilds.length}`);
-			}
+			try {
+				// rate limit
+				if (i % 5 === 4) {
+					await new Promise(resolve => setTimeout(resolve, 1000));
+				}
+				// log progress
+				if (i % 25 === 24 || i === legacyQueueGuilds.length - 1) {
+					console.log(`Converting guild ${i + 1} of ${legacyQueueGuilds.length}`);
+				}
 
-			const legacyGuild = legacyQueueGuilds[i];
-			const jsGuild = await ClientUtils.getGuild(legacyGuild.guild_id);
-			if (!jsGuild) continue;
-			const store = new Store(jsGuild);
+				const legacyGuild = legacyQueueGuilds[i];
+				const jsGuild = await ClientUtils.getGuild(legacyGuild.guild_id);
+				if (!jsGuild) continue;
+				const store = new Store(jsGuild);
 
-			store.insertGuild({
-				guildId: legacyGuild.guild_id,
-				logChannelId: legacyGuild.logging_channel_id,
-				logScope: legacyGuild.logging_channel_level ? Scope.All : undefined,
-			});
+				store.insertGuild({
+					guildId: legacyGuild.guild_id,
+					logChannelId: legacyGuild.logging_channel_id,
+					logScope: legacyGuild.logging_channel_level ? Scope.All : undefined,
+				});
 
-			for (const legacyQueue of legacyQueueChannels.filter(legacy => legacy.guild_id == legacyGuild.guild_id)) {
-				const jsSourceChannel = await jsGuild.channels.fetch(legacyQueue.queue_channel_id);
-				if (!jsSourceChannel) continue;
-
-				let queue;
-				for (let i = 0; i < 5; i++) {
-					const name = i === 0 ? jsSourceChannel.name : `${jsSourceChannel.name} (${i})`;
+				for (const legacyQueue of legacyQueueChannels.filter(legacy => legacy.guild_id == legacyGuild.guild_id)) {
 					try {
-						queue = store.insertQueue({
-							name: name,
-							guildId: legacyGuild.guild_id,
-							autopullToggle: legacyQueue.auto_fill,
-							color: get(Color, legacyQueue.color) ?? QUEUE_TABLE.color.default,
-							displayButtons: legacyQueue.hide_button ? Scope.None : Scope.All,
-							displayUpdateType: (legacyGuild.msg_mode === 1) ? DisplayUpdateType.Edit : (legacyGuild.msg_mode === 2) ? DisplayUpdateType.Replace : DisplayUpdateType.New,
-							header: legacyQueue.header,
-							lockToggle: legacyQueue.is_locked,
-							memberDisplayType: legacyGuild.disable_mentions ? MemberDisplayType.Plaintext : MemberDisplayType.Mention,
-							notificationsToggle: !legacyGuild.disable_notifications,
-							pullBatchSize: BigInt(legacyQueue.pull_num),
-							rejoinGracePeriod: BigInt(legacyQueue.grace_period),
-							roleInQueueId: legacyQueue.role_id,
-							size: BigInt(legacyQueue.max_members),
-							timestampType:
-								legacyGuild.timestamps === "date" ? TimestampType.Date :
-									legacyGuild.timestamps === "time" ? TimestampType.Time :
-										legacyGuild.timestamps === "date+time" ? TimestampType.DateAndTime :
-											legacyGuild.timestamps === "relative" ? TimestampType.Relative
-												: TimestampType.Off,
-							voiceDestinationChannelId: legacyQueue.target_channel_id,
-						});
-						break;
+						const jsSourceChannel = await jsGuild.channels.fetch(legacyQueue.queue_channel_id);
+						if (!jsSourceChannel) continue;
+
+						let queue;
+						for (let i = 0; i < 5; i++) {
+							const name = i === 0 ? jsSourceChannel.name : `${jsSourceChannel.name} (${i})`;
+							try {
+								queue = store.insertQueue({
+									name: name,
+									guildId: legacyGuild.guild_id,
+									autopullToggle: legacyQueue.auto_fill,
+									color: get(Color, legacyQueue.color) ?? QUEUE_TABLE.color.default,
+									displayButtons: legacyQueue.hide_button ? Scope.None : Scope.All,
+									displayUpdateType: (legacyGuild.msg_mode === 1) ? DisplayUpdateType.Edit : (legacyGuild.msg_mode === 2) ? DisplayUpdateType.Replace : DisplayUpdateType.New,
+									header: legacyQueue.header,
+									lockToggle: legacyQueue.is_locked,
+									memberDisplayType: legacyGuild.disable_mentions ? MemberDisplayType.Plaintext : MemberDisplayType.Mention,
+									notificationsToggle: !legacyGuild.disable_notifications,
+									pullBatchSize: BigInt(legacyQueue.pull_num),
+									rejoinGracePeriod: BigInt(legacyQueue.grace_period),
+									roleInQueueId: legacyQueue.role_id,
+									size: BigInt(legacyQueue.max_members),
+									timestampType:
+										legacyGuild.timestamps === "date" ? TimestampType.Date :
+											legacyGuild.timestamps === "time" ? TimestampType.Time :
+												legacyGuild.timestamps === "date+time" ? TimestampType.DateAndTime :
+													legacyGuild.timestamps === "relative" ? TimestampType.Relative
+														: TimestampType.Off,
+									voiceDestinationChannelId: legacyQueue.target_channel_id,
+								});
+								break;
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						if ("isVoiceBased" in jsSourceChannel && jsSourceChannel.isVoiceBased()) {
+							try {
+								store.insertVoice({
+									guildId: legacyGuild.guild_id,
+									queueId: queue.id,
+									sourceChannelId: legacyQueue.queue_channel_id,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						for (const legacyDisplay of legacyDisplayChannels.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id)) {
+							try {
+								store.insertDisplay({
+									guildId: legacyGuild.guild_id,
+									queueId: queue.id,
+									displayChannelId: legacyDisplay.display_channel_id,
+									lastMessageId: legacyDisplay.message_id,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						for (const legacyMember of legacyQueueMembers.filter(legacy => legacy.channel_id == legacyQueue.queue_channel_id)) {
+							try {
+								store.insertMember({
+									guildId: legacyGuild.guild_id,
+									queueId: queue.id,
+									userId: legacyMember.member_id,
+									message: legacyMember.personal_message,
+									joinTime: BigInt(new Date(legacyMember.display_time).getTime()),
+									positionTime: BigInt(new Date(legacyMember.created_at).getTime()),
+									priorityOrder: legacyMember.is_priority ? 5n : undefined,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						for (const legacySchedule of legacySchedules.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id)) {
+							try {
+								store.insertSchedule({
+									guildId: legacyGuild.guild_id,
+									queueId: queue.id,
+									command: legacySchedule.command as ScheduleCommand,
+									cron: legacySchedule.schedule,
+									timezone: getTimeZonesForOffset(legacySchedule.utc_offset),
+									messageChannelId: legacyQueue.queue_channel_id,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						for (const legacyBlack of legacyBlackWhiteList.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id && legacy.type === 0)) {
+							try {
+								store.insertBlacklisted({
+									guildId: legacyGuild.guild_id,
+									queueId: queue.id,
+									subjectId: legacyBlack.role_member_id,
+									isRole: legacyBlack.is_role,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						for (const legacyWhite of legacyBlackWhiteList.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id && legacy.type === 1)) {
+							try {
+								store.insertWhitelisted({
+									guildId: legacyGuild.guild_id,
+									queueId: queue.id,
+									subjectId: legacyWhite.role_member_id,
+									isRole: legacyWhite.is_role,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						for (const legacyPrio of legacyPriority.filter(legacy => legacy.guild_id == legacyGuild.guild_id)) {
+							try {
+								store.insertPrioritized({
+									guildId: legacyGuild.guild_id,
+									queueId: queue.id,
+									subjectId: legacyPrio.role_member_id,
+									isRole: legacyPrio.is_role,
+									priorityOrder: 5n,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
+
+						for (const legacyAdmin of legacyAdminPermission.filter(legacy => legacy.guild_id == legacyGuild.guild_id)) {
+							try {
+								store.insertAdmin({
+									guildId: legacyGuild.guild_id,
+									subjectId: legacyAdmin.role_member_id,
+									isRole: legacyAdmin.is_role,
+								});
+							}
+							catch (e) {
+								console.error(e);
+							}
+						}
 					}
-					catch {
-						// continue
+					catch (e) {
+						console.error(e);
 					}
 				}
-
-				if ("isVoiceBased" in jsSourceChannel && jsSourceChannel.isVoiceBased()) {
-					store.insertVoice({
-						guildId: legacyGuild.guild_id,
-						queueId: queue.id,
-						sourceChannelId: legacyQueue.queue_channel_id,
-					});
-				}
-
-				for (const legacyDisplay of legacyDisplayChannels.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id)) {
-					store.insertDisplay({
-						guildId: legacyGuild.guild_id,
-						queueId: queue.id,
-						displayChannelId: legacyDisplay.display_channel_id,
-						lastMessageId: legacyDisplay.message_id,
-					});
-				}
-
-				for (const legacyMember of legacyQueueMembers.filter(legacy => legacy.channel_id == legacyQueue.queue_channel_id)) {
-					store.insertMember({
-						guildId: legacyGuild.guild_id,
-						queueId: queue.id,
-						userId: legacyMember.member_id,
-						message: legacyMember.personal_message,
-						joinTime: BigInt(new Date(legacyMember.display_time).getTime()),
-						positionTime: BigInt(new Date(legacyMember.created_at).getTime()),
-						priorityOrder: legacyMember.is_priority ? 5n : undefined,
-					});
-				}
-
-				for (const legacySchedule of legacySchedules.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id)) {
-					store.insertSchedule({
-						guildId: legacyGuild.guild_id,
-						queueId: queue.id,
-						command: legacySchedule.command as ScheduleCommand,
-						cron: legacySchedule.schedule,
-						timezone: getTimeZonesForOffset(legacySchedule.utc_offset),
-						messageChannelId: legacyQueue.queue_channel_id,
-					});
-				}
-
-				for (const legacyBlack of legacyBlackWhiteList.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id && legacy.type === 0)) {
-					store.insertBlacklisted({
-						guildId: legacyGuild.guild_id,
-						queueId: queue.id,
-						subjectId: legacyBlack.role_member_id,
-						isRole: legacyBlack.is_role,
-					});
-				}
-
-				for (const legacyWhite of legacyBlackWhiteList.filter(legacy => legacy.queue_channel_id == legacyQueue.queue_channel_id && legacy.type === 1)) {
-					store.insertWhitelisted({
-						guildId: legacyGuild.guild_id,
-						queueId: queue.id,
-						subjectId: legacyWhite.role_member_id,
-						isRole: legacyWhite.is_role,
-					});
-				}
-
-				for (const legacyPrio of legacyPriority.filter(legacy => legacy.guild_id == legacyGuild.guild_id)) {
-					store.insertPrioritized({
-						guildId: legacyGuild.guild_id,
-						queueId: queue.id,
-						subjectId: legacyPrio.role_member_id,
-						isRole: legacyPrio.is_role,
-						priorityOrder: 5n,
-					});
-				}
-
-				for (const legacyAdmin of legacyAdminPermission.filter(legacy => legacy.guild_id == legacyGuild.guild_id)) {
-					store.insertAdmin({
-						guildId: legacyGuild.guild_id,
-						subjectId: legacyAdmin.role_member_id,
-						isRole: legacyAdmin.is_role,
-					});
-				}
+			}
+			catch (e) {
+				console.error(e);
 			}
 		}
 	});
