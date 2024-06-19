@@ -56,7 +56,7 @@ export async function checkForMigration() {
 				"!  Do you wish to proceed with migration? [Y/n]"
 			);
 
-			const userInput = (await new Promise(resolve => process.stdin.once("data", resolve)))?.toString().trim();
+			const userInput = (await new Promise(resolve => process.stdin.once("data", resolve)))?.toString().toLowerCase().trim();
 			if (isEmpty(userInput) || userInput === "y") {
 				console.log("Proceeding with legacy migration...");
 				console.log();
@@ -66,6 +66,9 @@ export async function checkForMigration() {
 				fs.copyFileSync(DB_FILEPATH, backupPath);
 
 				await migrate();
+			}
+			else {
+				console.log("Migration skipped.");
 			}
 		}
 	}
