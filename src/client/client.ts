@@ -20,6 +20,7 @@ export const CLIENT = new DiscordClient({
 		GuildStickerManager: 0,
 		GuildScheduledEventManager: 0,
 	}),
+	shards: "auto",
 });
 
 export namespace Client {

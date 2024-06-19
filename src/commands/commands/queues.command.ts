@@ -139,7 +139,7 @@ export class QueuesCommand extends AdminCommand {
 		roleInQueue: new RoleInQueueOption({ description: "Role to assign members of the queue" }),
 		roleOnPull: new RoleOnPullOption({ description: "Role to assign members when they are pulled" }),
 		size: new SizeOption({ description: "Limit the size of the queue" }),
-		timestampType: new TimestampTypeOption({ description: "How to display timestamps" }),
+		timestampType: new TimestampTypeOption({ description: "Format of timestamps on displays" }),
 		voiceOnlyToggle: new VoiceOnlyToggleOption({ description: "Toggle whether queue is restricted to members in source voice channel" }),
 		voiceDestinationChannel: new VoiceDestinationChannelOption({ description: "Voice channel to move members to when they are pulled" }),
 	};

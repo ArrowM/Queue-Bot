@@ -33,21 +33,25 @@ Update the `.env` file with your bot's TOKEN and CLIENT_ID.
 Run the setup script (**run each time you update the project**):
 
 ```bash
-npm run docker-build
+docker compose build
 ```
 
-Start the bot:
+Start the bot in a detached container:
 
 ```bash
-npm run docker-start
+docker compose up -d
 ```
 
-*This will start the bot in a detached container and then open the logs, which can be safely closed.*
+View the logs:
+
+```bash
+docker logs -f queue-bot
+```
 
 Stop the bot:
 
 ```bash
-npm run docker-stop
+docker compose down
 ```
 
 ### Option 2: Manually install and run
