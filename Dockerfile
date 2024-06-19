@@ -20,4 +20,4 @@ FROM dependencies AS production
 COPY . .
 
 # Default command to start the application
-ENTRYPOINT ["npm", "docker:start"]
+ENTRYPOINT ["npm", "run", "docker:start"]
