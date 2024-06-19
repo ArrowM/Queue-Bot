@@ -3,12 +3,9 @@
   "main": "src/index.ts",
   "module": "src/index.ts",
   "scripts": {
-    "setup": "npm ci && npm run db-push",
-    "db-push": "drizzle-kit push",
+    "setup": "npm ci && drizzle-kit push",
     "start": "node --loader @swc-node/register/esm --no-warnings --enable-source-maps --env-file .env src/index.ts",
-    "docker-build": "docker compose build",
-    "docker-start": "docker compose up -d && docker logs -f queue-bot",
-    "docker-stop": "docker compose down",
+    "docker:start": "drizzle-kit push && npm run start",
     "lint": "eslint src --fix"
   },
   "type": "module",

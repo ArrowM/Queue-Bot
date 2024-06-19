@@ -33,7 +33,7 @@ Update the `.env` file with your bot's TOKEN and CLIENT_ID.
 Run the setup script (**run each time you update the project**):
 
 ```bash
-docker compose build
+docker build -t queue-bot .
 ```
 
 Start the bot in a detached container:
