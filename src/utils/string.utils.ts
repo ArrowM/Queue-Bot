@@ -88,7 +88,7 @@ export function scheduleMention(schedule: DbSchedule) {
 	humanReadableSchedule = humanReadableSchedule.charAt(0).toLowerCase() + humanReadableSchedule.slice(1);
 	const timezone = schedule.timezone ? `(${schedule.timezone})` : "";
 	const reason = schedule.reason ? ` - ${schedule.reason}` : "";
-	return `will ${command} ${humanReadableSchedule} ${timezone}${reason}.`;
+	return `will ${command} ${humanReadableSchedule} ${timezone}${reason}.`.trimEnd();
 }
 
 export function timeMention(seconds: bigint) {
@@ -179,7 +179,7 @@ export function describeTable<T extends object>(options: {
 		const formattedValue = formatPropertyValue(entry, property) ?? "";
 		const formattedOverriddenDefaultValue = (property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
 
-		return `- ${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`;
+		return `- ${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();
 	}
 
 	function formatEntryDescription(entry: T): string[] {
