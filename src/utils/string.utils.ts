@@ -13,7 +13,7 @@ import {
 	userMention,
 } from "discord.js";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
-import { compact, groupBy, isNil, omit } from "lodash-es";
+import { groupBy, isNil, omit } from "lodash-es";
 
 import { type DbMember, type DbQueue, type DbSchedule } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
@@ -134,69 +134,74 @@ export function describeTable<T extends object>(options: {
 	const entryLabelProperty = "entryLabelProperty" in options ? options.entryLabelProperty : null;
 	const entryLabel = "entryLabel" in options ? options.entryLabel : null;
 
-	function formatPropertyLabel(entry: T, property: string, isDefaultValue: boolean): string {
-		const label = convertCamelCaseToTitleCase(stripIdSuffix(property));
+	function formatPropertyLabel(property: string, isDefaultValue: boolean): string {
+		let label = convertCamelCaseToTitleCase(stripIdSuffix(property));
 
 		const formatter = propertyFormatters[property];
 		if (formatter) {
-			return formatter(label);
+			label = formatter(label);
 		}
-		else {
-			return isDefaultValue ? label : bold(label);
-		}
+
+		return isDefaultValue ? label : bold(label);
 	}
 
 	function formatPropertyValue(entry: T, property: string): string {
 		let value = (entry as any)[property];
 
 		if (property === "subjectId") {
-			const subjectId = (entry as any).subjectId;
-			value = (entry as any).isRole ? roleMention(subjectId) : userMention(subjectId);
+			value = (entry as any).isRole ? roleMention(value) : userMention(value);
 		}
 
 		const formatter = propertyFormatters[property];
 		if (formatter) {
-			return formatter(value);
+			value = formatter(value);
+		}
+
+		if (property === "subjectId" || formatter) {
+			return value;
 		}
 		else {
-			return inlineCode(String(value));
+			return inlineCode(value);
 		}
 	}
 
-	function formatDescriptionProperty(entry: T, property: string): string {
+	function formatPropertyLine(entry: T, property: string): string {
 		const value = (entry as any)[property];
 		const defaultValue = (table as any)[property]?.default;
 		const isDefaultValue = value == defaultValue;
 
-		if (isNil(value) && isNil(defaultValue)) return "";
+		if (isNil(value) && isNil(defaultValue)) return;
 
-		const formattedLabel = formatPropertyLabel(entry, property, isDefaultValue);
+		const formattedLabel = formatPropertyLabel(property, isDefaultValue);
 		const formattedValue = formatPropertyValue(entry, property) ?? "";
-		const formattedOverriddenDefaultValue =
-			(property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
+		const formattedOverriddenDefaultValue = (property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
 
 		return `- ${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`;
 	}
 
-	function formatEntryDescription(entry: T): string {
+	function formatEntryDescription(entry: T): string[] {
 		const descriptionProperties = omit(entry, [...GLOBAL_HIDDEN_PROPERTIES, ...hiddenProperties, entryLabelProperty]);
-		const descriptionLines = Object.keys(descriptionProperties)
-			.map(property => formatDescriptionProperty(entry, property as string))
+		return Object.keys(descriptionProperties)
+			.map(property => formatPropertyLine(entry, property as string))
 			.filter(Boolean);
-
-		return descriptionLines.length > 0 ? `${descriptionLines.join("\n")}` : "";
 	}
 
 	function formatEntry(entry: T): string {
 		const label = entryLabelProperty ? formatPropertyValue(entry, entryLabelProperty) : entryLabel;
-		return compact([label, formatEntryDescription(entry)]).join("\n");
+		const description = formatEntryDescription(entry);
+		if (description.length === 0) {
+			return `- ${label}`;
+		}
+		else {
+			return [label, ...description].join("\n");
+		}
 	}
 
 	const embeds = Object.entries(groupBy(entries, queueIdProperty)).map(([queueId, queueEntries]) => {
 		const _queueId = BigIntSafe(queueId);
 		const queue = _queueId ? store.dbQueues().get(_queueId) : null;
 
-		const title = queue ? `'${queueMention(queue)}' ${tableLabel.toLowerCase()}` : `${tableLabel.toLowerCase()} of all queues`;
+		const title = queue ? `'${queueMention(queue)}' ${tableLabel.toLowerCase()}` : `${tableLabel} of all queues`;
 		const _color = color ?? queue?.color ?? (queueEntries[0] as any).color ?? Color.Black;
 		const description = queueEntries.map(entry => formatEntry(entry)).join("\n");
 
