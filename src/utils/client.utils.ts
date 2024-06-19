@@ -12,7 +12,7 @@ import {
 	TextChannel,
 } from "discord.js";
 import { groupBy } from "lodash-es";
-import AutoPoster from "topgg-autoposter";
+import { AutoPoster } from "topgg-autoposter";
 
 import { CLIENT } from "../client/client.ts";
 import { COMMANDS } from "../commands/commands.loader.ts";
@@ -131,11 +131,9 @@ export namespace ClientUtils {
 
 	export function loadTopGGAutoPoster() {
 		if (process.env.TOP_GG_TOKEN) {
-			console.time("Linked Top.gg AutoPoster");
 			try {
-				const poster = AutoPoster(process.env.TOP_GG_TOKEN, CLIENT);
-				poster.on("error", () => null);
-				poster.start();
+				console.time("Linked Top.gg AutoPoster");
+				AutoPoster(process.env.TOP_GG_TOKEN, CLIENT).on("error", () => null);
 				console.timeEnd("Linked Top.gg AutoPoster");
 			}
 			catch (e) {
