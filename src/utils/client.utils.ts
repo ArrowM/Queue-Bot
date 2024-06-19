@@ -132,8 +132,15 @@ export namespace ClientUtils {
 	export function loadTopGGAutoPoster() {
 		if (process.env.TOP_GG_TOKEN) {
 			console.time("Linked Top.gg AutoPoster");
-			AutoPoster(process.env.TOP_GG_TOKEN, CLIENT).on("error", () => null);
-			console.timeEnd("Linked Top.gg AutoPoster");
+			try {
+				const poster = AutoPoster(process.env.TOP_GG_TOKEN, CLIENT);
+				poster.on("error", () => null);
+				poster.start();
+				console.timeEnd("Linked Top.gg AutoPoster");
+			}
+			catch (e) {
+				console.error(e);
+			}
 		}
 	}
 

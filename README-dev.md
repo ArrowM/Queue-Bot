@@ -30,6 +30,13 @@ Update the `.env` file with your bot's TOKEN and CLIENT_ID.
 
 [Install Docker](https://docs.docker.com/get-docker/).
 
+You may need to grant yourself docker perms (replacing `<username>` with your actual username, `pi` in my case:
+
+```bash
+sudo usermod -aG docker <username>
+sudo reboot
+```
+
 Setup (**run each time you update the project**):
 
 ```bash

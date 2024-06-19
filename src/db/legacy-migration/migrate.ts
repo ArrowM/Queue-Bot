@@ -326,7 +326,7 @@ async function convertAndInsert() {
 }
 
 export async function markComplete() {
-	const completedDir = `completed-${formatFileDate(new Date)}`;
+	const completedDir = `${LEGACY_EXPORT_DIR}/completed-${formatFileDate(new Date)}`;
 	fs.mkdirSync(completedDir);
 	fs.readdir(LEGACY_EXPORT_DIR, (err, files) => {
 		if (err) {
