@@ -84,8 +84,7 @@ export function commandMention(commandName: string, subcommandName?: string) {
 
 export function scheduleMention(schedule: DbSchedule) {
 	const command = bold(schedule.command);
-	let humanReadableSchedule = cronstrue.toString(schedule.cron);
-	humanReadableSchedule = humanReadableSchedule.charAt(0).toLowerCase() + humanReadableSchedule.slice(1);
+	const humanReadableSchedule = cronstrue.toString(schedule.cron);
 	const timezone = schedule.timezone ? `(${schedule.timezone})` : "";
 	const reason = schedule.reason ? ` - ${schedule.reason}` : "";
 	return `will ${command} ${humanReadableSchedule} ${timezone}${reason}.`.trimEnd();
@@ -98,17 +97,17 @@ export function timeMention(seconds: bigint) {
 	let str = "";
 
 	if (numMinutes > 0) {
-		str += `${bold(String(numMinutes))} minute${numMinutes === 1 ? "" : "s"}`;
+		str += `${numMinutes} minute${numMinutes === 1 ? "" : "s"}`;
 		if (numSecondsRemainder > 0) {
 			str += " and ";
 		}
 	}
 
 	if (numMinutes === 0 || numSecondsRemainder > 0) {
-		str += `${bold(String(numSecondsRemainder))} second${numSecondsRemainder === 1 ? "" : "s"}`;
+		str += `${numSecondsRemainder} second${numSecondsRemainder === 1 ? "" : "s"}`;
 	}
 
-	return str;
+	return bold(str);
 }
 
 export function propertyMention(propertyName: string) {

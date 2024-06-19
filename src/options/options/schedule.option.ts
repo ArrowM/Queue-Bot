@@ -1,10 +1,10 @@
-import type { Collection } from "discord.js";
+import cronstrue from "cronstrue";
+import { type Collection } from "discord.js";
 
 import type { DbSchedule } from "../../db/schema.ts";
 import type { UIOption } from "../../types/handler.types.ts";
 import type { AutocompleteInteraction, SlashInteraction } from "../../types/interaction.types.ts";
 import { ScheduleNotFoundError } from "../../utils/error.utils.ts";
-import { scheduleMention } from "../../utils/string.utils.ts";
 import { type AutoCompleteOptions, CustomOption } from "../base-option.ts";
 
 export class ScheduleOption extends CustomOption {
@@ -52,8 +52,12 @@ export class ScheduleOption extends CustomOption {
 		const suggestions: UIOption[] = [];
 		for (const schedule of schedules.values()) {
 			const scope = schedule.queueId ? `'${queues.get(schedule.queueId).name}' queue` : "All queues";
+			let humanReadableSchedule = cronstrue.toString(schedule.cron);
+			humanReadableSchedule = humanReadableSchedule.charAt(0).toLowerCase() + humanReadableSchedule.slice(1);
+			const timezone = schedule.timezone ? `(${schedule.timezone})` : "";
+			const reason = schedule.reason ? ` - ${schedule.reason}` : "";
 			suggestions.push({
-				name: `${scope} ${scheduleMention(schedule)}`,
+				name: `${scope} will ${schedule.command} ${humanReadableSchedule} ${timezone}${reason}.`.trimEnd(),
 				value: schedule.id.toString(),
 			});
 		}
