@@ -45,6 +45,7 @@ export async function checkForMigration() {
 			console.error("Error reading legacy migration directory:", e);
 			return;
 		}
+		migrationFiles = migrationFiles.filter(file => file.toLowerCase().endsWith(".csv"));
 		if (migrationFiles?.length) {
 			console.log();
 			console.log("Legacy migration found. Proceeding...");
