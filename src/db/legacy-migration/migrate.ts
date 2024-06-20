@@ -36,12 +36,11 @@ const legacyQueueMembers: QueueMembers[] = [];
 const legacySchedules: Schedules[] = [];
 
 export async function checkForMigration() {
-	const skipMigrationFlag = process.env.CHECK_FOR_LEGACY_MIGRATION;
+	const skipMigrationFlag = process.env.ENABLE_LEGACY_MIGRATION;
 	if (skipMigrationFlag?.toLowerCase() === "true") {
 		let migrationFiles;
 		try {
-			migrationFiles = fs.readdirSync(LEGACY_EXPORT_DIR);
-			migrationFiles = migrationFiles.filter(file => file.toLowerCase().endsWith(".csv"));
+			migrationFiles = fs.readdirSync(LEGACY_EXPORT_DIR).filter(file => file.endsWith(".csv"));
 		}
 		catch (e) {
 			console.error("Error reading legacy migration directory:", e);
@@ -56,11 +55,13 @@ export async function checkForMigration() {
 			const backupPath = `data/main-pre-migration-${formatFileDate(new Date)}.sqlite`;
 			fs.copyFileSync(DB_FILEPATH, backupPath);
 
+			// Load old data
+			await loadExportData();
+
 			// Force fetch of all guilds
 			await CLIENT.guilds.fetch();
 
 			await removeOldGuildSpecificCommands();
-			await loadExportData();
 			await convertAndInsert();
 			await markComplete();
 		}
@@ -92,7 +93,7 @@ export async function removeOldGuildSpecificCommands() {
 }
 
 export async function loadExportData() {
-	const files = fs.readdirSync(LEGACY_EXPORT_DIR);
+	const files = fs.readdirSync(LEGACY_EXPORT_DIR).filter(file => file.endsWith(".csv"));
 	await Promise.all(files.map(file => new Promise<void>((resolve, reject) => {
 		const data: any[] = [];
 		fs.createReadStream(`${LEGACY_EXPORT_DIR}/${file}`)
