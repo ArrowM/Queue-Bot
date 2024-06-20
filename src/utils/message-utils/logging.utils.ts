@@ -6,17 +6,21 @@ import { Scope } from "../../types/db.types.ts";
 export namespace LoggingUtils {
 	export async function log(store: Store, isAdmin: boolean, originalMessage: Message | string) {
 		const { logChannelId, logScope } = store.dbGuild();
+		// required fields check
 		if (
 			!logChannelId ||
 			!logScope ||
 			!originalMessage ||
 			(originalMessage instanceof Message && logChannelId === originalMessage.channelId)
 		) return;
+		// scope check
+		if (![Scope.Admin, Scope.All].includes(logScope) && isAdmin) return;
+		if (![Scope.NonAdmin, Scope.All].includes(logScope) && !isAdmin) return;
 
 		const logChannel = await store.jsChannel(logChannelId) as GuildTextBasedChannel;
 		if (!logChannel) return;
 
-		const embeds: EmbedBuilder[] = [];
+		let embeds: EmbedBuilder[] = [];
 
 		if (typeof originalMessage === "string") {
 			embeds.push(new EmbedBuilder().setDescription(originalMessage));
@@ -31,25 +35,20 @@ export namespace LoggingUtils {
 		}
 
 		if (store.inter) {
-			for (const embed of embeds) {
-				(embed as any as EmbedBuilder).setAuthor({
+			embeds = embeds.map(embed =>
+				new EmbedBuilder({ ...embed.data }).setAuthor({
 					name: store.inter.user.displayName,
 					iconURL: store.inter.user.displayAvatarURL(),
 					url: (originalMessage as any)?.url,
-				});
-			}
+				})
+			);
 		}
 
-		if (
-			isAdmin && ([Scope.Admin, Scope.All].includes(logScope)) ||
-			!isAdmin && ([Scope.NonAdmin, Scope.All].includes(logScope))
-		) {
-			try {
-				return await logChannel.send({ embeds });
-			}
-			catch (e) {
-				// ignore
-			}
+		try {
+			return await logChannel.send({ embeds });
+		}
+		catch (e) {
+			// ignore
 		}
 	}
 }

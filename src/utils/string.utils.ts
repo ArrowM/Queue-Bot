@@ -74,7 +74,10 @@ export function mentionableMention(mentionable: { isRole: boolean, subjectId: Sn
 
 export function commandMention(commandName: string, subcommandName?: string) {
 	const liveCommand = ClientUtils.getLiveCommand(commandName);
-	if (subcommandName) {
+	if (!liveCommand) {
+		return inlineCode(`/${commandName}`);
+	}
+	else if (subcommandName) {
 		return chatInputApplicationCommandMention(commandName, subcommandName, liveCommand.id);
 	}
 	else {
