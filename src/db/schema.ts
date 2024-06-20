@@ -188,7 +188,7 @@ export const SCHEDULE_TABLE = sqliteTable("schedule", ({
 	command: text("command").notNull().$type<ScheduleCommand | null>(),
 	cron: text("cron").notNull(),
 	timezone: text("timezone"),
-	messageChannelId: text("user_id").$type<Snowflake | null>(),
+	messageChannelId: text("message_channel_id").$type<Snowflake | null>(),
 	reason: text("reason"),
 }),
 (table) => ({

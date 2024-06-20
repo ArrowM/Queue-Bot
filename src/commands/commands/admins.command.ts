@@ -5,13 +5,13 @@ import { Queries } from "../../db/queries.ts";
 import { ADMIN_TABLE } from "../../db/schema.ts";
 import { AdminsOption } from "../../options/options/admins.option.ts";
 import { MentionableOption } from "../../options/options/mentionable.option.ts";
-import { EveryoneCommand } from "../../types/command.types.ts";
+import { AdminCommand } from "../../types/command.types.ts";
 import { Color } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { AdminUtils } from "../../utils/admin.utils.ts";
 import { describeTable, mentionablesMention } from "../../utils/string.utils.ts";
 
-export class AdminsCommand extends EveryoneCommand {
+export class AdminsCommand extends AdminCommand {
 	static readonly ID = "admins";
 
 	admins_get = AdminsCommand.admins_get;
