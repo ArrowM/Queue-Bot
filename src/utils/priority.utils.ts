@@ -31,32 +31,33 @@ export namespace PriorityUtils {
 			}
 			const updatedQueueIds = uniq(insertedPrioritized.map(prioritized => prioritized.queueId));
 
-			reEvaluatePrioritized(store, updatedQueueIds);
 
 			return { insertedPrioritized, updatedQueueIds };
 		});
 	}
 
 	export function updatePrioritized(store: Store, prioritizedIds: bigint[], update: Partial<DbPrioritized>) {
-		return db.transaction(() => {
+		const result = db.transaction(() => {
 			const updatedPrioritized = prioritizedIds.map(id => store.updatePrioritized({ id, ...update }));
 			const updatedQueueIds = uniq(updatedPrioritized.map(prioritized => prioritized.queueId));
-
-			reEvaluatePrioritized(store, updatedQueueIds);
-
 			return { updatedPrioritized, updatedQueueIds };
 		});
+
+		reEvaluatePrioritized(store, result.updatedQueueIds);
+
+		return result;
 	}
 
 	export function deletePrioritized(store: Store, prioritizedIds: bigint[]) {
-		return db.transaction(() => {
+		const result = db.transaction(() => {
 			const deletedPrioritized = prioritizedIds.map(id => store.deletePrioritized({ id }));
 			const updatedQueueIds = uniq(deletedPrioritized.map(prioritized => prioritized.queueId));
-
-			reEvaluatePrioritized(store, updatedQueueIds);
-
 			return { deletedPrioritized, updatedQueueIds };
 		});
+
+		reEvaluatePrioritized(store, result.updatedQueueIds);
+
+		return result;
 	}
 
 	export function getMemberPriority(store: Store, queueId: bigint, jsMember: GuildMember): bigint | null {
