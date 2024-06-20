@@ -1,5 +1,5 @@
 import csv from "csv-parser";
-import { REST, Routes } from "discord.js";
+import { type DiscordAPIError, REST, Routes } from "discord.js";
 import fs from "fs";
 import { get } from "lodash-es";
 import moment from "moment-timezone";
@@ -83,12 +83,13 @@ export async function removeOldGuildSpecificCommands() {
 			}
 
 			const legacyGuild = legacyQueueGuilds[i];
-			rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, legacyGuild.guild_id), { body: [] })
-				.then(() => console.log("Successfully deleted all guild commands."))
-				.catch(console.error);
+			await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, legacyGuild.guild_id), { body: [] });
 		}
 		catch (e) {
-			console.error(e);
+			const { status } = e as DiscordAPIError;
+			if (status !== 403) {
+				console.error(e);
+			}
 		}
 	}
 }
