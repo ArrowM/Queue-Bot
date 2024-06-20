@@ -103,7 +103,7 @@ export class QueuesCommand extends AdminCommand {
 			entryLabel: "properties:",
 			hiddenProperties: ["name"],
 			queueIdProperty: "id",
-			propertyFormatters: {
+			valueFormatters: {
 				roleInQueueId: roleMention,
 				roleOnPullId: roleMention,
 				rejoinCooldownPeriod: timeMention,

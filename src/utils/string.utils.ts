@@ -125,7 +125,7 @@ export function describeTable<T extends object>(options: {
 	tableLabel: string,
 	entries: T[],
 	hiddenProperties?: (string)[],
-	propertyFormatters?: Record<string, (entry: any) => string>,
+	valueFormatters?: Record<string, (entry: any) => string>,
 	color?: Color,
 	// defaults to "queueId"
 	queueIdProperty?: string,
@@ -133,31 +133,20 @@ export function describeTable<T extends object>(options: {
 	{ entryLabelProperty?: string } | { entryLabel?: string }
 	)) {
 	const { store, table, tableLabel, color, entries } = options;
-	const propertyFormatters = options.propertyFormatters ?? {};
 	const queueIdProperty = "queueIdProperty" in options ? options.queueIdProperty : "queueId";
 	const entryLabelProperty = "entryLabelProperty" in options ? options.entryLabelProperty : null;
 	const entryLabel = "entryLabel" in options ? options.entryLabel : null;
 	const hiddenProperties = compact(concat(GLOBAL_HIDDEN_PROPERTIES, options.hiddenProperties, entryLabelProperty));
+	const valueFormatters = options.valueFormatters ?? {};
 
-	function formatPropertyLabel(property: string, isDefaultValue: boolean): string {
-		let label = convertCamelCaseToTitleCase(stripIdSuffix(property));
-
-		const formatter = propertyFormatters[property];
-		if (formatter) {
-			label = formatter(label);
-		}
-
-		return isDefaultValue ? label : bold(label);
-	}
-
-	function formatPropertyValue(entry: T, property: string): string {
+	function formatPropertyValue(entry: T, property: string, defaultFormatter: (str: string) => string): string {
 		let value = (entry as any)[property];
 
 		if (property === "subjectId") {
 			value = (entry as any).isRole ? roleMention(value) : userMention(value);
 		}
 
-		const formatter = propertyFormatters[property];
+		const formatter = valueFormatters[property];
 		if (formatter) {
 			value = formatter(value);
 		}
@@ -166,7 +155,7 @@ export function describeTable<T extends object>(options: {
 			return value;
 		}
 		else {
-			return inlineCode(value);
+			return defaultFormatter(value);
 		}
 	}
 
@@ -180,8 +169,9 @@ export function describeTable<T extends object>(options: {
 
 				if (isNil(value) && isNil(defaultValue)) return;
 
-				const formattedLabel = formatPropertyLabel(property, isDefaultValue);
-				const formattedValue = formatPropertyValue(entry, property) ?? "";
+				const label = convertCamelCaseToTitleCase(stripIdSuffix(property));
+				const formattedLabel = isDefaultValue ? label : bold(label);
+				const formattedValue = formatPropertyValue(entry, property, inlineCode) ?? "";
 				const formattedOverriddenDefaultValue = (property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
 
 				return `  - ${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();
@@ -189,7 +179,7 @@ export function describeTable<T extends object>(options: {
 	}
 
 	function formatEntry(entry: T): string {
-		const label = entryLabelProperty ? formatPropertyValue(entry, entryLabelProperty) : entryLabel;
+		const label = entryLabelProperty ? formatPropertyValue(entry, entryLabelProperty, bold) : entryLabel;
 		const descriptionLines = formatEntryDescriptionLines(entry);
 		return compact(concat(`- ${label}`, descriptionLines)).join("\n");
 	}

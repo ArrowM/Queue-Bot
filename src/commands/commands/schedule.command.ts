@@ -94,7 +94,7 @@ export class ScheduleCommand extends AdminCommand {
 			tableLabel: "Scheduled commands",
 			entryLabelProperty: "command",
 			entries: [...schedules.values()],
-			propertyFormatters: {
+			valueFormatters: {
 				cron: (cron) => `${inlineCode(cron)} (${cronstrue.toString(cron)})`,
 			},
 		});

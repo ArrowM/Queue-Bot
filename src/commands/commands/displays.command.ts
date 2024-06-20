@@ -61,7 +61,7 @@ export class DisplaysCommand extends AdminCommand {
 			tableLabel: "Displays",
 			entryLabelProperty: "displayChannelId",
 			entries: [...displays.values()],
-			propertyFormatters: { displayChannelId: (id) => channelMention(id) },
+			valueFormatters: { displayChannelId: (id) => channelMention(id) },
 			hiddenProperties: ["lastMessageId"],
 		});
 

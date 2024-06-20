@@ -108,7 +108,7 @@ export class VoiceCommand extends AdminCommand {
 			table: VOICE_TABLE,
 			tableLabel: "Voice channel sources",
 			entryLabelProperty: "sourceChannelId",
-			propertyFormatters: {
+			valueFormatters: {
 				sourceChannelId: id => `source: ${channelMention(id)}`,
 			},
 			entries: [...voices.values()],

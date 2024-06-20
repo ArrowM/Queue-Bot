@@ -34,12 +34,16 @@ export class InteractionHandler implements Handler {
 			}
 		}
 		catch (e) {
-			await this.handleInteractionError(e as Error);
+			await this.handleInteractionError(e as any);
 		}
 	}
 
-	private async handleInteractionError(error: Error) {
-		const { message, stack, embeds, log } = error as CustomError;
+	private async handleInteractionError(error: Error | string) {
+		const { stack, embeds, log } = error as CustomError;
+		const message = typeof error === "string" ? error : error.message;
+
+		// Only skip log if explicitly set to false
+		const doLog = log !== false;
 
 		if (message === "Unknown interaction") return;
 
@@ -48,7 +52,7 @@ export class InteractionHandler implements Handler {
 				.setTitle(ERROR_HEADER_LINE)
 				.setColor(Color.DarkRed)
 				.setDescription(message ? `${codeBlock(message)}` : "an unknown error occurred");
-			if (log) {
+			if (doLog) {
 				embed.setFooter({ text: "This error has been logged and will be investigated by the developers." });
 			}
 
@@ -59,7 +63,7 @@ export class InteractionHandler implements Handler {
 				});
 			}
 
-			if (log) {
+			if (doLog) {
 				console.error(`Error (guildId=${this.inter.guildId}): ${message}`);
 				console.error(`Stack Trace: ${stack}`);
 			}

@@ -1,5 +1,5 @@
 import type { Collection } from "discord.js";
-import { uniq } from "lodash-es";
+import { isEmpty, uniq } from "lodash-es";
 import { schedule as cron, type ScheduledTask, validate } from "node-cron";
 
 import { Queries } from "../db/queries.ts";
@@ -96,7 +96,7 @@ export namespace ScheduleUtils {
 	}
 
 	export function validateTimezone(timezone: string) {
-		if (!LOWER_TIMEZONES.includes(timezone)) {
+		if (!isEmpty(timezone) && !LOWER_TIMEZONES.includes(timezone)) {
 			throw new Error("Invalid timezone");
 		}
 	}
@@ -107,7 +107,6 @@ export namespace ScheduleUtils {
 		dbSchedules.forEach(sch => registerWithCronLibrary(sch));
 		console.timeEnd(`Loaded ${dbSchedules.length} schedules`);
 	}
-
 
 	function registerWithCronLibrary(schedule: DbSchedule) {
 		scheduleIdToScheduleTask.set(
