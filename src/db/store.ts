@@ -10,7 +10,7 @@ import { and, eq, isNull, or } from "drizzle-orm";
 import { compact, isNil, omitBy } from "lodash-es";
 import moize from "moize";
 
-import { ArchivedMemberReason, type GuildStat, type Scope } from "../types/db.types.ts";
+import { type GuildStat, MemberRemovalReason, type Scope } from "../types/db.types.ts";
 import type { AnyInteraction } from "../types/interaction.types.ts";
 import {
 	AdminAlreadyExistsError,
@@ -136,7 +136,7 @@ export class Store {
 		catch (e) {
 			const { status } = e as DiscordAPIError;
 			if (status == 404) {
-				this.deleteManyMembers({ userId }, ArchivedMemberReason.NotFound);
+				this.deleteManyMembers({ userId }, MemberRemovalReason.NotFound);
 			}
 			else {
 				console.error(e);
@@ -571,7 +571,7 @@ export class Store {
 	deleteMember(by:
 								 { id: bigint } |
 								 { queueId: bigint, userId?: Snowflake },
-							 reason: ArchivedMemberReason
+							 reason: MemberRemovalReason
 	) {
 		this.dbMembers.clear();
 		const deletedMember = db.transaction(() => {
@@ -597,7 +597,7 @@ export class Store {
 	deleteManyMembers(by:
 											{ userId?: Snowflake } |
 											{ queueId: bigint, count?: number },
-	reason: ArchivedMemberReason
+	reason: MemberRemovalReason
 	) {
 		let deletedMembers: DbMember[];
 		db.transaction(() => {

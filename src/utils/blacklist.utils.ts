@@ -4,7 +4,7 @@ import { uniq } from "lodash-es";
 import { db } from "../db/db.ts";
 import type { DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
-import { ArchivedMemberReason } from "../types/db.types.ts";
+import { MemberRemovalReason } from "../types/db.types.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 import type { Mentionable } from "../types/parsing.types.ts";
 import { MemberUtils } from "./member.utils.ts";
@@ -29,7 +29,7 @@ export namespace BlacklistUtils {
 					);
 					// delete members
 					const by = (mentionable instanceof Role) ? { roleId: mentionable.id } : { userId: mentionable.id };
-					await MemberUtils.deleteMembers({ store, queues, reason: ArchivedMemberReason.Kicked, by, force: true });
+					await MemberUtils.deleteMembers({ store, queues, reason: MemberRemovalReason.Kicked, by, force: true });
 				}
 			}
 			const updatedQueueIds = uniq(insertedBlacklisted.map(blacklisted => blacklisted.queueId));

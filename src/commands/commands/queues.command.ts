@@ -28,7 +28,7 @@ import { TimestampTypeOption } from "../../options/options/timestamp-type.option
 import { VoiceDestinationChannelOption } from "../../options/options/voice-destination-channel.option.ts";
 import { VoiceOnlyToggleOption } from "../../options/options/voice-only-toggle.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
-import { ArchivedMemberReason } from "../../types/db.types.ts";
+import { MemberRemovalReason } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { DisplayUtils } from "../../utils/display.utils.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
@@ -251,7 +251,7 @@ export class QueuesCommand extends AdminCommand {
 				}
 			}
 			for (const queue of nonVoiceOnlyQueues.values()) {
-				await MemberUtils.deleteMembers({ store: inter.store, queues: [queue], reason: ArchivedMemberReason.Kicked });
+				await MemberUtils.deleteMembers({ store: inter.store, queues: [queue], reason: MemberRemovalReason.Kicked });
 				await inter.respond(`Cleared ${queueMention(queue)} queue of members due to ${inlineCode(VoiceOnlyToggleOption.ID)} being enabled.`, true);
 			}
 		}
@@ -340,7 +340,7 @@ export class QueuesCommand extends AdminCommand {
 
 		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to delete the '${queueMention(queue)}' queue?`);
 		if (!confirmed) {
-			await inter.respond("Cancelled queue deletion");
+			await inter.respond("Cancelled delete.");
 			return;
 		}
 

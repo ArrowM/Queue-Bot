@@ -13,7 +13,7 @@ import { compact, shuffle } from "lodash-es";
 
 import { Queries } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
-import { ArchivedMemberReason } from "../types/db.types.ts";
+import { MemberRemovalReason } from "../types/db.types.ts";
 import { DisplayUtils } from "../utils/display.utils.ts";
 import { MemberUtils } from "../utils/member.utils.ts";
 import { QueueUtils } from "../utils/queue.utils.ts";
@@ -47,7 +47,7 @@ export namespace ClientHandler {
 		await MemberUtils.deleteMembers({
 			store,
 			queues: store.dbQueues(),
-			reason: ArchivedMemberReason.NotFound,
+			reason: MemberRemovalReason.NotFound,
 			by: { userId: member.id },
 		});
 	}
@@ -97,7 +97,7 @@ export namespace ClientHandler {
 				await MemberUtils.deleteMembers({
 					store,
 					queues: [queue],
-					reason: ArchivedMemberReason.Left,
+					reason: MemberRemovalReason.Left,
 					by: { userId: newState.member!.id },
 				});
 			}
@@ -117,7 +117,7 @@ export namespace ClientHandler {
 						await MemberUtils.deleteMembers({
 							store,
 							queues: [queue],
-							reason: ArchivedMemberReason.Pulled,
+							reason: MemberRemovalReason.Pulled,
 							by: { count: destinationChannel.userLimit - destinationChannel.members.size },
 						});
 					}

@@ -10,7 +10,7 @@ import { MemberOption } from "./member.option.ts";
 export class MembersOption extends CustomOption {
 	static readonly ID = "queue_members";
 	id = MembersOption.ID;
-	extraChoices = [CHOICE_ALL];
+	extraChoices = [CHOICE_ALL, CHOICE_SOME];
 
 	getAutocompletions = MemberOption.getAutocompletions;
 

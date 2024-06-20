@@ -8,13 +8,13 @@ import {
 	roleMention,
 	type Snowflake,
 } from "discord.js";
-import { isNil, shuffle } from "lodash-es";
+import { isNil, shuffle, upperFirst } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import { Queries } from "../db/queries.ts";
 import { type DbArchivedMember, type DbMember, type DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
-import { ArchivedMemberReason } from "../types/db.types.ts";
+import { MemberRemovalReason } from "../types/db.types.ts";
 import type { MemberDeleteBy } from "../types/member.types.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 import { NotificationAction } from "../types/notification.types.ts";
@@ -41,7 +41,7 @@ export namespace MemberUtils {
 		mentionables: Mentionable[],
 		queues: Collection<bigint, DbQueue>,
 		force?: boolean,
-	}, ) {
+	}) {
 		const { store, mentionables, queues, force } = options;
 
 		const insertedMembers = [];
@@ -86,7 +86,7 @@ export namespace MemberUtils {
 			const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
 			let positionTime = BigInt(Date.now());
 
-			if (queue.rejoinGracePeriod && archivedMember?.reason === ArchivedMemberReason.Left) {
+			if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
 				if (BigInt(Date.now()) - archivedMember.archivedTime <= queue.rejoinGracePeriod) {
 					// Reuse the positionTime
 					positionTime = archivedMember.positionTime;
@@ -128,7 +128,7 @@ export namespace MemberUtils {
 	export async function deleteMembers(options: {
 		store: Store,
 		queues: ArrayOrCollection<bigint, DbQueue>,
-		reason: ArchivedMemberReason,
+		reason: MemberRemovalReason,
 		by?: MemberDeleteBy,
 		messageChannelId?: Snowflake;
 		destinationChannelId?: Snowflake;
@@ -139,7 +139,7 @@ export namespace MemberUtils {
 		const { userId, userIds, roleId, count } = by ?? {} as any;
 		const deletedMembers: DbMember[] = [];
 
-		async function deleteMembersAndNotify(queue: DbQueue, userIds: Snowflake[], reason: ArchivedMemberReason) {
+		async function deleteMembersAndNotify(queue: DbQueue, userIds: Snowflake[], reason: MemberRemovalReason) {
 			const deleted: DbMember[] = userIds
 				.map(userId => store.deleteMember({ queueId: queue.id, userId }, reason))
 				.filter(Boolean);
@@ -147,7 +147,7 @@ export namespace MemberUtils {
 			userIds.forEach(userId => modifyMemberRoles(store, userId, queue.roleInQueueId, "remove").catch(() => null));
 
 			// Pull members to the destination channel if they are in a voice channel
-			if (reason === ArchivedMemberReason.Pulled) {
+			if (reason === MemberRemovalReason.Pulled) {
 				const destinationChannelId = options.destinationChannelId ?? queue.voiceDestinationChannelId;
 				if (destinationChannelId) {
 					for (const userId of userIds) {
@@ -162,16 +162,16 @@ export namespace MemberUtils {
 				}
 			}
 
-			if ([ArchivedMemberReason.Pulled, ArchivedMemberReason.Kicked].includes(reason)) {
+			if ([MemberRemovalReason.Pulled, MemberRemovalReason.Kicked].includes(reason)) {
 				// Notify of pull or kick
-				const action = (reason === ArchivedMemberReason.Pulled)
+				const action = (reason === MemberRemovalReason.Pulled)
 					? NotificationAction.PULLED_FROM_QUEUE
 					: NotificationAction.KICKED_FROM_QUEUE;
 				let messageLink;
 				if (messageChannelId) {
 					const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
 					if (messageChannel) {
-						const embed = await describePulledMembers(store, queue, deleted);
+						const embed = await describePulledMembers(store, queue, deleted, reason);
 						const message = await messageChannel?.send({ embeds: [embed] });
 						LoggingUtils.log(store, true, message).catch(() => null);
 						messageLink = message.url;
@@ -253,7 +253,7 @@ export namespace MemberUtils {
 	}
 
 	export async function clearMembers(store: Store, queue: DbQueue, messageChannelId: Snowflake) {
-		const members = store.deleteManyMembers({ queueId: queue.id }, ArchivedMemberReason.Kicked);
+		const members = store.deleteManyMembers({ queueId: queue.id }, MemberRemovalReason.Kicked);
 
 		DisplayUtils.requestDisplayUpdate(store, queue.id);
 
@@ -297,14 +297,14 @@ export namespace MemberUtils {
 			.setDescription(await DisplayUtils.createMemberDisplayLine(store, member, position));
 	}
 
-	export async function describePulledMembers(store: Store, queue: DbQueue, pulledMembers: DbMember[]) {
+	export async function describePulledMembers(store: Store, queue: DbQueue, pulledMembers: DbMember[], reason: MemberRemovalReason) {
 		const pulledMembersOfQueue = pulledMembers.filter(member => member.queueId === queue.id);
 		const membersStr = await membersMention(store, pulledMembersOfQueue);
 		let description = "";
 		if (queue.pullMessage) {
 			description += `> ${queue.pullMessage}\n\n`;
 		}
-		description += pulledMembersOfQueue.length ? `Pulled from queue:\n${membersStr}` : `No members were pulled from queue`;
+		description += pulledMembersOfQueue.length ? `${upperFirst(reason)} from queue:\n${membersStr}` : `No members were ${reason} from queue.`;
 		return new EmbedBuilder()
 			.setTitle(queueMention(queue))
 			.setColor(queue.color)
@@ -409,7 +409,7 @@ export namespace MemberUtils {
 			}
 		}
 
-		if (queue.rejoinCooldownPeriod && archivedMember?.reason === ArchivedMemberReason.Pulled) {
+		if (queue.rejoinCooldownPeriod && archivedMember?.reason === MemberRemovalReason.Pulled) {
 			const msSincePulled = BigInt(Date.now()) - archivedMember.archivedTime;
 			const msCooldownRemaining = (queue.rejoinCooldownPeriod * 1000n) - msSincePulled;
 			if (msCooldownRemaining > 0) {

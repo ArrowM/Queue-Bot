@@ -1,7 +1,7 @@
 import { ButtonStyle } from "discord.js";
 
 import { EveryoneButton } from "../../types/button.types.ts";
-import { ArchivedMemberReason } from "../../types/db.types.ts";
+import { MemberRemovalReason } from "../../types/db.types.ts";
 import type { ButtonInteraction } from "../../types/interaction.types.ts";
 import { ButtonUtils } from "../../utils/button.utils.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
@@ -19,7 +19,7 @@ export class LeaveButton extends EveryoneButton {
 		await MemberUtils.deleteMembers({
 			store: inter.store,
 			queues: [queue],
-			reason: ArchivedMemberReason.Left,
+			reason: MemberRemovalReason.Left,
 			by: { userId: inter.member.id },
 		});
 

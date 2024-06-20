@@ -60,7 +60,7 @@ export enum TimestampType {
 	Relative = "relative",
 }
 
-export enum ArchivedMemberReason {
+export enum MemberRemovalReason {
 	Left = "left",
 	Kicked = "kicked",
 	Pulled = "pulled",

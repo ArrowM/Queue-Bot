@@ -120,6 +120,10 @@ export abstract class CustomOption extends BaseOption<SlashCommandStringOption> 
 		command.addStringOption(this.build);
 	}
 
+	getRaw(inter: AutocompleteInteraction | SlashInteraction) {
+		return inter.options.getString(this.id);
+	}
+
 	abstract getAutocompletions(options: AutoCompleteOptions): Promise<UIOption[]>;
 
 	protected abstract getUncached(inter: AutocompleteInteraction | SlashInteraction): Promise<unknown>;

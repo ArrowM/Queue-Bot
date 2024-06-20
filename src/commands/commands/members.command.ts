@@ -7,9 +7,10 @@ import { MentionableOption } from "../../options/options/mentionable.option.ts";
 import { MessageOption } from "../../options/options/message.option.ts";
 import { QueuesOption } from "../../options/options/queues.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
-import { ArchivedMemberReason } from "../../types/db.types.ts";
+import { MemberRemovalReason } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { NotificationAction } from "../../types/notification.types.ts";
+import { ChoiceType } from "../../types/parsing.types.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
 import { NotificationUtils } from "../../utils/notification.utils.ts";
@@ -152,16 +153,18 @@ export class MembersCommand extends AdminCommand {
 		const queues = await MembersCommand.DELETE_OPTIONS.queues.get(inter);
 		const members = await MembersCommand.DELETE_OPTIONS.members.get(inter);
 
-		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}?`);
-		if (!confirmed) {
-			await inter.respond("Cancelled delete");
-			return;
+		if (MembersCommand.DELETE_OPTIONS.members.getRaw(inter) === ChoiceType.ALL) {
+			const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}?`);
+			if (!confirmed) {
+				await inter.respond("Cancelled delete.");
+				return;
+			}
 		}
 
 		const deletedMembers = await MemberUtils.deleteMembers({
 			store: inter.store,
 			queues,
-			reason: ArchivedMemberReason.Kicked,
+			reason: MemberRemovalReason.Kicked,
 			by: { userIds: members.map(member => member.userId) },
 			messageChannelId: inter.channel.id,
 			force: true,

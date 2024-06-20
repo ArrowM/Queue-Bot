@@ -5,7 +5,7 @@ import { schedule as cron, type ScheduledTask, validate } from "node-cron";
 import { Queries } from "../db/queries.ts";
 import { type DbQueue, type DbSchedule, type NewSchedule } from "../db/schema.ts";
 import { Store } from "../db/store.ts";
-import { ArchivedMemberReason, DisplayUpdateType, ScheduleCommand } from "../types/db.types.ts";
+import { DisplayUpdateType, MemberRemovalReason, ScheduleCommand } from "../types/db.types.ts";
 import { type ArrayOrCollection, LOWER_TIMEZONES } from "../types/misc.types.ts";
 import { ClientUtils } from "./client.utils.ts";
 import { DisplayUtils } from "./display.utils.ts";
@@ -139,7 +139,7 @@ export namespace ScheduleUtils {
 				await MemberUtils.deleteMembers({
 					store,
 					queues: [queue],
-					reason: ArchivedMemberReason.Pulled,
+					reason: MemberRemovalReason.Pulled,
 				});
 				break;
 			case ScheduleCommand.Show:

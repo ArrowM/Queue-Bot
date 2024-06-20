@@ -10,7 +10,7 @@ import { VoiceOnlyToggleOption } from "../../options/options/voice-only-toggle.o
 import { VoiceSourceChannelOption } from "../../options/options/voice-source-channel.option.ts";
 import { VoicesOption } from "../../options/options/voices.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
-import { ArchivedMemberReason, Color } from "../../types/db.types.ts";
+import { Color, MemberRemovalReason } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
@@ -154,7 +154,7 @@ export class VoiceCommand extends AdminCommand {
 			}
 		}
 		for (const queue of voiceOnlyQueues.values()) {
-			await MemberUtils.deleteMembers({ store: inter.store, queues: [queue], reason: ArchivedMemberReason.Kicked });
+			await MemberUtils.deleteMembers({ store: inter.store, queues: [queue], reason: MemberRemovalReason.Kicked });
 			await inter.respond(`Cleared ${queueMention(queue)} queue of members due to ${inlineCode(VoiceOnlyToggleOption.ID)} being enabled.`, true);
 		}
 		if (nonVoiceOnlyQueues.length) {

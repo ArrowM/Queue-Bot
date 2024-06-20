@@ -29,7 +29,7 @@ export class ClearCommand extends AdminCommand {
 
 		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}?`);
 		if (!confirmed) {
-			await inter.respond("Cancelled clear");
+			await inter.respond("Cancelled clear.");
 			return;
 		}
 

@@ -4,7 +4,7 @@ import { MembersOption } from "../../options/options/members.option.ts";
 import { NumberOption } from "../../options/options/number.option.ts";
 import { QueuesOption } from "../../options/options/queues.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
-import { ArchivedMemberReason } from "../../types/db.types.ts";
+import { MemberRemovalReason } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
 import { PullCommand } from "./pull.command.ts";
@@ -45,7 +45,7 @@ export class ToMeCommand extends AdminCommand {
 		await MemberUtils.deleteMembers({
 			store: inter.store,
 			queues,
-			reason: ArchivedMemberReason.Pulled,
+			reason: MemberRemovalReason.Pulled,
 			by: { userIds: members?.map((member) => member.userId), count },
 			messageChannelId: inter.channel.id,
 			destinationChannelId,
