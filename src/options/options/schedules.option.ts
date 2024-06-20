@@ -9,7 +9,7 @@ import { ScheduleOption } from "./schedule.option.ts";
 
 export class SchedulesOption extends CustomOption {
 	static readonly ID = "schedules";
-	id = ScheduleOption.ID;
+	id = SchedulesOption.ID;
 	extraChoices = [CHOICE_ALL, CHOICE_SOME];
 
 	getAutocompletions = ScheduleOption.getAutocompletions;
