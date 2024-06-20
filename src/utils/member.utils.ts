@@ -214,21 +214,32 @@ export namespace MemberUtils {
 		return deletedMembers;
 	}
 
-	export function moveMember(store: Store, queue: DbQueue, member: DbMember, newPosition: number) {
-		return db.transaction(() => {
-			const members = [...store.dbMembers().filter(member => member.queueId === queue.id).values()];
-			const positions = members.map(m => m.positionTime);
-			const originalPosition = positions.indexOf(member.positionTime);
+	// Position is 0 indexed
+	export function moveMember(store: Store, queue: DbQueue, member: DbMember, position: number) {
+		// Validate position
+		const members = [...store.dbMembers().filter(member => member.queueId === queue.id).values()];
 
-			if (originalPosition > newPosition) {
-				members.splice(originalPosition, 1);
+		if (position < 1 || position > members.length) {
+			throw new CustomError({
+				message: "Invalid position",
+				embeds: [new EmbedBuilder().setDescription(`Position must be between 1 and ${members.length}.`)],
+			});
+		}
+
+		return db.transaction(() => {
+			const positions = members.map(m => m.positionTime);
+			const newPosition = position - 1;
+			const oldPosition = positions.indexOf(member.positionTime);
+
+			if (oldPosition > newPosition) {
+				members.splice(oldPosition, 1);
 				members.splice(newPosition, 0, member);
 				members.forEach((member, i) =>
 					store.updateMember({ ...member, positionTime: positions[i] })
 				);
 			}
-			else if (originalPosition < newPosition) {
-				members.splice(originalPosition, 1);
+			else if (oldPosition < newPosition) {
+				members.splice(oldPosition, 1);
 				members.splice(newPosition - 1, 0, member);
 				members.forEach((member, i) =>
 					store.updateMember({ ...member, positionTime: positions[i] })

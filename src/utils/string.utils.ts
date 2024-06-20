@@ -48,7 +48,7 @@ export async function membersMention(store: Store, members: ArrayOrCollection<bi
 export async function memberMention(store: Store, member: DbMember) {
 	const { timestampType, memberDisplayType } = store.dbQueues().get(member.queueId);
 	const timeStr = formatTimestamp(member.joinTime, timestampType);
-	const prioStr = isNil(member.priorityOrder) ? "✨" : "";
+	const prioStr = isNil(member.priorityOrder) ? "" : "✨";
 	const msgStr = member.message ? ` -- ${member.message}` : "";
 
 	const jsMember = await store.jsMember(member.userId);
