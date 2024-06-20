@@ -1,6 +1,7 @@
 import cronstrue from "cronstrue";
 import { type Collection, EmbedBuilder, inlineCode, SlashCommandBuilder } from "discord.js";
-import { isNil, omitBy } from "lodash-es";
+import { SQLiteColumn } from "drizzle-orm/sqlite-core";
+import { findKey, isNil, omitBy } from "lodash-es";
 
 import { type DbQueue, SCHEDULE_TABLE } from "../../db/schema.ts";
 import { CommandOption } from "../../options/options/command.option.ts";
@@ -14,6 +15,7 @@ import { TimezoneOption } from "../../options/options/timezone.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
 import { Color } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
+import { SelectMenuTransactor } from "../../utils/message-utils/select-menu-transactor.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
 import { ScheduleUtils } from "../../utils/schedule.utils.ts";
 import { describeTable, scheduleMention } from "../../utils/string.utils.ts";
@@ -24,6 +26,7 @@ export class ScheduleCommand extends AdminCommand {
 	schedule_get = ScheduleCommand.schedule_get;
 	schedule_add = ScheduleCommand.schedule_add;
 	schedule_set = ScheduleCommand.schedule_set;
+	schedule_reset = ScheduleCommand.schedule_reset;
 	schedule_delete = ScheduleCommand.schedule_delete;
 	schedule_help = ScheduleCommand.schedule_help;
 
@@ -49,6 +52,13 @@ export class ScheduleCommand extends AdminCommand {
 				.setName("set")
 				.setDescription("Update a scheduled command");
 			Object.values(ScheduleCommand.SET_OPTIONS).forEach(option => option.addToCommand(subcommand));
+			return subcommand;
+		})
+		.addSubcommand(subcommand => {
+			subcommand
+				.setName("reset")
+				.setDescription("Reset a scheduled command");
+			Object.values(ScheduleCommand.RESET_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		})
 		.addSubcommand(subcommand => {
@@ -170,6 +180,44 @@ export class ScheduleCommand extends AdminCommand {
 
 		const schedulesStr = updatedSchedules.map(schedule => `- ${scheduleMention(schedule)}`).join("\n");
 		await inter.respond(`Created schedule${updatedSchedules.length > 1 ? "s" : ""}.\n${schedulesStr}`, true);
+
+		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
+		await this.schedule_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
+	}
+
+	// ====================================================================
+	//                           /schedule reset
+	// ====================================================================
+
+	static readonly RESET_OPTIONS = {
+		schedules: new SchedulesOption({ required: true, description: "Scheduled commands to reset" }),
+	};
+
+	static async schedule_reset(inter: SlashInteraction) {
+		const schedules = await ScheduleCommand.RESET_OPTIONS.schedules.get(inter);
+
+		const selectMenuOptions = [
+			{ name: TimezoneOption.ID, value: SCHEDULE_TABLE.timezone.name },
+			{ name: MessageChannelOption.ID, value: SCHEDULE_TABLE.messageChannelId.name },
+			{ name: ReasonOption.ID, value: SCHEDULE_TABLE.reason.name },
+		];
+
+		const selectMenuTransactor = new SelectMenuTransactor(inter);
+		const propertiesToReset = await selectMenuTransactor.sendAndReceive("Schedule properties to reset", selectMenuOptions);
+
+		const updatedProperties = {} as any;
+		for (const property of propertiesToReset) {
+			const columnKey = findKey(SCHEDULE_TABLE, (column: SQLiteColumn) => column.name === property);
+			updatedProperties[columnKey] = (SCHEDULE_TABLE as any)[columnKey]?.default;
+		}
+
+		const {
+			updatedSchedules,
+			updatedQueueIds,
+		} = ScheduleUtils.updateSchedules(inter.store, schedules, updatedProperties);
+
+		const schedulesStr = updatedSchedules.map(schedule => `- ${scheduleMention(schedule)}`).join("\n");
+		await inter.respond(`Reset schedule${updatedSchedules.length > 1 ? "s" : ""}.\n${schedulesStr}`, true);
 
 		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 		await this.schedule_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
