@@ -201,7 +201,7 @@ async function convertAndInsert() {
 									autopullToggle: legacyQueue.auto_fill,
 									color: get(Color, legacyQueue.color) ?? QUEUE_TABLE.color.default,
 									displayButtons: legacyQueue.hide_button ? Scope.None : Scope.All,
-									displayUpdateType: (legacyGuild.msg_mode === 1) ? DisplayUpdateType.Edit : (legacyGuild.msg_mode === 2) ? DisplayUpdateType.Replace : DisplayUpdateType.New,
+									displayUpdateType: (legacyGuild.msg_mode === 3) ? DisplayUpdateType.New : (legacyGuild.msg_mode === 2) ? DisplayUpdateType.Replace : DisplayUpdateType.Edit,
 									header: legacyQueue.header,
 									lockToggle: legacyQueue.is_locked,
 									memberDisplayType: legacyGuild.disable_mentions ? MemberDisplayType.Plaintext : MemberDisplayType.Mention,
