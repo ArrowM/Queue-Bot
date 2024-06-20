@@ -30,7 +30,7 @@ export class QueuesOption extends CustomOption {
 			case CHOICE_SOME.value:
 				return await this.getViaSelectMenu(inter as SlashInteraction, scopedQueues);
 			default:
-				const queue = QueueOption.findQueue(inter.store.dbQueues(), inputString);
+				const queue = QueueOption.findQueue(scopedQueues, inputString);
 				return queue ? new Collection([[queue.id, queue]]) : null;
 		}
 	}

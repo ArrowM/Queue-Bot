@@ -426,7 +426,7 @@ export class Store {
 		this.dbQueues.clear();
 		return db
 			.update(QUEUE_TABLE)
-			.set(omitBy(queue, isNil))
+			.set(queue)
 			.where(and(
 				eq(QUEUE_TABLE.id, queue.id),
 				eq(QUEUE_TABLE.guildId, this.guild.id)
@@ -438,7 +438,7 @@ export class Store {
 		this.dbVoices.clear();
 		return db
 			.update(VOICE_TABLE)
-			.set(omitBy(voice, isNil))
+			.set(voice)
 			.where(and(
 				eq(VOICE_TABLE.id, voice.id),
 				eq(VOICE_TABLE.guildId, this.guild.id)
@@ -450,7 +450,7 @@ export class Store {
 		this.dbDisplays.clear();
 		return db
 			.update(DISPLAY_TABLE)
-			.set(omitBy(display, isNil))
+			.set(display)
 			.where(and(
 				eq(DISPLAY_TABLE.id, display.id),
 				eq(DISPLAY_TABLE.guildId, this.guild.id)
@@ -462,7 +462,7 @@ export class Store {
 		this.dbMembers.clear();
 		return db
 			.update(MEMBER_TABLE)
-			.set(omitBy(member, isNil))
+			.set(member)
 			.where(and(
 				eq(MEMBER_TABLE.id, member.id),
 				eq(MEMBER_TABLE.guildId, this.guild.id)
@@ -474,7 +474,7 @@ export class Store {
 		this.dbSchedules.clear();
 		return db
 			.update(SCHEDULE_TABLE)
-			.set(omitBy(schedule, isNil))
+			.set(schedule)
 			.where(and(
 				eq(SCHEDULE_TABLE.id, schedule.id),
 				eq(SCHEDULE_TABLE.guildId, this.guild.id)
@@ -486,7 +486,7 @@ export class Store {
 		this.dbWhitelisted.clear();
 		return db
 			.update(WHITELISTED_TABLE)
-			.set(omitBy(whitelisted, isNil))
+			.set(whitelisted)
 			.where(and(
 				eq(WHITELISTED_TABLE.id, whitelisted.id),
 				eq(WHITELISTED_TABLE.guildId, this.guild.id)
@@ -498,7 +498,7 @@ export class Store {
 		this.dbBlacklisted.clear();
 		return db
 			.update(BLACKLISTED_TABLE)
-			.set(omitBy(blacklisted, isNil))
+			.set(blacklisted)
 			.where(and(
 				eq(BLACKLISTED_TABLE.id, blacklisted.id),
 				eq(BLACKLISTED_TABLE.guildId, this.guild.id)
@@ -510,7 +510,7 @@ export class Store {
 		this.dbPrioritized.clear();
 		return db
 			.update(PRIORITIZED_TABLE)
-			.set(omitBy(prioritized, isNil))
+			.set(prioritized)
 			.where(and(
 				eq(PRIORITIZED_TABLE.id, prioritized.id),
 				eq(PRIORITIZED_TABLE.guildId, this.guild.id)

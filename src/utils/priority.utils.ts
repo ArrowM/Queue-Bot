@@ -11,7 +11,7 @@ import { filterDbObjectsOnJsMember } from "./misc.utils.ts";
 
 export namespace PriorityUtils {
 	export function insertPrioritized(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, mentionables: Mentionable[], priorityOrder?: bigint, reason?: string) {
-		return db.transaction(() => {
+		const result = db.transaction(() => {
 			const _queues = queues instanceof Collection ? [...queues.values()] : queues;
 			const insertedPrioritized = [];
 
@@ -31,9 +31,12 @@ export namespace PriorityUtils {
 			}
 			const updatedQueueIds = uniq(insertedPrioritized.map(prioritized => prioritized.queueId));
 
-
 			return { insertedPrioritized, updatedQueueIds };
 		});
+
+		reEvaluatePrioritized(store, result.updatedQueueIds);
+
+		return result;
 	}
 
 	export function updatePrioritized(store: Store, prioritizedIds: bigint[], update: Partial<DbPrioritized>) {
@@ -63,7 +66,7 @@ export namespace PriorityUtils {
 	export function getMemberPriority(store: Store, queueId: bigint, jsMember: GuildMember): bigint | null {
 		const prioritizedOfQueue = store.dbPrioritized().filter(prioritized => queueId === prioritized.queueId);
 		const prioritizedOfMember = filterDbObjectsOnJsMember(prioritizedOfQueue, jsMember);
-		return prioritizedOfMember.size ? min(prioritizedOfMember.map(prioritized => prioritized.priorityOrder)) : undefined;
+		return prioritizedOfMember.size ? min(prioritizedOfMember.map(prioritized => prioritized.priorityOrder)) : null;
 	}
 
 	async function reEvaluatePrioritized(store: Store, queueIds: bigint[]) {
