@@ -69,6 +69,7 @@ export async function checkForMigration() {
 }
 
 export async function removeOldGuildSpecificCommands() {
+	console.log("Removing old guild commands:");
 	const rest = new REST().setToken(process.env.TOKEN);
 	for (let i = 0; i < legacyQueueGuilds.length; i++) {
 		try {
