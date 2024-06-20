@@ -36,13 +36,20 @@ import { membersMention, queueMention, timeMention } from "./string.utils.ts";
 import { WhitelistUtils } from "./whitelist.utils.ts";
 
 export namespace MemberUtils {
-	export async function insertMentionables(store: Store, mentionables: Mentionable[], queues?: Collection<bigint, DbQueue>) {
+	export async function insertMentionables(options: {
+		store: Store
+		mentionables: Mentionable[],
+		queues: Collection<bigint, DbQueue>,
+		force?: boolean,
+	}, ) {
+		const { store, mentionables, queues, force } = options;
+
 		const insertedMembers = [];
 		for (const mentionable of mentionables) {
 			if (mentionable instanceof GuildMember) {
 				for (const queue of queues.values()) {
 					insertedMembers.push(
-						await insertJsMember({ store, queue, jsMember: mentionable })
+						await insertJsMember({ store, queue, jsMember: mentionable, force })
 					);
 				}
 			}
@@ -51,7 +58,7 @@ export namespace MemberUtils {
 				for (const queue of queues.values()) {
 					for (const jsMember of role.members.values()) {
 						insertedMembers.push(
-							await insertJsMember({ store, queue, jsMember })
+							await insertJsMember({ store, queue, jsMember, force })
 						);
 					}
 				}

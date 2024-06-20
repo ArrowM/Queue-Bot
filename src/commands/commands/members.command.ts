@@ -91,7 +91,12 @@ export class MembersCommand extends AdminCommand {
 			MembersCommand.ADD_OPTIONS.mentionable5.get(inter),
 		]);
 
-		const insertedMembers = await MemberUtils.insertMentionables(inter.store, mentionables, queues);
+		const insertedMembers = await MemberUtils.insertMentionables({
+			store: inter.store,
+			mentionables,
+			queues,
+			force: true,
+		});
 
 		const message = await inter.respond(`Added ${usersMention(insertedMembers)} to '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
 
