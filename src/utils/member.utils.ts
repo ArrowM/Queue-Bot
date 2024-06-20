@@ -137,6 +137,7 @@ export namespace MemberUtils {
 		reason: ArchivedMemberReason,
 		by?: MemberDeleteBy,
 		messageChannelId?: Snowflake;
+		destinationChannelId?: Snowflake;
 		force?: boolean,
 	}) {
 		const { store, reason, by, messageChannelId, force } = options;
@@ -153,11 +154,12 @@ export namespace MemberUtils {
 
 			// Pull members to the destination channel if they are in a voice channel
 			if (reason === ArchivedMemberReason.Pulled) {
-				if (queue.voiceDestinationChannelId) {
+				const destinationChannelId = options.destinationChannelId ?? queue.voiceDestinationChannelId;
+				if (destinationChannelId) {
 					for (const userId of userIds) {
 						const jsMember = await store.jsMember(userId);
-						if (jsMember.voice && jsMember.voice.channelId !== queue.voiceDestinationChannelId) {
-							jsMember.voice?.setChannel(queue.voiceDestinationChannelId).catch(() => null);
+						if (jsMember.voice && jsMember.voice.channelId !== destinationChannelId) {
+							jsMember.voice?.setChannel(destinationChannelId).catch(() => null);
 						}
 					}
 				}

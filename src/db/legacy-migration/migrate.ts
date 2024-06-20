@@ -1,4 +1,5 @@
 import csv from "csv-parser";
+import { REST, Routes } from "discord.js";
 import fs from "fs";
 import { get } from "lodash-es";
 import moment from "moment-timezone";
@@ -55,17 +56,39 @@ export async function checkForMigration() {
 			const backupPath = `data/main-pre-migration-${formatFileDate(new Date)}.sqlite`;
 			fs.copyFileSync(DB_FILEPATH, backupPath);
 
-			await migrate();
+			// Force fetch of all guilds
+			await CLIENT.guilds.fetch();
 
+			await removeOldGuildSpecificCommands();
+			await loadExportData();
+			await convertAndInsert();
 			await markComplete();
 		}
 	}
 }
 
+export async function removeOldGuildSpecificCommands() {
+	const rest = new REST().setToken(process.env.TOKEN);
+	for (let i = 0; i < legacyQueueGuilds.length; i++) {
+		try {
+			// rate limit
+			if (i % 5 === 4) {
+				await new Promise(resolve => setTimeout(resolve, 1000));
+			}
+			// log progress
+			if (i % 25 === 24 || i === legacyQueueGuilds.length - 1) {
+				console.log(`Removing old guild commands ${i + 1} of ${legacyQueueGuilds.length}`);
+			}
 
-export async function migrate() {
-	await loadExportData();
-	await convertAndInsert();
+			const legacyGuild = legacyQueueGuilds[i];
+			rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, legacyGuild.guild_id), { body: [] })
+				.then(() => console.log("Successfully deleted all guild commands."))
+				.catch(console.error);
+		}
+		catch (e) {
+			console.error(e);
+		}
+	}
 }
 
 export async function loadExportData() {
@@ -137,9 +160,6 @@ function getTimeZonesForOffset(offset: number) {
 
 async function convertAndInsert() {
 	console.log("Converting and inserting data:");
-	// Force fetch of all guilds
-	await CLIENT.guilds.fetch();
-
 	await db.transaction(async () => {
 		for (let i = 0; i < legacyQueueGuilds.length; i++) {
 			try {

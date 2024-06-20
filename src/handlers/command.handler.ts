@@ -21,7 +21,7 @@ export class CommandHandler implements Handler {
 		await this.inter.deferReply({ ephemeral: true });
 
 		const subcommandName = (this.inter.options as any)._subcommand;
-		const fullCommandName = `${this.inter.commandName}${subcommandName ? `_${subcommandName}` : ""}`;
+		const fullCommandName = `${this.inter.commandName}${subcommandName ? `_${subcommandName}` : ""}`.replace(/-/g, "_");
 		const command = COMMANDS.get(this.inter.commandName);
 
 		if (command && fullCommandName in command) {
