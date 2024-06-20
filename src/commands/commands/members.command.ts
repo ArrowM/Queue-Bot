@@ -96,13 +96,15 @@ export class MembersCommand extends AdminCommand {
 		const message = await inter.respond(`Added ${usersMention(insertedMembers)} to '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
 
 		for (const queue of queues.values()) {
-			await NotificationUtils.dmToMembers({
-				store: inter.store,
-				queue,
-				action: NotificationAction.ADDED_TO_QUEUE,
-				members: insertedMembers,
-				messageLink: message.url,
-			});
+			if (queue.notificationsToggle) {
+				await NotificationUtils.dmToMembers({
+					store: inter.store,
+					queue,
+					action: NotificationAction.ADDED_TO_QUEUE,
+					members: insertedMembers,
+					messageLink: message.url,
+				});
+			}
 		}
 
 		const updatedQueues = insertedMembers.map(inserted => inter.store.dbQueues().get(inserted.queueId));

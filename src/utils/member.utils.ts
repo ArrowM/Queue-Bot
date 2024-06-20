@@ -12,7 +12,7 @@ import { isNil, shuffle } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import { Queries } from "../db/queries.ts";
-import { type DbMember, type DbQueue } from "../db/schema.ts";
+import { type DbArchivedMember, type DbMember, type DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
 import { ArchivedMemberReason } from "../types/db.types.ts";
 import type { MemberDeleteBy } from "../types/member.types.ts";
@@ -70,27 +70,14 @@ export namespace MemberUtils {
 		const { store, queue, jsMember, message, force } = options;
 
 		return await db.transaction(async () => {
+			const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
+
 			if (!force) {
-				verifyMemberEligibility(store, queue, jsMember);
+				verifyMemberEligibility(store, queue, jsMember, archivedMember);
 			}
 
 			const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
-			const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
 			let positionTime = BigInt(Date.now());
-
-			if (queue.rejoinCooldownPeriod && archivedMember?.reason === ArchivedMemberReason.Pulled) {
-				const msSincePulled = BigInt(Date.now()) - archivedMember.archivedTime;
-				const msCooldownRemaining = (queue.rejoinCooldownPeriod * 1000n) - msSincePulled;
-				if (msCooldownRemaining > 0) {
-					throw new CustomError({
-						message: "You are currently in a cooldown period and cannot rejoin the queue",
-						embeds: [
-							new EmbedBuilder()
-								.setDescription(`You can rejoin the queue in ${timeMention(msCooldownRemaining / 1000n)}.`),
-						],
-					});
-				}
-			}
 
 			if (queue.rejoinGracePeriod && archivedMember?.reason === ArchivedMemberReason.Left) {
 				if (BigInt(Date.now()) - archivedMember.archivedTime <= queue.rejoinGracePeriod) {
@@ -187,7 +174,6 @@ export namespace MemberUtils {
 					await NotificationUtils.dmToMembers({ store, queue, action, members: deleted, messageLink });
 				}
 			}
-
 
 			DisplayUtils.requestDisplayUpdate(store, queue.id);
 
@@ -367,7 +353,7 @@ export namespace MemberUtils {
 	// 												 Helpers
 	// ====================================================================
 
-	function verifyMemberEligibility(store: Store, queue: DbQueue, jsMember: GuildMember) {
+	function verifyMemberEligibility(store: Store, queue: DbQueue, jsMember: GuildMember, archivedMember: DbArchivedMember) {
 		if (queue.lockToggle) {
 			throw new QueueLockedError();
 		}
@@ -401,6 +387,20 @@ export namespace MemberUtils {
 				throw new CustomError({
 					message: "Not in voice channel",
 					embeds: [new EmbedBuilder().setDescription(message)],
+				});
+			}
+		}
+
+		if (queue.rejoinCooldownPeriod && archivedMember?.reason === ArchivedMemberReason.Pulled) {
+			const msSincePulled = BigInt(Date.now()) - archivedMember.archivedTime;
+			const msCooldownRemaining = (queue.rejoinCooldownPeriod * 1000n) - msSincePulled;
+			if (msCooldownRemaining > 0) {
+				throw new CustomError({
+					message: "You are currently in a cooldown period and cannot rejoin the queue",
+					embeds: [
+						new EmbedBuilder()
+							.setDescription(`You can rejoin the queue in ${timeMention(msCooldownRemaining / 1000n)}.`),
+					],
 				});
 			}
 		}
