@@ -9,11 +9,8 @@ import { QueuesOption } from "../../options/options/queues.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
 import { MemberRemovalReason } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
-import { NotificationAction } from "../../types/notification.types.ts";
 import { ChoiceType } from "../../types/parsing.types.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
-import { toCollection } from "../../utils/misc.utils.ts";
-import { NotificationUtils } from "../../utils/notification.utils.ts";
 import { queuesMention, usersMention } from "../../utils/string.utils.ts";
 import { ShowCommand } from "./show.command.ts";
 
@@ -92,29 +89,12 @@ export class MembersCommand extends AdminCommand {
 			MembersCommand.ADD_OPTIONS.mentionable5.get(inter),
 		]);
 
-		const insertedMembers = await MemberUtils.insertMentionables({
+		await MemberUtils.insertMentionables({
 			store: inter.store,
 			mentionables,
 			queues,
 			force: true,
 		});
-
-		const message = await inter.respond(`Added ${usersMention(insertedMembers)} to '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
-
-		for (const queue of queues.values()) {
-			if (queue.notificationsToggle) {
-				await NotificationUtils.dmToMembers({
-					store: inter.store,
-					queue,
-					action: NotificationAction.ADDED_TO_QUEUE,
-					members: insertedMembers,
-					messageLink: message.url,
-				});
-			}
-		}
-
-		const updatedQueues = insertedMembers.map(inserted => inter.store.dbQueues().get(inserted.queueId));
-		await MembersCommand.members_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 
 	// ====================================================================
@@ -135,9 +115,6 @@ export class MembersCommand extends AdminCommand {
 		const updatedMembers = MemberUtils.updateMembers(inter.store, members, message);
 
 		await inter.respond(`Updated ${usersMention(updatedMembers)} in '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
-
-		const updatedQueues = updatedMembers.map(updated => queues.get(updated.queueId));
-		await MembersCommand.members_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 
 	// ====================================================================
@@ -161,18 +138,12 @@ export class MembersCommand extends AdminCommand {
 			}
 		}
 
-		const deletedMembers = await MemberUtils.deleteMembers({
+		await MemberUtils.deleteMembers({
 			store: inter.store,
 			queues,
 			reason: MemberRemovalReason.Kicked,
 			by: { userIds: members.map(member => member.userId) },
-			messageChannelId: inter.channel.id,
 			force: true,
 		});
-
-		await inter.respond(`Removed ${usersMention(deletedMembers)} from '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
-
-		const updatedQueues = deletedMembers.map(deleted => inter.store.dbQueues().get(deleted.queueId));
-		await MembersCommand.members_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 }

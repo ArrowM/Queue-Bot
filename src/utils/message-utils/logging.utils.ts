@@ -4,7 +4,9 @@ import type { Store } from "../../db/store.ts";
 import { Scope } from "../../types/db.types.ts";
 
 export namespace LoggingUtils {
-	export async function log(store: Store, isAdmin: boolean, originalMessage: Message | string) {
+	export type Loggable = Message | string | { embeds?: EmbedBuilder[], content?: string };
+
+	export async function log(store: Store, isAdmin: boolean, originalMessage: Loggable) {
 		const { logChannelId, logScope } = store.dbGuild();
 		// required fields check
 		if (

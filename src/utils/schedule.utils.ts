@@ -140,6 +140,7 @@ export namespace ScheduleUtils {
 					store,
 					queues: [queue],
 					reason: MemberRemovalReason.Pulled,
+					messageChannelId: schedule.messageChannelId,
 				});
 				break;
 			case ScheduleCommand.Show:

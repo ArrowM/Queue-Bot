@@ -32,7 +32,7 @@ import { LoggingUtils } from "./message-utils/logging.utils.ts";
 import { map } from "./misc.utils.ts";
 import { NotificationUtils } from "./notification.utils.ts";
 import { PriorityUtils } from "./priority.utils.ts";
-import { membersMention, queueMention, timeMention } from "./string.utils.ts";
+import { membersMention, queueMention, queuesMention, timeMention, usersMention } from "./string.utils.ts";
 import { WhitelistUtils } from "./whitelist.utils.ts";
 
 export namespace MemberUtils {
@@ -64,6 +64,23 @@ export namespace MemberUtils {
 				}
 			}
 		}
+
+		if (store.inter) {
+			const message = await store.inter.respond(`Added ${usersMention(insertedMembers)} to '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
+
+			for (const queue of queues.values()) {
+				if (queue.notificationsToggle) {
+					await NotificationUtils.dmToMembers({
+						store,
+						queue,
+						action: NotificationAction.ADDED_TO_QUEUE,
+						members: insertedMembers,
+						messageLink: message.url,
+					});
+				}
+			}
+		}
+
 		return insertedMembers;
 	}
 
@@ -167,16 +184,27 @@ export namespace MemberUtils {
 				const action = (reason === MemberRemovalReason.Pulled)
 					? NotificationAction.PULLED_FROM_QUEUE
 					: NotificationAction.KICKED_FROM_QUEUE;
+
 				let messageLink;
+				const message = {
+					embeds: [ await describePulledMembers(store, queue, deleted, reason) ],
+				};
+
 				if (messageChannelId) {
 					const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
 					if (messageChannel) {
-						const embed = await describePulledMembers(store, queue, deleted, reason);
-						const message = await messageChannel?.send({ embeds: [embed] });
-						LoggingUtils.log(store, true, message).catch(() => null);
-						messageLink = message.url;
+						const createdMessage = await messageChannel?.send(message);
+						LoggingUtils.log(store, true, createdMessage).catch(() => null);
+						messageLink = createdMessage.url;
 					}
 				}
+				else if (store.inter) {
+					await store.inter.respond(message);
+				}
+				else {
+					LoggingUtils.log(store, true, message).catch(() => null);
+				}
+
 				if (queue.notificationsToggle) {
 					await NotificationUtils.dmToMembers({ store, queue, action, members: deleted, messageLink });
 				}
