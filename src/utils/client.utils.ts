@@ -43,7 +43,7 @@ export namespace ClientUtils {
 	}
 
 	export function getLiveCommand(commandName: string) {
-		return LIVE_COMMANDS.find(cmd => cmd.name === commandName);
+		return LIVE_COMMANDS?.find(cmd => cmd.name === commandName);
 	}
 
 	export async function getGuild(guildId: string) {
