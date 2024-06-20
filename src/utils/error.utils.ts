@@ -32,6 +32,7 @@ export class QueueNotFoundError extends AbstractError {
 	embeds = [
 		new EmbedBuilder().setDescription(`Queues can be created with ${commandMention("queues", "add")}.`),
 	];
+	log = true;
 }
 
 export class VoiceNotFoundError extends AbstractError {
