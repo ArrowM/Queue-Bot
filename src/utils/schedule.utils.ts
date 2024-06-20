@@ -154,7 +154,7 @@ export namespace ScheduleUtils {
 	async function getScheduleContext(scheduleId: bigint) {
 		const schedule = Queries.selectSchedule({ id: scheduleId });
 		if (!schedule) {
-			deleteSchedules([schedule.id]);
+			deleteSchedules([scheduleId]);
 			return;
 		}
 		const queue = Queries.selectQueue({ guildId: schedule.guildId, id: schedule.queueId });

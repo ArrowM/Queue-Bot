@@ -47,7 +47,7 @@ export class InteractionHandler implements Handler {
 			const embed = new EmbedBuilder()
 				.setTitle(ERROR_HEADER_LINE)
 				.setColor(Color.DarkRed)
-				.setDescription(message ? `${codeBlock(message)}` : "");
+				.setDescription(message ? `${codeBlock(message)}` : "an unknown error occurred");
 			if (log) {
 				embed.setFooter({ text: "This error has been logged and will be investigated by the developers." });
 			}
