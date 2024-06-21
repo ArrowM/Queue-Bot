@@ -104,7 +104,7 @@ export namespace MemberUtils {
 			let positionTime = BigInt(Date.now());
 
 			if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
-				if (BigInt(Date.now()) - archivedMember.archivedTime <= queue.rejoinGracePeriod) {
+				if (BigInt(Date.now()) - archivedMember.archivedTime <= (queue.rejoinGracePeriod * 1000n)) {
 					// Reuse the positionTime
 					positionTime = archivedMember.positionTime;
 				}
