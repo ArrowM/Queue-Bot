@@ -44,7 +44,7 @@ export class MembersOption extends CustomOption {
 		// build menu
 		const label = MembersOption.ID;
 		const options = jsMembers.map(member => ({
-			name: member.displayName,
+			name: member.nickname ?? member.displayName,
 			value: member.id,
 		}));
 

@@ -37,13 +37,14 @@ export namespace LoggingUtils {
 		}
 
 		if (store.inter) {
-			embeds = embeds.map(embed =>
-				new EmbedBuilder({ ...embed.data }).setAuthor({
-					name: store.inter.user.displayName,
+			embeds = embeds.map(embed => {
+				const jsMember = store.inter.member;
+				return new EmbedBuilder({ ...embed.data }).setAuthor({
+					name: jsMember.nickname ?? jsMember.displayName,
 					iconURL: store.inter.user.displayAvatarURL(),
 					url: (originalMessage as any)?.url,
-				})
-			);
+				});
+			});
 		}
 
 		try {

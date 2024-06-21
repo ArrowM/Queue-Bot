@@ -50,16 +50,21 @@ export class WhitelistedOption extends CustomOption {
 
 		const suggestions: UIOption[] = [];
 		for (const whitelisted of whitelisteds.values()) {
-			const name = whitelisted.isRole
-				? inter.store.guild.roles.cache.get(whitelisted.subjectId).name
-				: (await inter.store.jsMember(whitelisted.subjectId)).displayName;
-			const type = whitelisted.isRole ? "role" : "user";
-			const scope = whitelisted.queueId ? ` in '${queues.get(whitelisted.queueId).name}' queue` : "";
-
-			suggestions.push({
-				name: `'${name}' ${type}${scope}`,
-				value: whitelisted.id.toString(),
-			});
+			const scope = whitelisted.queueId ? `in '${queues.get(whitelisted.queueId).name}' queue` : "";
+			if (whitelisted.isRole) {
+				const role = await inter.store.jsRole(whitelisted.subjectId);
+				suggestions.push({
+					name: `'${role.name}' role ${scope}`,
+					value: whitelisted.id.toString(),
+				});
+			}
+			else {
+				const member = await inter.store.jsMember(whitelisted.subjectId);
+				suggestions.push({
+					name: `'${member.nickname ?? member.displayName}' user ${scope}`,
+					value: whitelisted.id.toString(),
+				});
+			}
 		}
 		return suggestions;
 	}
