@@ -372,7 +372,14 @@ export namespace MemberUtils {
 					message: "Missing Permissions",
 					embeds: [
 						new EmbedBuilder()
-							.setDescription(`I can not manage the ${roleMention(roleId)} role. Please check my permissions.`),
+							.setDescription(
+								`I can not assign or remove the ${roleMention(roleId)} role. A server owner must:\n` +
+								"1. Open the server settings\n" +
+								"2. Click 'Roles'\n" +
+								"3. Drag the bot role above the role you want to assign/remove\n" +
+								"4. Click the Queue Bot role\n" +
+								"5. Enable the 'Manage Roles' permission"
+							),
 					],
 				});
 			}

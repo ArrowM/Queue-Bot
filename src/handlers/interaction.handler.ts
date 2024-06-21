@@ -48,24 +48,24 @@ export class InteractionHandler implements Handler {
 		if (message === "Unknown interaction") return;
 
 		try {
-			const embed = new EmbedBuilder()
-				.setTitle(ERROR_HEADER_LINE)
-				.setColor(Color.DarkRed)
-				.setDescription(message ? `${codeBlock(message)}` : "an unknown error occurred");
 			if (doLog) {
-				embed.setFooter({ text: "This error has been logged and will be investigated by the developers." });
+				console.error(`Error (guildId=${this.inter.guildId}): ${message}`);
+				console.error(`Stack Trace: ${stack}`);
 			}
 
 			if ("respond" in this.inter) {
+				const embed = new EmbedBuilder()
+					.setTitle(ERROR_HEADER_LINE)
+					.setColor(Color.DarkRed)
+					.setDescription(message ? `${codeBlock(message)}` : "an unknown error occurred");
+				if (doLog) {
+					embed.setFooter({ text: "This error has been logged and will be investigated by the developers." });
+				}
+
 				await this.inter.respond({
 					embeds: compact(concat(embeds, embed)),
 					ephemeral: true,
 				});
-			}
-
-			if (doLog) {
-				console.error(`Error (guildId=${this.inter.guildId}): ${message}`);
-				console.error(`Stack Trace: ${stack}`);
 			}
 		}
 		catch (handlingError) {

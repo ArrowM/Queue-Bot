@@ -302,7 +302,7 @@ export class QueuesCommand extends AdminCommand {
 		const updatedProperties = {} as any;
 		for (const property of propertiesToReset) {
 			const columnKey = findKey(QUEUE_TABLE, (column: SQLiteColumn) => column.name === property);
-			updatedProperties[columnKey] = (QUEUE_TABLE as any)[columnKey]?.default;
+			updatedProperties[columnKey] = (QUEUE_TABLE as any)[columnKey]?.default ?? null;
 		}
 
 		const updatedQueues = db.transaction(() =>

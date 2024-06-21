@@ -1,5 +1,5 @@
 import cronstrue from "cronstrue";
-import { type Collection, EmbedBuilder, inlineCode, SlashCommandBuilder } from "discord.js";
+import { channelMention, type Collection, EmbedBuilder, inlineCode, SlashCommandBuilder } from "discord.js";
 import { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { findKey, isNil, omitBy } from "lodash-es";
 
@@ -96,6 +96,7 @@ export class ScheduleCommand extends AdminCommand {
 			entries: [...schedules.values()],
 			valueFormatters: {
 				cron: (cron) => `${inlineCode(cron)} (${cronstrue.toString(cron)})`,
+				messageChannelId: id => channelMention(id),
 			},
 		});
 
@@ -155,7 +156,7 @@ export class ScheduleCommand extends AdminCommand {
 		cron: new CronOption({ description: "Cron schedule" }),
 		customCron: new CustomCronOption({ description: "Custom cron schedule" }),
 		timezone: new TimezoneOption({ description: "Timezone for the schedule" }),
-		messageChannelId: new MessageChannelOption({ description: "Channel to send command messages" }),
+		messageChannel: new MessageChannelOption({ description: "Channel to send command messages" }),
 		reason: new ReasonOption({ description: "Reason for the schedule" }),
 	};
 
@@ -164,8 +165,8 @@ export class ScheduleCommand extends AdminCommand {
 		const scheduleUpdate = omitBy({
 			command: ScheduleCommand.SET_OPTIONS.command.get(inter),
 			cron: ScheduleCommand.SET_OPTIONS.cron.get(inter),
-			timezone: ScheduleCommand.SET_OPTIONS.timezone.get(inter),
-			messageChannelId: ScheduleCommand.SET_OPTIONS.messageChannelId.get(inter),
+			timezone: await ScheduleCommand.SET_OPTIONS.timezone.get(inter),
+			messageChannelId: ScheduleCommand.SET_OPTIONS.messageChannel.get(inter)?.id,
 			reason: ScheduleCommand.SET_OPTIONS.reason.get(inter),
 		}, isNil);
 
@@ -208,7 +209,7 @@ export class ScheduleCommand extends AdminCommand {
 		const updatedProperties = {} as any;
 		for (const property of propertiesToReset) {
 			const columnKey = findKey(SCHEDULE_TABLE, (column: SQLiteColumn) => column.name === property);
-			updatedProperties[columnKey] = (SCHEDULE_TABLE as any)[columnKey]?.default;
+			updatedProperties[columnKey] = (SCHEDULE_TABLE as any)[columnKey]?.default ?? null;
 		}
 
 		const {

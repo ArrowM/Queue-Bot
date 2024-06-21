@@ -11,14 +11,16 @@ import { map } from "./misc.utils.ts";
 
 export namespace QueueUtils {
 	export async function insertQueue(store: Store, queue: NewQueue) {
-		const insertedQueue = store.insertQueue(queue);
+		return await db.transaction(async () => {
+			const insertedQueue = store.insertQueue(queue);
 
-		const role = get(queue, "role") as Role;
-		if (role) {
-			await MemberUtils.assignInQueueRoleToMembers(store, [insertedQueue], role.id, "add");
-		}
+			const role = get(queue, "role") as Role;
+			if (role) {
+				await MemberUtils.assignInQueueRoleToMembers(store, [insertedQueue], role.id, "add");
+			}
 
-		return { insertedQueue };
+			return { insertedQueue };
+		});
 	}
 
 	export async function updateQueues(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, update: Partial<DbQueue>) {
