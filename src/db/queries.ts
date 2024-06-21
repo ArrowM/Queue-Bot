@@ -49,7 +49,7 @@ export namespace Queries {
 	// Queues
 
 	export function selectQueue(by: { guildId: Snowflake, id: bigint }) {
-		return selectQueueById.get(by);
+		return selectQueueGuildIdAndById.get(by);
 	}
 
 	export function selectManyQueues(by: { guildId: Snowflake }) {
@@ -59,7 +59,7 @@ export namespace Queries {
 	// Voice
 
 	export function selectVoice(by: { guildId: Snowflake, id: bigint }) {
-		return selectVoiceById.get(by);
+		return selectVoiceByGuildIdAndId.get(by);
 	}
 
 	export function selectManyVoices(by: { guildId: Snowflake }) {
@@ -92,18 +92,17 @@ export namespace Queries {
 	}
 
 	export function selectManyDisplays(by:
-		 { guildId: Snowflake } |
-		 { guildId: Snowflake, queueId: bigint } |
-		 { guildId: Snowflake, displayChannelId: Snowflake }
+		 { guildId: Snowflake, queueId?: bigint } |
+		 { guildId: Snowflake, displayChannelId?: Snowflake }
 	) {
-		if ("guildId" in by) {
-			return selectManyDisplaysByGuildId.all(by);
-		}
-		else if ("queueId" in by) {
-			return selectManyDisplaysByQueueId.all(by);
+		if ("queueId" in by) {
+			return selectManyDisplaysByGuildIdAndQueueId.all(by);
 		}
 		else if ("displayChannelId" in by) {
-			return selectManyDisplaysByDisplayChannelId.all(by);
+			return selectManyDisplaysByGuildIdAndDisplayChannelId.all(by);
+		}
+		else {
+			return selectManyDisplaysByGuildId.all(by);
 		}
 	}
 
@@ -114,13 +113,13 @@ export namespace Queries {
 		{ guildId: Snowflake, queueId: bigint, userId?: Snowflake }
 	) {
 		if ("id" in by) {
-			return selectMemberById.get(by);
+			return selectMemberByGuildIdAndId.get(by);
 		}
 		else if ("queueId" in by && "userId" in by) {
-			return selectMemberByQueueIdAndUserId.get(by);
+			return selectMemberByGuildIdAndQueueIdAndUserId.get(by);
 		}
 		else if ("queueId" in by) {
-			return selectNextMemberByQueue.get(by);
+			return selectNextMemberByGuildIdAndQueueId.get(by);
 		}
 	}
 
@@ -131,17 +130,17 @@ export namespace Queries {
 		{ guildId: Snowflake, userId?: Snowflake } |
 		{ guildId: Snowflake, queueId: bigint, count?: number }
 	) {
-		if ("guildId" in by && "userId" in by) {
+		if ("userId" in by) {
 			return selectManyMembersByGuildIdAndUserId.all(by);
 		}
-		else if ("guildId" in by) {
-			return selectManyMembersByGuildId.all(by);
-		}
 		else if ("queueId" in by && "count" in by) {
-			return selectManyMembersByQueueIdAndCount.all(by);
+			return selectManyMembersByGuildIdAndQueueIdAndCount.all(by);
 		}
 		else if ("queueId" in by) {
-			return selectManyMembersByQueueId.all(by);
+			return selectManyMembersByGuildIdAndQueueId.all(by);
+		}
+		else {
+			return selectManyMembersByGuildId.all(by);
 		}
 	}
 
@@ -149,18 +148,15 @@ export namespace Queries {
 
 	// Must allow by without guildId for automatic schedule running
 	export function selectSchedule(by: { id: bigint }) {
-		return selectScheduleById.get(by);
+		return selectScheduleByGuildIdAndId.get(by);
 	}
 
-	export function selectManySchedules(by:
-		{ guildId: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint }
-	) {
-		if ("guildId" in by) {
-			return selectManySchedulesByGuildId.all(by);
+	export function selectManySchedules(by: { guildId: Snowflake, queueId?: bigint }) {
+		if ("queueId" in by) {
+			return selectManySchedulesByGuildIdAndQueueId.all(by);
 		}
-		else if ("queueId" in by) {
-			return selectManySchedulesByQueueId.all(by);
+		else {
+			return selectManySchedulesByGuildId.all(by);
 		}
 	}
 
@@ -175,9 +171,10 @@ export namespace Queries {
 	export function deleteSchedule(by: { guildId: Snowflake, id: bigint }) {
 		return db
 			.delete(SCHEDULE_TABLE)
-			.where(
+			.where(and(
+				eq(SCHEDULE_TABLE.guildId, by.guildId),
 				eq(SCHEDULE_TABLE.id, by.id)
-			)
+			))
 			.returning().get();
 	}
 
@@ -188,25 +185,25 @@ export namespace Queries {
 		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
-			return selectWhitelistedById.get(by);
+			return selectWhitelistedByGuildIdAndId.get(by);
 		}
 		else if ("queueId" in by && "subjectId" in by) {
-			return selectWhitelistedByQueueIdAndSubjectId.get(by);
+			return selectWhitelistedByGuildIdAndQueueIdAndSubjectId.get(by);
 		}
 	}
 
 	export function selectManyWhitelisted(by:
 		{ guildId: Snowflake, subjectId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, queueId?: bigint }
 	) {
-		if ("guildId" in by && "subjectId" in by) {
+		if ("subjectId" in by) {
 			return selectManyWhitelistedByGuildIdAndSubjectId.all(by);
+		}
+		else if ("queueId" in by) {
+			return selectManyWhitelistedByGuildIdAndQueueId.all(by);
 		}
 		else if ("guildId" in by) {
 			return selectManyWhitelistedByGuildId.all(by);
-		}
-		else if ("queueId" in by) {
-			return selectManyWhitelistedByQueueId.all(by);
 		}
 	}
 
@@ -217,25 +214,25 @@ export namespace Queries {
 		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
-			return selectBlacklistedById.get(by);
+			return selectBlacklistedByGuildIdAndId.get(by);
 		}
 		else if ("queueId" in by && "subjectId" in by) {
-			return selectBlacklistedByQueueIdAndSubjectId.get(by);
+			return selectBlacklistedByGuildIdAndQueueIdAndSubjectId.get(by);
 		}
 	}
 
 	export function selectManyBlacklisted(by:
 		{ guildId: Snowflake, subjectId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, queueId?: bigint }
 	) {
-		if ("guildId" in by && "subjectId" in by) {
+		if ("subjectId" in by) {
 			return selectManyBlacklistedByGuildIdAndSubjectId.all(by);
+		}
+		else if ("queueId" in by) {
+			return selectManyBlacklistedByGuildIdAndQueueId.all(by);
 		}
 		else if ("guildId" in by) {
 			return selectManyBlacklistedByGuildId.all(by);
-		}
-		else if ("queueId" in by) {
-			return selectManyBlacklistedByQueueId.all(by);
 		}
 	}
 
@@ -246,25 +243,25 @@ export namespace Queries {
 		{ guildId: Snowflake, queueId: bigint, subjectId: Snowflake }
 	) {
 		if ("id" in by) {
-			return selectPrioritizedById.get(by);
+			return selectPrioritizedByGuildIdAndId.get(by);
 		}
 		else if ("queueId" in by && "subjectId" in by) {
-			return selectPrioritizedByQueueIdAndSubjectId.get(by);
+			return selectPrioritizedByGuildIdAndQueueIdAndSubjectId.get(by);
 		}
 	}
 
 	export function selectManyPrioritized(by:
 		{ guildId: Snowflake, subjectId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, queueId?: bigint }
 	) {
-		if ("guildId" in by && "subjectId" in by) {
+		if ("subjectId" in by) {
 			return selectManyPrioritizedByGuildIdAndSubjectId.all(by);
+		}
+		else if ("queueId" in by) {
+			return selectManyPrioritizedByGuildIdAndQueueId.all(by);
 		}
 		else if ("guildId" in by) {
 			return selectManyPrioritizedByGuildId.all(by);
-		}
-		else if ("queueId" in by) {
-			return selectManyPrioritizedByQueueId.all(by);
 		}
 	}
 
@@ -277,19 +274,16 @@ export namespace Queries {
 		if ("id" in by) {
 			return selectAdminById.get(by);
 		}
-		else if ("guildId" in by && "subjectId" in by) {
+		else if ("subjectId" in by) {
 			return selectAdminByGuildIdAndSubjectId.get(by);
 		}
 	}
 
-	export function selectManyAdmins(by:
-		{ guildId: Snowflake, subjectId: Snowflake } |
-		{ guildId: Snowflake }
-	) {
+	export function selectManyAdmins(by: { guildId: Snowflake, subjectId?: Snowflake }) {
 		if ("subjectId" in by) {
-			return selectManyAdminsBySubjectId.all(by);
+			return selectManyAdminsByGuildIdAndSubjectId.all(by);
 		}
-		else if ("guildId" in by) {
+		else {
 			return selectManyAdminsByGuildId.all(by);
 		}
 	}
@@ -301,25 +295,25 @@ export namespace Queries {
 		 { guildId: Snowflake, queueId: bigint, userId: Snowflake }
 	) {
 		if ("id" in by) {
-			return selectArchivedMemberById.get(by);
+			return selectArchivedMemberByGuildIdAndId.get(by);
 		}
 		else if ("queueId" in by && "userId" in by) {
-			return selectArchivedMemberByQueueIdAndUserId.get(by);
+			return selectArchivedMemberByGuildIdAndQueueIdAndUserId.get(by);
 		}
 	}
 
 	export function selectManyArchivedMembers(by:
 		{ guildId: Snowflake, userId?: Snowflake } |
-		{ guildId: Snowflake, queueId: bigint }
+		{ guildId: Snowflake, queueId?: bigint }
 	) {
-		if ("guildId" in by && "userId" in by) {
+		if ("userId" in by) {
 			return selectManyArchivedMembersByGuildIdAndUserId.all(by);
 		}
-		else if ("guildId" in by) {
-			return selectManyArchivedMembersByGuildId.all(by);
-		}
 		else if ("queueId" in by) {
-			return selectManyArchivedMembersByQueueId.all(by);
+			return selectManyArchivedMembersByGuildIdAndQueueId.all(by);
+		}
+		else {
+			return selectManyArchivedMembersByGuildId.all(by);
 		}
 	}
 
@@ -356,7 +350,7 @@ export namespace Queries {
 
 	// Queues
 
-	const selectQueueById = db
+	const selectQueueGuildIdAndById = db
 		.select()
 		.from(QUEUE_TABLE)
 		.where(and(
@@ -375,7 +369,7 @@ export namespace Queries {
 
 	// Voice
 
-	const selectVoiceById = db
+	const selectVoiceByGuildIdAndId = db
 		.select()
 		.from(VOICE_TABLE)
 		.where(and(
@@ -430,7 +424,7 @@ export namespace Queries {
 		)
 		.prepare();
 
-	const selectManyDisplaysByQueueId = db
+	const selectManyDisplaysByGuildIdAndQueueId = db
 		.select()
 		.from(DISPLAY_TABLE)
 		.where(and(
@@ -439,7 +433,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectManyDisplaysByDisplayChannelId = db
+	const selectManyDisplaysByGuildIdAndDisplayChannelId = db
 		.select()
 		.from(DISPLAY_TABLE)
 		.where(and(
@@ -457,7 +451,7 @@ export namespace Queries {
 		MEMBER_TABLE.positionTime,
 	];
 
-	const selectMemberById = db
+	const selectMemberByGuildIdAndId = db
 		.select()
 		.from(MEMBER_TABLE)
 		.where(and(
@@ -466,7 +460,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectMemberByQueueIdAndUserId = db
+	const selectMemberByGuildIdAndQueueIdAndUserId = db
 		.select()
 		.from(MEMBER_TABLE)
 		.where(and(
@@ -476,7 +470,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectNextMemberByQueue = db
+	const selectNextMemberByGuildIdAndQueueId = db
 		.select()
 		.from(MEMBER_TABLE)
 		.where(and(
@@ -505,7 +499,7 @@ export namespace Queries {
 		.orderBy(...MEMBER_ORDER)
 		.prepare();
 
-	const selectManyMembersByQueueIdAndCount = db
+	const selectManyMembersByGuildIdAndQueueIdAndCount = db
 		.select()
 		.from(MEMBER_TABLE)
 		.where(and(
@@ -516,7 +510,7 @@ export namespace Queries {
 		.limit(sql.placeholder("count"))
 		.prepare();
 
-	const selectManyMembersByQueueId = db
+	const selectManyMembersByGuildIdAndQueueId = db
 		.select()
 		.from(MEMBER_TABLE)
 		.where(and(
@@ -528,7 +522,7 @@ export namespace Queries {
 
 	// Schedules
 
-	const selectScheduleById = db
+	const selectScheduleByGuildIdAndId = db
 		.select()
 		.from(SCHEDULE_TABLE)
 		.where(
@@ -544,7 +538,7 @@ export namespace Queries {
 		)
 		.prepare();
 
-	const selectManySchedulesByQueueId = db
+	const selectManySchedulesByGuildIdAndQueueId = db
 		.select()
 		.from(SCHEDULE_TABLE)
 		.where(and(
@@ -555,7 +549,7 @@ export namespace Queries {
 
 	// Whitelisted
 
-	const selectWhitelistedById = db
+	const selectWhitelistedByGuildIdAndId = db
 		.select()
 		.from(WHITELISTED_TABLE)
 		.where(and(
@@ -564,7 +558,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectWhitelistedByQueueIdAndSubjectId = db
+	const selectWhitelistedByGuildIdAndQueueIdAndSubjectId = db
 		.select()
 		.from(WHITELISTED_TABLE)
 		.where(and(
@@ -591,7 +585,7 @@ export namespace Queries {
 		)
 		.prepare();
 
-	const selectManyWhitelistedByQueueId = db
+	const selectManyWhitelistedByGuildIdAndQueueId = db
 		.select()
 		.from(WHITELISTED_TABLE)
 		.where(and(
@@ -602,7 +596,7 @@ export namespace Queries {
 
 	// Blacklisted
 
-	const selectBlacklistedById = db
+	const selectBlacklistedByGuildIdAndId = db
 		.select()
 		.from(BLACKLISTED_TABLE)
 		.where(and(
@@ -611,7 +605,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectBlacklistedByQueueIdAndSubjectId = db
+	const selectBlacklistedByGuildIdAndQueueIdAndSubjectId = db
 		.select()
 		.from(BLACKLISTED_TABLE)
 		.where(and(
@@ -638,7 +632,7 @@ export namespace Queries {
 		)
 		.prepare();
 
-	const selectManyBlacklistedByQueueId = db
+	const selectManyBlacklistedByGuildIdAndQueueId = db
 		.select()
 		.from(BLACKLISTED_TABLE)
 		.where(and(
@@ -649,7 +643,7 @@ export namespace Queries {
 
 	// Prioritized
 
-	const selectPrioritizedById = db
+	const selectPrioritizedByGuildIdAndId = db
 		.select()
 		.from(PRIORITIZED_TABLE)
 		.where(and(
@@ -658,7 +652,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectPrioritizedByQueueIdAndSubjectId = db
+	const selectPrioritizedByGuildIdAndQueueIdAndSubjectId = db
 		.select()
 		.from(PRIORITIZED_TABLE)
 		.where(and(
@@ -685,7 +679,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectManyPrioritizedByQueueId = db
+	const selectManyPrioritizedByGuildIdAndQueueId = db
 		.select()
 		.from(PRIORITIZED_TABLE)
 		.where(and(
@@ -714,7 +708,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectManyAdminsBySubjectId = db
+	const selectManyAdminsByGuildIdAndSubjectId = db
 		.select()
 		.from(ADMIN_TABLE)
 		.where(and(
@@ -733,7 +727,7 @@ export namespace Queries {
 
 	// Archived Members
 
-	const selectArchivedMemberById = db
+	const selectArchivedMemberByGuildIdAndId = db
 		.select()
 		.from(ARCHIVED_MEMBER_TABLE)
 		.where(and(
@@ -742,7 +736,7 @@ export namespace Queries {
 		))
 		.prepare();
 
-	const selectArchivedMemberByQueueIdAndUserId = db
+	const selectArchivedMemberByGuildIdAndQueueIdAndUserId = db
 		.select()
 		.from(ARCHIVED_MEMBER_TABLE)
 		.where(and(
@@ -769,7 +763,7 @@ export namespace Queries {
 		)
 		.prepare();
 
-	const selectManyArchivedMembersByQueueId = db
+	const selectManyArchivedMembersByGuildIdAndQueueId = db
 		.select()
 		.from(ARCHIVED_MEMBER_TABLE)
 		.where(and(
