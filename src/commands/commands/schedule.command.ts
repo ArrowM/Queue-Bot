@@ -204,7 +204,7 @@ export class ScheduleCommand extends AdminCommand {
 		];
 
 		const selectMenuTransactor = new SelectMenuTransactor(inter);
-		const propertiesToReset = await selectMenuTransactor.sendAndReceive("Schedule properties to reset", selectMenuOptions);
+		const propertiesToReset = await selectMenuTransactor.sendAndReceive("Schedule properties to reset", selectMenuOptions) ?? [];
 
 		const updatedProperties = {} as any;
 		for (const property of propertiesToReset) {

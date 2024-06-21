@@ -199,7 +199,7 @@ export function describeTable<T extends object>(options: {
 		return { content: `No ${tableLabel.toLowerCase()} found.` };
 	}
 
-	return { embeds };
+	return { embeds, ephemeral: true };
 }
 
 // Helpers

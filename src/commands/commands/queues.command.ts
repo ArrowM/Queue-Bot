@@ -297,7 +297,7 @@ export class QueuesCommand extends AdminCommand {
 			{ name: VoiceOnlyToggleOption.ID, value: QUEUE_TABLE.voiceOnlyToggle.name },
 		];
 		const selectMenuTransactor = new SelectMenuTransactor(inter);
-		const propertiesToReset = await selectMenuTransactor.sendAndReceive("Queue properties to reset", selectMenuOptions);
+		const propertiesToReset = await selectMenuTransactor.sendAndReceive("Queue properties to reset", selectMenuOptions) ?? [];
 
 		const updatedProperties = {} as any;
 		for (const property of propertiesToReset) {
