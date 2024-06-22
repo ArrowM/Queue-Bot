@@ -21,7 +21,11 @@ else
     echo "Container ${CONTAINER_NAME} is not running. Skipping log saving."
 fi
 
-git pull
+# Fetch the latest changes from the remote repository
+git fetch
+
+# Merge the fetched changes with a custom commit message
+git merge --no-ff -m "Merged changes from remote repository."
 
 docker compose down
 

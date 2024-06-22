@@ -23,7 +23,11 @@ if %errorlevel% equ 0 (
     echo Container %CONTAINER_NAME% is not running. Skipping log saving.
 )
 
-git pull
+# Fetch the latest changes from the remote repository
+git fetch
+
+# Merge the fetched changes with a custom commit message
+git merge --no-ff -m "Merged changes from remote repository."
 
 docker-compose down
 
@@ -32,5 +36,7 @@ npx drizzle-kit push
 docker-compose up -d --build
 
 docker image prune -f
+
+echo "Attaching to container ${CONTAINER_NAME}... (CTRL+p CTRL+q to detach)"
 
 docker logs -f queue-bot
