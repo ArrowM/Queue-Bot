@@ -1,13 +1,4 @@
-import {
-	channelMention,
-	Collection,
-	EmbedBuilder,
-	GuildMember,
-	type GuildTextBasedChannel,
-	Role,
-	roleMention,
-	type Snowflake,
-} from "discord.js";
+import { channelMention, Collection, EmbedBuilder, GuildMember, type GuildTextBasedChannel, Role, roleMention, type Snowflake, userMention } from "discord.js";
 import { isNil, shuffle, upperFirst } from "lodash-es";
 
 import { db } from "../db/db.ts";
@@ -21,13 +12,7 @@ import { NotificationAction } from "../types/notification.types.ts";
 import type { Mentionable } from "../types/parsing.types.ts";
 import { BlacklistUtils } from "./blacklist.utils.ts";
 import { DisplayUtils } from "./display.utils.ts";
-import {
-	CustomError,
-	NotOnQueueWhitelistError,
-	OnQueueBlacklistError,
-	QueueFullError,
-	QueueLockedError,
-} from "./error.utils.ts";
+import { CustomError, NotOnQueueWhitelistError, OnQueueBlacklistError, QueueFullError, QueueLockedError } from "./error.utils.ts";
 import { LoggingUtils } from "./message-utils/logging.utils.ts";
 import { map } from "./misc.utils.ts";
 import { NotificationUtils } from "./notification.utils.ts";
@@ -187,7 +172,7 @@ export namespace MemberUtils {
 
 				let messageLink;
 				const message = {
-					embeds: [ await describePulledMembers(store, queue, deleted, reason) ],
+					embeds: [await describePulledMembers(store, queue, deleted, reason)],
 				};
 
 				if (messageChannelId) {
@@ -339,7 +324,7 @@ export namespace MemberUtils {
 			.setDescription(description);
 	}
 
-	export async function describeMyPositions(store: Store, userId: Snowflake) {
+	export async function describeMemberPositions(store: Store, userId: Snowflake) {
 		const members = Queries.selectManyMembers({ guildId: store.guild.id, userId });
 		const queues = members.map(member => Queries.selectQueue({ guildId: store.guild.id, id: member.queueId }));
 
@@ -348,7 +333,7 @@ export namespace MemberUtils {
 		));
 
 		if (!embeds.length) {
-			embeds.push(new EmbedBuilder().setDescription("You are not in any queues."));
+			embeds.push(new EmbedBuilder().setDescription(`${userMention(userId)} is not in any queues.`));
 		}
 
 		return embeds;

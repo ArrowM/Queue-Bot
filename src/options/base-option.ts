@@ -11,7 +11,7 @@ import type {
 	SlashCommandMentionableOption,
 	SlashCommandRoleOption,
 	SlashCommandStringOption,
-	SlashCommandSubcommandBuilder,
+	SlashCommandSubcommandBuilder, SlashCommandUserOption, User,
 } from "discord.js";
 import { SQL } from "drizzle-orm";
 
@@ -229,5 +229,22 @@ export abstract class MentionableOption extends BaseOption<SlashCommandMentionab
 
 	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
 		return (inter as SlashInteraction).options.getMentionable(this.identifier);
+	}
+}
+
+export class UserOption extends BaseOption<SlashCommandUserOption> {
+	static readonly ID = "user";
+	id = UserOption.ID;
+
+	addToCommand(command: SlashCommandBuilder | SlashCommandSubcommandBuilder): void {
+		command.addUserOption(this.build);
+	}
+
+	get(inter: AutocompleteInteraction | SlashInteraction) {
+		return super.get(inter) as User;
+	}
+
+	protected getUncached(inter: AutocompleteInteraction | SlashInteraction) {
+		return (inter as SlashInteraction).options.getUser(this.identifier);
 	}
 }

@@ -12,6 +12,6 @@ export class MyPositionsButton extends EveryoneButton {
 	style = ButtonStyle.Secondary;
 
 	async handle(inter: ButtonInteraction) {
-		await inter.respond({ embeds: await MemberUtils.describeMyPositions(inter.store, inter.member.id) });
+		await inter.respond({ embeds: await MemberUtils.describeMemberPositions(inter.store, inter.member.id) });
 	}
 }

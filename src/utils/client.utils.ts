@@ -101,7 +101,8 @@ export namespace ClientUtils {
 
 			// wait for console confirmation
 			let userInput = null;
-			if (process.env.FORCE_SEND_PATCH_NOTES) {
+			const sendPatchNotesFlag = process.env.FORCE_SEND_PATCH_NOTES.toLowerCase().trim() === "false";
+			if (sendPatchNotesFlag) {
 				userInput = "1";
 			}
 			else {
