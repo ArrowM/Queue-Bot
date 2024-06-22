@@ -1,6 +1,7 @@
 <!-- TOC -->
   * [Running Locally](#running-locally)
     * [Option 1: Install and run with Docker (recommended)](#option-1-install-and-run-with-docker-recommended)
+      * [Other useful docker commands](#other-useful-docker-commands)
     * [Option 2: Manually install and run](#option-2-manually-install-and-run)
   * [Data storage and access](#data-storage-and-access)
   * [How to create and edit commands](#how-to-create-and-edit-commands)
@@ -21,10 +22,10 @@ Clone the repository:
 git clone https://github.com/ArrowM/Queue-Bot
 ```
 
-Create or reuse a Discord bot application and invite it to your server.
+Create a Discord bot application and invite it to your server.
 See [Discord.js guide](https://discordjs.guide/preparations/setting-up-a-bot-application.html).
 
-Update the `.env` file with your bot's TOKEN and CLIENT_ID.
+Update the `.env` file with your bot's `TOKEN` and `CLIENT_ID`.
 
 ### Option 1: Install and run with Docker (recommended)
 
@@ -33,23 +34,27 @@ Update the `.env` file with your bot's TOKEN and CLIENT_ID.
 You may need to grant yourself docker perms (replacing `<username>` with your actual username, `pi` in my case:
 
 ```bash
+chmod +x launch-docker.sh
 sudo usermod -aG docker <username>
 sudo reboot
 ```
 
-Setup (**run each time you update the project**):
+Run `./launch-docker.sh` or `launch-docker.bat` to:
+- dump logs to `./logs` and close the previous container (if applicable)
+- build the image & container, then start the bot in a detached state
+- attach to the container (which can safely be exited with the `Ctrl+p Ctrl+q` key sequence. Using `CTRL-c` while attached will stop the container)
+
+*Note you may need to respond to a migration prompt if you have updated your project*.
+
+#### Other useful docker commands
+
+Attach to the bot container (`Ctrl+p Ctrl+q` to detach):
 
 ```bash
-docker compose build
-````
-
-Start the bot in a detached container:
-
-```bash
-docker compose up -d
+docker attach queue-bot
 ```
 
-View the logs:
+View live logs:
 
 ```bash
 docker logs -f queue-bot
@@ -62,6 +67,8 @@ docker compose down
 ```
 
 ### Option 2: Manually install and run
+
+This method is not recommended, because it requires installing node and lacks the logging, auto-restart, and rebuild speed of Docker. 
 
 [Install Node.js](https://nodejs.org/en/download/package-manager).
 

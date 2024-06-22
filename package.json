@@ -5,7 +5,7 @@
   "scripts": {
     "setup": "npm ci && drizzle-kit push",
     "start": "node --loader @swc-node/register/esm --no-warnings --enable-source-maps --env-file .env src/index.ts",
-    "docker:start": "drizzle-kit push && npm run start",
+    "docker:start": "drizzle-kit push && npm start",
     "lint": "eslint src --fix"
   },
   "type": "module",

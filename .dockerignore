@@ -7,5 +7,6 @@ docker-compose.yml
 .gitignore
 .idea
 
-data/main.sqlite
 data/backups
+logs
+docs

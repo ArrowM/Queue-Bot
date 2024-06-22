@@ -99,6 +99,7 @@ export async function loadExportData() {
 	await Promise.all(files.map(file => new Promise<void>((resolve, reject) => {
 		const data: any[] = [];
 		fs.createReadStream(`${LEGACY_EXPORT_DIR}/${file}`)
+		// @ts-ignore
 			.pipe(csv())
 			.on("data", (row) => {
 				data.push(row);

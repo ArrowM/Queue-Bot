@@ -16,8 +16,8 @@ import {
 export const GUILD_TABLE = sqliteTable("guild", ({
 	guildId: text("guild_id").$type<Snowflake>().primaryKey(),
 
-	logChannelId: text("log_channel_id").$type<Snowflake | null>(),
-	logScope: text("log_scope").$type<Scope | null>(),
+	logChannelId: text("log_channel_id").$type<Snowflake>(),
+	logScope: text("log_scope").$type<Scope>(),
 
 	joinTime: integer("joinTime").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
 	lastUpdateTime: integer("last_updated_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
@@ -72,11 +72,11 @@ export const QUEUE_TABLE = sqliteTable("queue", ({
 	pullMessage: text("pull_message"),
 	rejoinCooldownPeriod: integer("rejoin_cooldown_period").$type<bigint>().notNull().default(0 as any),
 	rejoinGracePeriod: integer("rejoin_grace_period").$type<bigint>().notNull().default(0 as any),
-	roleInQueueId: text("role_in_queue_id").$type<Snowflake | null>(),
-	roleOnPullId: text("role_on_pull_id").$type<Snowflake | null>(),
+	roleInQueueId: text("role_in_queue_id").$type<Snowflake>(),
+	roleOnPullId: text("role_on_pull_id").$type<Snowflake>(),
 	size: integer("size").$type<bigint>(),
 	timestampType: text("time_display_type").$type<TimestampType>().default(TimestampType.Off),
-	voiceDestinationChannelId: text("voice_destination_channel_id").$type<Snowflake | null>(),
+	voiceDestinationChannelId: text("voice_destination_channel_id").$type<Snowflake>(),
 	voiceOnlyToggle: integer("voice_only_toggle", { mode: "boolean" }).notNull().default(false),
 }),
 (table) => ({
@@ -131,7 +131,7 @@ export const DISPLAY_TABLE = sqliteTable("display", ({
 	guildId: text("guild_id").notNull().references(() => GUILD_TABLE.guildId, { onDelete: "cascade" }),
 	queueId: integer("queue_id").$type<bigint>().notNull().references(() => QUEUE_TABLE.id, { onDelete: "cascade" }),
 	displayChannelId: text("display_channel_id").notNull(),
-	lastMessageId: text("last_message_id").$type<Snowflake | null>(),
+	lastMessageId: text("last_message_id").$type<Snowflake>(),
 }),
 (table) => ({
 	unq: unique().on(table.queueId, table.displayChannelId),
@@ -185,10 +185,10 @@ export const SCHEDULE_TABLE = sqliteTable("schedule", ({
 
 	guildId: text("guild_id").notNull().references(() => GUILD_TABLE.guildId, { onDelete: "cascade" }),
 	queueId: integer("queue_id").$type<bigint>().notNull().references(() => QUEUE_TABLE.id, { onDelete: "cascade" }),
-	command: text("command").notNull().$type<ScheduleCommand | null>(),
+	command: text("command").notNull().$type<ScheduleCommand>(),
 	cron: text("cron").notNull(),
 	timezone: text("timezone"),
-	messageChannelId: text("message_channel_id").$type<Snowflake | null>(),
+	messageChannelId: text("message_channel_id").$type<Snowflake>(),
 	reason: text("reason"),
 }),
 (table) => ({
