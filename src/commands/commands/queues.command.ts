@@ -7,7 +7,7 @@ import { type DbQueue, QUEUE_TABLE } from "../../db/schema.ts";
 import { AutopullToggleOption } from "../../options/options/autopull-toggle.option.ts";
 import { BadgeToggleOption } from "../../options/options/badge-toggle.option.ts";
 import { ColorOption } from "../../options/options/color.option.ts";
-import { DisplayButtonsOption } from "../../options/options/display-buttons.option.ts";
+import { ButtonsToggleOption } from "../../options/options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "../../options/options/display-update-type.option.ts";
 import { HeaderOption } from "../../options/options/header.option.ts";
 import { InlineToggleOption } from "../../options/options/inline-toggle.option.ts";
@@ -124,8 +124,8 @@ export class QueuesCommand extends AdminCommand {
 		name: new NameOption({ required: true, description: "Name of the queue" }),
 		autopullToggle: new AutopullToggleOption({ description: "Toggle automatic pulling of queue members" }),
 		badgeToggle: new BadgeToggleOption({ description: "Toggle badges next to queue name" }),
+		buttonsToggle: new ButtonsToggleOption({ description: "Toggle buttons beneath queue displays" }),
 		color: new ColorOption({ description: "Color of the queue" }),
-		displayButtons: new DisplayButtonsOption({ description: "Toggle buttons beneath queue displays" }),
 		displayUpdateType: new DisplayUpdateTypeOption({ description: "How to update displays" }),
 		header: new HeaderOption({ description: "Header of the queue display" }),
 		inlineToggle: new InlineToggleOption({ description: "Toggle inline display of queue members" }),
@@ -151,8 +151,8 @@ export class QueuesCommand extends AdminCommand {
 			...omitBy({
 				autopullToggle: QueuesCommand.ADD_OPTIONS.autopullToggle.get(inter),
 				badgeToggle: QueuesCommand.ADD_OPTIONS.badgeToggle.get(inter),
+				buttonsToggle: QueuesCommand.ADD_OPTIONS.buttonsToggle.get(inter),
 				color: QueuesCommand.ADD_OPTIONS.color.get(inter),
-				displayButtons: QueuesCommand.ADD_OPTIONS.displayButtons.get(inter),
 				displayUpdateType: QueuesCommand.ADD_OPTIONS.displayUpdateType.get(inter),
 				header: QueuesCommand.ADD_OPTIONS.header.get(inter),
 				inlineToggle: QueuesCommand.ADD_OPTIONS.inlineToggle.get(inter),
@@ -187,8 +187,8 @@ export class QueuesCommand extends AdminCommand {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to update" }),
 		autopullToggle: new AutopullToggleOption({ description: "Toggle automatic pulling of queue members" }),
 		badgeToggle: new BadgeToggleOption({ description: "Toggle badges next to queue name" }),
+		buttonsToggle: new ButtonsToggleOption({ description: "Toggle buttons beneath queue displays" }),
 		color: new ColorOption({ description: "Color of the queue" }),
-		displayButtons: new DisplayButtonsOption({ description: "Toggle buttons beneath queue displays" }),
 		displayUpdateType: new DisplayUpdateTypeOption({ description: "How to update displays" }),
 		header: new HeaderOption({ description: "Header of the queue display" }),
 		inlineToggle: new InlineToggleOption({ description: "Toggle inline display of queue members" }),
@@ -213,8 +213,8 @@ export class QueuesCommand extends AdminCommand {
 		const update = omitBy({
 			autopullToggle: QueuesCommand.SET_OPTIONS.autopullToggle.get(inter),
 			badgeToggle: QueuesCommand.SET_OPTIONS.badgeToggle.get(inter),
+			buttonsToggle: QueuesCommand.SET_OPTIONS.buttonsToggle.get(inter),
 			color: QueuesCommand.SET_OPTIONS.color.get(inter),
-			displayButtons: QueuesCommand.SET_OPTIONS.displayButtons.get(inter),
 			displayUpdateType: QueuesCommand.SET_OPTIONS.displayUpdateType.get(inter),
 			header: QueuesCommand.SET_OPTIONS.header.get(inter),
 			inlineToggle: QueuesCommand.SET_OPTIONS.inlineToggle.get(inter),
@@ -277,8 +277,8 @@ export class QueuesCommand extends AdminCommand {
 		const selectMenuOptions = [
 			{ name: AutopullToggleOption.ID, value: QUEUE_TABLE.autopullToggle.name },
 			{ name: BadgeToggleOption.ID, value: QUEUE_TABLE.badgeToggle.name },
+			{ name: ButtonsToggleOption.ID, value: QUEUE_TABLE.buttonsToggle.name },
 			{ name: ColorOption.ID, value: QUEUE_TABLE.color.name },
-			{ name: DisplayButtonsOption.ID, value: QUEUE_TABLE.displayButtons.name },
 			{ name: DisplayUpdateTypeOption.ID, value: QUEUE_TABLE.displayUpdateType.name },
 			{ name: HeaderOption.ID, value: QUEUE_TABLE.header.name },
 			{ name: InlineToggleOption.ID, value: QUEUE_TABLE.inlineToggle.name },

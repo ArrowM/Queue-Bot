@@ -354,7 +354,7 @@ export namespace DisplayUtils {
 				const dstStr = queue.voiceDestinationChannelId ? ` to ${channelMention(queue.voiceDestinationChannelId)}` : "";
 				descriptionParts.push(`- ${pullMethodStr} pulling members from ${srcStr}${dstStr}`);
 			}
-			else if ([Scope.NonAdmin, Scope.All].includes(queue.displayButtons)) {
+			else if ([Scope.NonAdmin, Scope.All].includes(queue.buttonsToggle)) {
 				descriptionParts.push(`${commandMention("join")}, ${commandMention("leave")}, or click the buttons below.`);
 			}
 			else {
@@ -402,11 +402,11 @@ export namespace DisplayUtils {
 	}
 
 	function getButtonRow(queue: DbQueue) {
-		if (queue.displayButtons === Scope.None) return;
+		if (queue.buttonsToggle === Scope.None) return;
 
 		const actionRowBuilder = new ActionRowBuilder<ButtonBuilder>();
 
-		if ([Scope.NonAdmin, Scope.All].includes(queue.displayButtons) && !queue.voiceOnlyToggle) {
+		if ([Scope.NonAdmin, Scope.All].includes(queue.buttonsToggle) && !queue.voiceOnlyToggle) {
 			actionRowBuilder.addComponents(
 				buildButton(BUTTONS.get(JoinButton.ID)),
 				buildButton(BUTTONS.get(LeaveButton.ID)),
@@ -414,7 +414,7 @@ export namespace DisplayUtils {
 			);
 		}
 
-		if ([Scope.Admin, Scope.All].includes(queue.displayButtons)) {
+		if ([Scope.Admin, Scope.All].includes(queue.buttonsToggle)) {
 			actionRowBuilder.addComponents(buildButton(BUTTONS.get(PullButton.ID)));
 		}
 

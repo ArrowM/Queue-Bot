@@ -12,7 +12,7 @@ import { CommandOption } from "./options/command.option.ts";
 import { CronOption } from "./options/cron.option.ts";
 import { CustomCronOption } from "./options/custom-cron.option.ts";
 import { DisplayOption } from "./options/display.option.ts";
-import { DisplayButtonsOption } from "./options/display-buttons.option.ts";
+import { ButtonsToggleOption } from "./options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "./options/display-update-type.option.ts";
 import { DisplaysOption } from "./options/displays.option.ts";
 import { HeaderOption } from "./options/header.option.ts";
@@ -70,7 +70,7 @@ export const OPTIONS = new Collection<string, BaseOption>([
 	[CustomCronOption.ID, new CustomCronOption()],
 	[DisplayOption.ID, new DisplayOption()],
 	[DisplaysOption.ID, new DisplaysOption()],
-	[DisplayButtonsOption.ID, new DisplayButtonsOption()],
+	[ButtonsToggleOption.ID, new ButtonsToggleOption()],
 	[DisplayUpdateTypeOption.ID, new DisplayUpdateTypeOption()],
 	[HeaderOption.ID, new HeaderOption()],
 	[InlineToggleOption.ID, new InlineToggleOption()],

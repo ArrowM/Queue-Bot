@@ -3,9 +3,9 @@ import { Scope } from "../../types/db.types.ts";
 import { toChoices } from "../../utils/misc.utils.ts";
 import { StringOption } from "../base-option.ts";
 
-export class DisplayButtonsOption extends StringOption {
-	static readonly ID = "display_buttons";
-	id = DisplayButtonsOption.ID;
+export class ButtonsToggleOption extends StringOption {
+	static readonly ID = "buttons_toggles";
+	id = ButtonsToggleOption.ID;
 	choices = toChoices(Scope);
-	defaultValue = QUEUE_TABLE.displayButtons.default;
+	defaultValue = QUEUE_TABLE.buttonsToggle.default;
 }
