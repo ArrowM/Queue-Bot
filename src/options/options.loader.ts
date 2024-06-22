@@ -1,6 +1,6 @@
 import { Collection } from "discord.js";
 
-import type { BaseOption } from "./base-option.ts";
+import { type BaseOption, UserOption } from "./base-option.ts";
 import { AdminOption } from "./options/admin.option.ts";
 import { AdminsOption } from "./options/admins.option.ts";
 import { AutopullToggleOption } from "./options/autopull-toggle.option.ts";
@@ -106,6 +106,7 @@ export const OPTIONS = new Collection<string, BaseOption>([
 	[SizeOption.ID, new SizeOption()],
 	[TimestampTypeOption.ID, new TimestampTypeOption()],
 	[TimezoneOption.ID, new TimezoneOption()],
+	[UserOption.ID, new UserOption()],
 	[VoiceOption.ID, new VoiceOption()],
 	[VoicesOption.ID, new VoicesOption()],
 	[VoiceDestinationChannelOption.ID, new VoiceDestinationChannelOption()],
