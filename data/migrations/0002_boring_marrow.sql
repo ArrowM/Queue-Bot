@@ -1,0 +1,1 @@
+ALTER TABLE `queue` RENAME COLUMN `display_buttons` TO `buttons_toggles`;
