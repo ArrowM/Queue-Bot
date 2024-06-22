@@ -68,7 +68,7 @@ docker compose down
 
 ### Option 2: Manually install and run
 
-This method is not recommended, because it requires installing node and lacks the logging, auto-restart, and rebuild speed of Docker. 
+This method is not recommended, because it lacks the logging, auto-restart, and rebuild speed of Docker. 
 
 [Install Node.js](https://nodejs.org/en/download/package-manager).
 

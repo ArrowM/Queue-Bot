@@ -29,4 +29,6 @@ docker compose up -d --build
 
 docker image prune -f
 
+echo "Attaching to container ${CONTAINER_NAME}... (CTRL+p CTRL+q to detach)"
+
 docker attach queue-bot
