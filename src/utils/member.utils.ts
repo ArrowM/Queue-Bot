@@ -170,28 +170,27 @@ export namespace MemberUtils {
 					? NotificationAction.PULLED_FROM_QUEUE
 					: NotificationAction.KICKED_FROM_QUEUE;
 
-				let messageLink;
-				const message = {
+				const messageToSend = {
 					embeds: [await describePulledMembers(store, queue, deleted, reason)],
 				};
+				let sentMessage;
 
-				if (messageChannelId) {
+				if (messageChannelId && queue.notificationsToggle) {
 					const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
 					if (messageChannel) {
-						const createdMessage = await messageChannel?.send(message);
-						LoggingUtils.log(store, true, createdMessage).catch(() => null);
-						messageLink = createdMessage.url;
+						sentMessage = await messageChannel?.send(messageToSend);
+						LoggingUtils.log(store, true, sentMessage).catch(() => null);
 					}
 				}
 				else if (store.inter) {
-					await store.inter.respond(message);
+					await store.inter.respond(messageToSend);
 				}
 				else {
-					LoggingUtils.log(store, true, message).catch(() => null);
+					LoggingUtils.log(store, true, messageToSend).catch(() => null);
 				}
 
 				if (queue.notificationsToggle) {
-					await NotificationUtils.dmToMembers({ store, queue, action, members: deleted, messageLink });
+					await NotificationUtils.dmToMembers({ store, queue, action, members: deleted, messageLink: sentMessage?.url });
 				}
 			}
 

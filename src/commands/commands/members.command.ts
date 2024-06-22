@@ -143,6 +143,7 @@ export class MembersCommand extends AdminCommand {
 			queues,
 			reason: MemberRemovalReason.Kicked,
 			by: { userIds: members.map(member => member.userId) },
+			messageChannelId: inter.channel.id,
 			force: true,
 		});
 	}

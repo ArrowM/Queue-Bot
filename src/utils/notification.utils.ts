@@ -18,7 +18,7 @@ export namespace NotificationUtils {
 		const link = messageLink ?? store.guild;
 
 		// build message
-		let message = `${link}You were just ${action} the '${queueMention(queue)}' queue.`;
+		let message = `${link} You were just ${action} the '${queueMention(queue)}' queue.`;
 		if (queue.pullMessage) {
 			message += `\n> ${queue.pullMessage}`;
 		}
