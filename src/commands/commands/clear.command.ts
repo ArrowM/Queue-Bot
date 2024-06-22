@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from "discord.js";
 
 import { QueuesOption } from "../../options/options/queues.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
+import { MemberRemovalReason } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { MemberUtils } from "../../utils/member.utils.ts";
 import { queuesMention } from "../../utils/string.utils.ts";
@@ -33,9 +34,13 @@ export class ClearCommand extends AdminCommand {
 			return;
 		}
 
-		for (const queue of queues.values()) {
-			await MemberUtils.clearMembers(inter.store, queue, inter.channelId);
-		}
+		await MemberUtils.deleteMembers({
+			store: inter.store,
+			queues,
+			reason: MemberRemovalReason.Kicked,
+			messageChannelId: inter.channelId,
+			force: true,
+		});
 
 		await inter.deleteReply();
 	}

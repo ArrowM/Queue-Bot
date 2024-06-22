@@ -265,22 +265,6 @@ export namespace MemberUtils {
 		});
 	}
 
-	export async function clearMembers(store: Store, queue: DbQueue, messageChannelId: Snowflake) {
-		const members = store.deleteManyMembers({ queueId: queue.id }, MemberRemovalReason.Kicked);
-
-		DisplayUtils.requestDisplayUpdate(store, queue.id);
-
-		if (messageChannelId) {
-			const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
-			if (messageChannel) {
-				const message = await messageChannel?.send(`Cleared the ${queueMention(queue)} queue.`).catch(() => null);
-				LoggingUtils.log(store, true, message).catch(() => null);
-			}
-		}
-
-		return members;
-	}
-
 	export async function shuffleMembers(store: Store, queue: DbQueue, messageChannelId: Snowflake) {
 		return db.transaction(async () => {
 			const members = store.dbMembers().filter(member => member.queueId === queue.id);

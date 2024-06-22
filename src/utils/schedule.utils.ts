@@ -132,7 +132,14 @@ export namespace ScheduleUtils {
 
 		switch (schedule.command) {
 			case ScheduleCommand.Clear:
-				await MemberUtils.clearMembers(store, queue, schedule.messageChannelId);
+
+				await MemberUtils.deleteMembers({
+					store,
+					queues: [queue],
+					reason: MemberRemovalReason.Kicked,
+					messageChannelId: schedule.messageChannelId,
+					force: true,
+				});
 				break;
 			case ScheduleCommand.Pull:
 				await MemberUtils.deleteMembers({
