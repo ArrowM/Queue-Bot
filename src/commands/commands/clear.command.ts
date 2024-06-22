@@ -39,6 +39,7 @@ export class ClearCommand extends AdminCommand {
 			queues,
 			reason: MemberRemovalReason.Kicked,
 			messageChannelId: inter.channelId,
+			by: { count: 9999 },
 			force: true,
 		});
 
