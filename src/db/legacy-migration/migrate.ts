@@ -205,7 +205,7 @@ async function convertAndInsert() {
 									displayUpdateType: (legacyGuild.msg_mode === 3) ? DisplayUpdateType.New : (legacyGuild.msg_mode === 2) ? DisplayUpdateType.Replace : DisplayUpdateType.Edit,
 									header: legacyQueue.header,
 									lockToggle: legacyQueue.is_locked,
-									memberDisplayType: legacyGuild.disable_mentions ? MemberDisplayType.Plaintext : MemberDisplayType.Mention,
+									memberDisplayType: legacyGuild.disable_mentions ? MemberDisplayType.DisplayName : MemberDisplayType.Mention,
 									notificationsToggle: !legacyGuild.disable_notifications,
 									pullBatchSize: BigInt(legacyQueue.pull_num),
 									rejoinGracePeriod: BigInt(legacyQueue.grace_period),

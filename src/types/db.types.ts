@@ -43,7 +43,8 @@ export enum Color {
 
 export enum MemberDisplayType {
 	Mention = "mention",
-	Plaintext = "plaintext",
+	Username = "username",
+	DisplayName = "display_name",
 }
 
 export enum DisplayUpdateType {

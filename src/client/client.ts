@@ -51,8 +51,6 @@ export namespace Client {
 
 			ClientUtils.checkForOfflineVoiceChanges();
 
-			ClientUtils.reEvalAllPriorities();
-
 			ClientUtils.checkForPatchNotes();
 		}
 		catch (e) {

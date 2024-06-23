@@ -49,14 +49,16 @@ export async function memberMention(store: Store, member: DbMember) {
 	const { timestampType, memberDisplayType } = store.dbQueues().get(member.queueId);
 	const timeStr = formatTimestamp(member.joinTime, timestampType);
 	const prioStr = isNil(member.priorityOrder) ? "" : "✨";
-	const msgStr = member.message ? ` -- ${member.message}` : "";
+	const msgStr = member.message ? `-- ${member.message}` : "";
 
 	const jsMember = await store.jsMember(member.userId);
-	const username = jsMember?.user?.username;
-	const isPlaintextMention = memberDisplayType === MemberDisplayType.Plaintext && username;
-	const nameStr = isPlaintextMention ? ` ${username}` : jsMember;
+	const nameStr =
+		memberDisplayType === MemberDisplayType.Mention ? userMention(member.userId) :
+			memberDisplayType === MemberDisplayType.Username ? jsMember?.user?.username :
+				memberDisplayType === MemberDisplayType.DisplayName ? jsMember?.nickname ?? jsMember?.displayName :
+					jsMember;
 
-	return `${timeStr}${prioStr}${nameStr}${msgStr}`;
+	return `${timeStr} ${prioStr} ${nameStr} ${msgStr}`;
 }
 
 export function usersMention(users: { userId: Snowflake }[]) {

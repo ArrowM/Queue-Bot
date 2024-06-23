@@ -152,14 +152,4 @@ export namespace ClientUtils {
 			await new Promise(resolve => setTimeout(resolve, 500));
 		}
 	}
-
-	// TODO remove
-	export async function reEvalAllPriorities() {
-		for (const [guildId, queues] of Object.entries(groupBy(Queries.selectAllQueues(), "guildId"))) {
-			const store = new Store(await getGuild(guildId));
-			DisplayUtils.requestDisplaysUpdate(store, queues.map(queue => queue.id), { updateTypeOverride: DisplayUpdateType.Edit });
-			// rate limit
-			await new Promise(resolve => setTimeout(resolve, 500));
-		}
-	}
 }

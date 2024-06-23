@@ -349,7 +349,7 @@ export namespace MemberUtils {
 		}
 		catch (e) {
 			const { message } = e as Error;
-			if (message.includes("Missing Permissions")) {
+			if (message.includes("Missing Permissions") || message.includes("Unknown Role")) {
 				throw new CustomError({
 					message: "Missing Permissions",
 					embeds: [
