@@ -3,7 +3,7 @@ import { type InteractionReplyOptions, type Message } from "discord.js";
 import { COMMANDS } from "../commands/commands.loader.ts";
 import { incrementGuildStat } from "../db/db-scheduled-tasks.ts";
 import type { Handler } from "../types/handler.types.ts";
-import type { AnyInteraction, SlashInteraction } from "../types/interaction.types.ts";
+import type { BaseInteraction, SlashInteraction } from "../types/interaction.types.ts";
 import { AdminUtils } from "../utils/admin.utils.ts";
 import { InteractionUtils } from "../utils/interaction.utils.ts";
 import { LoggingUtils } from "../utils/message-utils/logging.utils.ts";
@@ -12,7 +12,7 @@ import { Parser } from "../utils/message-utils/parser.ts";
 export class CommandHandler implements Handler {
 	private readonly inter: SlashInteraction;
 
-	constructor(inter: AnyInteraction) {
+	constructor(inter: BaseInteraction) {
 		this.inter = inter as SlashInteraction;
 		this.inter.parser = new Parser(this.inter);
 	}

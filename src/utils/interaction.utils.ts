@@ -14,12 +14,12 @@ import {
 } from "discord.js";
 
 import { Color } from "../types/db.types.ts";
-import type { AnyInteraction, SlashInteraction } from "../types/interaction.types.ts";
+import type { ButtonInteraction, SlashInteraction } from "../types/interaction.types.ts";
 import { CustomError } from "./error.utils.ts";
 import { LoggingUtils } from "./message-utils/logging.utils.ts";
 
 export namespace InteractionUtils {
-	export async function respond(inter: AnyInteraction, isAdmin: boolean, message: InteractionReplyOptions | string, log = false) {
+	export async function respond(inter: SlashInteraction | ButtonInteraction, isAdmin: boolean, message: InteractionReplyOptions | string, log = false) {
 		const interaction = inter as any;
 
 		let response: Message;

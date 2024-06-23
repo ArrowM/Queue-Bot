@@ -71,16 +71,15 @@ export namespace ClientHandler {
 		if (!guild) return;
 		const store = new Store(guild);
 
-		const queuesJoined = store.dbVoices()
-			.filter(voice => voice.joinSyncToggle && voice.sourceChannelId === newState.channelId)
-			.map(voice => store.dbQueues().get(voice.queueId));
+		const voices = store.dbVoices() .filter(voice => voice.joinSyncToggle && voice.sourceChannelId === newState.channelId);
+		const queuesJoined = voices.map(voice => store.dbQueues().get(voice.queueId));
 		for (const queue of queuesJoined.values()) {
 			try {
 				// Join
 				await MemberUtils.insertJsMember({
 					store,
 					queue,
-					jsMember: newState.member!,
+					jsMember: newState.member,
 				});
 			}
 			catch {

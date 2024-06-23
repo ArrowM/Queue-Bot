@@ -1,4 +1,3 @@
-import type { RestOrArray } from "@discordjs/builders";
 import {
 	ActionRowBuilder,
 	type APIEmbedField,
@@ -259,72 +258,78 @@ export namespace DisplayUtils {
 		// Build member strings
 		const members = [...store.dbMembers().filter(member => member.queueId === queue.id).values()];
 		const rightPadding = `${members.length}`.length;
-
 		const memberDisplayLines = compact(await Promise.all(
 			members.map(async (member, index) =>
 				createMemberDisplayLine(store, member, index + 1, rightPadding)
 			)
 		));
 
-		/**
-		 * Q: What is happening below?
-		 * A: Discord has a limit of 6000 characters for a single message.
-		 * 		If the queue is too long, we need to split it into multiple messages.
-		 * 	  Discord.js does not automatically split messages for us, so we need to do it manually.
-		 */
-
 		// Build embeds
 		const embeds: EmbedBuilder[] = [];
 		const title = queueMention(queue);
-		const description = await buildDescription(store, queue);
+		const description = buildDescription(store, queue);
 		const sizeStr = `size: ${memberDisplayLines.length}${queue.size ? ` / ${queue.size}` : ""}`;
-		let fields: RestOrArray<APIEmbedField> = [];
-		let fieldIdx = 1;
-		let embedLength = title.length + description.length + sizeStr.length;
 
-		function createEmbed(fields: RestOrArray<APIEmbedField>): EmbedBuilder {
-			return new EmbedBuilder()
-				.setTitle(title)
-				.setColor(color)
-				.setDescription(description)
-				.setFields(...fields);
-		}
+		let messageCharCount = title.length + description.length + sizeStr.length;
+		let embedBuffer = new EmbedBuilder().setColor(color).setTitle(title).setDescription(description);
+		let fieldsBuffer: APIEmbedField[] = [];
+		let fieldBuffer = createNewField();
+		fieldBuffer.name = sizeStr;
 
-		function createField(): APIEmbedField {
+		function createNewField(): APIEmbedField {
 			return { name: "\u200b", value: "", inline: inlineToggle };
 		}
 
-		let field = createField();
-
-		for (let i = 0; i < memberDisplayLines.length; i++) {
-			const memberDisplayLine = memberDisplayLines[i];
-			if ((embedLength + memberDisplayLine.length >= 6000) || fieldIdx === 25) {
-				embeds.push(createEmbed(fields));
-				fields = [];
-				field = createField();
-				fieldIdx = 1;
-			}
-			if (field.value.length + memberDisplayLine.length >= 1024) {
-				fields.push(field);
-				field = createField();
-				fieldIdx++;
-			}
-			field.value += memberDisplayLine;
-			embedLength += memberDisplayLine.length;
+		function writeToFieldsBuffer() {
+			fieldsBuffer.push(fieldBuffer);
+			fieldBuffer = createNewField();
 		}
 
-		if (!field.value) {
-			field.value = "\u200b";
+		function writeToEmbedBuffer() {
+			embeds.push(embedBuffer.setFields(fieldsBuffer));
+			embedBuffer = new EmbedBuilder().setColor(color).setTitle(title).setDescription(description);
+			fieldsBuffer = [];
 		}
-		fields.push(field);
-		fields[0].name = sizeStr;
 
-		embeds.push(createEmbed(fields));
+		for (const memberDisplayLine of memberDisplayLines) {
+			// There can be up to 6000 characters per message
+			if ((messageCharCount += memberDisplayLine.length) >= 6000) {
+				break;
+			}
+			// There can be up to 1024 characters per field
+			if (fieldBuffer.value.length + memberDisplayLine.length >= 1024) {
+				writeToFieldsBuffer();
+				// There can be up to 25 fields per embed
+				if (fieldsBuffer.length === 25) {
+					writeToEmbedBuffer();
+					// There can be up to 10 embeds per message
+					if (embeds.length === 10) {
+						return embeds;
+					}
+				}
+			}
+			fieldBuffer.value += memberDisplayLine;
+		}
+
+		if (fieldBuffer.value) {
+			writeToFieldsBuffer();
+		}
+		if (fieldsBuffer.length) {
+			writeToEmbedBuffer();
+		}
+
+		// Handle empty queue
+		if (embeds.length === 0) {
+			fieldBuffer.value = "\u200b";
+			fieldsBuffer.push(fieldBuffer);
+			embedBuffer.setFields(fieldsBuffer);
+			embeds.push(embedBuffer);
+		}
 
 		return embeds;
 	}
 
-	async function buildDescription(store: Store, queue: DbQueue) {
+	function buildDescription(store: Store, queue: DbQueue) {
 		const schedules = store.dbSchedules().filter(schedule => queue.id === schedule.queueId);
 		const members = store.dbMembers().filter(member => member.queueId === queue.id);
 		const {

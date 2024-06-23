@@ -14,7 +14,6 @@ import { type Parser } from "../utils/message-utils/parser.ts";
 interface BaseProperties {
 	store: Store;
 	/** InteractionUtils.respond() */
-	respond: (message: InteractionReplyOptions | string, log?: boolean) => Promise<Message>;
 	log: (originalMessage: Message | string) => Promise<Message>;
 	member: GuildMember; // overrides default type of `GuildMember | APIInteractionGuildMember`
 }
@@ -26,11 +25,13 @@ type AutocompleteProperties = BaseProperties & {
 type SlashProperties = BaseProperties & {
 	parser: Parser<SlashInteraction>;
 	promptConfirmOrCancel?: (message: string) => Promise<boolean>;
+	respond: (message: InteractionReplyOptions | string, log?: boolean) => Promise<Message>;
 }
 
 type DiscordResponseFn = "send" | "reply" | "followUp";
 
-export type AnyInteraction = Omit<DiscordInteraction, DiscordResponseFn | "respond"> & BaseProperties;
+export type BaseInteraction = Omit<DiscordInteraction, DiscordResponseFn | "respond"> & BaseProperties;
 export type AutocompleteInteraction = Omit<DiscordAutocompleteInteraction, DiscordResponseFn> & AutocompleteProperties;
 export type ButtonInteraction = Omit<DiscordButtonInteraction, DiscordResponseFn| "respond"> & SlashProperties;
 export type SlashInteraction = Omit<DiscordSlashCommandInteration, DiscordResponseFn | "respond"> & SlashProperties;
+export type AnyInteraction = AutocompleteInteraction | ButtonInteraction | SlashInteraction;

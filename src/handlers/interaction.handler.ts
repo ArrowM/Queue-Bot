@@ -1,4 +1,4 @@
-import { codeBlock, EmbedBuilder, type Interaction } from "discord.js";
+import { codeBlock, EmbedBuilder, type Interaction, InteractionType } from "discord.js";
 import { compact, concat } from "lodash-es";
 
 import { Store } from "../db/store.ts";
@@ -53,7 +53,7 @@ export class InteractionHandler implements Handler {
 				console.error(`Stack Trace: ${stack}`);
 			}
 
-			if ("respond" in this.inter) {
+			if (this.inter.type !== InteractionType.ApplicationCommandAutocomplete) {
 				const embed = new EmbedBuilder()
 					.setTitle(ERROR_HEADER_LINE)
 					.setColor(Color.DarkRed)

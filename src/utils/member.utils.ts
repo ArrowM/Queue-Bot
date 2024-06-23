@@ -22,37 +22,41 @@ import { WhitelistUtils } from "./whitelist.utils.ts";
 
 export namespace MemberUtils {
 	export async function insertMentionables(options: {
-		store: Store
+		store: Store,
 		mentionables: Mentionable[],
 		queues: Collection<bigint, DbQueue>,
 		force?: boolean,
 	}) {
 		const { store, mentionables, queues, force } = options;
 
-		const insertedMembers = [];
-		for (const mentionable of mentionables) {
-			if (mentionable instanceof GuildMember) {
-				for (const queue of queues.values()) {
-					insertedMembers.push(
-						await insertJsMember({ store, queue, jsMember: mentionable, force })
-					);
-				}
-			}
-			else if (mentionable instanceof Role) {
-				const role = await store.jsRole(mentionable.id);
-				for (const queue of queues.values()) {
-					for (const jsMember of role.members.values()) {
-						insertedMembers.push(
-							await insertJsMember({ store, queue, jsMember, force })
+		const insertedMembers = await db.transaction(async () => {
+			const inserted = [];
+			for (const mentionable of mentionables) {
+				if (mentionable instanceof GuildMember) {
+					for (const queue of queues.values()) {
+						inserted.push(
+							await insertJsMember({ store, queue, jsMember: mentionable, force })
 						);
 					}
 				}
+				else if (mentionable instanceof Role) {
+					const role = await store.jsRole(mentionable.id);
+					for (const queue of queues.values()) {
+						for (const jsMember of role.members.values()) {
+							inserted.push(
+								await insertJsMember({ store, queue, jsMember, force })
+							);
+						}
+					}
+				}
 			}
-		}
+			return inserted;
+		});
+
+		DisplayUtils.requestDisplaysUpdate(options.store, queues.map(queue => queue.id));
 
 		if (store.inter) {
 			const message = await store.inter.respond(`Added ${usersMention(insertedMembers)} to '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
-
 			for (const queue of queues.values()) {
 				if (queue.notificationsToggle) {
 					await NotificationUtils.dmToMembers({
@@ -76,40 +80,50 @@ export namespace MemberUtils {
 		message?: string,
 		force?: boolean,
 	}) {
-		const { store, queue, jsMember, message, force } = options;
-
 		return await db.transaction(async () => {
-			const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
-
-			if (!force) {
-				verifyMemberEligibility(store, queue, jsMember, archivedMember);
-			}
-
-			const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
-			let positionTime = BigInt(Date.now());
-
-			if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
-				if (BigInt(Date.now()) - archivedMember.archivedTime <= (queue.rejoinGracePeriod * 1000n)) {
-					// Reuse the positionTime
-					positionTime = archivedMember.positionTime;
-				}
-			}
-
-			const insertedMember = store.insertMember({
-				guildId: store.guild.id,
-				queueId: queue.id,
-				userId: jsMember.id,
-				message,
-				priorityOrder,
-				positionTime,
-			});
-
-			await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
-
-			DisplayUtils.requestDisplayUpdate(store, queue.id);
-
+			const insertedMember = await _insertMember(options);
+			DisplayUtils.requestDisplayUpdate(options.store, options.queue.id);
 			return insertedMember;
 		});
+	}
+
+	async function _insertMember(options: {
+		store: Store,
+		queue: DbQueue,
+		jsMember: GuildMember,
+		message?: string,
+		force?: boolean,
+	}) {
+		const { store, queue, jsMember, message, force } = options;
+
+		const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
+
+		if (!force) {
+			verifyMemberEligibility(store, queue, jsMember, archivedMember);
+		}
+
+		const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
+		let positionTime = BigInt(Date.now());
+
+		if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
+			if (BigInt(Date.now()) - archivedMember.archivedTime <= (queue.rejoinGracePeriod * 1000n)) {
+				// Reuse the positionTime
+				positionTime = archivedMember.positionTime;
+			}
+		}
+
+		const insertedMember = store.insertMember({
+			guildId: store.guild.id,
+			queueId: queue.id,
+			userId: jsMember.id,
+			message,
+			priorityOrder,
+			positionTime,
+		});
+
+		await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
+
+		return insertedMember;
 	}
 
 	export function updateMembers(store: Store, members: ArrayOrCollection<bigint, DbMember>, message: string) {

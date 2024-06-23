@@ -238,7 +238,7 @@ export class ScheduleCommand extends AdminCommand {
 		const {
 			deletedSchedules,
 			updatedQueueIds,
-		} = ScheduleUtils.deleteSchedules(schedules.map(sch => sch.id), inter.store);
+		} = ScheduleUtils.deleteSchedules(inter.guildId, schedules.map(sch => sch.id), inter.store);
 
 		const schedulesStr = deletedSchedules.map(schedule => `- ${scheduleMention(schedule)}`).join("\n");
 		await inter.respond(`Deleted schedule${schedules.size ? "s" : ""}:\n${schedulesStr}`, true);

@@ -1,4 +1,4 @@
-import type { Collection } from "discord.js";
+import type { Collection, Snowflake } from "discord.js";
 import { isEmpty, uniq } from "lodash-es";
 import { schedule as cron, type ScheduledTask, validate } from "node-cron";
 
@@ -56,13 +56,13 @@ export namespace ScheduleUtils {
 		return { updatedSchedules, updatedQueueIds };
 	}
 
-	export function deleteSchedules(scheduleIds: bigint[], store?: Store) {
+	export function deleteSchedules(guildId: Snowflake, scheduleIds: bigint[], store?: Store) {
 		function deleteFn(id: bigint) {
 			if (store) {
 				return store.deleteSchedule({ id });
 			}
 			else {
-				return Queries.deleteSchedule({ guildId: store.guild.id, id });
+				return Queries.deleteSchedule({ guildId, id });
 			}
 		}
 
@@ -113,7 +113,7 @@ export namespace ScheduleUtils {
 			schedule.id,
 			cron(schedule.cron, async () => {
 				try {
-					await executeScheduledCommand(schedule.id);
+					await executeScheduledCommand(schedule.guildId, schedule.id);
 				}
 				catch (e) {
 					const { message, stack } = e as Error;
@@ -125,14 +125,13 @@ export namespace ScheduleUtils {
 		);
 	}
 
-	async function executeScheduledCommand(scheduleId: bigint) {
-		const context = await getScheduleContext(scheduleId) as { store: Store, queue: DbQueue, schedule: DbSchedule };
+	async function executeScheduledCommand(guildId: Snowflake, scheduleId: bigint) {
+		const context = await getScheduleContext(guildId, scheduleId) as { store: Store, queue: DbQueue, schedule: DbSchedule };
 		if (!context) return;
 		const { store, queue, schedule } = context;
 
 		switch (schedule.command) {
 			case ScheduleCommand.Clear:
-
 				await MemberUtils.deleteMembers({
 					store,
 					queues: [queue],
@@ -157,10 +156,10 @@ export namespace ScheduleUtils {
 		}
 	}
 
-	async function getScheduleContext(scheduleId: bigint) {
+	async function getScheduleContext(guildId: Snowflake, scheduleId: bigint) {
 		const schedule = Queries.selectSchedule({ id: scheduleId });
 		if (!schedule) {
-			deleteSchedules([scheduleId]);
+			deleteSchedules(guildId, [scheduleId]);
 			return;
 		}
 		const queue = Queries.selectQueue({ guildId: schedule.guildId, id: schedule.queueId });

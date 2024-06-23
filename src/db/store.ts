@@ -11,7 +11,7 @@ import { compact, isNil, omitBy } from "lodash-es";
 import moize from "moize";
 
 import { type GuildStat, MemberRemovalReason, type Scope } from "../types/db.types.ts";
-import type { AnyInteraction } from "../types/interaction.types.ts";
+import type { AnyInteraction, ButtonInteraction, SlashInteraction } from "../types/interaction.types.ts";
 import {
 	AdminAlreadyExistsError,
 	BlacklistedAlreadyExistsError,
@@ -66,11 +66,13 @@ import {
  * ⚠️ IMPORTANT ⚠️: Queries must be written to include guildId!
  */
 export class Store {
+	public inter: ButtonInteraction | SlashInteraction;
 
 	constructor(
 		public guild: Guild,
-		public inter?: AnyInteraction
+		inter?: AnyInteraction,
 	) {
+		this.inter = inter as ButtonInteraction | SlashInteraction;
 	}
 
 	// ====================================================================

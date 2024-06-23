@@ -3,7 +3,7 @@ import type { InteractionReplyOptions, Message } from "discord.js";
 import { BUTTONS } from "../buttons/buttons.loader.ts";
 import { incrementGuildStat } from "../db/db-scheduled-tasks.ts";
 import type { Handler } from "../types/handler.types.ts";
-import type { AnyInteraction, ButtonInteraction } from "../types/interaction.types.ts";
+import type { BaseInteraction, ButtonInteraction } from "../types/interaction.types.ts";
 import { AdminUtils } from "../utils/admin.utils.ts";
 import { InteractionUtils } from "../utils/interaction.utils.ts";
 import { LoggingUtils } from "../utils/message-utils/logging.utils.ts";
@@ -11,7 +11,7 @@ import { LoggingUtils } from "../utils/message-utils/logging.utils.ts";
 export class ButtonHandler implements Handler {
 	private readonly inter: ButtonInteraction;
 
-	constructor(inter: AnyInteraction) {
+	constructor(inter: BaseInteraction) {
 		this.inter = inter as ButtonInteraction;
 	}
 
