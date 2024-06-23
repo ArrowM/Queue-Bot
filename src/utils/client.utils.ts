@@ -144,12 +144,20 @@ export namespace ClientUtils {
 	}
 
 	export async function checkForOfflineVoiceChanges() {
-		// Force fetch of all guilds
-		await CLIENT.guilds.fetch();
 		for (const guildId of Object.keys(groupBy(Queries.selectAllVoices(), "guildId"))) {
 			const store = new Store(await getGuild(guildId));
 			const queueIds = store.dbQueues().map(queue => queue.id);
 			DisplayUtils.requestDisplaysUpdate(store, queueIds, { updateTypeOverride: DisplayUpdateType.Edit });
+			// rate limit
+			await new Promise(resolve => setTimeout(resolve, 500));
+		}
+	}
+
+	// TODO remove
+	export async function reEvalAllPriorities() {
+		for (const [guildId, queues] of Object.entries(groupBy(Queries.selectAllQueues(), "guildId"))) {
+			const store = new Store(await getGuild(guildId));
+			DisplayUtils.requestDisplaysUpdate(store, queues.map(queue => queue.id), { updateTypeOverride: DisplayUpdateType.Edit });
 			// rate limit
 			await new Promise(resolve => setTimeout(resolve, 500));
 		}

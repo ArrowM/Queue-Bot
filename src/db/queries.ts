@@ -56,6 +56,13 @@ export namespace Queries {
 		return selectManyQueuesByGuildId.all(by);
 	}
 
+	export function selectAllQueues() {
+		return db
+			.select()
+			.from(QUEUE_TABLE)
+			.all();
+	}
+
 	// Voice
 
 	export function selectVoice(by: { guildId: Snowflake, id: bigint }) {

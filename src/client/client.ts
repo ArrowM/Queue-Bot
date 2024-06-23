@@ -46,7 +46,12 @@ export namespace Client {
 
 			ClientUtils.loadTopGGAutoPoster();
 
+			// Force fetch of all guilds
+			await CLIENT.guilds.fetch();
+
 			ClientUtils.checkForOfflineVoiceChanges();
+
+			ClientUtils.reEvalAllPriorities();
 
 			ClientUtils.checkForPatchNotes();
 		}
