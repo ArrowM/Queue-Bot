@@ -284,7 +284,6 @@ export class QueuesCommand extends AdminCommand {
 			{ name: InlineToggleOption.ID, value: QUEUE_TABLE.inlineToggle.name },
 			{ name: LockToggleOption.ID, value: QUEUE_TABLE.lockToggle.name },
 			{ name: MemberDisplayTypeOption.ID, value: QUEUE_TABLE.memberDisplayType.name },
-			{ name: NameOption.ID, value: QUEUE_TABLE.name.name },
 			{ name: NotificationsToggleOption.ID, value: QUEUE_TABLE.notificationsToggle.name },
 			{ name: PullBatchSizeOption.ID, value: QUEUE_TABLE.pullBatchSize.name },
 			{ name: PullMessageOption.ID, value: QUEUE_TABLE.pullMessage.name },
@@ -306,7 +305,7 @@ export class QueuesCommand extends AdminCommand {
 		}
 
 		const updatedQueues = db.transaction(() =>
-			queues.map((queue) => inter.store.updateQueue({ id: queue.id, ...updatedProperties }))
+ 			queues.map((queue) => inter.store.updateQueue({ id: queue.id, ...updatedProperties }))
 		);
 
 		if (updatedProperties.roleId) {

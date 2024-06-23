@@ -266,7 +266,7 @@ export namespace MemberUtils {
 			}
 			else if (oldPosition < newPosition) {
 				members.splice(oldPosition, 1);
-				members.splice(newPosition - 1, 0, member);
+				members.splice(newPosition, 0, member);
 				members.forEach((member, i) =>
 					store.updateMember({ ...member, positionTime: positions[i] })
 				);
