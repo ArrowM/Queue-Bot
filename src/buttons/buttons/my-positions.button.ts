@@ -8,7 +8,7 @@ export class MyPositionsButton extends EveryoneButton {
 	static readonly ID = "my_positions";
 
 	customId = MyPositionsButton.ID;
-	label = "My Positions";
+	label = "Positions";
 	style = ButtonStyle.Secondary;
 
 	async handle(inter: ButtonInteraction) {

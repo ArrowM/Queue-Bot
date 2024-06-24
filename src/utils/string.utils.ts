@@ -13,7 +13,7 @@ import {
 	userMention,
 } from "discord.js";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
-import { compact, concat, groupBy, isNil } from "lodash-es";
+import { compact, concat, groupBy, isEmpty, isNil } from "lodash-es";
 
 import { type DbMember, type DbQueue, type DbSchedule } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
@@ -161,7 +161,7 @@ export function describeTable<T extends object>(options: {
 	}
 
 	function formatEntryDescriptionLines(entry: T): string[] {
-		return Object.keys(entry)
+		return compact(Object.keys(entry)
 			.filter(property => !hiddenProperties.includes(property))
 			.map(property => {
 				const value = (entry as any)[property];
@@ -175,14 +175,19 @@ export function describeTable<T extends object>(options: {
 				const formattedValue = formatPropertyValue(entry, property, inlineCode) ?? "";
 				const formattedOverriddenDefaultValue = (property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
 
-				return `  - ${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();
-			});
+				return `${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();
+			}));
 	}
 
 	function formatEntry(entry: T): string {
 		const label = entryLabelProperty ? formatPropertyValue(entry, entryLabelProperty, bold) : entryLabel;
 		const descriptionLines = formatEntryDescriptionLines(entry);
-		return compact(concat(`- ${label}`, descriptionLines)).join("\n");
+		if (isEmpty(label)) {
+			return descriptionLines.map(line => `- ${line}`).join("\n");
+		}
+		else {
+			return concat(`- ${label}`, descriptionLines.map(line => `-  ${line}`)).join("\n");
+		}
 	}
 
 	const embeds = Object.entries(groupBy(entries, queueIdProperty)).map(([queueId, queueEntries]) => {

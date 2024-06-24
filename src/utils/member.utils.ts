@@ -41,6 +41,7 @@ export namespace MemberUtils {
 				}
 				else if (mentionable instanceof Role) {
 					const role = await store.jsRole(mentionable.id);
+					if (!role) continue;
 					for (const queue of queues.values()) {
 						for (const jsMember of role.members.values()) {
 							inserted.push(

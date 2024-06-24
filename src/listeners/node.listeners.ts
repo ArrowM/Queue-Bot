@@ -25,6 +25,9 @@ export namespace NodeListeners {
 
 		process.on("uncaughtException", async (error) => {
 			console.error(`Error occurred: ${error}`);
+			if (error.stack) {
+				console.error(error.stack);
+			}
 			// TODO - should we be exiting to cause a restart?
 			// await handleExitWithError(error);
 		});
@@ -34,6 +37,9 @@ export namespace NodeListeners {
 			// Optionally, log the stack trace of the promise rejection
 			promise.catch((error) => {
 				console.error(error);
+				if (error.stack) {
+					console.error(error.stack);
+				}
 			});
 			// TODO - should we be exiting to cause a restart?
 			// await handleExitWithError();
@@ -43,6 +49,9 @@ export namespace NodeListeners {
 	async function handleExitWithError(error?: Error | any) {
 		if (error) {
 			console.error(`Error occurred: ${error}`);
+			if (error.stack) {
+				console.error(error.stack);
+			}
 		}
 		try {
 			await flushPendingGuildUpdatesToDB();

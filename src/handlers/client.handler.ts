@@ -1,7 +1,7 @@
 import {
 	type DMChannel,
 	type Guild,
-	type GuildMember,
+	type GuildMember, type Interaction,
 	type NonThreadGuildBasedChannel,
 	type PartialGuildMember,
 	Role,
@@ -17,6 +17,7 @@ import { MemberRemovalReason } from "../types/db.types.ts";
 import { DisplayUtils } from "../utils/display.utils.ts";
 import { MemberUtils } from "../utils/member.utils.ts";
 import { QueueUtils } from "../utils/queue.utils.ts";
+import { InteractionHandler } from "./interaction.handler.ts";
 
 export namespace ClientHandler {
 	export function handleGuildDelete(guild: Guild) {
@@ -25,6 +26,15 @@ export namespace ClientHandler {
 		}
 		catch {
 			// ignore
+		}
+	}
+
+	export async function handleInteraction(inter: Interaction) {
+		if (inter.guild) {
+			await new InteractionHandler(inter).handle();
+		}
+		else if ("reply" in inter) {
+			await inter.reply("This command can only be used in servers").catch(() => null);
 		}
 	}
 

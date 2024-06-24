@@ -7,7 +7,6 @@ import {
 	EmbedBuilder,
 	type GuildTextBasedChannel,
 	inlineCode,
-	type Interaction,
 	type InteractionReplyOptions,
 	type Message,
 	PermissionsBitField,
@@ -77,12 +76,6 @@ export namespace InteractionUtils {
 		}
 
 		return confirmation?.customId === "confirm";
-	}
-
-	export function verifyCommandIsFromGuild(inter: Interaction) {
-		if (!inter.guild) {
-			throw new Error("This command can only be used in servers");
-		}
 	}
 
 	export async function verifyCanSendMessages(jsChannel: GuildTextBasedChannel) {

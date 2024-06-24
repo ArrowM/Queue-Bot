@@ -100,7 +100,6 @@ export class QueuesCommand extends AdminCommand {
 			store: inter.store,
 			table: QUEUE_TABLE,
 			tableLabel: "Queues",
-			entryLabel: "properties:",
 			hiddenProperties: ["name"],
 			queueIdProperty: "id",
 			valueFormatters: {

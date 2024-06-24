@@ -6,7 +6,6 @@ import { Color } from "../types/db.types.ts";
 import type { Handler } from "../types/handler.types.ts";
 import type { AnyInteraction } from "../types/interaction.types.ts";
 import { CustomError } from "../utils/error.utils.ts";
-import { InteractionUtils } from "../utils/interaction.utils.ts";
 import { ERROR_HEADER_LINE } from "../utils/string.utils.ts";
 import { AutocompleteHandler } from "./autocomplete.handler.ts";
 import { ButtonHandler } from "./button.handler.ts";
@@ -16,7 +15,6 @@ export class InteractionHandler implements Handler {
 	private readonly inter: AnyInteraction;
 
 	constructor(inter: Interaction) {
-		InteractionUtils.verifyCommandIsFromGuild(inter);
 		this.inter = inter as any as AnyInteraction;
 		this.inter.store = new Store(this.inter.guild, this.inter);
 	}
