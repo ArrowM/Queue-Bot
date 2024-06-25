@@ -50,11 +50,11 @@ export class DisplayOption extends CustomOption {
 
 		const suggestions: UIOption[] = [];
 		for (const display of displays.values()) {
-			const scope = display.queueId ? `'${queues.get(display.queueId).name}' queue` : "all queues";
+			const scope = display.queueId ? `${queues.get(display.queueId).name} queue` : "all queues";
 			const channel = await inter.store.jsChannel(display.displayChannelId);
 
 			suggestions.push({
-				name: `${scope} in '${channel.name}' channel`,
+				name: `${scope} in ${channel.name} channel`,
 				value: display.id.toString(),
 			});
 		}

@@ -145,7 +145,9 @@ export namespace ClientUtils {
 
 	export async function checkForOfflineVoiceChanges() {
 		for (const guildId of Object.keys(groupBy(Queries.selectAllVoices(), "guildId"))) {
-			const store = new Store(await getGuild(guildId));
+			const guild = await getGuild(guildId);
+			if (!guild) continue;
+			const store = new Store(guild);
 			const queueIds = store.dbQueues().map(queue => queue.id);
 			DisplayUtils.requestDisplaysUpdate(store, queueIds, { updateTypeOverride: DisplayUpdateType.Edit });
 			// rate limit

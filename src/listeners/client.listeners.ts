@@ -9,6 +9,8 @@ export namespace ClientListeners {
 
 		CLIENT.on(Events.InteractionCreate, ClientHandler.handleInteraction);
 
+		CLIENT.on(Events.MessageCreate, ClientHandler.handleMessageCreate);
+
 		CLIENT.on(Events.GuildRoleDelete, ClientHandler.handleRoleDelete);
 
 		CLIENT.on(Events.GuildMemberRemove, ClientHandler.handleGuildMemberRemove);

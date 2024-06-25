@@ -48,14 +48,14 @@ export class AdminOption extends CustomOption {
 			if (admin.isRole) {
 				const role = await inter.store.jsRole(admin.subjectId);
 				suggestions.push({
-					name: `'${role.name}' role`,
+					name: `${role.name} role`,
 					value: admin.id.toString(),
 				});
 			}
 			else {
 				const member = await inter.store.jsMember(admin.subjectId);
 				suggestions.push({
-					name: `'${member.nickname ?? member.displayName}' user`,
+					name: `${member.nickname ?? member.displayName} user`,
 					value: admin.id.toString(),
 				});
 			}

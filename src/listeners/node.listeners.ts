@@ -28,8 +28,6 @@ export namespace NodeListeners {
 			if (error.stack) {
 				console.error(error.stack);
 			}
-			// TODO - should we be exiting to cause a restart?
-			// await handleExitWithError(error);
 		});
 
 		process.on("unhandledRejection", async (reason, promise) => {
@@ -41,8 +39,6 @@ export namespace NodeListeners {
 					console.error(error.stack);
 				}
 			});
-			// TODO - should we be exiting to cause a restart?
-			// await handleExitWithError();
 		});
 	}
 

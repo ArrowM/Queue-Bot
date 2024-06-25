@@ -30,7 +30,8 @@ export class AutocompleteHandler implements Handler {
 
 		const filteredSuggestions = suggestions
 			.filter(suggestion => suggestion.name.toLowerCase().includes(lowerSearchText))
-			.slice(0, MAX_SLASH_COMMAND_OPTIONS);
+			.slice(0, MAX_SLASH_COMMAND_OPTIONS)
+			.map(suggestion => ({ name: suggestion.name.substring(0, 100), value: suggestion.value }));
 
 		await this.inter.respond(filteredSuggestions);
 	}

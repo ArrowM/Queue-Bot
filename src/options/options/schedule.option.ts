@@ -52,7 +52,7 @@ export class ScheduleOption extends CustomOption {
 
 		const suggestions: UIOption[] = [];
 		for (const schedule of schedules.values()) {
-			const scope = schedule.queueId ? `'${queues.get(schedule.queueId).name}' queue` : "All queues";
+			const scope = schedule.queueId ? `${queues.get(schedule.queueId).name} queue` : "All queues";
 			const humanReadableSchedule = lowerFirst(cronstrue.toString(schedule.cron));
 			const timezone = schedule.timezone ? `(${schedule.timezone})` : "";
 			const reason = schedule.reason ? ` - ${schedule.reason}` : "";

@@ -62,7 +62,7 @@ export namespace InteractionUtils {
 			confirmation = await response.awaitMessageComponent<ComponentType.Button>({
 				filter: i => i.user.id === inter.user.id,
 				time: 60_000,
-			});
+			}).catch(() => null);
 		}
 		catch {
 			// nothing
@@ -71,7 +71,7 @@ export namespace InteractionUtils {
 			// Cleanup messages
 			await Promise.all([
 				confirmation?.deleteReply(),
-				inter.editReply({ components: [] }),
+				inter.editReply({ components: [] }).catch(() => null),
 			]);
 		}
 

@@ -50,7 +50,7 @@ export async function flushPendingGuildUpdatesToDB() {
 				const updates = pendingGuildUpdates[guildId];
 				for (const stat in updates) {
 					const column = get(GUILD_TABLE, stat);
-					const value = updates[stat as GuildStat] as number;
+					const value = updates[stat as GuildStat] as number ?? 0;
 					const columnName = column.name;
 					db.run(
 						sql`UPDATE guild

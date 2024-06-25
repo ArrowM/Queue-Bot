@@ -69,10 +69,10 @@ export namespace ScheduleUtils {
 		// delete from db and stop cron task
 		const deletedSchedules = scheduleIds.map((id) => {
 			const deletedSchedule = deleteFn(id);
-			const task = scheduleIdToScheduleTask.get(deletedSchedule.id);
+			const task = scheduleIdToScheduleTask.get(id);
 			if (task) {
 				task.stop();
-				scheduleIdToScheduleTask.delete(deletedSchedule.id);
+				scheduleIdToScheduleTask.delete(id);
 			}
 			return deletedSchedule;
 		});

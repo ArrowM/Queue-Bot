@@ -1,7 +1,7 @@
 import {
 	type DMChannel,
 	type Guild,
-	type GuildMember, type Interaction,
+	type GuildMember, type Interaction, type Message,
 	type NonThreadGuildBasedChannel,
 	type PartialGuildMember,
 	Role,
@@ -18,6 +18,7 @@ import { DisplayUtils } from "../utils/display.utils.ts";
 import { MemberUtils } from "../utils/member.utils.ts";
 import { QueueUtils } from "../utils/queue.utils.ts";
 import { InteractionHandler } from "./interaction.handler.ts";
+import { MessageHandler } from "./message.handler.ts";
 
 export namespace ClientHandler {
 	export function handleGuildDelete(guild: Guild) {
@@ -35,6 +36,12 @@ export namespace ClientHandler {
 		}
 		else if ("reply" in inter) {
 			await inter.reply("This command can only be used in servers").catch(() => null);
+		}
+	}
+
+	export async function handleMessageCreate(message: Message) {
+		if (message.guild && message.author.id !== message.client.user?.id) {
+			await new MessageHandler(message).handle();
 		}
 	}
 

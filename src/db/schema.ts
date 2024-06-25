@@ -21,6 +21,7 @@ export const GUILD_TABLE = sqliteTable("guild", ({
 
 	joinTime: integer("joinTime").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
 	lastUpdateTime: integer("last_updated_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
+	messagesReceived: integer("messages_received").$type<bigint>().default(0 as any),
 	commandsReceived: integer("commands_received").$type<bigint>().notNull().default(0 as any),
 	buttonsReceived: integer("buttons_received").$type<bigint>().notNull().default(0 as any),
 	queuesAdded: integer("queues_added").$type<bigint>().notNull().default(0 as any),

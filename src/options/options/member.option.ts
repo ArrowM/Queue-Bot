@@ -52,7 +52,7 @@ export class MemberOption extends CustomOption {
 		for (const member of members.values()) {
 			const jsMember = await inter.store.jsMember(member.userId);
 			suggestions.push({
-				name: `'${jsMember.nickname ?? jsMember.displayName}' in '${queues.get(member.queueId).name}' queue`,
+				name: `${jsMember.nickname ?? jsMember.displayName} in ${queues.get(member.queueId).name} queue`,
 				value: member.id.toString(),
 			});
 		}

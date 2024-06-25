@@ -51,6 +51,7 @@ export enum DisplayUpdateType {
 	Edit = "edit",
 	Replace = "replace",
 	New = "new",
+	LatestMessage = "latest_message",
 }
 
 export enum TimestampType {

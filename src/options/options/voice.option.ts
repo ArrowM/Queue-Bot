@@ -56,7 +56,7 @@ export class VoiceOption extends CustomOption {
 			const destinationName = (await inter.store.jsChannel(queue.voiceDestinationChannelId)).name;
 
 			suggestions.push({
-				name: `'${queueName}' queue: '${sourceName}' vc${destinationName ? ` -> '${destinationName}' vc` : ""}`,
+				name: `${queueName} queue: ${sourceName} vc${destinationName ? ` -> ${destinationName} vc` : ""}`,
 				value: voice.id.toString(),
 			});
 		}
