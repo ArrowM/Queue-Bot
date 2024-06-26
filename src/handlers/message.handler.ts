@@ -18,7 +18,9 @@ export class MessageHandler implements Handler {
 		incrementGuildStat(store.guild.id, "commandsReceived");
 		for (const display of displays) {
 			const queue = store.dbQueues().get(display.queueId);
-			DisplayUtils.requestDisplayUpdate(store, queue.id, { displayIds: [display.id], updateTypeOverride: DisplayUpdateType.Replace });
+			if (queue.displayUpdateType === DisplayUpdateType.LatestMessage) {
+				DisplayUtils.requestDisplayUpdate(store, queue.id, { displayIds: [display.id], updateTypeOverride: DisplayUpdateType.Replace });
+			}
 		}
 	}
 }
