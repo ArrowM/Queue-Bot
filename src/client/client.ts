@@ -11,6 +11,8 @@ export const CLIENT = new DiscordClient({
 		GatewayIntentBits.Guilds,
 		// Required for voice updates
 		GatewayIntentBits.GuildVoiceStates,
+		// Required for DisplayUpdateType.LatestMessage
+		GatewayIntentBits.GuildMessages,
 	],
 	// Disable caching for unused features
 	makeCache: Options.cacheWithLimits({
