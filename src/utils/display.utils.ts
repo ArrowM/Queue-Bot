@@ -197,10 +197,10 @@ export namespace DisplayUtils {
 							await newDisplay();
 							break;
 						case DisplayUpdateType.Edit:
+						case DisplayUpdateType.LatestMessage:
 							await editDisplay();
 							break;
 						case DisplayUpdateType.Replace:
-						case DisplayUpdateType.LatestMessage:
 							await replaceDisplay();
 							break;
 					}
