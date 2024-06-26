@@ -21,7 +21,7 @@ export const GUILD_TABLE = sqliteTable("guild", ({
 
 	joinTime: integer("joinTime").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
 	lastUpdateTime: integer("last_updated_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
-	messagesReceived: integer("messages_received").$type<bigint>().default(0 as any),
+	messagesReceived: integer("messages_received").$type<bigint>().notNull().default(0 as any),
 	commandsReceived: integer("commands_received").$type<bigint>().notNull().default(0 as any),
 	buttonsReceived: integer("buttons_received").$type<bigint>().notNull().default(0 as any),
 	queuesAdded: integer("queues_added").$type<bigint>().notNull().default(0 as any),
@@ -118,8 +118,14 @@ export const VOICE_TABLE = sqliteTable("voice", ({
 }));
 
 export const VOICE_RELATIONS = relations(VOICE_TABLE, ({ one }) => ({
-	guilds: one(GUILD_TABLE),
-	queues: one(QUEUE_TABLE),
+	guilds: one(GUILD_TABLE, {
+		fields: [VOICE_TABLE.guildId],
+		references: [GUILD_TABLE.guildId],
+	}),
+	queues: one(QUEUE_TABLE, {
+		fields: [VOICE_TABLE.queueId],
+		references: [QUEUE_TABLE.id],
+	}),
 }));
 
 export type NewVoice = typeof VOICE_TABLE.$inferInsert;
@@ -172,8 +178,8 @@ export const MEMBER_RELATIONS = relations(MEMBER_TABLE, ({ one }) => ({
 		references: [GUILD_TABLE.guildId],
 	}),
 	queues: one(QUEUE_TABLE, {
-		fields: [MEMBER_TABLE.guildId],
-		references: [QUEUE_TABLE.guildId],
+		fields: [MEMBER_TABLE.queueId],
+		references: [QUEUE_TABLE.id],
 	}),
 }));
 
@@ -203,8 +209,8 @@ export const SCHEDULE_RELATIONS = relations(SCHEDULE_TABLE, ({ one }) => ({
 		references: [GUILD_TABLE.guildId],
 	}),
 	queues: one(QUEUE_TABLE, {
-		fields: [SCHEDULE_TABLE.guildId],
-		references: [QUEUE_TABLE.guildId],
+		fields: [SCHEDULE_TABLE.queueId],
+		references: [QUEUE_TABLE.id],
 	}),
 }));
 
@@ -232,8 +238,8 @@ export const BLACKLISTED_RELATIONS = relations(BLACKLISTED_TABLE, ({ one }) => (
 		references: [GUILD_TABLE.guildId],
 	}),
 	queues: one(QUEUE_TABLE, {
-		fields: [BLACKLISTED_TABLE.guildId],
-		references: [QUEUE_TABLE.guildId],
+		fields: [BLACKLISTED_TABLE.queueId],
+		references: [QUEUE_TABLE.id],
 	}),
 }));
 
@@ -261,8 +267,8 @@ export const WHITELISTED_RELATIONS = relations(WHITELISTED_TABLE, ({ one }) => (
 		references: [GUILD_TABLE.guildId],
 	}),
 	queues: one(QUEUE_TABLE, {
-		fields: [WHITELISTED_TABLE.guildId],
-		references: [QUEUE_TABLE.guildId],
+		fields: [WHITELISTED_TABLE.queueId],
+		references: [QUEUE_TABLE.id],
 	}),
 }));
 
@@ -291,8 +297,8 @@ export const PRIORITIZED_RELATIONS = relations(PRIORITIZED_TABLE, ({ one }) => (
 		references: [GUILD_TABLE.guildId],
 	}),
 	queues: one(QUEUE_TABLE, {
-		fields: [PRIORITIZED_TABLE.guildId],
-		references: [QUEUE_TABLE.guildId],
+		fields: [PRIORITIZED_TABLE.queueId],
+		references: [QUEUE_TABLE.id],
 	}),
 }));
 

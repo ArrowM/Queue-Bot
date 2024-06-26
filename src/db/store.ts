@@ -198,14 +198,12 @@ export class Store {
 	// throws error on conflict
 	insertQueue(newQueue: NewQueue) {
 		try {
-			return db.transaction(() => {
-				this.incrementGuildStat("queuesAdded");
-				this.dbQueues.clear();
-				return db
-					.insert(QUEUE_TABLE)
-					.values(omitBy(newQueue, isNil) as NewQueue)
-					.returning().get();
-			});
+			this.incrementGuildStat("queuesAdded");
+			this.dbQueues.clear();
+			return db
+				.insert(QUEUE_TABLE)
+				.values(omitBy(newQueue, isNil) as NewQueue)
+				.returning().get();
 		}
 		catch (e) {
 			if ((e as Error).message.includes("UNIQUE constraint failed")) {
@@ -217,65 +215,57 @@ export class Store {
 	// replace on conflict
 	insertVoice(newVoice: NewVoice) {
 		const voice = omitBy(newVoice, isNil) as NewVoice;
-		return db.transaction(() => {
-			this.incrementGuildStat("voicesAdded");
-			this.dbVoices.clear();
-			return db
-				.insert(VOICE_TABLE)
-				.values(voice)
-				.onConflictDoUpdate({
-					target: [VOICE_TABLE.queueId, VOICE_TABLE.sourceChannelId],
-					set: voice,
-				})
-				.returning().get();
-		});
+		this.incrementGuildStat("voicesAdded");
+		this.dbVoices.clear();
+		return db
+			.insert(VOICE_TABLE)
+			.values(voice)
+			.onConflictDoUpdate({
+				target: [VOICE_TABLE.queueId, VOICE_TABLE.sourceChannelId],
+				set: voice,
+			})
+			.returning().get();
 	}
 
 	// replace on conflict
 	insertDisplay(newDisplay: NewDisplay) {
 		const display = omitBy(newDisplay, isNil) as NewDisplay;
-		return db.transaction(() => {
-			this.incrementGuildStat("displaysAdded");
-			this.dbDisplays.clear();
-			return db
-				.insert(DISPLAY_TABLE)
-				.values(display)
-				.onConflictDoUpdate({
-					target: [DISPLAY_TABLE.queueId, DISPLAY_TABLE.displayChannelId],
-					set: display,
-				})
-				.returning().get();
-		});
+		this.incrementGuildStat("displaysAdded");
+		this.dbDisplays.clear();
+		return db
+			.insert(DISPLAY_TABLE)
+			.values(display)
+			.onConflictDoUpdate({
+				target: [DISPLAY_TABLE.queueId, DISPLAY_TABLE.displayChannelId],
+				set: display,
+			})
+			.returning().get();
 	}
 
 	// replace on conflict
 	insertMember(newMember: NewMember) {
 		const member = omitBy(newMember, isNil) as NewMember;
-		return db.transaction(() => {
-			this.incrementGuildStat("membersAdded");
-			this.dbMembers.clear();
-			return db
-				.insert(MEMBER_TABLE)
-				.values(member)
-				.onConflictDoUpdate({
-					target: [MEMBER_TABLE.queueId, MEMBER_TABLE.userId],
-					set: member,
-				})
-				.returning().get();
-		});
+		this.incrementGuildStat("membersAdded");
+		this.dbMembers.clear();
+		return db
+			.insert(MEMBER_TABLE)
+			.values(member)
+			.onConflictDoUpdate({
+				target: [MEMBER_TABLE.queueId, MEMBER_TABLE.userId],
+				set: member,
+			})
+			.returning().get();
 	}
 
 	// throws error on conflict
 	insertSchedule(newSchedule: NewSchedule) {
 		try {
-			return db.transaction(() => {
-				this.incrementGuildStat("schedulesAdded");
-				this.dbSchedules.clear();
-				return db
-					.insert(SCHEDULE_TABLE)
-					.values(omitBy(newSchedule, isNil) as NewSchedule)
-					.returning().get();
-			});
+			this.incrementGuildStat("schedulesAdded");
+			this.dbSchedules.clear();
+			return db
+				.insert(SCHEDULE_TABLE)
+				.values(omitBy(newSchedule, isNil) as NewSchedule)
+				.returning().get();
 		}
 		catch (e) {
 			if ((e as Error).message.includes("UNIQUE constraint failed")) {
@@ -287,14 +277,12 @@ export class Store {
 	// throws error on conflict
 	insertWhitelisted(newWhitelisted: NewWhitelisted) {
 		try {
-			return db.transaction(() => {
-				this.incrementGuildStat("whitelistedAdded");
-				this.dbWhitelisted.clear();
-				return db
-					.insert(WHITELISTED_TABLE)
-					.values(omitBy(newWhitelisted, isNil) as NewWhitelisted)
-					.returning().get();
-			});
+			this.incrementGuildStat("whitelistedAdded");
+			this.dbWhitelisted.clear();
+			return db
+				.insert(WHITELISTED_TABLE)
+				.values(omitBy(newWhitelisted, isNil) as NewWhitelisted)
+				.returning().get();
 		}
 		catch (e) {
 			if ((e as Error).message.includes("UNIQUE constraint failed")) {
@@ -306,14 +294,12 @@ export class Store {
 	// throws error on conflict
 	insertBlacklisted(newBlacklisted: NewBlacklisted) {
 		try {
-			return db.transaction(() => {
-				this.incrementGuildStat("blacklistedAdded");
-				this.dbBlacklisted.clear();
-				return db
-					.insert(BLACKLISTED_TABLE)
-					.values(omitBy(newBlacklisted, isNil) as NewBlacklisted)
-					.returning().get();
-			});
+			this.incrementGuildStat("blacklistedAdded");
+			this.dbBlacklisted.clear();
+			return db
+				.insert(BLACKLISTED_TABLE)
+				.values(omitBy(newBlacklisted, isNil) as NewBlacklisted)
+				.returning().get();
 		}
 		catch (e) {
 			if ((e as Error).message.includes("UNIQUE constraint failed")) {
@@ -325,14 +311,12 @@ export class Store {
 	// throws error on conflict
 	insertPrioritized(newPrioritized: NewPrioritized) {
 		try {
-			return db.transaction(() => {
-				this.incrementGuildStat("prioritizedAdded");
-				this.dbPrioritized.clear();
-				return db
-					.insert(PRIORITIZED_TABLE)
-					.values(omitBy(newPrioritized, isNil) as NewPrioritized)
-					.returning().get();
-			});
+			this.incrementGuildStat("prioritizedAdded");
+			this.dbPrioritized.clear();
+			return db
+				.insert(PRIORITIZED_TABLE)
+				.values(omitBy(newPrioritized, isNil) as NewPrioritized)
+				.returning().get();
 		}
 		catch (e) {
 			if ((e as Error).message.includes("UNIQUE constraint failed")) {
@@ -344,14 +328,12 @@ export class Store {
 	// throws error on conflict
 	insertAdmin(newAdmin: NewAdmin) {
 		try {
-			return db.transaction(() => {
-				this.incrementGuildStat("adminsAdded");
-				this.dbAdmins.clear();
-				return db
-					.insert(ADMIN_TABLE)
-					.values(omitBy(newAdmin, isNil) as NewAdmin)
-					.returning().get();
-			});
+			this.incrementGuildStat("adminsAdded");
+			this.dbAdmins.clear();
+			return db
+				.insert(ADMIN_TABLE)
+				.values(omitBy(newAdmin, isNil) as NewAdmin)
+				.returning().get();
 		}
 		catch (e) {
 			if ((e as Error).message.includes("UNIQUE constraint failed")) {
@@ -362,18 +344,16 @@ export class Store {
 
 	// replace on conflict
 	insertArchivedMember(newArchivedMember: NewArchivedMember) {
-		return db.transaction(() => {
-			this.incrementGuildStat("archivedMembersAdded");
-			this.dbArchivedMembers.clear();
-			return db
-				.insert(ARCHIVED_MEMBER_TABLE)
-				.values(newArchivedMember)
-				.onConflictDoUpdate({
-					target: [ARCHIVED_MEMBER_TABLE.queueId, ARCHIVED_MEMBER_TABLE.userId],
-					set: { ...newArchivedMember, archivedTime: BigInt(Date.now()) },
-				})
-				.returning().get();
-		});
+		this.incrementGuildStat("archivedMembersAdded");
+		this.dbArchivedMembers.clear();
+		return db
+			.insert(ARCHIVED_MEMBER_TABLE)
+			.values(newArchivedMember)
+			.onConflictDoUpdate({
+				target: [ARCHIVED_MEMBER_TABLE.queueId, ARCHIVED_MEMBER_TABLE.userId],
+				set: { ...newArchivedMember, archivedTime: BigInt(Date.now()) },
+			})
+			.returning().get();
 	}
 
 	// ====================================================================
@@ -543,8 +523,8 @@ export class Store {
 	}
 
 	deleteManyVoices(by:
-										 { id: bigint } |
-										 { sourceChannelId: Snowflake }
+		{ id: bigint } |
+		{ sourceChannelId: Snowflake }
 	) {
 		this.dbVoices.clear();
 		const cond = this.createCondition(VOICE_TABLE, by);
@@ -552,9 +532,9 @@ export class Store {
 	}
 
 	deleteDisplay(by:
-									{ id: bigint } |
-									{ lastMessageId: Snowflake } |
-									{ queueId: bigint, displayChannelId: Snowflake }
+								{ id: bigint } |
+								{ lastMessageId: Snowflake } |
+								{ queueId: bigint, displayChannelId: Snowflake }
 	) {
 		this.dbDisplays.clear();
 		const cond = this.createCondition(DISPLAY_TABLE, by);
@@ -562,8 +542,8 @@ export class Store {
 	}
 
 	deleteManyDisplays(by:
-											 { queueId?: bigint } |
-											 { displayChannelId?: Snowflake }
+		{ queueId?: bigint } |
+		{ displayChannelId?: Snowflake }
 	) {
 		this.dbDisplays.clear();
 		const cond = this.createCondition(DISPLAY_TABLE, by);
@@ -571,9 +551,9 @@ export class Store {
 	}
 
 	deleteMember(by:
-								 { id: bigint } |
-								 { queueId: bigint, userId?: Snowflake },
-							 reason: MemberRemovalReason
+		{ id: bigint } |
+		{ queueId: bigint, userId?: Snowflake },
+	reason: MemberRemovalReason
 	) {
 		this.dbMembers.clear();
 		const deletedMember = db.transaction(() => {
@@ -597,8 +577,8 @@ export class Store {
 	}
 
 	deleteManyMembers(by:
-											{ userId?: Snowflake } |
-											{ queueId: bigint, count?: number },
+		{ userId?: Snowflake } |
+		{ queueId: bigint, count?: number },
 	reason: MemberRemovalReason
 	) {
 		let deletedMembers: DbMember[];
@@ -632,8 +612,8 @@ export class Store {
 	}
 
 	deleteWhitelisted(by:
-											{ id: bigint } |
-											{ queueId: bigint, subjectId: bigint }
+										{ id: bigint } |
+										{ queueId: bigint, subjectId: bigint }
 	) {
 		this.dbWhitelisted.clear();
 		const cond = this.createCondition(WHITELISTED_TABLE, by);
@@ -641,8 +621,8 @@ export class Store {
 	}
 
 	deleteManyWhitelisted(by:
-													{ subjectId?: Snowflake } |
-													{ queueId: bigint }
+												{ subjectId?: Snowflake } |
+												{ queueId: bigint }
 	) {
 		this.dbWhitelisted.clear();
 		const cond = this.createCondition(WHITELISTED_TABLE, by);
@@ -650,8 +630,8 @@ export class Store {
 	}
 
 	deleteBlacklisted(by:
-											{ id: bigint } |
-											{ queueId: bigint, subjectId: Snowflake }
+										{ id: bigint } |
+										{ queueId: bigint, subjectId: Snowflake }
 	) {
 		this.dbBlacklisted.clear();
 		const cond = this.createCondition(BLACKLISTED_TABLE, by);
@@ -659,8 +639,8 @@ export class Store {
 	}
 
 	deleteManyBlacklisted(by:
-													{ subjectId?: Snowflake } |
-													{ queueId: bigint }
+												{ subjectId?: Snowflake } |
+												{ queueId: bigint }
 	) {
 		this.dbBlacklisted.clear();
 		const cond = this.createCondition(BLACKLISTED_TABLE, by);
@@ -668,8 +648,8 @@ export class Store {
 	}
 
 	deletePrioritized(by:
-											{ id: bigint } |
-											{ queueId: bigint, subjectId: bigint }
+										{ id: bigint } |
+										{ queueId: bigint, subjectId: bigint }
 	) {
 		this.dbPrioritized.clear();
 		const cond = this.createCondition(PRIORITIZED_TABLE, by);
@@ -677,8 +657,8 @@ export class Store {
 	}
 
 	deleteManyPrioritized(by:
-													{ subjectId?: Snowflake } |
-													{ queueId: bigint }
+												{ subjectId?: Snowflake } |
+												{ queueId: bigint }
 	) {
 		this.dbPrioritized.clear();
 		const cond = this.createCondition(PRIORITIZED_TABLE, by);
@@ -686,8 +666,8 @@ export class Store {
 	}
 
 	deleteAdmin(by:
-								{ id: bigint } |
-								{ subjectId: Snowflake }
+							{ id: bigint } |
+							{ subjectId: Snowflake }
 	) {
 		this.dbAdmins.clear();
 		const cond = this.createCondition(ADMIN_TABLE, by);
