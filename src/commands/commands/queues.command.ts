@@ -146,7 +146,7 @@ export class QueuesCommand extends AdminCommand {
 	static async queues_add(inter: SlashInteraction) {
 		const queue = {
 			guildId: inter.guildId,
-			name: QueuesCommand.ADD_OPTIONS.name.get(inter),
+			name: QueuesCommand.ADD_OPTIONS.name.get(inter).substring(0, 255),
 			...omitBy({
 				autopullToggle: QueuesCommand.ADD_OPTIONS.autopullToggle.get(inter),
 				badgeToggle: QueuesCommand.ADD_OPTIONS.badgeToggle.get(inter),
@@ -219,7 +219,7 @@ export class QueuesCommand extends AdminCommand {
 			inlineToggle: QueuesCommand.SET_OPTIONS.inlineToggle.get(inter),
 			lockToggle: QueuesCommand.SET_OPTIONS.lockToggle.get(inter),
 			memberDisplayType: QueuesCommand.SET_OPTIONS.memberDisplayType.get(inter),
-			name: QueuesCommand.SET_OPTIONS.name.get(inter),
+			name: QueuesCommand.SET_OPTIONS.name.get(inter).substring(0, 255),
 			notificationsToggle: QueuesCommand.SET_OPTIONS.notificationsToggle.get(inter),
 			pullBatchSize: QueuesCommand.SET_OPTIONS.pullBatchSize.get(inter),
 			pullMessage: QueuesCommand.SET_OPTIONS.pullMessage.get(inter),
