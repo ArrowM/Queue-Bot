@@ -11,19 +11,18 @@ export namespace NotificationUtils {
 		queue: DbQueue,
 		action: NotificationAction,
 		members: DbMember[],
-		messageLink?: string,
+		link?: string,
 	}) {
-		const { store, queue, action, members, messageLink } = options;
-
-		const link = messageLink ?? store.guild;
+		const { store, queue, action, members, link } = options;
 
 		// build message
-		let message = `${link} You were just ${action} the '${queueMention(queue)}' queue.`;
+		const linkStr = link ? `${link} ` : "";
+		let message = `${linkStr}You were just ${action} the '${queueMention(queue)}' queue.`;
 		if (queue.pullMessage) {
 			message += `\n> ${queue.pullMessage}`;
 		}
 
-		// send
+		// send and do not wait
 		Promise.all(
 			map(members, member => {
 				store.jsMember(member.userId).then(member => {

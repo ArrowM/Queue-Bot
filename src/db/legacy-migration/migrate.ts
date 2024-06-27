@@ -206,7 +206,7 @@ async function convertAndInsert() {
 									header: legacyQueue.header,
 									lockToggle: legacyQueue.is_locked,
 									memberDisplayType: legacyGuild.disable_mentions ? MemberDisplayType.DisplayName : MemberDisplayType.Mention,
-									notificationsToggle: !legacyGuild.disable_notifications,
+									dmMemberToggle: !legacyGuild.disable_notifications,
 									pullBatchSize: BigInt(legacyQueue.pull_num),
 									rejoinGracePeriod: BigInt(legacyQueue.grace_period),
 									roleInQueueId: legacyQueue.role_id,

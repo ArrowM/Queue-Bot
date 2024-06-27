@@ -69,4 +69,10 @@ export enum MemberRemovalReason {
 	NotFound = "not found",
 }
 
+export enum PullMessageDisplayType {
+	None = "none",
+	Private = "private",
+	Public = "public",
+}
+
 export type GuildStat = keyof Omit<DbGuild, "guildId" | "joinTime" | "lastUpdateTime">;

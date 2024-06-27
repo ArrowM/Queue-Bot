@@ -9,7 +9,7 @@ import {
 	VoiceChannel,
 	VoiceState,
 } from "discord.js";
-import { compact, shuffle } from "lodash-es";
+import { compact, concat, isNil, shuffle } from "lodash-es";
 
 import { Queries } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
@@ -91,55 +91,46 @@ export namespace ClientHandler {
 		const voices = store.dbVoices() .filter(voice => voice.joinSyncToggle && voice.sourceChannelId === newState.channelId);
 		const queuesJoined = voices.map(voice => store.dbQueues().get(voice.queueId));
 		for (const queue of queuesJoined.values()) {
-			try {
-				// Join
-				await MemberUtils.insertJsMember({
-					store,
-					queue,
-					jsMember: newState.member,
-				});
-			}
-			catch {
-				// ignore
-			}
+			await MemberUtils.insertJsMember({
+				store,
+				queue,
+				jsMember: newState.member,
+			}).catch(() => null);
 		}
 
 		const queuesLeft = store.dbVoices()
 			.filter(voice => voice.leaveSyncToggle && voice.sourceChannelId === oldState.channelId)
 			.map(voice => store.dbQueues().get(voice.queueId));
 		for (const queue of queuesLeft.values()) {
-			try {
-				// Leave
-				await MemberUtils.deleteMembers({
-					store,
-					queues: [queue],
-					reason: MemberRemovalReason.Left,
-					by: { userId: newState.member!.id },
-				});
-			}
-			catch {
-				// ignore
-			}
+			await MemberUtils.deleteMembers({
+				store,
+				queues: [queue],
+				reason: MemberRemovalReason.Left,
+				by: { userId: newState.member!.id },
+			}).catch(() => null);
 		}
 
-		const queuesTargetingDestination = store.dbQueues().filter(queue => queue.voiceDestinationChannelId === oldState.channelId);
+		// Queue spots opened up
+		const queuesToCheckForAutopull = shuffle(concat(
+			queuesJoined,
+			...store.dbQueues().filter(queue => (queue.voiceDestinationChannelId === oldState.channelId)).values(),
+		));
 		// Shuffle queues in case multiple target the same destination
-		for (const queue of shuffle([...queuesTargetingDestination.values()])) {
+		for (const queue of queuesToCheckForAutopull) {
 			if (queue.autopullToggle) {
-				const destinationChannel = guild.channels.cache.get(queue.voiceDestinationChannelId) as VoiceChannel | StageChannel;
+				const destinationChannel = await store.jsChannel(queue.voiceDestinationChannelId) as VoiceChannel | StageChannel;
+				if (destinationChannel && isNil(destinationChannel.members)) {
+					console.error(`${queue.voiceDestinationChannelId} is not a voice channel`);
+					continue;
+				}
 				if (destinationChannel && !destinationChannel.userLimit || destinationChannel.members.size < destinationChannel.userLimit) {
-					try {
-						// Auto pull
-						await MemberUtils.deleteMembers({
-							store,
-							queues: [queue],
-							reason: MemberRemovalReason.Pulled,
-							by: { count: destinationChannel.userLimit - destinationChannel.members.size },
-						});
-					}
-					catch {
-						// ignore
-					}
+					// Auto pull
+					await MemberUtils.deleteMembers({
+						store,
+						queues: [queue],
+						reason: MemberRemovalReason.Pulled,
+						by: { count: 1 },
+					}).catch(() => null);
 				}
 			}
 		}

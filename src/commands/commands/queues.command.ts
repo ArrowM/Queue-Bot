@@ -9,14 +9,15 @@ import { BadgeToggleOption } from "../../options/options/badge-toggle.option.ts"
 import { ColorOption } from "../../options/options/color.option.ts";
 import { ButtonsToggleOption } from "../../options/options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "../../options/options/display-update-type.option.ts";
+import { DmMemberToggleOption } from "../../options/options/dm-member-on-pull-toggle.option.ts";
 import { HeaderOption } from "../../options/options/header.option.ts";
 import { InlineToggleOption } from "../../options/options/inline-toggle.option.ts";
 import { LockToggleOption } from "../../options/options/lock-toggle.option.ts";
 import { MemberDisplayTypeOption } from "../../options/options/member-display-type.option.ts";
 import { NameOption } from "../../options/options/name.option.ts";
-import { NotificationsToggleOption } from "../../options/options/notifications-enable.option.ts";
 import { PullBatchSizeOption } from "../../options/options/pull-batch-size.option.ts";
 import { PullMessageOption } from "../../options/options/pull-message.option.ts";
+import { PullMessageDisplayTypeOption } from "../../options/options/pull-message-display-type.option.ts";
 import { QueueOption } from "../../options/options/queue.option.ts";
 import { QueuesOption } from "../../options/options/queues.option.ts";
 import { RejoinCooldownPeriodOption } from "../../options/options/rejoin-cooldown-period.option.ts";
@@ -126,13 +127,14 @@ export class QueuesCommand extends AdminCommand {
 		buttonsToggle: new ButtonsToggleOption({ description: "Toggle buttons beneath queue displays" }),
 		color: new ColorOption({ description: "Color of the queue" }),
 		displayUpdateType: new DisplayUpdateTypeOption({ description: "How to update displays" }),
+		dmMemberToggle: new DmMemberToggleOption({ description: "Toggle whether members are messaged upon being added/removed from queue" }),
 		header: new HeaderOption({ description: "Header of the queue display" }),
 		inlineToggle: new InlineToggleOption({ description: "Toggle inline display of queue members" }),
 		lockToggle: new LockToggleOption({ description: "Toggle queue locked status (prevents joining)" }),
 		memberDisplayType: new MemberDisplayTypeOption({ description: "How to display members" }),
-		notificationsToggle: new NotificationsToggleOption({ description: "Toggle whether users are DM-ed on pull" }),
 		pullBatchSize: new PullBatchSizeOption({ description: "How many queue members to include in a pull" }),
 		pullMessage: new PullMessageOption({ description: "Additional message to include on pull" }),
+		pullMessageDisplayType: new PullMessageDisplayTypeOption({ description: "How to display pull message" }),
 		rejoinCooldownPeriod: new RejoinCooldownPeriodOption({ description: "# of seconds a member must wait before re-queueing after being pulled" }),
 		rejoinGracePeriod: new RejoinGracePeriodOption({ description: "# of seconds a member has to reclaim their queue spot after leaving" }),
 		roleInQueue: new RoleInQueueOption({ description: "Role to assign members of the queue" }),
@@ -153,13 +155,14 @@ export class QueuesCommand extends AdminCommand {
 				buttonsToggle: QueuesCommand.ADD_OPTIONS.buttonsToggle.get(inter),
 				color: QueuesCommand.ADD_OPTIONS.color.get(inter),
 				displayUpdateType: QueuesCommand.ADD_OPTIONS.displayUpdateType.get(inter),
+				dmMemberToggle: QueuesCommand.ADD_OPTIONS.dmMemberToggle.get(inter),
 				header: QueuesCommand.ADD_OPTIONS.header.get(inter),
 				inlineToggle: QueuesCommand.ADD_OPTIONS.inlineToggle.get(inter),
 				lockToggle: QueuesCommand.ADD_OPTIONS.lockToggle.get(inter),
 				memberDisplayType: QueuesCommand.ADD_OPTIONS.memberDisplayType.get(inter),
-				notificationsToggle: QueuesCommand.ADD_OPTIONS.notificationsToggle.get(inter),
 				pullBatchSize: QueuesCommand.ADD_OPTIONS.pullBatchSize.get(inter),
 				pullMessage: QueuesCommand.ADD_OPTIONS.pullMessage.get(inter),
+				pullMessageDisplayType: QueuesCommand.ADD_OPTIONS.pullMessageDisplayType.get(inter),
 				rejoinCooldownPeriod: QueuesCommand.ADD_OPTIONS.rejoinCooldownPeriod.get(inter),
 				rejoinGracePeriod: QueuesCommand.ADD_OPTIONS.rejoinGracePeriod.get(inter),
 				roleInQueueId: QueuesCommand.ADD_OPTIONS.roleInQueue.get(inter)?.id,
@@ -189,14 +192,15 @@ export class QueuesCommand extends AdminCommand {
 		buttonsToggle: new ButtonsToggleOption({ description: "Toggle buttons beneath queue displays" }),
 		color: new ColorOption({ description: "Color of the queue" }),
 		displayUpdateType: new DisplayUpdateTypeOption({ description: "How to update displays" }),
+		dmMemberToggle: new DmMemberToggleOption({ description: "Toggle whether members are messaged upon being added/removed from queue" }),
 		header: new HeaderOption({ description: "Header of the queue display" }),
 		inlineToggle: new InlineToggleOption({ description: "Toggle inline display of queue members" }),
 		lockToggle: new LockToggleOption({ description: "Toggle queue locked status (prevents joining)" }),
 		memberDisplayType: new MemberDisplayTypeOption({ description: "How to display members" }),
 		name: new NameOption({ description: "Name of the queue" }),
-		notificationsToggle: new NotificationsToggleOption({ description: "Toggle whether users are DM-ed on pull" }),
 		pullBatchSize: new PullBatchSizeOption({ description: "How many queue members to include in a pull" }),
 		pullMessage: new PullMessageOption({ description: "Additional message to include on pull" }),
+		pullMessageDisplayType: new PullMessageDisplayTypeOption({ description: "How to display pull message" }),
 		rejoinCooldownPeriod: new RejoinCooldownPeriodOption({ description: "# of seconds a  member must wait before re-queueing after being pulled" }),
 		rejoinGracePeriod: new RejoinGracePeriodOption({ description: "# of seconds a  member has to reclaim their queue spot after leaving" }),
 		roleInQueue: new RoleInQueueOption({ description: "Role to assign members of the queue" }),
@@ -215,14 +219,15 @@ export class QueuesCommand extends AdminCommand {
 			buttonsToggle: QueuesCommand.SET_OPTIONS.buttonsToggle.get(inter),
 			color: QueuesCommand.SET_OPTIONS.color.get(inter),
 			displayUpdateType: QueuesCommand.SET_OPTIONS.displayUpdateType.get(inter),
+			dmMemberToggle: QueuesCommand.SET_OPTIONS.dmMemberToggle.get(inter),
 			header: QueuesCommand.SET_OPTIONS.header.get(inter),
 			inlineToggle: QueuesCommand.SET_OPTIONS.inlineToggle.get(inter),
 			lockToggle: QueuesCommand.SET_OPTIONS.lockToggle.get(inter),
 			memberDisplayType: QueuesCommand.SET_OPTIONS.memberDisplayType.get(inter),
 			name: QueuesCommand.SET_OPTIONS.name.get(inter)?.substring(0, 240),
-			notificationsToggle: QueuesCommand.SET_OPTIONS.notificationsToggle.get(inter),
 			pullBatchSize: QueuesCommand.SET_OPTIONS.pullBatchSize.get(inter),
 			pullMessage: QueuesCommand.SET_OPTIONS.pullMessage.get(inter),
+			pullMessageDisplayType: QueuesCommand.SET_OPTIONS.pullMessageDisplayType.get(inter),
 			rejoinCooldownPeriod: QueuesCommand.SET_OPTIONS.rejoinCooldownPeriod.get(inter),
 			rejoinGracePeriod: QueuesCommand.SET_OPTIONS.rejoinGracePeriod.get(inter),
 			roleInQueueId: QueuesCommand.SET_OPTIONS.roleInQueue.get(inter)?.id,
@@ -230,7 +235,7 @@ export class QueuesCommand extends AdminCommand {
 			size: QueuesCommand.SET_OPTIONS.size.get(inter),
 			timestampType: QueuesCommand.SET_OPTIONS.timestampType.get(inter),
 			voiceOnlyToggle: QueuesCommand.SET_OPTIONS.voiceOnlyToggle.get(inter),
-			voiceDestinationChannelId: QueuesCommand.ADD_OPTIONS.voiceDestinationChannel.get(inter)?.id,
+			voiceDestinationChannelId: QueuesCommand.SET_OPTIONS.voiceDestinationChannel.get(inter)?.id,
 		}, isNil);
 
 		if (update.voiceOnlyToggle) {
@@ -279,13 +284,14 @@ export class QueuesCommand extends AdminCommand {
 			{ name: ButtonsToggleOption.ID, value: QUEUE_TABLE.buttonsToggle.name },
 			{ name: ColorOption.ID, value: QUEUE_TABLE.color.name },
 			{ name: DisplayUpdateTypeOption.ID, value: QUEUE_TABLE.displayUpdateType.name },
+			{ name: DmMemberToggleOption.ID, value: QUEUE_TABLE.dmMemberToggle.name },
 			{ name: HeaderOption.ID, value: QUEUE_TABLE.header.name },
 			{ name: InlineToggleOption.ID, value: QUEUE_TABLE.inlineToggle.name },
 			{ name: LockToggleOption.ID, value: QUEUE_TABLE.lockToggle.name },
 			{ name: MemberDisplayTypeOption.ID, value: QUEUE_TABLE.memberDisplayType.name },
-			{ name: NotificationsToggleOption.ID, value: QUEUE_TABLE.notificationsToggle.name },
 			{ name: PullBatchSizeOption.ID, value: QUEUE_TABLE.pullBatchSize.name },
 			{ name: PullMessageOption.ID, value: QUEUE_TABLE.pullMessage.name },
+			{ name: PullMessageDisplayTypeOption.ID, value: QUEUE_TABLE.pullMessageDisplayType.name },
 			{ name: RejoinCooldownPeriodOption.ID, value: QUEUE_TABLE.rejoinCooldownPeriod.name },
 			{ name: RejoinGracePeriodOption.ID, value: QUEUE_TABLE.rejoinGracePeriod.name },
 			{ name: RoleInQueueOption.ID, value: QUEUE_TABLE.roleInQueueId.name },
@@ -305,7 +311,7 @@ export class QueuesCommand extends AdminCommand {
 		}
 
 		const updatedQueues = db.transaction(() =>
- 			queues.map((queue) => inter.store.updateQueue({ id: queue.id, ...updatedProperties }))
+			queues.map((queue) => inter.store.updateQueue({ id: queue.id, ...updatedProperties }))
 		);
 
 		if (updatedProperties.roleId) {

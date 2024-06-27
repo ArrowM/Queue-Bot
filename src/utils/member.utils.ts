@@ -5,7 +5,7 @@ import { db } from "../db/db.ts";
 import { Queries } from "../db/queries.ts";
 import { type DbArchivedMember, type DbMember, type DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
-import { MemberRemovalReason } from "../types/db.types.ts";
+import { MemberRemovalReason, PullMessageDisplayType } from "../types/db.types.ts";
 import type { MemberDeleteBy } from "../types/member.types.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 import { NotificationAction } from "../types/notification.types.ts";
@@ -59,13 +59,13 @@ export namespace MemberUtils {
 		if (store.inter) {
 			const message = await store.inter.respond(`Added ${usersMention(insertedMembers)} to '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
 			for (const queue of queues.values()) {
-				if (queue.notificationsToggle) {
+				if (queue.dmMemberToggle) {
 					await NotificationUtils.dmToMembers({
 						store,
 						queue,
 						action: NotificationAction.ADDED_TO_QUEUE,
 						members: insertedMembers,
-						messageLink: message.url,
+						link: message.url,
 					});
 				}
 			}
@@ -101,6 +101,16 @@ export namespace MemberUtils {
 
 		if (!force) {
 			verifyMemberEligibility(store, queue, jsMember, archivedMember);
+		}
+
+		if (queue.voiceDestinationChannelId === jsMember.voice.channelId) {
+			throw new CustomError({
+				message: `Failed to join`,
+				embeds: [
+					new EmbedBuilder()
+						.setDescription(`${jsMember} is already in the destination voice channel for the ${queueMention(queue)} queue.`),
+				],
+			});
 		}
 
 		const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
@@ -180,32 +190,35 @@ export namespace MemberUtils {
 			}
 
 			if ([MemberRemovalReason.Pulled, MemberRemovalReason.Kicked].includes(reason)) {
-				// Notify of pull or kick
-				const action = (reason === MemberRemovalReason.Pulled)
-					? NotificationAction.PULLED_FROM_QUEUE
-					: NotificationAction.KICKED_FROM_QUEUE;
+				const messageToSend = await describePulledMembers(store, queue, deleted, reason);
+				let link;
 
-				const messageToSend = {
-					embeds: [await describePulledMembers(store, queue, deleted, reason)],
-				};
-				let sentMessage;
-
-				if (messageChannelId && queue.notificationsToggle) {
+				if (messageChannelId && queue.pullMessageDisplayType === PullMessageDisplayType.Public) {
 					const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
 					if (messageChannel) {
-						sentMessage = await messageChannel?.send(messageToSend);
+						const sentMessage = await messageChannel?.send(messageToSend);
 						LoggingUtils.log(store, true, sentMessage).catch(() => null);
+						link = sentMessage?.url;
 					}
 				}
-				else if (store.inter) {
-					await store.inter.respond(messageToSend);
-				}
-				else {
-					LoggingUtils.log(store, true, messageToSend).catch(() => null);
+				else if (queue.pullMessageDisplayType === PullMessageDisplayType.Private) {
+					if (store.inter) {
+						// logs as part of respond
+						await store.inter.respond(messageToSend);
+						link = store.inter.channel.url;
+					}
+					else {
+						// log without responding
+						LoggingUtils.log(store, true, messageToSend).catch(() => null);
+					}
 				}
 
-				if (queue.notificationsToggle) {
-					await NotificationUtils.dmToMembers({ store, queue, action, members: deleted, messageLink: sentMessage?.url });
+				if (queue.dmMemberToggle) {
+					// Notify of pull or kick
+					const action = (reason === MemberRemovalReason.Pulled)
+						? NotificationAction.PULLED_FROM_QUEUE
+						: NotificationAction.KICKED_FROM_QUEUE;
+					await NotificationUtils.dmToMembers({ store, queue, action, members: deleted, link });
 				}
 			}
 
@@ -316,10 +329,7 @@ export namespace MemberUtils {
 			description += `> ${queue.pullMessage}\n\n`;
 		}
 		description += pulledMembersOfQueue.length ? `${upperFirst(reason)} from queue:\n${membersStr}` : `No members were ${reason} from queue.`;
-		return new EmbedBuilder()
-			.setTitle(queueMention(queue))
-			.setColor(queue.color)
-			.setDescription(description);
+		return { embeds: [ new EmbedBuilder().setTitle(queueMention(queue)).setColor(queue.color).setDescription(description) ] };
 	}
 
 	export async function describeMemberPositions(store: Store, userId: Snowflake) {

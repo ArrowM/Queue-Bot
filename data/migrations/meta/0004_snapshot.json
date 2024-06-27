@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "200f7c18-4500-4d2b-9b03-4e2f8d00a104",
-  "prevId": "cf2f68d6-d3ad-4dca-a75f-27883d1e3690",
+  "id": "d3364362-c2bf-48e3-bbcc-86712d8d28ed",
+  "prevId": "200f7c18-4500-4d2b-9b03-4e2f8d00a104",
   "tables": {
     "admin": {
       "name": "admin",
@@ -784,6 +784,14 @@
           "autoincrement": false,
           "default": "'edit'"
         },
+        "dm_member_on_pull_toggle": {
+          "name": "dm_member_on_pull_toggle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
         "buttons_toggles": {
           "name": "buttons_toggles",
           "type": "text",
@@ -823,14 +831,6 @@
           "autoincrement": false,
           "default": "'mention'"
         },
-        "notifications_toggle": {
-          "name": "notifications_toggle",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
         "pull_batch_size": {
           "name": "pull_batch_size",
           "type": "integer",
@@ -845,6 +845,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "pull_message_display_type": {
+          "name": "pull_message_display_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'private'"
         },
         "rejoin_cooldown_period": {
           "name": "rejoin_cooldown_period",
@@ -1247,7 +1255,9 @@
   "_meta": {
     "schemas": {},
     "tables": {},
-    "columns": {}
+    "columns": {
+      "\"queue\".\"notifications_toggle\"": "\"queue\".\"dm_member_on_pull_toggle\""
+    }
   },
   "internal": {
     "indexes": {}

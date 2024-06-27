@@ -28,7 +28,7 @@ export function queueMention(queue: DbQueue): string {
 	const badges = [];
 	if (queue.badgeToggle) {
 		if (queue.lockToggle) badges.push("🔒");
-		if (!queue.notificationsToggle) badges.push("🔕");
+		if (!queue.dmMemberToggle) badges.push("📨");
 		if (queue.autopullToggle) badges.push("🔁");
 		if (queue.voiceOnlyToggle) badges.push("🔊");
 	}

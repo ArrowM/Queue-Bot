@@ -2,7 +2,16 @@ import type { ColorResolvable, Snowflake } from "discord.js";
 import { index, integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 import { get } from "lodash-es";
 
-import { Color, DisplayUpdateType, MemberDisplayType, MemberRemovalReason, ScheduleCommand, Scope, TimestampType } from "../types/db.types.ts";
+import {
+	Color,
+	DisplayUpdateType,
+	MemberDisplayType,
+	MemberRemovalReason,
+	PullMessageDisplayType,
+	ScheduleCommand,
+	Scope,
+	TimestampType,
+} from "../types/db.types.ts";
 
 export const GUILD_TABLE = sqliteTable("guild", ({
 	guildId: text("guild_id").$type<Snowflake>().primaryKey(),
@@ -42,14 +51,15 @@ export const QUEUE_TABLE = sqliteTable("queue", ({
 	badgeToggle: integer("badge_toggle", { mode: "boolean" }).notNull().default(true),
 	color: text("color").$type<ColorResolvable>().notNull().default(get(Color, process.env.DEFAULT_COLOR) as ColorResolvable),
 	displayUpdateType: text("display_update_type").$type<DisplayUpdateType>().notNull().default(DisplayUpdateType.Edit),
+	dmMemberToggle: integer("dm_member_on_pull_toggle", { mode: "boolean" }).notNull().default(true),
 	buttonsToggle: text("buttons_toggles").$type<Scope>().notNull().default(Scope.All),
 	header: text("header"),
 	inlineToggle: integer("inline_toggle", { mode: "boolean" }).notNull().default(false),
 	lockToggle: integer("lock_toggle", { mode: "boolean" }).notNull().default(false),
 	memberDisplayType: text("member_display_type").$type<MemberDisplayType>().notNull().default(MemberDisplayType.Mention),
-	notificationsToggle: integer("notifications_toggle", { mode: "boolean" }).notNull().default(true),
 	pullBatchSize: integer("pull_batch_size").$type<bigint>().notNull().default(1 as any),
 	pullMessage: text("pull_message"),
+	pullMessageDisplayType: text("pull_message_display_type").$type<PullMessageDisplayType>().notNull().default(PullMessageDisplayType.Private),
 	rejoinCooldownPeriod: integer("rejoin_cooldown_period").$type<bigint>().notNull().default(0 as any),
 	rejoinGracePeriod: integer("rejoin_grace_period").$type<bigint>().notNull().default(0 as any),
 	roleInQueueId: text("role_in_queue_id").$type<Snowflake>(),
