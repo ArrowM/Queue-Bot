@@ -103,7 +103,7 @@ export namespace MemberUtils {
 			verifyMemberEligibility(store, queue, jsMember, archivedMember);
 		}
 
-		if (queue.voiceDestinationChannelId === jsMember.voice.channelId) {
+		if (queue.voiceDestinationChannelId && queue.voiceDestinationChannelId === jsMember.voice.channelId) {
 			throw new CustomError({
 				message: `Failed to join`,
 				embeds: [
