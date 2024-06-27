@@ -13,20 +13,8 @@ FROM base AS dependencies
 # Install npm dependencies
 RUN npm ci
 
-# ---- Database ----
-FROM dependencies AS database
-
-# Copy DB Requirements
-COPY .env ./
-COPY drizzle.config.ts ./
-COPY data/migrations ./data/migrations
-COPY ./src/types ./src/types
-COPY ./src/db/schema.ts ./src/db/schema.ts
-
-RUN npx drizzle-kit push
-
 # ---- Production ----
-FROM database AS production
+FROM dependencies AS production
 
 # Copy all source files
 COPY . .
