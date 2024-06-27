@@ -9,7 +9,7 @@ import {
 	VoiceChannel,
 	VoiceState,
 } from "discord.js";
-import { compact, concat, isNil, shuffle } from "lodash-es";
+import { compact, concat, shuffle } from "lodash-es";
 
 import { Queries } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
@@ -117,12 +117,8 @@ export namespace ClientHandler {
 		));
 		// Shuffle queues in case multiple target the same destination
 		for (const queue of queuesToCheckForAutopull) {
-			if (queue.autopullToggle) {
+			if (queue.autopullToggle && queue.voiceDestinationChannelId) {
 				const destinationChannel = await store.jsChannel(queue.voiceDestinationChannelId) as VoiceChannel | StageChannel;
-				if (destinationChannel && isNil(destinationChannel.members)) {
-					console.error(`${queue.voiceDestinationChannelId} is not a voice channel`);
-					continue;
-				}
 				if (destinationChannel && !destinationChannel.userLimit || destinationChannel.members.size < destinationChannel.userLimit) {
 					// Auto pull
 					await MemberUtils.deleteMembers({
