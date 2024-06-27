@@ -9,8 +9,8 @@ export class LogScopeOption extends StringOption {
 	defaultValue = "Off";
 	choices = toChoices(Scope);
 
-	// force return type to be QueueLogLevel
+	// force return type to be Scope
 	get(inter: AutocompleteInteraction | SlashInteraction) {
-		return super.get(inter) as Scope;
+		return super.get(inter)?.toLowerCase() as Scope;
 	}
 }

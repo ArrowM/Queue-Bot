@@ -12,6 +12,6 @@ export class TimestampTypeOption extends StringOption {
 
 	// force return type to be TimestampType
 	get(inter: AutocompleteInteraction | SlashInteraction) {
-		return super.get(inter) as TimestampType;
+		return super.get(inter)?.toLowerCase() as TimestampType;
 	}
 }

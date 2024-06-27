@@ -10,6 +10,6 @@ export class CommandOption extends StringOption {
 
 	// force return type to be ScheduleCommand
 	get(inter: AutocompleteInteraction | SlashInteraction) {
-		return super.get(inter) as ScheduleCommand;
+		return super.get(inter)?.toLowerCase() as ScheduleCommand;
 	}
 }

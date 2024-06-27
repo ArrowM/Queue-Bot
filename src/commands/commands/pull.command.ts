@@ -43,7 +43,5 @@ export class PullCommand extends AdminCommand {
 			messageChannelId: inter.channel.id,
 			force: true,
 		});
-
-		await inter.deleteReply();
 	}
 }

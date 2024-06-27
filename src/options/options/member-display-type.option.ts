@@ -11,6 +11,6 @@ export class MemberDisplayTypeOption extends StringOption {
 
 	// force return type to be MemberDisplayType
 	get(inter: AutocompleteInteraction | SlashInteraction) {
-		return super.get(inter) as MemberDisplayType;
+		return super.get(inter)?.toLowerCase() as MemberDisplayType;
 	}
 }

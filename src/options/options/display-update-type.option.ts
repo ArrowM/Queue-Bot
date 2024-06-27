@@ -12,6 +12,6 @@ export class DisplayUpdateTypeOption extends StringOption {
 
 	// force return type to be DisplayUpdateType
 	get(inter: AutocompleteInteraction | SlashInteraction) {
-		return super.get(inter) as DisplayUpdateType;
+		return super.get(inter)?.toLowerCase() as DisplayUpdateType;
 	}
 }
