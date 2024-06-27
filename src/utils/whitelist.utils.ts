@@ -1,5 +1,5 @@
 import { Collection, type GuildMember, Role } from "discord.js";
-import { uniq } from "lodash-es";
+import { compact, uniq } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import type { DbQueue } from "../db/schema.ts";
@@ -27,7 +27,7 @@ export namespace WhitelistUtils {
 					);
 				}
 			}
-			const updatedQueueIds = uniq(insertedWhitelisted.map(whitelisted => whitelisted.queueId));
+			const updatedQueueIds = uniq(compact(insertedWhitelisted).map(whitelisted => whitelisted.queueId));
 
 			return { insertedWhitelisted, updatedQueueIds };
 		});
@@ -36,7 +36,7 @@ export namespace WhitelistUtils {
 	export function deleteWhitelisted(store: Store, whitelistedIds: bigint[]) {
 		// delete from db
 		const deletedWhitelisted = whitelistedIds.map(id => store.deleteWhitelisted({ id }));
-		const updatedQueueIds = uniq(deletedWhitelisted.map(whitelisted => whitelisted.queueId));
+		const updatedQueueIds = uniq(compact(deletedWhitelisted).map(whitelisted => whitelisted.queueId));
 
 		return { deletedWhitelisted, updatedQueueIds };
 	}

@@ -1,5 +1,5 @@
 import type { Collection, Snowflake } from "discord.js";
-import { isEmpty, uniq } from "lodash-es";
+import { compact, isEmpty, uniq } from "lodash-es";
 import { schedule as cron, type ScheduledTask, validate } from "node-cron";
 
 import { Queries } from "../db/queries.ts";
@@ -27,7 +27,7 @@ export namespace ScheduleUtils {
 			registerWithCronLibrary(insertedSchedule);
 			return insertedSchedule;
 		});
-		const updatedQueueIds = uniq(insertedSchedules.map(schedule => schedule.queueId));
+		const updatedQueueIds = uniq(compact(insertedSchedules).map(schedule => schedule.queueId));
 
 		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 
@@ -76,7 +76,7 @@ export namespace ScheduleUtils {
 			}
 			return deletedSchedule;
 		});
-		const updatedQueueIds = uniq(deletedSchedules.map(schedule => schedule.queueId));
+		const updatedQueueIds = uniq(compact(deletedSchedules).map(schedule => schedule.queueId));
 
 		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 

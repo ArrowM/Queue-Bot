@@ -1,5 +1,5 @@
 import { Collection, type GuildMember, Role } from "discord.js";
-import { uniq } from "lodash-es";
+import { compact, uniq } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import type { DbQueue } from "../db/schema.ts";
@@ -32,7 +32,7 @@ export namespace BlacklistUtils {
 					await MemberUtils.deleteMembers({ store, queues, reason: MemberRemovalReason.Kicked, by, force: true });
 				}
 			}
-			const updatedQueueIds = uniq(insertedBlacklisted.map(blacklisted => blacklisted.queueId));
+			const updatedQueueIds = uniq(compact(insertedBlacklisted).map(blacklisted => blacklisted.queueId));
 
 			return { insertedBlacklisted, updatedQueueIds };
 		});
@@ -41,7 +41,7 @@ export namespace BlacklistUtils {
 	export function deleteBlacklisted(store: Store, blacklistedIds: bigint[]) {
 		// delete from db
 		const deletedBlacklisted = blacklistedIds.map(id => store.deleteBlacklisted({ id }));
-		const updatedQueueIds = uniq(deletedBlacklisted.map(blacklisted => blacklisted.queueId));
+		const updatedQueueIds = uniq(compact(deletedBlacklisted).map(blacklisted => blacklisted.queueId));
 
 		return { deletedBlacklisted, updatedQueueIds };
 	}

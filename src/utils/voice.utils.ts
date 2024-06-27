@@ -1,4 +1,4 @@
-import { uniq } from "lodash-es";
+import { compact, uniq } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import type { DbQueue, DbVoice, NewVoice } from "../db/schema.ts";
@@ -15,7 +15,7 @@ export namespace VoiceUtils {
 				queueId: queue.id,
 				...voice,
 			}));
-			const updatedQueueIds = uniq(insertedVoices.map(voice => voice.queueId));
+			const updatedQueueIds = uniq(compact(insertedVoices).map(voice => voice.queueId));
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 
@@ -26,7 +26,7 @@ export namespace VoiceUtils {
 	export function updateVoices(store: Store, voiceIds: bigint[], update: Partial<DbVoice>) {
 		return db.transaction(() => {
 			const updatedVoices = voiceIds.map(id => store.updateVoice({ id, ...update }));
-			const updatedQueueIds = uniq(updatedVoices.map(voice => voice.queueId));
+			const updatedQueueIds = uniq(compact(updatedVoices).map(voice => voice.queueId));
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 
@@ -37,7 +37,7 @@ export namespace VoiceUtils {
 	export function deleteVoices(store: Store, voiceIds: bigint[]) {
 		return db.transaction(() => {
 			const deletedVoices = voiceIds.map(id => store.deleteVoice({ id }));
-			const updatedQueueIds = uniq(deletedVoices.map(voice => voice.queueId));
+			const updatedQueueIds = uniq(compact(deletedVoices).map(voice => voice.queueId));
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 

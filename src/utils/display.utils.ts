@@ -45,7 +45,7 @@ export namespace DisplayUtils {
 			queueId: queue.id,
 			displayChannelId,
 		}));
-		const updatedQueueIds = uniq(insertedDisplays.map(display => display.queueId));
+		const updatedQueueIds = uniq(compact(insertedDisplays).map(display => display.queueId));
 
 		DisplayUtils.requestDisplaysUpdate(
 			store,
@@ -63,7 +63,7 @@ export namespace DisplayUtils {
 		const deletedDisplays = displayIds.map(displayId =>
 			store.deleteDisplay({ id: displayId })
 		);
-		const updatedQueueIds = uniq(deletedDisplays.map(display => display.queueId));
+		const updatedQueueIds = uniq(compact(deletedDisplays).map(display => display.queueId));
 
 		return { deletedDisplays, updatedQueueIds };
 	}

@@ -1,5 +1,5 @@
 import { Collection, type GuildMember, Role } from "discord.js";
-import { min, uniq } from "lodash-es";
+import { compact, min, uniq } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import type { DbPrioritized, DbQueue } from "../db/schema.ts";
@@ -29,7 +29,7 @@ export namespace PriorityUtils {
 					);
 				}
 			}
-			const updatedQueueIds = uniq(insertedPrioritized.map(prioritized => prioritized.queueId));
+			const updatedQueueIds = uniq(compact(insertedPrioritized).map(prioritized => prioritized.queueId));
 
 			return { insertedPrioritized, updatedQueueIds };
 		});
@@ -42,7 +42,7 @@ export namespace PriorityUtils {
 	export function updatePrioritized(store: Store, prioritizedIds: bigint[], update: Partial<DbPrioritized>) {
 		const result = db.transaction(() => {
 			const updatedPrioritized = prioritizedIds.map(id => store.updatePrioritized({ id, ...update }));
-			const updatedQueueIds = uniq(updatedPrioritized.map(prioritized => prioritized.queueId));
+			const updatedQueueIds = uniq(compact(updatedPrioritized).map(prioritized => prioritized.queueId));
 			return { updatedPrioritized, updatedQueueIds };
 		});
 
@@ -54,7 +54,7 @@ export namespace PriorityUtils {
 	export function deletePrioritized(store: Store, prioritizedIds: bigint[]) {
 		const result = db.transaction(() => {
 			const deletedPrioritized = prioritizedIds.map(id => store.deletePrioritized({ id }));
-			const updatedQueueIds = uniq(deletedPrioritized.map(prioritized => prioritized.queueId));
+			const updatedQueueIds = uniq(compact(deletedPrioritized).map(prioritized => prioritized.queueId));
 			return { deletedPrioritized, updatedQueueIds };
 		});
 
