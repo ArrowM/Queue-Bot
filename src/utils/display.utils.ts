@@ -224,7 +224,7 @@ export namespace DisplayUtils {
 		try {
 			const { message, stack } = e as Error;
 			const isPermissionError = /access|permission/i.test(message);
-			if (store.inter?.member) {
+			if (store.inter) {
 				const embed = new EmbedBuilder()
 					.setTitle("Failed to display queue")
 					.setColor(Color.Red)
@@ -236,9 +236,8 @@ export namespace DisplayUtils {
 				if (!isPermissionError) {
 					embed.setFooter({ text: "This error has been logged and will be investigated by the developers." });
 				}
-				await store.inter.member.send({ embeds: [embed] });
+				await store.inter.respond({ embeds: [embed] });
 			}
-
 			if (!isPermissionError) {
 				console.error("Failed to update displays:");
 				console.error(`Error: ${message}`);

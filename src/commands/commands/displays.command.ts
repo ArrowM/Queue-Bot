@@ -76,8 +76,8 @@ export class DisplaysCommand extends AdminCommand {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to display" }),
 	};
 
-	static async displays_add(inter: SlashInteraction, queues?: Collection<bigint, DbQueue>) {
-		queues = queues ?? await DisplaysCommand.ADD_OPTIONS.queues.get(inter);
+	static async displays_add(inter: SlashInteraction) {
+		const queues = await DisplaysCommand.ADD_OPTIONS.queues.get(inter);
 
 		await ShowCommand.show(inter, queues);
 

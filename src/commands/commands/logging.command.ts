@@ -11,7 +11,7 @@ export class LoggingCommand extends AdminCommand {
 
 	logging_get = LoggingCommand.logging_get;
 	logging_set = LoggingCommand.logging_set;
-	logging_reset = LoggingCommand.logging_disable;
+	logging_disable = LoggingCommand.logging_disable;
 
 	data = new SlashCommandBuilder()
 		.setName("logging")

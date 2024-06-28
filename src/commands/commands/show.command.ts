@@ -1,4 +1,4 @@
-import { type Collection, italic, SlashCommandBuilder } from "discord.js";
+import { type Collection, SlashCommandBuilder } from "discord.js";
 
 import type { DbQueue } from "../../db/schema.ts";
 import { QueuesOption } from "../../options/options/queues.option.ts";
@@ -28,13 +28,8 @@ export class ShowCommand extends EveryoneCommand {
 	static async show(inter: SlashInteraction, queues?: Collection<bigint, DbQueue>) {
 		queues = queues ?? await DisplaysCommand.GET_OPTIONS.queues.get(inter);
 
-		const result = await DisplayUtils.insertDisplays(inter.store, queues, inter.channel.id);
+		await DisplayUtils.insertDisplays(inter.store, queues, inter.channel.id);
 
-		if (!inter.replied) {
-			await inter.respond(italic("displaying..."));
-		}
-		// setTimeout(async () => await inter.deleteReply().catch(() => null), 5000);
-
-		return result;
+		await inter.deleteReply().catch(() => null);
 	}
 }

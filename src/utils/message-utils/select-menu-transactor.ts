@@ -46,6 +46,8 @@ export class SelectMenuTransactor {
 	}
 
 	async updateWithResult(title: string, selection: ArrayOrCollection<any, any> | string) {
+		if (!this.userResponse) return;
+
 		let description;
 		if (typeof selection === "string") {
 			description = selection;

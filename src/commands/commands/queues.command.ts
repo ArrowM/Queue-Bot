@@ -310,9 +310,11 @@ export class QueuesCommand extends AdminCommand {
 			updatedProperties[columnKey] = (QUEUE_TABLE as any)[columnKey]?.default ?? null;
 		}
 
-		const updatedQueues = db.transaction(() =>
-			queues.map((queue) => inter.store.updateQueue({ id: queue.id, ...updatedProperties }))
-		);
+		const updatedQueues = db.transaction(() => {
+			return queues.map((queue) =>
+				inter.store.updateQueue({ id: queue.id, ...updatedProperties })
+			);
+		});
 
 		if (updatedProperties.roleId) {
 			await MemberUtils.assignInQueueRoleToMembers(inter.store, queues, updatedProperties.roleId, "remove");

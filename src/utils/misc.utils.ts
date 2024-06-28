@@ -15,11 +15,11 @@ export function size<T>(items: ArrayOrCollection<any, T>): number {
 }
 
 export function map<T, S>(items: ArrayOrCollection<any, T>, fn: (queue: T) => S): S[] {
-	return (items instanceof Collection) ? items.map(fn) : items.map(fn);
+	return (items instanceof Collection) ? items?.map(fn) : items?.map(fn);
 }
 
 export function find<T>(items: ArrayOrCollection<any, T>, fn: (queue: T) => boolean): T {
-	return (items instanceof Collection) ? items.find(fn) : items.find(fn);
+	return (items instanceof Collection) ? items?.find(fn) : items?.find(fn);
 }
 
 export function filterDbObjectsOnJsMember<T extends {
