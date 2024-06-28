@@ -2,6 +2,7 @@ import { EmbedBuilder, type GuildTextBasedChannel, Message } from "discord.js";
 
 import type { Store } from "../../db/store.ts";
 import { Scope } from "../../types/db.types.ts";
+import { memberNameMention } from "../string.utils.ts";
 
 export namespace LoggingUtils {
 	export type Loggable = Message | string | { embeds?: EmbedBuilder[], content?: string };
@@ -40,7 +41,7 @@ export namespace LoggingUtils {
 			embeds = embeds.map(embed => {
 				const jsMember = store.inter.member;
 				return new EmbedBuilder({ ...embed.data }).setAuthor({
-					name: jsMember.nickname ?? jsMember.displayName,
+					name: memberNameMention(jsMember),
 					iconURL: store.inter.user.displayAvatarURL(),
 					url: (originalMessage as any)?.url,
 				});

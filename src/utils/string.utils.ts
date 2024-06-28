@@ -32,7 +32,7 @@ export function queueMention(queue: DbQueue): string {
 		if (queue.autopullToggle) badges.push("🔁");
 		if (queue.voiceOnlyToggle) badges.push("🔊");
 	}
-	return bold(queue.name) + (badges.length ? " " + badges.join(" ") : "");
+	return bold(escapeMarkdown(queue.name)) + (badges.length ? " " + badges.join(" ") : "");
 }
 
 export function queuesMention(queues: ArrayOrCollection<bigint, DbQueue>): string {
@@ -55,7 +55,7 @@ export async function memberMention(store: Store, member: DbMember) {
 	const nameStr =
 		memberDisplayType === MemberDisplayType.Mention ? userMention(member.userId) :
 			memberDisplayType === MemberDisplayType.Username ? jsMember?.user?.username :
-				memberDisplayType === MemberDisplayType.DisplayName ? jsMember?.nickname ?? jsMember?.displayName :
+				memberDisplayType === MemberDisplayType.DisplayName ? memberNameMention(jsMember) :
 					jsMember;
 
 	return `${timeStr} ${prioStr} ${nameStr} ${msgStr}`;
@@ -114,8 +114,19 @@ export function timeMention(seconds: bigint) {
 	return bold(str);
 }
 
+export function memberNameMention(member: {nickname?: string, displayName?: string}) {
+	return escapeMarkdown(member.nickname ?? member.displayName);
+}
+
 export function propertyMention(propertyName: string) {
 	return bold(convertCamelCaseToTitleCase(propertyName));
+}
+
+export function escapeMarkdown(str: string) {
+	if (str) {
+		const specialChars = /([_*[\]()~`>#+\-=|{}.!])/g;
+		return String(str).replace(specialChars, "\\$1");
+	}
 }
 
 const GLOBAL_HIDDEN_PROPERTIES = ["id", "guildId", "queueId", "isRole"];
@@ -140,23 +151,23 @@ export function describeTable<T extends object>(options: {
 	const hiddenProperties = compact(concat(GLOBAL_HIDDEN_PROPERTIES, options.hiddenProperties, entryLabelProperty));
 	const valueFormatters = options.valueFormatters ?? {};
 
-	function formatPropertyValue(entry: T, property: string, defaultFormatter: (str: string) => string): string {
+	function formatPropertyValue(entry: T, property: string, formatter?: (str: string) => string): string {
 		let value = (entry as any)[property];
 
 		if (property === "subjectId") {
 			value = (entry as any).isRole ? roleMention(value) : userMention(value);
 		}
 
-		const formatter = valueFormatters[property];
-		if (formatter) {
-			value = formatter(value);
+		const valueFormatter = valueFormatters[property];
+		if (valueFormatter) {
+			value = valueFormatter(value);
 		}
 
-		if (property === "subjectId" || formatter) {
+		if (property === "subjectId" || valueFormatter) {
 			return value;
 		}
 		else {
-			return defaultFormatter(value);
+			return formatter(escapeMarkdown(value));
 		}
 	}
 
@@ -173,7 +184,9 @@ export function describeTable<T extends object>(options: {
 				const label = convertCamelCaseToTitleCase(stripIdSuffix(property));
 				const formattedLabel = isDefaultValue ? label : bold(label);
 				const formattedValue = formatPropertyValue(entry, property, inlineCode) ?? "";
-				const formattedOverriddenDefaultValue = (property in table && !isDefaultValue) ? strikethrough(inlineCode(String(defaultValue))) : "";
+				const formattedOverriddenDefaultValue = (property in table && !isDefaultValue)
+					? strikethrough(inlineCode(escapeMarkdown(defaultValue)))
+					: "";
 
 				return `${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();
 			}));
