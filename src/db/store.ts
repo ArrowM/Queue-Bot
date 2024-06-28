@@ -79,7 +79,7 @@ export class Store {
 	//                           Common data
 	// ====================================================================
 
-	dbGuild = moize(() => this.insertGuild({ guildId: this.guild.id }));
+	dbGuild = moize(() => Queries.selectGuild({ guildId: this.guild.id }) ?? this.insertGuild({ guildId: this.guild.id }));
 	dbQueues = moize(() => toCollection<bigint, DbQueue>("id", Queries.selectManyQueues({ guildId: this.guild.id })));
 	dbVoices = moize(() => toCollection<bigint, DbVoice>("id", Queries.selectManyVoices({ guildId: this.guild.id })));
 	dbDisplays = moize(() => toCollection<bigint, DbDisplay>("id", Queries.selectManyDisplays({ guildId: this.guild.id })));
