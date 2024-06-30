@@ -25,7 +25,6 @@ export const CLIENT = new DiscordClient({
 		ReactionUserManager: 0,
 		GuildStickerManager: 0,
 		GuildScheduledEventManager: 0,
-		VoiceStateManager: 0,
 	}),
 	sweepers: {
 		...Options.DefaultSweeperSettings,
