@@ -8,7 +8,7 @@ import { CustomOption } from "../base-option.ts";
 import { BlacklistedOption } from "./blacklisted.option.ts";
 
 export class BlacklistedsOption extends CustomOption {
-	static readonly ID = "blacklisteds";
+	static readonly ID = "blacklisted";
 	id = BlacklistedsOption.ID;
 	extraChoices = [CHOICE_ALL, CHOICE_SOME];
 

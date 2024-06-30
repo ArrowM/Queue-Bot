@@ -60,6 +60,7 @@ export class BlacklistedOption extends CustomOption {
 			}
 			else {
 				const member = await inter.store.jsMember(blacklisted.subjectId);
+				if (!member) continue;
 				suggestions.push({
 					name: `${member.nickname ?? member.displayName} user ${scope}`,
 					value: blacklisted.id.toString(),

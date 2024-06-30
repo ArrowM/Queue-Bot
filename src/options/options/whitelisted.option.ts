@@ -60,6 +60,7 @@ export class WhitelistedOption extends CustomOption {
 			}
 			else {
 				const member = await inter.store.jsMember(whitelisted.subjectId);
+				if (!member) continue;
 				suggestions.push({
 					name: `${member.nickname ?? member.displayName} user ${scope}`,
 					value: whitelisted.id.toString(),

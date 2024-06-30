@@ -36,6 +36,6 @@ export class LeaveCommand extends EveryoneCommand {
 			force: true,
 		});
 
-		await inter.respond(`Left the '${queueMention(queue)}' queue.`, true);
+		await inter.respond(`Left the ${queueMention(queue)} queue.`, true);
 	}
 }

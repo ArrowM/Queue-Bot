@@ -57,7 +57,7 @@ export namespace MemberUtils {
 		DisplayUtils.requestDisplaysUpdate(options.store, queues.map(queue => queue.id));
 
 		if (store.inter) {
-			const message = await store.inter.respond(`Added ${usersMention(insertedMembers)} to '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
+			const message = await store.inter.respond(`Added ${usersMention(insertedMembers)} to ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
 			for (const queue of queues.values()) {
 				if (queue.dmMemberToggle) {
 					await NotificationUtils.dmToMembers({

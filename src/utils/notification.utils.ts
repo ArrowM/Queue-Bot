@@ -17,7 +17,7 @@ export namespace NotificationUtils {
 
 		// build message
 		const linkStr = link ? `${link} ` : "";
-		let message = `${linkStr}You were just ${action} the '${queueMention(queue)}' queue.`;
+		let message = `${linkStr}You were just ${action} the ${queueMention(queue)} queue.`;
 		if (queue.pullMessage) {
 			message += `\n> ${queue.pullMessage}`;
 		}

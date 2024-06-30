@@ -54,6 +54,7 @@ export class AdminOption extends CustomOption {
 			}
 			else {
 				const member = await inter.store.jsMember(admin.subjectId);
+				if (!member) continue;
 				suggestions.push({
 					name: `${member.nickname ?? member.displayName} user`,
 					value: admin.id.toString(),

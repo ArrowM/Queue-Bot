@@ -43,10 +43,14 @@ export class MembersOption extends CustomOption {
 
 		// build menu
 		const label = MembersOption.ID;
-		const options = jsMembers.map(member => ({
-			name: member.nickname ?? member.displayName,
-			value: member.id,
-		}));
+		const options = [];
+		for (const member of jsMembers.values()) {
+			if (!member) continue;
+			options.push({
+				name: member.nickname ?? member.displayName,
+				value: member.id,
+			});
+		}
 
 		// send and receive
 		const selectMenuTransactor = new SelectMenuTransactor(inter);

@@ -114,7 +114,7 @@ export class MembersCommand extends AdminCommand {
 
 		const updatedMembers = MemberUtils.updateMembers(inter.store, members, message);
 
-		await inter.respond(`Updated ${usersMention(updatedMembers)} in '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Updated ${usersMention(updatedMembers)} in ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
 	}
 
 	// ====================================================================
@@ -131,7 +131,7 @@ export class MembersCommand extends AdminCommand {
 		const members = await MembersCommand.DELETE_OPTIONS.members.get(inter);
 
 		if (MembersCommand.DELETE_OPTIONS.members.getRaw(inter) === ChoiceType.ALL) {
-			const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}?`);
+			const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}?`);
 			if (!confirmed) {
 				await inter.respond("Cancelled delete.");
 				return;

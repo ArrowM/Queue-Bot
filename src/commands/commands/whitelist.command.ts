@@ -107,7 +107,7 @@ export class WhitelistCommand extends AdminCommand {
 		} = WhitelistUtils.insertWhitelisted(inter.store, queues, mentionables, reason);
 		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 
-		await inter.respond(`Whitelisted ${mentionablesMention(insertedWhitelisted)} in the '${queuesMention(updatedQueues)}' queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Whitelisted ${mentionablesMention(insertedWhitelisted)} in the ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
 		await this.whitelist_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 

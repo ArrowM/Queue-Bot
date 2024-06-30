@@ -107,7 +107,7 @@ export class BlacklistCommand extends AdminCommand {
 		} = await BlacklistUtils.insertBlacklisted(inter.store, queues, mentionables, reason);
 		const updatedQueues = updatedQueueIds.map(id => inter.store.dbQueues().get(id));
 
-		await inter.respond(`Blacklisted ${mentionablesMention(insertedBlacklisted)} from the '${queuesMention(updatedQueues)}' queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Blacklisted ${mentionablesMention(insertedBlacklisted)} from the ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
 		await this.blacklist_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 

@@ -60,6 +60,7 @@ export class PrioritizedOption extends CustomOption {
 			}
 			else {
 				const member = await inter.store.jsMember(prioritized.subjectId);
+				if (!member) continue;
 				suggestions.push({
 					name: `${member.nickname ?? member.displayName} user ${scope}`,
 					value: prioritized.id.toString(),

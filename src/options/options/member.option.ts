@@ -51,6 +51,7 @@ export class MemberOption extends CustomOption {
 		const suggestions: UIOption[] = [];
 		for (const member of members.values()) {
 			const jsMember = await inter.store.jsMember(member.userId);
+			if (!jsMember) continue;
 			suggestions.push({
 				name: `${jsMember.nickname ?? jsMember.displayName} in ${queues.get(member.queueId).name} queue`,
 				value: member.id.toString(),

@@ -28,7 +28,7 @@ export class ClearCommand extends AdminCommand {
 	static async clear(inter: SlashInteraction) {
 		const queues = await ClearCommand.CLEAR_OPTIONS.queues.get(inter);
 
-		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}?`);
+		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}?`);
 		if (!confirmed) {
 			await inter.respond("Cancelled clear.");
 			return;

@@ -143,8 +143,8 @@ export class VoiceCommand extends AdminCommand {
 			const members = inter.store.dbMembers().filter(member => member.queueId === queue.id);
 			if (members.size) {
 				const confirmed = await inter.promptConfirmOrCancel(
-					`The '${queueMention(queue)}' queue has ${inlineCode(VoiceOnlyToggleOption.ID)} enabled. ` +
-					`There are ${members.size} member${members.size === 1 ? "" : "s"} in the '${queueMention(queue)}' queue that will be cleared if you proceed. ` +
+					`The ${queueMention(queue)} queue has ${inlineCode(VoiceOnlyToggleOption.ID)} enabled. ` +
+					`There are ${members.size} member${members.size === 1 ? "" : "s"} in the ${queueMention(queue)} queue that will be cleared if you proceed. ` +
 					"Do you wish to proceed?"
 				);
 				if (!confirmed) {
@@ -159,7 +159,7 @@ export class VoiceCommand extends AdminCommand {
 		}
 		if (nonVoiceOnlyQueues.length) {
 			await inter.respond(
-				`${inlineCode(VoiceOnlyToggleOption.ID)} is not enabled for the '${queuesMention(nonVoiceOnlyQueues)}' queue${nonVoiceOnlyQueues.length > 1 ? "s" : ""}. ` +
+				`${inlineCode(VoiceOnlyToggleOption.ID)} is not enabled for the ${queuesMention(nonVoiceOnlyQueues)} queue${nonVoiceOnlyQueues.length > 1 ? "s" : ""}. ` +
 				`Members will still be able to join via buttons or commands. ${inlineCode(VoiceOnlyToggleOption.ID)} can be changed with ${commandMention("queues", "set")}.`
 			);
 		}
@@ -171,7 +171,7 @@ export class VoiceCommand extends AdminCommand {
 		} = VoiceUtils.insertVoices(inter.store, queues, newVoice);
 		const updatedQueues = updatedQueueIds.map(id => inter.store.dbQueues().get(id));
 
-		await inter.respond(`Added voice integrations to the '${queuesMention(updatedQueues)}' queue${updatedQueues.length > 1 ? "s" : ""}`, true);
+		await inter.respond(`Added voice integrations to the ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}`, true);
 		await this.voice_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 
@@ -203,7 +203,7 @@ export class VoiceCommand extends AdminCommand {
 		} = VoiceUtils.updateVoices(inter.store, voices.map(voice => voice.id), update);
 		const updatedQueues = updatedQueueIds.map(id => inter.store.dbQueues().get(id));
 
-		await inter.respond(`Updated voice integrations in '${queuesMention(updatedQueues)}' queue${updatedQueues.length > 1 ? "s" : ""}`, true);
+		await inter.respond(`Updated voice integrations in ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}`, true);
 		await this.voice_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 
@@ -223,7 +223,7 @@ export class VoiceCommand extends AdminCommand {
 		} = VoiceUtils.deleteVoices(inter.store, voices.map(voice => voice.id));
 		const updatedQueues = updatedQueueIds.map(id => inter.store.dbQueues().get(id));
 
-		await inter.respond(`Deleted voice integrations in '${queuesMention(updatedQueues)}' queue${updatedQueues.length > 1 ? "s" : ""}`, true);
+		await inter.respond(`Deleted voice integrations in ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}`, true);
 
 		await this.voice_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
@@ -246,7 +246,7 @@ export class VoiceCommand extends AdminCommand {
 
 		await QueueUtils.updateQueues(inter.store, queues, { voiceDestinationChannelId });
 
-		await inter.respond(`Updated voice destination channel of '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Updated voice destination channel of ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
 	}
 
 	// ====================================================================
@@ -262,7 +262,7 @@ export class VoiceCommand extends AdminCommand {
 
 		await QueueUtils.updateQueues(inter.store, queues, { voiceDestinationChannelId: null });
 
-		await inter.respond(`Unset voice destination channel of '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Unset voice destination channel of ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
 	}
 
 	// ====================================================================

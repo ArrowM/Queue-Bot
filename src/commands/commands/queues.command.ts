@@ -244,8 +244,8 @@ export class QueuesCommand extends AdminCommand {
 				const members = inter.store.dbMembers().filter(member => member.queueId === queue.id);
 				if (members.size) {
 					const confirmed = await inter.promptConfirmOrCancel(
-						`You are enabling ${inlineCode(VoiceOnlyToggleOption.ID)} for the '${queueMention(queue)}' queue. ` +
-						`There are ${members.size} member${members.size === 1 ? "" : "s"} in the '${queueMention(queue)}' queue that will be cleared if you proceed. ` +
+						`You are enabling ${inlineCode(VoiceOnlyToggleOption.ID)} for the ${queueMention(queue)} queue. ` +
+						`There are ${members.size} member${members.size === 1 ? "" : "s"} in the ${queueMention(queue)} queue that will be cleared if you proceed. ` +
 						"Do you wish to proceed?"
 					);
 					if (!confirmed) {
@@ -262,7 +262,7 @@ export class QueuesCommand extends AdminCommand {
 
 		const { updatedQueues } = await QueueUtils.updateQueues(inter.store, queues, update);
 
-		await inter.respond(`Updated ${Object.keys(update).map(propertyMention).join(", ")} of '${queuesMention(queues)}' queue${queues.size > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Updated ${Object.keys(update).map(propertyMention).join(", ")} of ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
 
 		await QueuesCommand.queues_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
@@ -345,7 +345,7 @@ export class QueuesCommand extends AdminCommand {
 	static async queues_delete(inter: SlashInteraction) {
 		const queue = await QueuesCommand.DELETE_OPTIONS.queue.get(inter);
 
-		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to delete the '${queueMention(queue)}' queue?`);
+		const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to delete the ${queueMention(queue)} queue?`);
 		if (!confirmed) {
 			await inter.respond("Cancelled delete.");
 			return;
@@ -353,6 +353,6 @@ export class QueuesCommand extends AdminCommand {
 
 		const deletedQueue = inter.store.deleteQueue({ id: queue.id });
 
-		await inter.respond(`Deleted the '${queueMention(deletedQueue)}' queue.`, true);
+		await inter.respond(`Deleted the ${queueMention(deletedQueue)} queue.`, true);
 	}
 }

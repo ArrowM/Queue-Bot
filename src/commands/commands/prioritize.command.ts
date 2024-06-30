@@ -130,7 +130,7 @@ export class PrioritizeCommand extends AdminCommand {
 		} = PriorityUtils.insertPrioritized(inter.store, queues, mentionables, priorityOrder, reason);
 		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 
-		await inter.respond(`Prioritized ${mentionablesMention(insertedPrioritized)} in the '${queuesMention(updatedQueues)}' queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Prioritized ${mentionablesMention(insertedPrioritized)} in the ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
 		await this.prioritize_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 

@@ -8,7 +8,7 @@ import { CustomOption } from "../base-option.ts";
 import { PrioritizedOption } from "./prioritized.option.ts";
 
 export class PrioritizedsOption extends CustomOption {
-	static readonly ID = "prioritizeds";
+	static readonly ID = "prioritized";
 	id = PrioritizedsOption.ID;
 	extraChoices = [CHOICE_ALL, CHOICE_SOME];
 

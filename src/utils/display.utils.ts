@@ -229,7 +229,7 @@ export namespace DisplayUtils {
 					.setTitle("Failed to display queue")
 					.setColor(Color.Red)
 					.setDescription(
-						`Hey ${store.inter.member}, I just tried to display the '${queueMention(queue)}' queue in ${channelMention(display.displayChannelId)}, but something went wrong. ` +
+						`Hey ${store.inter.member}, I just tried to display the ${queueMention(queue)} queue in ${channelMention(display.displayChannelId)}, but something went wrong. ` +
 						(isPermissionError ? bold(`It looks like a permission issue, please check the bot's perms in ${channelMention(display.displayChannelId)}. `) : "") +
 						`Here's the error:${codeBlock(message)}`
 					);

@@ -17,11 +17,23 @@ export const CLIENT = new DiscordClient({
 	// Disable caching for unused features
 	makeCache: Options.cacheWithLimits({
 		...Options.DefaultMakeCacheSettings,
+		GuildMessageManager: {
+			maxSize: 0,
+			keepOverLimit: member => member.id === member.client.user.id,
+		},
 		ReactionManager: 0,
 		ReactionUserManager: 0,
 		GuildStickerManager: 0,
 		GuildScheduledEventManager: 0,
+		VoiceStateManager: 0,
 	}),
+	sweepers: {
+		...Options.DefaultSweeperSettings,
+		messages: {
+			interval: 3_600, // Every hour.
+			lifetime: 7_200, // Remove messages older than 2 hours.
+		},
+	},
 	shards: "auto",
 });
 

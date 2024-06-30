@@ -19,24 +19,29 @@ import { LoggingUtils } from "./message-utils/logging.utils.ts";
 
 export namespace InteractionUtils {
 	export async function respond(inter: SlashInteraction | ButtonInteraction, isAdmin: boolean, message: InteractionReplyOptions | string, log = false) {
-		const interaction = inter as any;
+		try {
+			const interaction = inter as any;
 
-		let response: Message;
-		if (interaction.replied) {
-			response = await interaction.followUp(message);
-		}
-		else if (interaction.deferred) {
-			response = await interaction.editReply(message);
-		}
-		else {
-			response = await (await interaction.reply(message)).fetch();
-		}
+			let response: Message;
+			if (interaction.replied) {
+				response = await interaction.followUp(message);
+			}
+			else if (interaction.deferred) {
+				response = await interaction.editReply(message);
+			}
+			else {
+				response = await (await interaction.reply(message)).fetch();
+			}
 
-		if (log) {
-			await LoggingUtils.log(inter.store, isAdmin, response);
-		}
+			if (log) {
+				await LoggingUtils.log(inter.store, isAdmin, response);
+			}
 
-		return response;
+			return response;
+		}
+		catch {
+			// ignore
+		}
 	}
 
 	const CANCEL_BUTTON = new ButtonBuilder()
