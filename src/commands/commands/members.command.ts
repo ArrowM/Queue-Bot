@@ -49,7 +49,7 @@ export class MembersCommand extends AdminCommand {
 		.addSubcommand(subcommand => {
 			subcommand
 				.setName("delete")
-				.setDescription("Remove members from a queue");
+				.setDescription("Kick members from a queue");
 			Object.values(MembersCommand.DELETE_OPTIONS).forEach(option => option.addToCommand(subcommand));
 			return subcommand;
 		});
@@ -122,8 +122,8 @@ export class MembersCommand extends AdminCommand {
 	// ====================================================================
 
 	static readonly DELETE_OPTIONS = {
-		queues: new QueuesOption({ required: true, description: "Queue(s) to remove members from" }),
-		members: new MembersOption({ required: true, description: "Members to remove" }),
+		queues: new QueuesOption({ required: true, description: "Queue(s) to kick members from" }),
+		members: new MembersOption({ required: true, description: "Members to kick" }),
 	};
 
 	static async members_delete(inter: SlashInteraction) {
