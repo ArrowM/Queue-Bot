@@ -15,7 +15,7 @@ import { DisplayOption } from "./options/display.option.ts";
 import { ButtonsToggleOption } from "./options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "./options/display-update-type.option.ts";
 import { DisplaysOption } from "./options/displays.option.ts";
-import { DmMemberToggleOption } from "./options/dm-member-on-pull-toggle.option.ts";
+import { DmMemberToggleOption } from "./options/dm-member-toggle.option.ts";
 import { HeaderOption } from "./options/header.option.ts";
 import { InlineToggleOption } from "./options/inline-toggle.option.ts";
 import { JoinSyncToggleOption } from "./options/join-sync-toggle.option.ts";

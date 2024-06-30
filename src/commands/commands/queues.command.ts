@@ -9,7 +9,7 @@ import { BadgeToggleOption } from "../../options/options/badge-toggle.option.ts"
 import { ColorOption } from "../../options/options/color.option.ts";
 import { ButtonsToggleOption } from "../../options/options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "../../options/options/display-update-type.option.ts";
-import { DmMemberToggleOption } from "../../options/options/dm-member-on-pull-toggle.option.ts";
+import { DmMemberToggleOption } from "../../options/options/dm-member-toggle.option.ts";
 import { HeaderOption } from "../../options/options/header.option.ts";
 import { InlineToggleOption } from "../../options/options/inline-toggle.option.ts";
 import { LockToggleOption } from "../../options/options/lock-toggle.option.ts";

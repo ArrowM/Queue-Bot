@@ -28,11 +28,10 @@ export function queueMention(queue: DbQueue): string {
 	const badges = [];
 	if (queue.badgeToggle) {
 		if (queue.lockToggle) badges.push("🔒");
-		if (!queue.dmMemberToggle) badges.push("📨");
 		if (queue.autopullToggle) badges.push("🔁");
 		if (queue.voiceOnlyToggle) badges.push("🔊");
 	}
-	return bold(escapeMarkdown(queue.name)) + (badges.length ? " " + badges.join(" ") : "");
+	return (badges.length ? " " + badges.join(" ") : "") + bold(escapeMarkdown(queue.name));
 }
 
 export function queuesMention(queues: ArrayOrCollection<bigint, DbQueue>): string {
@@ -123,7 +122,7 @@ export function propertyMention(propertyName: string) {
 }
 
 export function escapeMarkdown(str: string) {
-	if (str) {
+	if (str !== undefined) {
 		const specialChars = /([_*[\]()~`>#+\-=|{}.!])/g;
 		return String(str).replace(specialChars, "\\$1");
 	}
