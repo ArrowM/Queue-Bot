@@ -184,7 +184,7 @@ export function describeTable<T extends object>(options: {
 				const formattedLabel = isDefaultValue ? label : bold(label);
 				const formattedValue = formatPropertyValue(entry, property, inlineCode) ?? "";
 				const formattedOverriddenDefaultValue = (property in table && !isDefaultValue)
-					? strikethrough(inlineCode(escapeMarkdown(defaultValue)))
+					? strikethrough(inlineCode(defaultValue))
 					: "";
 
 				return `${formattedLabel} = ${formattedValue} ${formattedOverriddenDefaultValue}`.trimEnd();

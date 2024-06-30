@@ -18,7 +18,7 @@ export const CLIENT = new DiscordClient({
 	makeCache: Options.cacheWithLimits({
 		...Options.DefaultMakeCacheSettings,
 		GuildMessageManager: {
-			maxSize: 0,
+			maxSize: 3,
 			keepOverLimit: member => member.id === member.client.user.id,
 		},
 		ReactionManager: 0,
