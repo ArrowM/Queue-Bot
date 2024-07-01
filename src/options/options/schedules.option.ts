@@ -48,6 +48,7 @@ export class SchedulesOption extends CustomOption {
 		// send and receive
 		const selectMenuTransactor = new SelectMenuTransactor(inter);
 		const result = await selectMenuTransactor.sendAndReceive(label, options);
+		if (!result) return;
 
 		// parse result
 		const scheduleIds = result.map(id => BigInt(id));

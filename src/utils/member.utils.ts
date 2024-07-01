@@ -196,7 +196,7 @@ export namespace MemberUtils {
 				if (messageChannelId && queue.pullMessageDisplayType === PullMessageDisplayType.Public) {
 					const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
 					if (messageChannel) {
-						const sentMessage = await messageChannel?.send(messageToSend);
+						const sentMessage = await messageChannel.send(messageToSend).catch(() => null);
 						LoggingUtils.log(store, true, sentMessage).catch(() => null);
 						link = sentMessage?.url;
 					}

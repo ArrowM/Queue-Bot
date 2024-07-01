@@ -784,8 +784,8 @@
           "autoincrement": false,
           "default": "'edit'"
         },
-        "dm_member_on_pull_toggle": {
-          "name": "dm_member_on_pull_toggle",
+        "dm_member_toggle": {
+          "name": "dm_member_toggle",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -1256,7 +1256,7 @@
     "schemas": {},
     "tables": {},
     "columns": {
-      "\"queue\".\"notifications_toggle\"": "\"queue\".\"dm_member_on_pull_toggle\""
+      "\"queue\".\"notifications_toggle\"": "\"queue\".\"dm_member_toggle\""
     }
   },
   "internal": {

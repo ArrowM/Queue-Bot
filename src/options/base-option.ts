@@ -54,7 +54,7 @@ export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBas
 			selection = this.getUncached(inter);
 			inter.parser.cache.set(this.identifier, selection);
 		}
-		if (selection === undefined && (this.config?.required ?? this.required)) {
+		if (selection == undefined && (this.config?.required ?? this.required)) {
 			throw new Error(`Required option ${this.identifier} not found`);
 		}
 		return selection;
