@@ -29,14 +29,7 @@ import type { ArrayOrCollection } from "../types/misc.types.ts";
 import type { CustomError } from "./error.utils.ts";
 import { InteractionUtils } from "./interaction.utils.ts";
 import { map } from "./misc.utils.ts";
-import {
-	commandMention,
-	memberMention,
-	mentionablesMention,
-	queueMention,
-	scheduleMention,
-	timeMention,
-} from "./string.utils.ts";
+import { commandMention, memberMention, mentionablesMention, queueMention, scheduleMention, timeMention } from "./string.utils.ts";
 
 export namespace DisplayUtils {
 	export async function insertDisplays(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, displayChannelId: Snowflake) {
@@ -125,10 +118,9 @@ export namespace DisplayUtils {
 				displays = displays.filter(display => opts.displayIds.includes(display.id));
 			}
 
-			const embedBuilders = await generateQueueDisplay(store, queue);
+			const displayMessage = await buildQueueDisplayMessage(store, queue);
 
 			// Send update
-
 			await Promise.all(displays.map(async (display) => {
 				try {
 					const jsChannel = await store.jsChannel(display.displayChannelId) as GuildTextBasedChannel;
@@ -150,16 +142,10 @@ export namespace DisplayUtils {
 
 					async function newDisplay() {
 						// Send new display
-						const message = await jsChannel.send({
-							embeds: embedBuilders,
-							components: getButtonRow(queue),
-						});
+						const message = await jsChannel.send(displayMessage);
 						if (message) {
 							// Remove buttons on the previous message
-							await lastMessage?.edit({
-								embeds: embedBuilders,
-								components: [],
-							}).catch(() => null);
+							await lastMessage?.edit(displayMessage).catch(() => null);
 							// Update the display
 							store.updateDisplay({
 								guildId: store.guild.id,
@@ -172,10 +158,7 @@ export namespace DisplayUtils {
 					async function editDisplay() {
 						if (lastMessage) {
 							try {
-								await lastMessage.edit({
-									embeds: embedBuilders,
-									components: getButtonRow(queue),
-								});
+								await lastMessage.edit(displayMessage);
 							}
 							catch {
 								await newDisplay();
@@ -252,7 +235,7 @@ export namespace DisplayUtils {
 		}
 	}
 
-	async function generateQueueDisplay(store: Store, queue: DbQueue): Promise<EmbedBuilder[]> {
+	async function buildQueueDisplayEmbeds(store: Store, queue: DbQueue): Promise<EmbedBuilder[]> {
 		const { color, inlineToggle } = queue;
 
 		// Build member strings
@@ -406,23 +389,29 @@ export namespace DisplayUtils {
 			.setStyle(button.style);
 	}
 
-	function getButtonRow(queue: DbQueue) {
+	async function buildQueueDisplayMessage(store: Store, queue: DbQueue) {
+		const embeds = await buildQueueDisplayEmbeds(store, queue);
+		const buttons = buildQueueDisplayButtons(queue);
+		return {
+			embeds,
+			components: buttons?.length ? [new ActionRowBuilder<ButtonBuilder>().addComponents(buttons).toJSON()] : [],
+		};
+	}
+
+	function buildQueueDisplayButtons(queue: DbQueue) {
 		if (queue.buttonsToggle === Scope.None) return;
 
-		const actionRowBuilder = new ActionRowBuilder<ButtonBuilder>();
-
+		const buttons = [];
 		if ([Scope.NonAdmin, Scope.All].includes(queue.buttonsToggle) && !queue.voiceOnlyToggle) {
-			actionRowBuilder.addComponents(
-				buildButton(BUTTONS.get(JoinButton.ID)),
-				buildButton(BUTTONS.get(LeaveButton.ID)),
-				buildButton(BUTTONS.get(MyPositionsButton.ID))
-			);
+			buttons.push(BUTTONS.get(JoinButton.ID));
+			buttons.push(BUTTONS.get(LeaveButton.ID));
+			buttons.push(BUTTONS.get(MyPositionsButton.ID));
 		}
 
 		if ([Scope.Admin, Scope.All].includes(queue.buttonsToggle)) {
-			actionRowBuilder.addComponents(buildButton(BUTTONS.get(PullButton.ID)));
+			buttons.push(BUTTONS.get(PullButton.ID));
 		}
 
-		return [actionRowBuilder.toJSON()];
+		return buttons.map(buildButton);
 	}
 }
