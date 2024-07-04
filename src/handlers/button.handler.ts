@@ -19,13 +19,10 @@ export class ButtonHandler implements Handler {
 		await this.inter.deferReply({ ephemeral: true });
 		const button = BUTTONS.get(this.inter.customId);
 		if (button) {
-			const isAdmin = button.adminOnly;
+			this.inter.respond = (message: InteractionReplyOptions | string, log = false) => InteractionUtils.respond(this.inter, button.adminOnly, message, log);
+			this.inter.log = (originalMessage: Message | string) => LoggingUtils.log(this.inter.store, button.adminOnly, originalMessage);
 
-			this.inter.respond = (message: InteractionReplyOptions | string, log = false) => InteractionUtils.respond(this.inter, isAdmin, message, log);
-
-			this.inter.log = (originalMessage: Message | string) => LoggingUtils.log(this.inter.store, isAdmin, originalMessage);
-
-			if (isAdmin) {
+			if (button.adminOnly) {
 				AdminUtils.verifyIsAdmin(this.inter.store, this.inter.member);
 			}
 

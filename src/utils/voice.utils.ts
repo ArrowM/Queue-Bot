@@ -10,12 +10,14 @@ import { map } from "./misc.utils.ts";
 export namespace VoiceUtils {
 	export function insertVoices(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, voice: Omit<NewVoice, "guildId" | "queueId">) {
 		return db.transaction(() => {
-			const insertedVoices = map(queues, queue => store.insertVoice({
-				guildId: store.guild.id,
-				queueId: queue.id,
-				...voice,
-			}));
-			const updatedQueueIds = uniq(compact(insertedVoices).map(voice => voice.queueId));
+			const insertedVoices = compact(
+				map(queues, queue => store.insertVoice({
+					guildId: store.guild.id,
+					queueId: queue.id,
+					...voice,
+				}))
+			);
+			const updatedQueueIds = uniq(insertedVoices.map(voice => voice.queueId));
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 
@@ -25,8 +27,8 @@ export namespace VoiceUtils {
 
 	export function updateVoices(store: Store, voiceIds: bigint[], update: Partial<DbVoice>) {
 		return db.transaction(() => {
-			const updatedVoices = voiceIds.map(id => store.updateVoice({ id, ...update }));
-			const updatedQueueIds = uniq(compact(updatedVoices).map(voice => voice.queueId));
+			const updatedVoices = compact(voiceIds.map(id => store.updateVoice({ id, ...update })));
+			const updatedQueueIds = uniq(updatedVoices).map(voice => voice.queueId);
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 
@@ -36,8 +38,8 @@ export namespace VoiceUtils {
 
 	export function deleteVoices(store: Store, voiceIds: bigint[]) {
 		return db.transaction(() => {
-			const deletedVoices = voiceIds.map(id => store.deleteVoice({ id }));
-			const updatedQueueIds = uniq(compact(deletedVoices).map(voice => voice.queueId));
+			const deletedVoices = compact(voiceIds.map(id => store.deleteVoice({ id })));
+			const updatedQueueIds = uniq(deletedVoices.map(voice => voice.queueId));
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 

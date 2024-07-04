@@ -1,5 +1,5 @@
 import { channelMention, Collection, EmbedBuilder, GuildMember, type GuildTextBasedChannel, Role, roleMention, type Snowflake, userMention } from "discord.js";
-import { isNil, shuffle, upperFirst } from "lodash-es";
+import { compact, isNil, shuffle, upperFirst } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import { Queries } from "../db/queries.ts";
@@ -26,40 +26,43 @@ export namespace MemberUtils {
 		mentionables: Mentionable[],
 		queues: Collection<bigint, DbQueue>,
 		force?: boolean,
+		dmMember?: boolean,
 	}) {
-		const { store, mentionables, queues, force } = options;
+		const { store, mentionables, queues, force, dmMember } = options;
 
-		const insertedMembers = await db.transaction(async () => {
-			const inserted = [];
-			for (const mentionable of mentionables) {
-				if (mentionable instanceof GuildMember) {
-					for (const queue of queues.values()) {
-						inserted.push(
-							await insertJsMember({ store, queue, jsMember: mentionable, force })
-						);
-					}
-				}
-				else if (mentionable instanceof Role) {
-					const role = await store.jsRole(mentionable.id);
-					if (!role) continue;
-					for (const queue of queues.values()) {
-						for (const jsMember of role.members.values()) {
+		const insertedMembers = compact(
+			await db.transaction(async () => {
+				const inserted = [];
+				for (const mentionable of mentionables) {
+					if (mentionable instanceof GuildMember) {
+						for (const queue of queues.values()) {
 							inserted.push(
-								await insertJsMember({ store, queue, jsMember, force })
+								await insertJsMember({ store, queue, jsMember: mentionable, force })
 							);
 						}
 					}
+					else if (mentionable instanceof Role) {
+						const role = await store.jsRole(mentionable.id);
+						if (!role) continue;
+						for (const queue of queues.values()) {
+							for (const jsMember of role.members.values()) {
+								inserted.push(
+									await insertJsMember({ store, queue, jsMember, force })
+								);
+							}
+						}
+					}
 				}
-			}
-			return inserted;
-		});
+				return inserted;
+			})
+		);
 
 		DisplayUtils.requestDisplaysUpdate(options.store, queues.map(queue => queue.id));
 
 		if (store.inter) {
 			const message = await store.inter.respond(`Added ${usersMention(insertedMembers)} to ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
-			for (const queue of queues.values()) {
-				if (queue.dmMemberToggle) {
+			if (dmMember) {
+				for (const queue of queues.values()) {
 					await NotificationUtils.dmToMembers({
 						store,
 						queue,
@@ -70,75 +73,16 @@ export namespace MemberUtils {
 				}
 			}
 		}
-
 		return insertedMembers;
 	}
 
-	export async function insertJsMember(options: {
+	export function updateMembers(options: {
 		store: Store,
-		queue: DbQueue,
-		jsMember: GuildMember,
-		message?: string,
-		force?: boolean,
+		members: ArrayOrCollection<bigint, DbMember>,
+		message: string,
 	}) {
-		return await db.transaction(async () => {
-			const insertedMember = await _insertMember(options);
-			DisplayUtils.requestDisplayUpdate(options.store, options.queue.id);
-			return insertedMember;
-		});
-	}
-
-	async function _insertMember(options: {
-		store: Store,
-		queue: DbQueue,
-		jsMember: GuildMember,
-		message?: string,
-		force?: boolean,
-	}) {
-		const { store, queue, jsMember, message, force } = options;
-
-		const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
-
-		if (!force) {
-			verifyMemberEligibility(store, queue, jsMember, archivedMember);
-		}
-
-		if (queue.voiceDestinationChannelId && queue.voiceDestinationChannelId === jsMember.voice.channelId) {
-			throw new CustomError({
-				message: `Failed to join`,
-				embeds: [
-					new EmbedBuilder()
-						.setDescription(`${jsMember} is already in the destination voice channel for the ${queueMention(queue)} queue.`),
-				],
-			});
-		}
-
-		const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
-		let positionTime = BigInt(Date.now());
-
-		if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
-			if (BigInt(Date.now()) - archivedMember.archivedTime <= (queue.rejoinGracePeriod * 1000n)) {
-				// Reuse the positionTime
-				positionTime = archivedMember.positionTime;
-			}
-		}
-
-		const insertedMember = store.insertMember({
-			guildId: store.guild.id,
-			queueId: queue.id,
-			userId: jsMember.id,
-			message,
-			priorityOrder,
-			positionTime,
-		});
-
-		await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
-
-		return insertedMember;
-	}
-
-	export function updateMembers(store: Store, members: ArrayOrCollection<bigint, DbMember>, message: string) {
-		const updatedMembers = map(members, member => store.updateMember({ ...member, message }));
+		const { store, members, message } = options;
+		const updatedMembers = compact(map(members, member => store.updateMember({ ...member, message })));
 		DisplayUtils.requestDisplaysUpdate(store, map(updatedMembers, member => member.queueId));
 		return updatedMembers;
 	}
@@ -160,16 +104,15 @@ export namespace MemberUtils {
 		messageChannelId?: Snowflake;
 		destinationChannelId?: Snowflake;
 		force?: boolean,
+		dmMember?: boolean,
 	}) {
-		const { store, reason, by, messageChannelId, force } = options;
+		const { store, reason, by, messageChannelId, force, dmMember } = options;
 		const queues = options.queues instanceof Collection ? [...options.queues.values()] : options.queues;
 		const { userId, userIds, roleId, count } = by ?? {} as any;
 		const deletedMembers: DbMember[] = [];
 
 		async function deleteMembersAndNotify(queue: DbQueue, userIds: Snowflake[], reason: MemberRemovalReason) {
-			const deleted: DbMember[] = userIds
-				.map(userId => store.deleteMember({ queueId: queue.id, userId }, reason))
-				.filter(Boolean);
+			const deleted: DbMember[] = compact(userIds.map(userId => store.deleteMember({ queueId: queue.id, userId }, reason)));
 
 			userIds.forEach(userId => modifyMemberRoles(store, userId, queue.roleInQueueId, "remove").catch(() => null));
 
@@ -213,7 +156,7 @@ export namespace MemberUtils {
 					}
 				}
 
-				if (queue.dmMemberToggle) {
+				if (dmMember || (reason === MemberRemovalReason.Pulled && queue.dmOnPullToggle)) {
 					// Notify of pull or kick
 					const action = (reason === MemberRemovalReason.Pulled)
 						? NotificationAction.PULLED_FROM_QUEUE
@@ -235,7 +178,7 @@ export namespace MemberUtils {
 				}
 			}
 			else if (!isNil(roleId)) {
-				const jsMembers = store.guild.roles.cache.get(roleId).members;
+				const jsMembers = (await store.guild.roles.fetch(roleId)).members;
 				for (const queue of queues) {
 					await deleteMembersAndNotify(queue, jsMembers.map(member => member.id), reason);
 				}
@@ -329,7 +272,7 @@ export namespace MemberUtils {
 			description += `> ${queue.pullMessage}\n\n`;
 		}
 		description += pulledMembersOfQueue.length ? `${upperFirst(reason)} from queue:\n${membersStr}` : `No members were ${reason} from queue.`;
-		return { embeds: [ new EmbedBuilder().setTitle(queueMention(queue)).setColor(queue.color).setDescription(description) ] };
+		return { embeds: [new EmbedBuilder().setTitle(queueMention(queue)).setColor(queue.color).setDescription(description)] };
 	}
 
 	export async function describeMemberPositions(store: Store, userId: Snowflake) {
@@ -382,22 +325,62 @@ export namespace MemberUtils {
 		}
 	}
 
-	export async function assignInQueueRoleToMembers(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, roleId: Snowflake, modification: "add" | "remove") {
-		await Promise.all(
-			map(queues, async (queue) => {
-				const members = store.dbMembers().filter(member => member.queueId === queue.id);
-				return Promise.all(
-					members.map((member) =>
-						MemberUtils.modifyMemberRoles(store, member.userId, roleId, modification)
-					)
-				);
-			})
-		);
-	}
-
 	// ====================================================================
 	// 												 Helpers
 	// ====================================================================
+
+	async function insertJsMember(options: {
+		store: Store,
+		queue: DbQueue,
+		jsMember: GuildMember,
+		message?: string,
+		force?: boolean,
+	}) {
+		const { store, queue, jsMember, message, force } = options;
+
+		return await db.transaction(async () => {
+			const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
+
+			if (!force) {
+				verifyMemberEligibility(store, queue, jsMember, archivedMember);
+			}
+
+			if (queue.voiceDestinationChannelId && queue.voiceDestinationChannelId === jsMember.voice.channelId) {
+				throw new CustomError({
+					message: `Failed to join`,
+					embeds: [
+						new EmbedBuilder()
+							.setDescription(`${jsMember} is already in the destination voice channel for the ${queueMention(queue)} queue.`),
+					],
+				});
+			}
+
+			const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
+			let positionTime = BigInt(Date.now());
+
+			if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
+				if (BigInt(Date.now()) - archivedMember.archivedTime <= (queue.rejoinGracePeriod * 1000n)) {
+					// Reuse the positionTime
+					positionTime = archivedMember.positionTime;
+				}
+			}
+
+			const insertedMember = store.insertMember({
+				guildId: store.guild.id,
+				queueId: queue.id,
+				userId: jsMember.id,
+				message,
+				priorityOrder,
+				positionTime,
+			});
+
+			await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
+
+			DisplayUtils.requestDisplayUpdate(options.store, options.queue.id);
+
+			return insertedMember;
+		});
+	}
 
 	function verifyMemberEligibility(store: Store, queue: DbQueue, jsMember: GuildMember, archivedMember: DbArchivedMember) {
 		if (queue.lockToggle) {

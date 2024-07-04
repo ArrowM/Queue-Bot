@@ -1,5 +1,4 @@
-import { type Role } from "discord.js";
-import { get } from "lodash-es";
+import { compact } from "lodash-es";
 
 import { db } from "../db/db.ts";
 import { type DbQueue, type NewQueue } from "../db/schema.ts";
@@ -14,9 +13,8 @@ export namespace QueueUtils {
 		return await db.transaction(async () => {
 			const insertedQueue = store.insertQueue(queue);
 
-			const role = get(queue, "role") as Role;
-			if (role) {
-				await MemberUtils.assignInQueueRoleToMembers(store, [insertedQueue], role.id, "add");
+			if (queue?.roleInQueueId) {
+				await QueueUtils.setRoleInQueue(store, [insertedQueue]);
 			}
 
 			return { insertedQueue };
@@ -25,16 +23,29 @@ export namespace QueueUtils {
 
 	export async function updateQueues(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, update: Partial<DbQueue>) {
 		return await db.transaction(async () => {
-			const updatedQueues = map(queues, queue => store.updateQueue({ id: queue.id, ...update }));
+			const updatedQueues = compact(map(queues, queue => store.updateQueue({ id: queue.id, ...update })));
 			const updatedQueueIds = updatedQueues.map(queue => queue.id);
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 
 			if (update.roleInQueueId) {
-				await MemberUtils.assignInQueueRoleToMembers(store, updatedQueues, update.roleInQueueId, "add");
+				await QueueUtils.setRoleInQueue(store, updatedQueues);
 			}
 
 			return { updatedQueues };
 		});
+	}
+
+	export async function setRoleInQueue(store: Store, queues: ArrayOrCollection<bigint, DbQueue>) {
+		await Promise.all(
+			map(queues, async (queue) => {
+				const members = store.dbMembers().filter(member => member.queueId === queue.id);
+				return Promise.all(
+					members.map(async (member) =>
+						await MemberUtils.modifyMemberRoles(store, member.userId, queue.roleInQueueId, "add")
+					)
+				);
+			})
+		);
 	}
 }

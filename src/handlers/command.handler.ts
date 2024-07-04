@@ -25,15 +25,11 @@ export class CommandHandler implements Handler {
 		const command = COMMANDS.get(this.inter.commandName);
 
 		if (command && fullCommandName in command) {
-			const isAdmin = command.adminOnly;
-
 			this.inter.promptConfirmOrCancel = (message: string) => InteractionUtils.promptConfirmOrCancel(this.inter, message);
+			this.inter.respond = (message: InteractionReplyOptions | string, log = false) => InteractionUtils.respond(this.inter, command.adminOnly, message, log);
+			this.inter.log = (originalMessage: Message | string) => LoggingUtils.log(this.inter.store, command.adminOnly, originalMessage);
 
-			this.inter.respond = (message: InteractionReplyOptions | string, log = false) => InteractionUtils.respond(this.inter, isAdmin, message, log);
-
-			this.inter.log = (originalMessage: Message | string) => LoggingUtils.log(this.inter.store, isAdmin, originalMessage);
-
-			if (isAdmin) {
+			if (command.adminOnly) {
 				AdminUtils.verifyIsAdmin(this.inter.store, this.inter.member);
 			}
 

@@ -51,7 +51,7 @@ export const QUEUE_TABLE = sqliteTable("queue", ({
 	badgeToggle: integer("badge_toggle", { mode: "boolean" }).notNull().default(true),
 	color: text("color").$type<ColorResolvable>().notNull().default(get(Color, process.env.DEFAULT_COLOR) as ColorResolvable),
 	displayUpdateType: text("display_update_type").$type<DisplayUpdateType>().notNull().default(DisplayUpdateType.Edit),
-	dmMemberToggle: integer("dm_member_toggle", { mode: "boolean" }).notNull().default(true),
+	dmOnPullToggle: integer("dm_on_pull_toggle", { mode: "boolean" }).notNull().default(true),
 	buttonsToggle: text("buttons_toggles").$type<Scope>().notNull().default(Scope.All),
 	header: text("header"),
 	inlineToggle: integer("inline_toggle", { mode: "boolean" }).notNull().default(false),

@@ -2,14 +2,13 @@ import { channelMention, type Collection, inlineCode, roleMention, SlashCommandB
 import { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { findKey, isNil, omitBy } from "lodash-es";
 
-import { db } from "../../db/db.ts";
 import { type DbQueue, QUEUE_TABLE } from "../../db/schema.ts";
 import { AutopullToggleOption } from "../../options/options/autopull-toggle.option.ts";
 import { BadgeToggleOption } from "../../options/options/badge-toggle.option.ts";
 import { ColorOption } from "../../options/options/color.option.ts";
 import { ButtonsToggleOption } from "../../options/options/display-buttons.option.ts";
 import { DisplayUpdateTypeOption } from "../../options/options/display-update-type.option.ts";
-import { DmMemberToggleOption } from "../../options/options/dm-member-toggle.option.ts";
+import { DmOnPullToggleOption } from "../../options/options/dm-on-pull-toggle.option.ts";
 import { HeaderOption } from "../../options/options/header.option.ts";
 import { InlineToggleOption } from "../../options/options/inline-toggle.option.ts";
 import { LockToggleOption } from "../../options/options/lock-toggle.option.ts";
@@ -127,7 +126,7 @@ export class QueuesCommand extends AdminCommand {
 		buttonsToggle: new ButtonsToggleOption({ description: "Toggle buttons beneath queue displays" }),
 		color: new ColorOption({ description: "Color of the queue" }),
 		displayUpdateType: new DisplayUpdateTypeOption({ description: "How to update displays" }),
-		dmMemberToggle: new DmMemberToggleOption({ description: "Toggle whether members are messaged upon being added/removed from queue" }),
+		dmOnPullToggle: new DmOnPullToggleOption({ description: "Toggle whether members are messaged upon being added/removed from queue" }),
 		header: new HeaderOption({ description: "Header of the queue display" }),
 		inlineToggle: new InlineToggleOption({ description: "Toggle inline display of queue members" }),
 		lockToggle: new LockToggleOption({ description: "Toggle queue locked status (prevents joining)" }),
@@ -155,7 +154,7 @@ export class QueuesCommand extends AdminCommand {
 				buttonsToggle: QueuesCommand.ADD_OPTIONS.buttonsToggle.get(inter),
 				color: QueuesCommand.ADD_OPTIONS.color.get(inter),
 				displayUpdateType: QueuesCommand.ADD_OPTIONS.displayUpdateType.get(inter),
-				dmMemberToggle: QueuesCommand.ADD_OPTIONS.dmMemberToggle.get(inter),
+				dmOnPullToggle: QueuesCommand.ADD_OPTIONS.dmOnPullToggle.get(inter),
 				header: QueuesCommand.ADD_OPTIONS.header.get(inter),
 				inlineToggle: QueuesCommand.ADD_OPTIONS.inlineToggle.get(inter),
 				lockToggle: QueuesCommand.ADD_OPTIONS.lockToggle.get(inter),
@@ -192,7 +191,7 @@ export class QueuesCommand extends AdminCommand {
 		buttonsToggle: new ButtonsToggleOption({ description: "Toggle buttons beneath queue displays" }),
 		color: new ColorOption({ description: "Color of the queue" }),
 		displayUpdateType: new DisplayUpdateTypeOption({ description: "How to update displays" }),
-		dmMemberToggle: new DmMemberToggleOption({ description: "Toggle whether members are messaged upon being added/removed from queue" }),
+		dmOnPullToggle: new DmOnPullToggleOption({ description: "Toggle whether members are messaged upon being added/removed from queue" }),
 		header: new HeaderOption({ description: "Header of the queue display" }),
 		inlineToggle: new InlineToggleOption({ description: "Toggle inline display of queue members" }),
 		lockToggle: new LockToggleOption({ description: "Toggle queue locked status (prevents joining)" }),
@@ -219,7 +218,7 @@ export class QueuesCommand extends AdminCommand {
 			buttonsToggle: QueuesCommand.SET_OPTIONS.buttonsToggle.get(inter),
 			color: QueuesCommand.SET_OPTIONS.color.get(inter),
 			displayUpdateType: QueuesCommand.SET_OPTIONS.displayUpdateType.get(inter),
-			dmMemberToggle: QueuesCommand.SET_OPTIONS.dmMemberToggle.get(inter),
+			dmOnPullToggle: QueuesCommand.SET_OPTIONS.dmOnPullToggle.get(inter),
 			header: QueuesCommand.SET_OPTIONS.header.get(inter),
 			inlineToggle: QueuesCommand.SET_OPTIONS.inlineToggle.get(inter),
 			lockToggle: QueuesCommand.SET_OPTIONS.lockToggle.get(inter),
@@ -284,7 +283,7 @@ export class QueuesCommand extends AdminCommand {
 			{ name: ButtonsToggleOption.ID, value: QUEUE_TABLE.buttonsToggle.name },
 			{ name: ColorOption.ID, value: QUEUE_TABLE.color.name },
 			{ name: DisplayUpdateTypeOption.ID, value: QUEUE_TABLE.displayUpdateType.name },
-			{ name: DmMemberToggleOption.ID, value: QUEUE_TABLE.dmMemberToggle.name },
+			{ name: DmOnPullToggleOption.ID, value: QUEUE_TABLE.dmOnPullToggle.name },
 			{ name: HeaderOption.ID, value: QUEUE_TABLE.header.name },
 			{ name: InlineToggleOption.ID, value: QUEUE_TABLE.inlineToggle.name },
 			{ name: LockToggleOption.ID, value: QUEUE_TABLE.lockToggle.name },
@@ -304,32 +303,24 @@ export class QueuesCommand extends AdminCommand {
 		const selectMenuTransactor = new SelectMenuTransactor(inter);
 		const propertiesToReset = await selectMenuTransactor.sendAndReceive("Queue properties to reset", selectMenuOptions) ?? [];
 
-		const updatedProperties = {} as any;
+		const update = {} as any;
 		for (const property of propertiesToReset) {
 			const columnKey = findKey(QUEUE_TABLE, (column: SQLiteColumn) => column.name === property);
-			updatedProperties[columnKey] = (QUEUE_TABLE as any)[columnKey]?.default ?? null;
+			update[columnKey] = (QUEUE_TABLE as any)[columnKey]?.default ?? null;
 		}
 
-		const updatedQueues = db.transaction(() => {
-			return queues.map((queue) =>
-				inter.store.updateQueue({ id: queue.id, ...updatedProperties })
-			);
-		});
-
-		if (updatedProperties.roleId) {
-			await MemberUtils.assignInQueueRoleToMembers(inter.store, queues, updatedProperties.roleId, "remove");
-		}
+		const { updatedQueues } = await QueueUtils.updateQueues(inter.store, queues, update);
 
 		const propertiesStr = propertiesToReset.map(inlineCode).join(", ");
 		const propertiesWord = propertiesToReset.length === 1 ? "property" : "properties";
-		const queuesStr = queuesMention(queues);
-		const queuesWord = queues.size === 1 ? "queue" : "queues";
+		const queuesStr = queuesMention(updatedQueues);
+		const queuesWord = updatedQueues.length === 1 ? "queue" : "queues";
 		const haveWord = propertiesToReset.length === 1 ? "has" : "have";
 		const resetPropertiesStr = `${propertiesStr} ${haveWord} been reset for ${queuesStr} ${queuesWord}.`;
 
 		await selectMenuTransactor.updateWithResult(`Reset ${queuesWord} ${propertiesWord}`, resetPropertiesStr);
 
-		DisplayUtils.requestDisplaysUpdate(inter.store, queues.map(queue => queue.id));
+		DisplayUtils.requestDisplaysUpdate(inter.store, updatedQueues.map(queue => queue.id));
 
 		await QueuesCommand.queues_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}

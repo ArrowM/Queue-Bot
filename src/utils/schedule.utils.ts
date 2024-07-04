@@ -22,12 +22,14 @@ export namespace ScheduleUtils {
 		validateTimezone(schedule.timezone);
 
 		// insert into db and start cron task
-		const insertedSchedules = map(queues, (queue) => {
-			const insertedSchedule = store.insertSchedule({ queueId: queue.id, ...schedule });
-			registerWithCronLibrary(insertedSchedule);
-			return insertedSchedule;
-		});
-		const updatedQueueIds = uniq(compact(insertedSchedules).map(schedule => schedule.queueId));
+		const insertedSchedules = compact(
+			map(queues, (queue) => {
+				const insertedSchedule = store.insertSchedule({ queueId: queue.id, ...schedule });
+				registerWithCronLibrary(insertedSchedule);
+				return insertedSchedule;
+			})
+		);
+		const updatedQueueIds = uniq(insertedSchedules.map(schedule => schedule.queueId));
 
 		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 
@@ -40,15 +42,17 @@ export namespace ScheduleUtils {
 		if (update.timezone) validateTimezone(update.timezone);
 
 		// update db and cron task
-		const updatedSchedules = schedules.map((schedule) => {
-			const updatedSchedule = store.updateSchedule({ id: schedule.id, ...update });
-			const task = scheduleIdToScheduleTask.get(updatedSchedule.id);
-			if (task) {
-				task.stop();
-				registerWithCronLibrary(updatedSchedule);
-			}
-			return updatedSchedule;
-		});
+		const updatedSchedules = compact(
+			schedules.map((schedule) => {
+				const updatedSchedule = store.updateSchedule({ id: schedule.id, ...update });
+				const task = scheduleIdToScheduleTask.get(updatedSchedule.id);
+				if (task) {
+					task.stop();
+					registerWithCronLibrary(updatedSchedule);
+				}
+				return updatedSchedule;
+			})
+		);
 		const updatedQueueIds = uniq(updatedSchedules.map(schedule => schedule.queueId));
 
 		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
@@ -67,16 +71,18 @@ export namespace ScheduleUtils {
 		}
 
 		// delete from db and stop cron task
-		const deletedSchedules = scheduleIds.map((id) => {
-			const deletedSchedule = deleteFn(id);
-			const task = scheduleIdToScheduleTask.get(id);
-			if (task) {
-				task.stop();
-				scheduleIdToScheduleTask.delete(id);
-			}
-			return deletedSchedule;
-		});
-		const updatedQueueIds = uniq(compact(deletedSchedules).map(schedule => schedule.queueId));
+		const deletedSchedules = compact(
+			scheduleIds.map((id) => {
+				const deletedSchedule = deleteFn(id);
+				const task = scheduleIdToScheduleTask.get(id);
+				if (task) {
+					task.stop();
+					scheduleIdToScheduleTask.delete(id);
+				}
+				return deletedSchedule;
+			})
+		);
+		const updatedQueueIds = uniq(deletedSchedules.map(schedule => schedule.queueId));
 
 		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 

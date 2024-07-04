@@ -3,7 +3,7 @@ import { Collection, type GuildMember, type Snowflake } from "discord.js";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 
 export function toCollection<K, V>(property: string | number, list: V[]) {
-	return new Collection<K, V>(list.map(item => [(item as any)[property] as K, item]));
+	return new Collection<K, V>(list.map(item => [(item as any)?.[property] as K, item]));
 }
 
 export function toChoices(coll: ({ [key: string | number]: any }) | any[]) {
@@ -26,16 +26,9 @@ export function filterDbObjectsOnJsMember<T extends {
 	subjectId: Snowflake,
 	isRole: boolean
 }>(dbObjects: Collection<bigint, T>, jsMember: GuildMember) {
-	return dbObjects.filter(dbObj => {
-		if (dbObj.isRole) {
-			return Array.isArray(jsMember.roles)
-				? jsMember.roles.some(role => role.id === dbObj.subjectId)
-				: jsMember.roles.cache.has(dbObj.subjectId);
-		}
-		else {
-			return dbObj.subjectId === jsMember.id;
-		}
-	});
+	return dbObjects.filter(dbObj =>
+		dbObj.isRole ? jsMember.roles.cache.has(dbObj.subjectId) : dbObj.subjectId === jsMember.id
+	);
 }
 
 // Convert a value to a BigInt, or return null if it fails

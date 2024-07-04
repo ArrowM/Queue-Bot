@@ -2,6 +2,7 @@ import { type Collection, SlashCommandBuilder } from "discord.js";
 import { compact } from "lodash-es";
 
 import type { DbQueue } from "../../db/schema.ts";
+import { DmMemberOption } from "../../options/options/dm-member.option.ts";
 import { MembersOption } from "../../options/options/members.option.ts";
 import { MentionableOption } from "../../options/options/mentionable.option.ts";
 import { MessageOption } from "../../options/options/message.option.ts";
@@ -77,6 +78,7 @@ export class MembersCommand extends AdminCommand {
 		mentionable3: new MentionableOption({ id: "mentionable_3", description: "User or role to add" }),
 		mentionable4: new MentionableOption({ id: "mentionable_4", description: "User or role to add" }),
 		mentionable5: new MentionableOption({ id: "mentionable_5", description: "User or role to add" }),
+		dmMember: new DmMemberOption({ description: "Whether to directly message the member(s)" }),
 	};
 
 	static async members_add(inter: SlashInteraction) {
@@ -88,12 +90,14 @@ export class MembersCommand extends AdminCommand {
 			MembersCommand.ADD_OPTIONS.mentionable4.get(inter),
 			MembersCommand.ADD_OPTIONS.mentionable5.get(inter),
 		]);
+		const dmMember = MembersCommand.ADD_OPTIONS.dmMember.get(inter);
 
 		await MemberUtils.insertMentionables({
 			store: inter.store,
 			mentionables,
 			queues,
 			force: true,
+			dmMember,
 		});
 	}
 
@@ -112,7 +116,7 @@ export class MembersCommand extends AdminCommand {
 		const members = await MembersCommand.SET_OPTIONS.members.get(inter);
 		const message = MembersCommand.SET_OPTIONS.message.get(inter);
 
-		const updatedMembers = MemberUtils.updateMembers(inter.store, members, message);
+		const updatedMembers = MemberUtils.updateMembers({ store: inter.store, members, message });
 
 		await inter.respond(`Updated ${usersMention(updatedMembers)} in ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
 	}
@@ -124,11 +128,13 @@ export class MembersCommand extends AdminCommand {
 	static readonly DELETE_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to kick members from" }),
 		members: new MembersOption({ required: true, description: "Members to kick" }),
+		dmMember: new DmMemberOption({ description: "Whether to directly message the member(s)" }),
 	};
 
 	static async members_delete(inter: SlashInteraction) {
 		const queues = await MembersCommand.DELETE_OPTIONS.queues.get(inter);
 		const members = await MembersCommand.DELETE_OPTIONS.members.get(inter);
+		const dmMember = MembersCommand.DELETE_OPTIONS.dmMember.get(inter);
 
 		if (MembersCommand.DELETE_OPTIONS.members.getRaw(inter) === ChoiceType.ALL) {
 			const confirmed = await inter.promptConfirmOrCancel(`Are you sure you want to remove all members from the ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}?`);
@@ -145,6 +151,7 @@ export class MembersCommand extends AdminCommand {
 			by: { userIds: members.map(member => member.userId) },
 			messageChannelId: inter.channel.id,
 			force: true,
+			dmMember,
 		});
 	}
 }

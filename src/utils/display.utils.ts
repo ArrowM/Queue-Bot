@@ -33,12 +33,14 @@ import { commandMention, memberMention, mentionablesMention, queueMention, sched
 
 export namespace DisplayUtils {
 	export async function insertDisplays(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, displayChannelId: Snowflake) {
-		const insertedDisplays = map(queues, (queue) => store.insertDisplay({
-			guildId: store.guild.id,
-			queueId: queue.id,
-			displayChannelId,
-		}));
-		const updatedQueueIds = uniq(compact(insertedDisplays).map(display => display.queueId));
+		const insertedDisplays = compact(
+			map(queues, queue => store.insertDisplay({
+				guildId: store.guild.id,
+				queueId: queue.id,
+				displayChannelId,
+			}))
+		);
+		const updatedQueueIds = uniq(insertedDisplays.map(display => display.queueId));
 
 		DisplayUtils.requestDisplaysUpdate(
 			store,
@@ -113,9 +115,13 @@ export namespace DisplayUtils {
 			UPDATED_QUEUE_IDS.set(queueId, store);
 
 			const queue = store.dbQueues().get(queueId);
-			let displays = store.dbDisplays().filter(display => queue.id === display.queueId);
+			let displays = store.dbDisplays().filter(display => queueId === display.queueId);
 			if (opts?.displayIds) {
 				displays = displays.filter(display => opts.displayIds.includes(display.id));
+			}
+
+			if (!queue || displays.size === 0) {
+				return;
 			}
 
 			const displayMessage = await buildQueueDisplayMessage(store, queue);

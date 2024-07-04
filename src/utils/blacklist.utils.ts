@@ -1,4 +1,4 @@
-import { Collection, type GuildMember, Role } from "discord.js";
+import { type GuildMember, Role } from "discord.js";
 import { compact, uniq } from "lodash-es";
 
 import { db } from "../db/db.ts";
@@ -8,41 +8,37 @@ import { MemberRemovalReason } from "../types/db.types.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 import type { Mentionable } from "../types/parsing.types.ts";
 import { MemberUtils } from "./member.utils.ts";
-import { filterDbObjectsOnJsMember } from "./misc.utils.ts";
+import { filterDbObjectsOnJsMember, map } from "./misc.utils.ts";
 
 export namespace BlacklistUtils {
 	export async function insertBlacklisted(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, mentionables: Mentionable[], reason?: string) {
 		return db.transaction(async () => {
-			const _queues = queues instanceof Collection ? [...queues.values()] : queues;
-			const insertedBlacklisted = [];
+			const insertedBlacklisted = compact(
+				map(queues, queue =>
+					mentionables.map(mentionable => {
+						// remove members from queue
+						const by = (mentionable instanceof Role) ? { roleId: mentionable.id } : { userId: mentionable.id };
+						MemberUtils.deleteMembers({ store, queues, reason: MemberRemovalReason.Kicked, by, force: true });
 
-			for (const mentionable of mentionables) {
-				for (const queue of _queues) {
-					insertedBlacklisted.push(
-						store.insertBlacklisted({
+						return store.insertBlacklisted({
 							guildId: store.guild.id,
 							queueId: queue.id,
 							subjectId: mentionable.id,
 							isRole: mentionable instanceof Role,
 							reason,
-						})
-					);
-					// delete members
-					const by = (mentionable instanceof Role) ? { roleId: mentionable.id } : { userId: mentionable.id };
-					await MemberUtils.deleteMembers({ store, queues, reason: MemberRemovalReason.Kicked, by, force: true });
-				}
-			}
-			const updatedQueueIds = uniq(compact(insertedBlacklisted).map(blacklisted => blacklisted.queueId));
+						});
+					})
+				)
+			).flat(2);
+			const updatedQueueIds = uniq(insertedBlacklisted.map(blacklisted => blacklisted.queueId));
 
 			return { insertedBlacklisted, updatedQueueIds };
 		});
 	}
 
 	export function deleteBlacklisted(store: Store, blacklistedIds: bigint[]) {
-		// delete from db
-		const deletedBlacklisted = blacklistedIds.map(id => store.deleteBlacklisted({ id }));
-		const updatedQueueIds = uniq(compact(deletedBlacklisted).map(blacklisted => blacklisted.queueId));
-
+		const deletedBlacklisted = compact(blacklistedIds.map(id => store.deleteBlacklisted({ id })));
+		const updatedQueueIds = uniq(deletedBlacklisted.map(blacklisted => blacklisted.queueId));
 		return { deletedBlacklisted, updatedQueueIds };
 	}
 

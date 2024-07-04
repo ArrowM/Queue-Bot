@@ -1,4 +1,4 @@
-import { Collection, type GuildMember, Role } from "discord.js";
+import { type GuildMember, Role } from "discord.js";
 import { compact, uniq } from "lodash-es";
 
 import { db } from "../db/db.ts";
@@ -6,17 +6,14 @@ import type { DbQueue } from "../db/schema.ts";
 import type { Store } from "../db/store.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 import type { Mentionable } from "../types/parsing.types.ts";
-import { filterDbObjectsOnJsMember } from "./misc.utils.ts";
+import { filterDbObjectsOnJsMember, map } from "./misc.utils.ts";
 
 export namespace WhitelistUtils {
 	export function insertWhitelisted(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, mentionables: Mentionable[], reason?: string) {
 		return db.transaction(() => {
-			const _queues = queues instanceof Collection ? [...queues.values()] : queues;
-			const insertedWhitelisted = [];
-
-			for (const mentionable of mentionables) {
-				for (const queue of _queues) {
-					insertedWhitelisted.push(
+			const insertedWhitelisted = compact(
+				map(queues, queue =>
+					mentionables.map(mentionable =>
 						store.insertWhitelisted({
 							guildId: store.guild.id,
 							queueId: queue.id,
@@ -24,20 +21,18 @@ export namespace WhitelistUtils {
 							isRole: mentionable instanceof Role,
 							reason,
 						})
-					);
-				}
-			}
-			const updatedQueueIds = uniq(compact(insertedWhitelisted).map(whitelisted => whitelisted.queueId));
+					)
+				)
+			).flat(2);
+			const updatedQueueIds = uniq(insertedWhitelisted.map(whitelisted => whitelisted.queueId));
 
 			return { insertedWhitelisted, updatedQueueIds };
 		});
 	}
 
 	export function deleteWhitelisted(store: Store, whitelistedIds: bigint[]) {
-		// delete from db
-		const deletedWhitelisted = whitelistedIds.map(id => store.deleteWhitelisted({ id }));
-		const updatedQueueIds = uniq(compact(deletedWhitelisted).map(whitelisted => whitelisted.queueId));
-
+		const deletedWhitelisted = compact(whitelistedIds.map(id => store.deleteWhitelisted({ id })));
+		const updatedQueueIds = uniq(deletedWhitelisted.map(whitelisted => whitelisted.queueId));
 		return { deletedWhitelisted, updatedQueueIds };
 	}
 

@@ -166,7 +166,7 @@ export function describeTable<T extends object>(options: {
 			return value;
 		}
 		else {
-			return formatter(escapeMarkdown(value));
+			return formatter(value);
 		}
 	}
 
