@@ -16,7 +16,7 @@ export class JoinButton extends EveryoneButton {
 	async handle(inter: ButtonInteraction) {
 		const { queue } = await ButtonUtils.getButtonContext(inter);
 
-		await MemberUtils.insertJsMember({ store: inter.store, queue, jsMember: inter.member });
+		await MemberUtils.insertMember({ store: inter.store, queue, jsMember: inter.member });
 
 		await inter.respond({
 			content: `Joined the ${queueMention(queue)} queue.`,

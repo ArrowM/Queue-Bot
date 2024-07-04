@@ -31,7 +31,7 @@ export class JoinCommand extends EveryoneCommand {
 		const queue = await JoinCommand.JOIN_OPTIONS.queue.get(inter);
 		const message = JoinCommand.JOIN_OPTIONS.message.get(inter);
 
-		await MemberUtils.insertJsMember({ store: inter.store, queue, jsMember: inter.member, message });
+		await MemberUtils.insertMember({ store: inter.store, queue, jsMember: inter.member, message });
 
 		await inter.respond({
 			content: `Joined the ${queueMention(queue)} queue.`,

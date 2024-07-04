@@ -37,7 +37,7 @@ export namespace MemberUtils {
 					if (mentionable instanceof GuildMember) {
 						for (const queue of queues.values()) {
 							inserted.push(
-								await insertJsMember({ store, queue, jsMember: mentionable, force })
+								await insertMemberInternal({ store, queue, jsMember: mentionable, force })
 							);
 						}
 					}
@@ -47,7 +47,7 @@ export namespace MemberUtils {
 						for (const queue of queues.values()) {
 							for (const jsMember of role.members.values()) {
 								inserted.push(
-									await insertJsMember({ store, queue, jsMember, force })
+									await insertMemberInternal({ store, queue, jsMember, force })
 								);
 							}
 						}
@@ -74,6 +74,22 @@ export namespace MemberUtils {
 			}
 		}
 		return insertedMembers;
+	}
+
+	export async function insertMember(options: {
+		store: Store,
+		queue: DbQueue,
+		jsMember: GuildMember,
+		message?: string,
+		force?: boolean,
+	}) {
+		return await db.transaction(async () => {
+			const insertedMember = await insertMemberInternal(options);
+
+			DisplayUtils.requestDisplayUpdate(options.store, options.queue.id);
+
+			return insertedMember;
+		});
 	}
 
 	export function updateMembers(options: {
@@ -329,7 +345,7 @@ export namespace MemberUtils {
 	// 												 Helpers
 	// ====================================================================
 
-	async function insertJsMember(options: {
+	async function insertMemberInternal(options: {
 		store: Store,
 		queue: DbQueue,
 		jsMember: GuildMember,
@@ -338,48 +354,44 @@ export namespace MemberUtils {
 	}) {
 		const { store, queue, jsMember, message, force } = options;
 
-		return await db.transaction(async () => {
-			const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
+		const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
 
-			if (!force) {
-				verifyMemberEligibility(store, queue, jsMember, archivedMember);
-			}
+		if (!force) {
+			verifyMemberEligibility(store, queue, jsMember, archivedMember);
+		}
 
-			if (queue.voiceDestinationChannelId && queue.voiceDestinationChannelId === jsMember.voice.channelId) {
-				throw new CustomError({
-					message: `Failed to join`,
-					embeds: [
-						new EmbedBuilder()
-							.setDescription(`${jsMember} is already in the destination voice channel for the ${queueMention(queue)} queue.`),
-					],
-				});
-			}
-
-			const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
-			let positionTime = BigInt(Date.now());
-
-			if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
-				if (BigInt(Date.now()) - archivedMember.archivedTime <= (queue.rejoinGracePeriod * 1000n)) {
-					// Reuse the positionTime
-					positionTime = archivedMember.positionTime;
-				}
-			}
-
-			const insertedMember = store.insertMember({
-				guildId: store.guild.id,
-				queueId: queue.id,
-				userId: jsMember.id,
-				message,
-				priorityOrder,
-				positionTime,
+		if (queue.voiceDestinationChannelId && queue.voiceDestinationChannelId === jsMember.voice.channelId) {
+			throw new CustomError({
+				message: `Failed to join`,
+				embeds: [
+					new EmbedBuilder()
+						.setDescription(`${jsMember} is already in the destination voice channel for the ${queueMention(queue)} queue.`),
+				],
 			});
+		}
 
-			await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
+		const priorityOrder = PriorityUtils.getMemberPriority(store, queue.id, jsMember);
+		let positionTime = BigInt(Date.now());
 
-			DisplayUtils.requestDisplayUpdate(options.store, options.queue.id);
+		if (queue.rejoinGracePeriod && archivedMember?.reason === MemberRemovalReason.Left) {
+			if (BigInt(Date.now()) - archivedMember.archivedTime <= (queue.rejoinGracePeriod * 1000n)) {
+				// Reuse the positionTime
+				positionTime = archivedMember.positionTime;
+			}
+		}
 
-			return insertedMember;
+		const insertedMember = store.insertMember({
+			guildId: store.guild.id,
+			queueId: queue.id,
+			userId: jsMember.id,
+			message,
+			priorityOrder,
+			positionTime,
 		});
+
+		await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
+
+		return insertedMember;
 	}
 
 	function verifyMemberEligibility(store: Store, queue: DbQueue, jsMember: GuildMember, archivedMember: DbArchivedMember) {

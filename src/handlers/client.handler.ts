@@ -91,7 +91,7 @@ export namespace ClientHandler {
 		const voices = store.dbVoices() .filter(voice => voice.joinSyncToggle && voice.sourceChannelId === newState.channelId);
 		const queuesJoined = voices.map(voice => store.dbQueues().get(voice.queueId));
 		for (const queue of queuesJoined.values()) {
-			await MemberUtils.insertJsMember({
+			await MemberUtils.insertMember({
 				store,
 				queue,
 				jsMember: newState.member,
