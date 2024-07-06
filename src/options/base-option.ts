@@ -1,24 +1,28 @@
 import { ApplicationCommandOptionBase } from "@discordjs/builders";
-import type {
-	APIApplicationCommandOptionChoice,
-	ChannelType,
-	PublicThreadChannel,
-	Role,
-	SlashCommandBooleanOption,
-	SlashCommandBuilder,
-	SlashCommandChannelOption,
-	SlashCommandIntegerOption,
-	SlashCommandMentionableOption,
-	SlashCommandRoleOption,
-	SlashCommandStringOption,
-	SlashCommandSubcommandBuilder, SlashCommandUserOption, User,
+import {
+	type APIApplicationCommandOptionChoice,
+	type ChannelType,
+	type PublicThreadChannel,
+	type Role,
+	type SlashCommandBooleanOption,
+	type SlashCommandBuilder,
+	type SlashCommandChannelOption,
+	type SlashCommandIntegerOption,
+	type SlashCommandMentionableOption,
+	type SlashCommandRoleOption,
+	type SlashCommandStringOption,
+	type SlashCommandSubcommandBuilder,
+	type SlashCommandUserOption,
+	type User,
 } from "discord.js";
 import { SQL } from "drizzle-orm";
+import { isNil } from "lodash-es";
 
 import type { UIOption } from "../types/handler.types.ts";
 import type { AutocompleteInteraction, SlashInteraction } from "../types/interaction.types.ts";
 import type { OptionParams } from "../types/option.types.ts";
 import { type CHOICE_ALL, CHOICE_SOME, type Mentionable } from "../types/parsing.types.ts";
+import { CustomError } from "../utils/error.utils.ts";
 
 export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBase = any> {
 	// id & display name of option in Discord UI
@@ -46,7 +50,8 @@ export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBas
 
 	constructor(
 		public config?: OptionParams
-	) { }
+	) {
+	}
 
 	get(inter: AutocompleteInteraction | SlashInteraction): unknown {
 		let selection = inter.parser.cache.get(this.identifier);
@@ -54,8 +59,8 @@ export abstract class BaseOption<BuilderType extends ApplicationCommandOptionBas
 			selection = this.getUncached(inter);
 			inter.parser.cache.set(this.identifier, selection);
 		}
-		if (selection == undefined && (this.config?.required ?? this.required)) {
-			throw new Error(`Required option ${this.identifier} not found`);
+		if (isNil(selection) && (this.config?.required ?? this.required)) {
+			throw new CustomError({ message: `Required option ${this.identifier} not found` });
 		}
 		return selection;
 	}
@@ -121,6 +126,14 @@ export abstract class CustomOption extends BaseOption<SlashCommandStringOption> 
 
 	addToCommand(command: SlashCommandBuilder | SlashCommandSubcommandBuilder): void {
 		command.addStringOption(this.build);
+	}
+
+	async get(inter: AutocompleteInteraction | SlashInteraction) {
+		const selection = await super.get(inter);
+		if (isNil(selection) && (this.config?.required ?? this.required)) {
+			throw new CustomError({ message: `Required option ${this.identifier} not found` });
+		}
+		return selection;
 	}
 
 	getRaw(inter: AutocompleteInteraction | SlashInteraction) {

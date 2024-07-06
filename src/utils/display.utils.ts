@@ -135,9 +135,7 @@ export namespace DisplayUtils {
 					}
 					catch (e) {
 						store.deleteDisplay(display);
-						if (store.inter?.member) {
-							await store.inter.member.send({ embeds: (e as CustomError).embeds });
-						}
+						await store.inter?.member.send({ embeds: (e as CustomError).embeds }).catch(() => null);
 						return;
 					}
 

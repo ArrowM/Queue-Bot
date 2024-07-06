@@ -261,7 +261,7 @@ export class QueuesCommand extends AdminCommand {
 
 		const { updatedQueues } = await QueueUtils.updateQueues(inter.store, queues, update);
 
-		await inter.respond(`Updated ${Object.keys(update).map(propertyMention).join(", ")} of ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
+		await inter.respond(`Updated ${Object.keys(update).map(propertyMention).join(", ")} of ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
 
 		await QueuesCommand.queues_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}

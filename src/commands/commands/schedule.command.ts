@@ -18,7 +18,7 @@ import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { SelectMenuTransactor } from "../../utils/message-utils/select-menu-transactor.ts";
 import { toCollection } from "../../utils/misc.utils.ts";
 import { ScheduleUtils } from "../../utils/schedule.utils.ts";
-import { describeTable, scheduleMention } from "../../utils/string.utils.ts";
+import { describeTable, queuesMention, scheduleMention } from "../../utils/string.utils.ts";
 
 export class ScheduleCommand extends AdminCommand {
 	static readonly ID = "schedule";
@@ -239,11 +239,11 @@ export class ScheduleCommand extends AdminCommand {
 			deletedSchedules,
 			updatedQueueIds,
 		} = ScheduleUtils.deleteSchedules(inter.guildId, schedules.map(sch => sch.id), inter.store);
+		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 
 		const schedulesStr = deletedSchedules.map(schedule => `- ${scheduleMention(schedule)}`).join("\n");
-		await inter.respond(`Deleted schedule${schedules.size ? "s" : ""}:\n${schedulesStr}`, true);
+		await inter.respond(`Deleted schedule${schedules.size ? "s" : ""}:\n${schedulesStr} of ${queuesMention(updatedQueues)} queue${updatedQueues.length > 1 ? "s" : ""}.`, true);
 
-		const updatedQueues = updatedQueueIds.map(queueId => inter.store.dbQueues().get(queueId));
 		await this.schedule_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}
 
