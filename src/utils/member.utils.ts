@@ -354,7 +354,9 @@ export namespace MemberUtils {
 	}) {
 		const { store, queue, jsMember, message, force } = options;
 
-		const archivedMember = store.dbArchivedMembers().find(member => member.queueId === queue.id && member.userId === jsMember.id);
+		const archivedMember = store.dbArchivedMembers().find(member =>
+			member.queueId === queue.id && member.userId === jsMember.id
+		);
 
 		if (!force) {
 			verifyMemberEligibility(store, queue, jsMember, archivedMember);

@@ -28,7 +28,7 @@ export namespace VoiceUtils {
 	export function updateVoices(store: Store, voiceIds: bigint[], update: Partial<DbVoice>) {
 		return db.transaction(() => {
 			const updatedVoices = compact(voiceIds.map(id => store.updateVoice({ id, ...update })));
-			const updatedQueueIds = uniq(updatedVoices).map(voice => voice.queueId);
+			const updatedQueueIds = uniq(updatedVoices.map(voice => voice.queueId));
 
 			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
 

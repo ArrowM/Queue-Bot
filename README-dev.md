@@ -41,10 +41,11 @@ sudo reboot
 
 Run `./launch-docker.sh` or `launch-docker.bat` to:
 - dump logs to `./logs` and close the previous container (if applicable)
-- build the image & container, then start the bot in a detached state
+- build the image & container
+- start the bot in a detached state
 - attach to the container (which can safely be exited with the `Ctrl+p Ctrl+q` key sequence. Using `CTRL-c` while attached will stop the container)
 
-*Note you may need to respond to a migration prompt if you have updated your project*.
+*Note if the database schema is outdated, the bot will fail to start and print an error message. To update the schema, run `npx drizzle-kit push`*.
 
 #### Other useful docker commands
 

@@ -12,6 +12,7 @@ import { DisplayUtils } from "./display.utils.ts";
 import { InvalidCronError } from "./error.utils.ts";
 import { MemberUtils } from "./member.utils.ts";
 import { map } from "./misc.utils.ts";
+import { QueueUtils } from "./queue.utils.ts";
 
 export namespace ScheduleUtils {
 	export const DEFAULT_TIMEZONE = "america/chicago";
@@ -159,6 +160,13 @@ export namespace ScheduleUtils {
 				break;
 			case ScheduleCommand.Shuffle:
 				await MemberUtils.shuffleMembers(store, queue, schedule.messageChannelId);
+				break;
+			case ScheduleCommand.Lock:
+				await QueueUtils.updateQueues(store, [queue], { ...queue, lockToggle: true });
+				break;
+			case ScheduleCommand.Unlock:
+				await QueueUtils.updateQueues(store, [queue], { ...queue, lockToggle: false });
+				break;
 		}
 	}
 

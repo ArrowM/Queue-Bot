@@ -55,10 +55,10 @@ export namespace DisplayUtils {
 
 	export function deleteDisplays(store: Store, displayIds: bigint[]) {
 		// delete from db
-		const deletedDisplays = displayIds.map(displayId =>
+		const deletedDisplays = compact(displayIds.map(displayId =>
 			store.deleteDisplay({ id: displayId })
-		);
-		const updatedQueueIds = uniq(compact(deletedDisplays).map(display => display.queueId));
+		));
+		const updatedQueueIds = uniq(deletedDisplays.map(display => display.queueId));
 
 		return { deletedDisplays, updatedQueueIds };
 	}

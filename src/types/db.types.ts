@@ -12,6 +12,8 @@ export enum ScheduleCommand {
 	Pull = "pull",
 	Show = "show",
 	Shuffle = "shuffle",
+	Lock = "lock",
+	Unlock = "unlock",
 }
 
 export enum Color {
