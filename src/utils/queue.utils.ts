@@ -26,7 +26,7 @@ export namespace QueueUtils {
 			const updatedQueues = compact(map(queues, queue => store.updateQueue({ id: queue.id, ...update })));
 			const updatedQueueIds = updatedQueues.map(queue => queue.id);
 
-			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
+			DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
 
 			if (update.roleInQueueId) {
 				await QueueUtils.setRoleInQueue(store, updatedQueues);

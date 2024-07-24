@@ -19,7 +19,7 @@ export namespace VoiceUtils {
 			);
 			const updatedQueueIds = uniq(insertedVoices.map(voice => voice.queueId));
 
-			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
+			DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
 
 			return { insertedVoices, updatedQueueIds };
 		});
@@ -30,7 +30,7 @@ export namespace VoiceUtils {
 			const updatedVoices = compact(voiceIds.map(id => store.updateVoice({ id, ...update })));
 			const updatedQueueIds = uniq(updatedVoices.map(voice => voice.queueId));
 
-			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
+			DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
 
 			return { updatedVoices, updatedQueueIds };
 		});
@@ -41,7 +41,7 @@ export namespace VoiceUtils {
 			const deletedVoices = compact(voiceIds.map(id => store.deleteVoice({ id })));
 			const updatedQueueIds = uniq(deletedVoices.map(voice => voice.queueId));
 
-			DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
+			DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
 
 			return { deletedVoices, updatedQueueIds };
 		});

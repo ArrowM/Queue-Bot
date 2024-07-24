@@ -75,6 +75,6 @@ export namespace PriorityUtils {
 				store.updateMember({ ...member, priorityOrder });
 			}
 		}
-		DisplayUtils.requestDisplaysUpdate(store, queueIds);
+		DisplayUtils.requestDisplaysUpdate({ store, queueIds });
 	}
 }

@@ -57,7 +57,10 @@ export namespace MemberUtils {
 			})
 		);
 
-		DisplayUtils.requestDisplaysUpdate(options.store, queues.map(queue => queue.id));
+		DisplayUtils.requestDisplaysUpdate({
+			store,
+			queueIds: queues.map(queue => queue.id),
+		});
 
 		if (store.inter) {
 			const message = await store.inter.respond(`Added ${usersMention(insertedMembers)} to ${queuesMention(queues)} queue${queues.size > 1 ? "s" : ""}.`, true);
@@ -86,7 +89,7 @@ export namespace MemberUtils {
 		return await db.transaction(async () => {
 			const insertedMember = await insertMemberInternal(options);
 
-			DisplayUtils.requestDisplayUpdate(options.store, options.queue.id);
+			DisplayUtils.requestDisplayUpdate({ store: options.store, queueId: options.queue.id });
 
 			return insertedMember;
 		});
@@ -99,7 +102,10 @@ export namespace MemberUtils {
 	}) {
 		const { store, members, message } = options;
 		const updatedMembers = compact(map(members, member => store.updateMember({ ...member, message })));
-		DisplayUtils.requestDisplaysUpdate(store, map(updatedMembers, member => member.queueId));
+		DisplayUtils.requestDisplaysUpdate({
+			store,
+			queueIds: map(updatedMembers, member => member.queueId),
+		});
 		return updatedMembers;
 	}
 
@@ -181,7 +187,7 @@ export namespace MemberUtils {
 				}
 			}
 
-			DisplayUtils.requestDisplayUpdate(store, queue.id);
+			DisplayUtils.requestDisplayUpdate({ store, queueId: queue.id });
 
 			deletedMembers.push(...deleted);
 		}
@@ -203,7 +209,9 @@ export namespace MemberUtils {
 				for (const queue of queues) {
 					const numToPull = Number(count ?? queue.pullBatchSize);
 					const members = [...store.dbMembers().filter(member => member.queueId === queue.id).values()];
-					if (!force && members.length && (members.length < numToPull)) throw new Error("Not enough members to pull");
+					if (!force && members.length && (members.length < numToPull)) {
+						throw new Error("Not enough members to pull");
+					}
 					const userIdsToPull = members.slice(0, numToPull).map(member => member.userId);
 					await deleteMembersAndNotify(queue, userIdsToPull, reason);
 				}
@@ -245,7 +253,10 @@ export namespace MemberUtils {
 				);
 			}
 
-			DisplayUtils.requestDisplayUpdate(store, queue.id);
+			DisplayUtils.requestDisplayUpdate({
+				store,
+				queueId: queue.id,
+			});
 
 			return members;
 		});
@@ -258,7 +269,10 @@ export namespace MemberUtils {
 
 			members.forEach((member) => store.updateMember({ ...member, positionTime: shuffledPositionTimes.pop() }));
 
-			DisplayUtils.requestDisplayUpdate(store, queue.id);
+			DisplayUtils.requestDisplayUpdate({
+				store,
+				queueId: queue.id,
+			});
 
 			if (messageChannelId) {
 				const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;

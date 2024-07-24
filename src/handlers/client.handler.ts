@@ -1,7 +1,9 @@
 import {
 	type DMChannel,
 	type Guild,
-	type GuildMember, type Interaction, type Message,
+	type GuildMember,
+	type Interaction,
+	type Message,
 	type NonThreadGuildBasedChannel,
 	type PartialGuildMember,
 	Role,
@@ -76,7 +78,7 @@ export namespace ClientHandler {
 				...store.deleteManyDisplays({ displayChannelId: channel.id }),
 				...store.deleteManyVoices({ sourceChannelId: channel.id }),
 			]);
-			updated.forEach(({ queueId }) => DisplayUtils.requestDisplayUpdate(store, queueId));
+			updated.forEach(({ queueId }) => DisplayUtils.requestDisplayUpdate({ store, queueId }));
 		}
 	}
 
@@ -88,7 +90,7 @@ export namespace ClientHandler {
 		if (!guild) return;
 		const store = new Store(guild);
 
-		const voices = store.dbVoices() .filter(voice => voice.joinSyncToggle && voice.sourceChannelId === newState.channelId);
+		const voices = store.dbVoices().filter(voice => voice.joinSyncToggle && voice.sourceChannelId === newState.channelId);
 		const queuesJoined = voices.map(voice => store.dbQueues().get(voice.queueId));
 		for (const queue of queuesJoined.values()) {
 			await MemberUtils.insertMember({
@@ -113,7 +115,7 @@ export namespace ClientHandler {
 		// Queue spots opened up
 		const queuesToCheckForAutopull = shuffle(concat(
 			queuesJoined,
-			...store.dbQueues().filter(queue => (queue.voiceDestinationChannelId === oldState.channelId)).values(),
+			...store.dbQueues().filter(queue => (queue.voiceDestinationChannelId === oldState.channelId)).values()
 		));
 		// Shuffle queues in case multiple target the same destination
 		for (const queue of queuesToCheckForAutopull) {

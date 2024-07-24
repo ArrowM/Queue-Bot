@@ -32,7 +32,7 @@ export namespace ScheduleUtils {
 		);
 		const updatedQueueIds = uniq(insertedSchedules.map(schedule => schedule.queueId));
 
-		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
+		DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
 
 		return { insertedSchedules, updatedQueueIds };
 	}
@@ -56,7 +56,7 @@ export namespace ScheduleUtils {
 		);
 		const updatedQueueIds = uniq(updatedSchedules.map(schedule => schedule.queueId));
 
-		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
+		DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
 
 		return { updatedSchedules, updatedQueueIds };
 	}
@@ -85,7 +85,7 @@ export namespace ScheduleUtils {
 		);
 		const updatedQueueIds = uniq(deletedSchedules.map(schedule => schedule.queueId));
 
-		DisplayUtils.requestDisplaysUpdate(store, updatedQueueIds);
+		DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
 
 		return { deletedSchedules, updatedQueueIds };
 	}
@@ -123,10 +123,10 @@ export namespace ScheduleUtils {
 					await executeScheduledCommand(schedule.guildId, schedule.id);
 				}
 				catch (e) {
-					const { message, stack } = e as Error;
-					console.error("Failed to execute scheduled command:");
-					console.error(`Error: ${message}`);
-					console.error(`Stack Trace: ${stack}`);
+					// const { message, stack } = e as Error;
+					// console.error("Failed to execute scheduled command:");
+					// console.error(`Error: ${message}`);
+					// console.error(`Stack Trace: ${stack}`);
 				}
 			}, { timezone: schedule.timezone ?? DEFAULT_TIMEZONE })
 		);
@@ -156,7 +156,11 @@ export namespace ScheduleUtils {
 				});
 				break;
 			case ScheduleCommand.Show:
-				DisplayUtils.requestDisplayUpdate(store, queue.id, { updateTypeOverride: DisplayUpdateType.Replace });
+				DisplayUtils.requestDisplayUpdate({
+					store,
+					queueId: queue.id,
+					opts: { updateTypeOverride: DisplayUpdateType.Replace },
+				});
 				break;
 			case ScheduleCommand.Shuffle:
 				await MemberUtils.shuffleMembers(store, queue, schedule.messageChannelId);

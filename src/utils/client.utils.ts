@@ -149,7 +149,7 @@ export namespace ClientUtils {
 			if (!guild) continue;
 			const store = new Store(guild);
 			const queueIds = store.dbQueues().map(queue => queue.id);
-			DisplayUtils.requestDisplaysUpdate(store, queueIds, { updateTypeOverride: DisplayUpdateType.Edit });
+			DisplayUtils.requestDisplaysUpdate({ store, queueIds, opts: { updateTypeOverride: DisplayUpdateType.Edit } });
 			// rate limit
 			await new Promise(resolve => setTimeout(resolve, 500));
 		}

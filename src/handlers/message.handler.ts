@@ -19,7 +19,11 @@ export class MessageHandler implements Handler {
 		for (const display of displays) {
 			const queue = store.dbQueues().get(display.queueId);
 			if (queue.displayUpdateType === DisplayUpdateType.LatestMessage) {
-				DisplayUtils.requestDisplayUpdate(store, queue.id, { displayIds: [display.id], updateTypeOverride: DisplayUpdateType.Replace });
+				DisplayUtils.requestDisplayUpdate({
+					store,
+					queueId: queue.id,
+					opts: { displayIds: [display.id], updateTypeOverride: DisplayUpdateType.Replace },
+				});
 			}
 		}
 	}

@@ -320,7 +320,10 @@ export class QueuesCommand extends AdminCommand {
 
 		await selectMenuTransactor.updateWithResult(`Reset ${queuesWord} ${propertiesWord}`, resetPropertiesStr);
 
-		DisplayUtils.requestDisplaysUpdate(inter.store, updatedQueues.map(queue => queue.id));
+		DisplayUtils.requestDisplaysUpdate({
+			store: inter.store,
+			queueIds: updatedQueues.map(queue => queue.id),
+		});
 
 		await QueuesCommand.queues_get(inter, toCollection<bigint, DbQueue>("id", updatedQueues));
 	}

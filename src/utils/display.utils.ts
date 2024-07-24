@@ -22,7 +22,7 @@ import { PullButton } from "../buttons/buttons/pull.button.ts";
 import { incrementGuildStat } from "../db/db-scheduled-tasks.ts";
 import { Queries } from "../db/queries.ts";
 import { type DbDisplay, type DbMember, type DbQueue } from "../db/schema.ts";
-import type { Store } from "../db/store.ts";
+import { Store } from "../db/store.ts";
 import type { Button } from "../types/button.types.ts";
 import { Color, DisplayUpdateType, Scope } from "../types/db.types.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
@@ -42,13 +42,14 @@ export namespace DisplayUtils {
 		);
 		const updatedQueueIds = uniq(insertedDisplays.map(display => display.queueId));
 
-		DisplayUtils.requestDisplaysUpdate(
+		DisplayUtils.requestDisplaysUpdate({
 			store,
-			updatedQueueIds,
-			{
+			queueIds: updatedQueueIds,
+			opts: {
 				displayIds: insertedDisplays.map(display => display.id),
 				updateTypeOverride: DisplayUpdateType.Replace,
-			});
+			},
+		});
 
 		return { insertedDisplays, updatedQueueIds };
 	}
@@ -67,53 +68,49 @@ export namespace DisplayUtils {
 	//                           Display runner
 	// ====================================================================
 
-	const UPDATED_QUEUE_IDS = new Map<bigint, Store>();
-	const PENDING_QUEUE_IDS = new Map<bigint, Store>();
+	interface DisplayUpdate {
+		store: Store;
+		queueId: bigint;
+		opts?: {
+			displayIds?: bigint[];
+			updateTypeOverride?: DisplayUpdateType;
+		};
+	}
+
+	interface DisplaysUpdate extends Omit<DisplayUpdate, "queueId"> {
+		queueIds: bigint[];
+	}
+
+	const UPDATED_QUEUE_IDS = new Set<bigint>();
+	const PENDING_QUEUE_IDS = new Map<bigint, DisplayUpdate>(); // queueId -> guildId
 
 	setInterval(() => {
-		PENDING_QUEUE_IDS.forEach((store, queueId) =>
-			updateDisplays(store, queueId)
-		);
 		UPDATED_QUEUE_IDS.clear();
+		PENDING_QUEUE_IDS.forEach((displayUpdate: DisplayUpdate) =>
+			updateDisplays(displayUpdate)
+		);
 		PENDING_QUEUE_IDS.clear();
 	}, 1500);
 
-	export function requestDisplayUpdate(store: Store, queueId: bigint, opts?: {
-		displayIds?: bigint[],
-		updateTypeOverride?: DisplayUpdateType,
-	}) {
+	export function requestDisplayUpdate(displayUpdate: DisplayUpdate) {
+		const { queueId } = displayUpdate;
 		if (UPDATED_QUEUE_IDS.has(queueId)) {
-			PENDING_QUEUE_IDS.set(queueId, store);
+			PENDING_QUEUE_IDS.set(queueId, displayUpdate);
 		}
 		else {
-			updateDisplays(store, queueId, opts);
+			updateDisplays(displayUpdate);
 		}
 	}
 
-	export function requestDisplaysUpdate(store: Store, queueIds: bigint[], opts?: {
-		displayIds?: bigint[],
-		updateTypeOverride?: DisplayUpdateType,
-	}) {
-		return uniq(queueIds).map(queueId => requestDisplayUpdate(store, queueId, opts));
+	export function requestDisplaysUpdate(displaysUpdate: DisplaysUpdate) {
+		return uniq(displaysUpdate.queueIds).map(queueId => requestDisplayUpdate({ ...displaysUpdate, queueId }));
 	}
 
-	export async function createMemberDisplayLine(
-		store: Store,
-		member: DbMember,
-		position: number,
-		rightPadding = 0
-	) {
-		const idxStr = inlineCode(position.toString().padEnd(rightPadding));
-		return `${idxStr}${await memberMention(store, member)}\n`;
-	}
+	async function updateDisplays(displayUpdate: DisplayUpdate) {
+		const { store, queueId, opts } = displayUpdate;
+		UPDATED_QUEUE_IDS.add(queueId);
 
-	async function updateDisplays(store: Store, queueId: bigint, opts?: {
-		displayIds?: bigint[],
-		updateTypeOverride?: DisplayUpdateType
-	}) {
 		try {
-			UPDATED_QUEUE_IDS.set(queueId, store);
-
 			const queue = store.dbQueues().get(queueId);
 			let displays = store.dbDisplays().filter(display => queueId === display.queueId);
 			if (opts?.displayIds) {
@@ -147,16 +144,12 @@ export namespace DisplayUtils {
 					async function newDisplay() {
 						// Send new display
 						const message = await jsChannel.send(displayMessage);
-						if (message) {
-							// Remove buttons on the previous message
-							await lastMessage?.edit(displayMessage).catch(() => null);
-							// Update the display
-							store.updateDisplay({
-								guildId: store.guild.id,
-								id: display.id,
-								lastMessageId: message.id,
-							});
-						}
+						// Update the display
+						store.updateDisplay({
+							guildId: store.guild.id,
+							id: display.id,
+							lastMessageId: message.id,
+						});
 					}
 
 					async function editDisplay() {
@@ -173,11 +166,6 @@ export namespace DisplayUtils {
 						}
 					}
 
-					async function replaceDisplay() {
-						await lastMessage?.delete().catch(() => null);
-						await newDisplay();
-					}
-
 					const updateType = opts?.updateTypeOverride ?? queue.displayUpdateType;
 					switch (updateType) {
 						case DisplayUpdateType.New:
@@ -188,7 +176,8 @@ export namespace DisplayUtils {
 							await editDisplay();
 							break;
 						case DisplayUpdateType.Replace:
-							await replaceDisplay();
+							await lastMessage?.delete().catch(() => null);
+							await newDisplay();
 							break;
 					}
 				}
@@ -237,6 +226,16 @@ export namespace DisplayUtils {
 			console.error(`Error: ${handlingMessage}`);
 			console.error(`Stack Trace: ${handlingStack}`);
 		}
+	}
+
+	export async function createMemberDisplayLine(
+		store: Store,
+		member: DbMember,
+		position: number,
+		rightPadding = 0
+	) {
+		const idxStr = inlineCode(position.toString().padEnd(rightPadding));
+		return `${idxStr}${await memberMention(store, member)}\n`;
 	}
 
 	async function buildQueueDisplayEmbeds(store: Store, queue: DbQueue): Promise<EmbedBuilder[]> {

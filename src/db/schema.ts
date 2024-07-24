@@ -202,7 +202,7 @@ export const PRIORITIZED_TABLE = sqliteTable("prioritized", ({
 	reason: text("reason"),
 }),
 (table) => ({
-	unq: unique().on(table.guildId, table.subjectId),
+	unq: unique().on(table.queueId, table.subjectId),
 	guildIdIndex: index("prioritized_guild_id_index").on(table.guildId),
 }));
 
@@ -236,7 +236,7 @@ export const ARCHIVED_MEMBER_TABLE = sqliteTable("archived_member", ({
 	positionTime: integer("position_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
 	joinTime: integer("join_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
 	archivedTime: integer("archived_time").$type<bigint>().notNull().$defaultFn(() => BigInt(Date.now())),
-	reason: text("text").$type<MemberRemovalReason>().notNull(),
+	reason: text("reason").$type<MemberRemovalReason>().notNull(),
 }),
 (table) => ({
 	unq: unique().on(table.queueId, table.userId),
