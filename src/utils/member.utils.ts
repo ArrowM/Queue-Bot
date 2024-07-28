@@ -169,7 +169,7 @@ export namespace MemberUtils {
 				else if (queue.pullMessageDisplayType === PullMessageDisplayType.Private) {
 					if (store.inter) {
 						// logs as part of respond
-						await store.inter.respond(messageToSend);
+						await store.inter.respond(messageToSend, true);
 						link = store.inter.channel.url;
 					}
 					else {
