@@ -13,7 +13,7 @@
     "@swc-node/register": "^1.9.2",
     "@types/better-sqlite3": "^7.6.9",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^20.11.22",
+    "@types/node": "^22.0.0",
     "@types/node-cron": "^3.0.11",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "eslint-plugin-simple-import-sort": "^12.0.0",
