@@ -76,8 +76,8 @@ export async function flushPendingGuildUpdatesToDB() {
 	pendingGuildUpdates = {};
 }
 
-// Write pending guild updates to the database every 5 minutes
-cron("*/5 * * * *", async () => {
+// Write pending guild updates to the database every 3 minutes
+cron("*/3 * * * *", async () => {
 	try {
 		await flushPendingGuildUpdatesToDB();
 	}
@@ -117,12 +117,12 @@ function backupPrep() {
 	}
 }
 
-// Delete backups older than 4 days
+// Delete backups older than a week
 function deleteOldBackups() {
 	fs.readdirSync(DB_BACKUP_DIRECTORY).forEach(file => {
 		const filePath = `${DB_BACKUP_DIRECTORY}/${file}`;
 		const stats = fs.statSync(filePath);
-		if (stats.isFile() && stats.mtime < subDays(new Date(), 4)) {
+		if (stats.isFile() && stats.mtime < subDays(new Date(), 7)) {
 			fs.unlinkSync(filePath);
 			console.log(`Deleted old backup: ${filePath}`);
 		}

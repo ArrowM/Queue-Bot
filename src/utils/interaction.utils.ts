@@ -39,8 +39,8 @@ export namespace InteractionUtils {
 
 			return response;
 		}
-		catch {
-			// ignore
+		catch (e) {
+			console.error(e);
 		}
 	}
 
