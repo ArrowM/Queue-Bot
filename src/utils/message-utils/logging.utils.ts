@@ -48,6 +48,6 @@ export namespace LoggingUtils {
 			});
 		}
 
-		return await logChannel.send({ embeds }).catch(console.error);
+		return await logChannel.send({ embeds }).catch(null);
 	}
 }
