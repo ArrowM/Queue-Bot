@@ -15,8 +15,6 @@ import { map } from "./misc.utils.ts";
 import { QueueUtils } from "./queue.utils.ts";
 
 export namespace ScheduleUtils {
-	export const DEFAULT_TIMEZONE = "america/chicago";
-
 	export function insertSchedules(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, schedule: Omit<NewSchedule, "queueId">) {
 		// validate
 		validateCron(schedule.cron);
@@ -128,7 +126,7 @@ export namespace ScheduleUtils {
 					// console.error(`Error: ${message}`);
 					// console.error(`Stack Trace: ${stack}`);
 				}
-			}, { timezone: schedule.timezone ?? DEFAULT_TIMEZONE })
+			}, { timezone: schedule.timezone ?? process.env.DEFAULT_SCHEDULE_TIMEZONE })
 		);
 	}
 
@@ -144,6 +142,7 @@ export namespace ScheduleUtils {
 					queues: [queue],
 					reason: MemberRemovalReason.Kicked,
 					messageChannelId: schedule.messageChannelId,
+					by: { count: 9999 },
 					force: true,
 				});
 				break;

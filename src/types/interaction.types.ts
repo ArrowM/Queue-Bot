@@ -13,8 +13,6 @@ import { type Parser } from "../utils/message-utils/parser.ts";
 
 interface BaseProperties {
 	store: Store;
-	/** InteractionUtils.respond() */
-	log: (originalMessage: Message | string) => Promise<Message>;
 	member: GuildMember; // overrides default type of `GuildMember | APIInteractionGuildMember`
 }
 
