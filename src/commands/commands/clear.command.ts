@@ -48,6 +48,6 @@ export class ClearCommand extends AdminCommand {
 			dmMember,
 		});
 
-		await inter.deleteReply();
+		// await inter.deleteReply();
 	}
 }
