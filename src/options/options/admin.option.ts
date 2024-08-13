@@ -47,6 +47,7 @@ export class AdminOption extends CustomOption {
 		for (const admin of inter.store.dbAdmins().values()) {
 			if (admin.isRole) {
 				const role = await inter.store.jsRole(admin.subjectId);
+				if (!role) continue;
 				suggestions.push({
 					name: `${role.name} role`,
 					value: admin.id.toString(),

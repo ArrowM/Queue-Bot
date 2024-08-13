@@ -52,7 +52,7 @@ export class DisplayOption extends CustomOption {
 		for (const display of displays.values()) {
 			const scope = display.queueId ? `${queues.get(display.queueId).name} queue` : "all queues";
 			const channel = await inter.store.jsChannel(display.displayChannelId);
-
+			if (!channel) continue;
 			suggestions.push({
 				name: `${scope} in ${channel.name} channel`,
 				value: display.id.toString(),

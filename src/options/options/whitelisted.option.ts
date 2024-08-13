@@ -53,6 +53,7 @@ export class WhitelistedOption extends CustomOption {
 			const scope = whitelisted.queueId ? `in ${queues.get(whitelisted.queueId).name} queue` : "";
 			if (whitelisted.isRole) {
 				const role = await inter.store.jsRole(whitelisted.subjectId);
+				if (!role) continue;
 				suggestions.push({
 					name: `${role.name} role ${scope}`,
 					value: whitelisted.id.toString(),

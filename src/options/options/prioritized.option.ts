@@ -53,6 +53,7 @@ export class PrioritizedOption extends CustomOption {
 			const scope = prioritized.queueId ? `in ${queues.get(prioritized.queueId).name} queue` : "";
 			if (prioritized.isRole) {
 				const role = await inter.store.jsRole(prioritized.subjectId);
+				if (!role) continue;
 				suggestions.push({
 					name: `${role.name} role ${scope}`,
 					value: prioritized.id.toString(),

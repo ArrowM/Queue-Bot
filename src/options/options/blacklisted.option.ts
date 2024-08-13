@@ -53,6 +53,7 @@ export class BlacklistedOption extends CustomOption {
 			const scope = blacklisted.queueId ? `in ${queues.get(blacklisted.queueId).name} queue` : "";
 			if (blacklisted.isRole) {
 				const role = await inter.store.jsRole(blacklisted.subjectId);
+				if(!role) continue;
 				suggestions.push({
 					name: `${role.name} role ${scope}`,
 					value: blacklisted.id.toString(),
