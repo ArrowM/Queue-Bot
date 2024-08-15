@@ -3,10 +3,12 @@ import type { SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder
 export interface Command {
 	data: SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
 	adminOnly: boolean;
+	deferResponse: boolean;
 }
 
 abstract class CommandBase implements Command {
 	readonly adminOnly: boolean;
+	deferResponse = true;
 
 	abstract data: SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
 }

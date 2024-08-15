@@ -12,6 +12,7 @@ export class JoinCommand extends EveryoneCommand {
 	static readonly ID = "join";
 
 	join = JoinCommand.join;
+	deferResponse = false;
 
 	static readonly JOIN_OPTIONS = {
 		queue: new QueueOption({ required: true, description: "Queue to join" }),
@@ -41,6 +42,7 @@ export class JoinCommand extends EveryoneCommand {
 			await inter.respond({
 				content: `Joined the ${queueMention(queue)} queue.`,
 				embeds: [await MemberUtils.getMemberDisplayLine(inter.store, queue, inter.member.id)],
+				ephemeral: true,
 			}, true);
 		}
 	}

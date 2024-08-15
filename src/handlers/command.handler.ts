@@ -17,8 +17,6 @@ export class CommandHandler implements Handler {
 	}
 
 	async handle() {
-		// await this.inter.deferReply({ ephemeral: true });
-
 		const subcommandName = (this.inter.options as any)._subcommand;
 		const fullCommandName = `${this.inter.commandName}${subcommandName ? `_${subcommandName}` : ""}`.replace(/-/g, "_");
 		const command = COMMANDS.get(this.inter.commandName);
@@ -26,6 +24,10 @@ export class CommandHandler implements Handler {
 		if (command && fullCommandName in command) {
 			this.inter.promptConfirmOrCancel = (message: string) => InteractionUtils.promptConfirmOrCancel(this.inter, message);
 			this.inter.respond = (message: InteractionReplyOptions | string, log = false) => InteractionUtils.respond(this.inter, command.adminOnly, message, log);
+
+			if (command.deferResponse) {
+				await this.inter.deferReply({ ephemeral: true });
+			}
 
 			if (command.adminOnly) {
 				AdminUtils.verifyIsAdmin(this.inter.store, this.inter.member);
