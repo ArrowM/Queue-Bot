@@ -21,6 +21,7 @@ import { QueueOption } from "../../options/options/queue.option.ts";
 import { QueuesOption } from "../../options/options/queues.option.ts";
 import { RejoinCooldownPeriodOption } from "../../options/options/rejoin-cooldown-period.option.ts";
 import { RejoinGracePeriodOption } from "../../options/options/rejoin-grace-period.option.ts";
+import { RequireMessageToJoinOption } from "../../options/options/require-message-to-join.option.ts";
 import { RoleInQueueOption } from "../../options/options/role-in-queue.option.ts";
 import { RoleOnPullOption } from "../../options/options/role-on-pull.option.ts";
 import { SizeOption } from "../../options/options/size.option.ts";
@@ -136,6 +137,7 @@ export class QueuesCommand extends AdminCommand {
 		pullMessageDisplayType: new PullMessageDisplayTypeOption({ description: "How to display pull message" }),
 		rejoinCooldownPeriod: new RejoinCooldownPeriodOption({ description: "# of seconds a member must wait before re-queueing after being pulled" }),
 		rejoinGracePeriod: new RejoinGracePeriodOption({ description: "# of seconds a member has to reclaim their queue spot after leaving" }),
+		requireMessageToJoin: new RequireMessageToJoinOption({ description: "Require a message to join the queue" }),
 		roleInQueue: new RoleInQueueOption({ description: "Role to assign members of the queue" }),
 		roleOnPull: new RoleOnPullOption({ description: "Role to assign members when they are pulled" }),
 		size: new SizeOption({ description: "Limit the size of the queue" }),
@@ -164,6 +166,7 @@ export class QueuesCommand extends AdminCommand {
 				pullMessageDisplayType: QueuesCommand.ADD_OPTIONS.pullMessageDisplayType.get(inter),
 				rejoinCooldownPeriod: QueuesCommand.ADD_OPTIONS.rejoinCooldownPeriod.get(inter),
 				rejoinGracePeriod: QueuesCommand.ADD_OPTIONS.rejoinGracePeriod.get(inter),
+				requireMessageToJoin: QueuesCommand.ADD_OPTIONS.requireMessageToJoin.get(inter),
 				roleInQueueId: QueuesCommand.ADD_OPTIONS.roleInQueue.get(inter)?.id,
 				roleOnPullId: QueuesCommand.ADD_OPTIONS.roleOnPull.get(inter)?.id,
 				size: QueuesCommand.ADD_OPTIONS.size.get(inter),
@@ -202,6 +205,7 @@ export class QueuesCommand extends AdminCommand {
 		pullMessageDisplayType: new PullMessageDisplayTypeOption({ description: "How to display pull message" }),
 		rejoinCooldownPeriod: new RejoinCooldownPeriodOption({ description: "# of seconds a  member must wait before re-queueing after being pulled" }),
 		rejoinGracePeriod: new RejoinGracePeriodOption({ description: "# of seconds a  member has to reclaim their queue spot after leaving" }),
+		requireMessageToJoin: new RequireMessageToJoinOption({ description: "Require a message to join the queue" }),
 		roleInQueue: new RoleInQueueOption({ description: "Role to assign members of the queue" }),
 		roleOnPull: new RoleOnPullOption({ description: "Role to assign members when they are pulled" }),
 		size: new SizeOption({ description: "Limit the size of the queue" }),
@@ -229,6 +233,7 @@ export class QueuesCommand extends AdminCommand {
 			pullMessageDisplayType: QueuesCommand.SET_OPTIONS.pullMessageDisplayType.get(inter),
 			rejoinCooldownPeriod: QueuesCommand.SET_OPTIONS.rejoinCooldownPeriod.get(inter),
 			rejoinGracePeriod: QueuesCommand.SET_OPTIONS.rejoinGracePeriod.get(inter),
+			requireMessageToJoin: QueuesCommand.SET_OPTIONS.requireMessageToJoin.get(inter),
 			roleInQueueId: QueuesCommand.SET_OPTIONS.roleInQueue.get(inter)?.id,
 			roleOnPullId: QueuesCommand.SET_OPTIONS.roleOnPull.get(inter)?.id,
 			size: QueuesCommand.SET_OPTIONS.size.get(inter),
@@ -293,6 +298,7 @@ export class QueuesCommand extends AdminCommand {
 			{ name: PullMessageDisplayTypeOption.ID, value: QUEUE_TABLE.pullMessageDisplayType.name },
 			{ name: RejoinCooldownPeriodOption.ID, value: QUEUE_TABLE.rejoinCooldownPeriod.name },
 			{ name: RejoinGracePeriodOption.ID, value: QUEUE_TABLE.rejoinGracePeriod.name },
+			{ name: RequireMessageToJoinOption.ID, value: QUEUE_TABLE.requireMessageToJoin.name },
 			{ name: RoleInQueueOption.ID, value: QUEUE_TABLE.roleInQueueId.name },
 			{ name: RoleOnPullOption.ID, value: QUEUE_TABLE.roleOnPullId.name },
 			{ name: SizeOption.ID, value: QUEUE_TABLE.size.name },

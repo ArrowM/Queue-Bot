@@ -10,6 +10,7 @@ import { ERROR_HEADER_LINE } from "../utils/string.utils.ts";
 import { AutocompleteHandler } from "./autocomplete.handler.ts";
 import { ButtonHandler } from "./button.handler.ts";
 import { CommandHandler } from "./command.handler.ts";
+import { ModalHandler } from "./modal.handler.ts";
 
 export class InteractionHandler implements Handler {
 	private readonly inter: AnyInteraction;
@@ -29,6 +30,9 @@ export class InteractionHandler implements Handler {
 			}
 			else if (this.inter.isButton()) {
 				await new ButtonHandler(this.inter).handle();
+			}
+			else if (this.inter.isModalSubmit()) {
+				await new ModalHandler(this.inter).handle();
 			}
 		}
 		catch (e) {

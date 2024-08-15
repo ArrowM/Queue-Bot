@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 
+import { JoinModal } from "../../modals/join.modal.ts";
 import { MessageOption } from "../../options/options/message.option.ts";
 import { QueueOption } from "../../options/options/queue.option.ts";
 import { EveryoneCommand } from "../../types/command.types.ts";
@@ -31,11 +32,16 @@ export class JoinCommand extends EveryoneCommand {
 		const queue = await JoinCommand.JOIN_OPTIONS.queue.get(inter);
 		const message = JoinCommand.JOIN_OPTIONS.message.get(inter);
 
-		await MemberUtils.insertMember({ store: inter.store, queue, jsMember: inter.member, message });
+		if (queue.requireMessageToJoin && !message) {
+			await inter.showModal(JoinModal.getModal({ queueId: queue.id }));
+		}
+		else {
+			await MemberUtils.insertMember({ store: inter.store, queue, jsMember: inter.member, message });
 
-		await inter.respond({
-			content: `Joined the ${queueMention(queue)} queue.`,
-			embeds: [await MemberUtils.getMemberDisplayLine(inter.store, queue, inter.member.id)],
-		}, true);
+			await inter.respond({
+				content: `Joined the ${queueMention(queue)} queue.`,
+				embeds: [await MemberUtils.getMemberDisplayLine(inter.store, queue, inter.member.id)],
+			}, true);
+		}
 	}
 }

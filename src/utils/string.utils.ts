@@ -31,7 +31,7 @@ export function queueMention(queue: DbQueue): string {
 		if (queue.autopullToggle) badges.push("🔁");
 		if (queue.voiceOnlyToggle) badges.push("🔊");
 	}
-	return (badges.length ? `${badges.join(" ") }` : "") + bold(escapeMarkdown(queue.name));
+	return (badges.length ? `${badges.join(" ")}` : "") + bold(escapeMarkdown(queue.name));
 }
 
 export function queuesMention(queues: ArrayOrCollection<bigint, DbQueue>): string {
@@ -39,23 +39,36 @@ export function queuesMention(queues: ArrayOrCollection<bigint, DbQueue>): strin
 }
 
 export async function membersMention(store: Store, members: ArrayOrCollection<bigint, DbMember>) {
-	return (await Promise.all(
-		map(members, async (member) => `- ${await memberMention(store, member)}`)
-	)).join("\n");
+	const mentions = await Promise.all(
+		map(members, async member => await memberMention(store, member))
+	);
+	return compact(mentions);
 }
 
 export async function memberMention(store: Store, member: DbMember) {
+	const jsMember = await store.jsMember(member.userId);
+	if (!jsMember) return;
+
 	const { timestampType, memberDisplayType } = store.dbQueues().get(member.queueId);
 	const timeStr = formatTimestamp(member.joinTime, timestampType);
 	const prioStr = isNil(member.priorityOrder) ? "" : "✨";
 	const msgStr = member.message ? `-- ${member.message}` : "";
 
-	const jsMember = await store.jsMember(member.userId);
-	const nameStr =
-		memberDisplayType === MemberDisplayType.Mention ? userMention(member.userId) :
-			memberDisplayType === MemberDisplayType.Username ? jsMember?.user?.username :
-				memberDisplayType === MemberDisplayType.DisplayName ? memberNameMention(jsMember) :
-					jsMember;
+	let nameStr;
+	switch (memberDisplayType) {
+		case MemberDisplayType.Mention:
+			nameStr = userMention(member.userId);
+			break;
+		case MemberDisplayType.Username:
+			nameStr = jsMember.user.username;
+			break;
+		case MemberDisplayType.DisplayName:
+			nameStr = memberNameMention(jsMember);
+			break;
+		default:
+			nameStr = jsMember;
+			break;
+	}
 
 	return `${timeStr} ${prioStr} ${nameStr} ${msgStr}`;
 }
@@ -113,7 +126,7 @@ export function timeMention(seconds: bigint) {
 	return bold(str);
 }
 
-export function memberNameMention(member: {nickname?: string, displayName?: string}) {
+export function memberNameMention(member: { nickname?: string, displayName?: string }) {
 	return escapeMarkdown(member.nickname ?? member.displayName);
 }
 

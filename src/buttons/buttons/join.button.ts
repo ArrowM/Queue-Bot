@@ -1,5 +1,6 @@
 import { ButtonStyle } from "discord.js";
 
+import { JoinModal } from "../../modals/join.modal.ts";
 import { EveryoneButton } from "../../types/button.types.ts";
 import type { ButtonInteraction } from "../../types/interaction.types.ts";
 import { ButtonUtils } from "../../utils/button.utils.ts";
@@ -16,11 +17,16 @@ export class JoinButton extends EveryoneButton {
 	async handle(inter: ButtonInteraction) {
 		const { queue } = await ButtonUtils.getButtonContext(inter);
 
-		await MemberUtils.insertMember({ store: inter.store, queue, jsMember: inter.member });
+		if (queue.requireMessageToJoin) {
+			await inter.showModal(JoinModal.getModal({ queueId: queue.id }));
+		}
+		else {
+			await MemberUtils.insertMember({ store: inter.store, queue, jsMember: inter.member });
 
-		await inter.respond({
-			content: `Joined the ${queueMention(queue)} queue.`,
-			embeds: [await MemberUtils.getMemberDisplayLine(inter.store, queue, inter.member.id)],
-		}, true);
+			await inter.respond({
+				content: `Joined the ${queueMention(queue)} queue.`,
+				embeds: [await MemberUtils.getMemberDisplayLine(inter.store, queue, inter.member.id)],
+			}, true);
+		}
 	}
 }

@@ -29,7 +29,7 @@ import type { ArrayOrCollection } from "../types/misc.types.ts";
 import type { CustomError } from "./error.utils.ts";
 import { InteractionUtils } from "./interaction.utils.ts";
 import { map } from "./misc.utils.ts";
-import { commandMention, memberMention, mentionablesMention, queueMention, scheduleMention, timeMention } from "./string.utils.ts";
+import { commandMention, memberMention, membersMention, mentionablesMention, queueMention, scheduleMention, timeMention } from "./string.utils.ts";
 
 export namespace DisplayUtils {
 	export async function insertDisplays(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, displayChannelId: Snowflake) {
@@ -228,14 +228,28 @@ export namespace DisplayUtils {
 		}
 	}
 
+	export async function createMembersDisplayLine(
+		store: Store,
+		members: DbMember[],
+		rightPadding = 0
+	) {
+		const mentions = await membersMention(store, members);
+		return mentions.map((mention, position) => formatMemberDisplayLine(mention, position, rightPadding));
+	}
+
 	export async function createMemberDisplayLine(
 		store: Store,
 		member: DbMember,
 		position: number,
 		rightPadding = 0
 	) {
+		const mention = await memberMention(store, member);
+		return formatMemberDisplayLine(mention, position, rightPadding);
+	}
+
+	function formatMemberDisplayLine(memberMention: string, position: number, rightPadding = 0) {
 		const idxStr = inlineCode(position.toString().padEnd(rightPadding));
-		return `${idxStr}${await memberMention(store, member)}\n`;
+		return `${idxStr}${memberMention}\n`;
 	}
 
 	async function buildQueueDisplayEmbeds(store: Store, queue: DbQueue): Promise<EmbedBuilder[]> {
@@ -244,11 +258,7 @@ export namespace DisplayUtils {
 		// Build member strings
 		const members = [...store.dbMembers().filter(member => member.queueId === queue.id).values()];
 		const rightPadding = `${members.length}`.length;
-		const memberDisplayLines = compact(await Promise.all(
-			members.map(async (member, index) =>
-				createMemberDisplayLine(store, member, index + 1, rightPadding)
-			)
-		));
+		const memberDisplayLines = await createMembersDisplayLine(store, members, rightPadding);
 
 		// Build embeds
 		const embeds: EmbedBuilder[] = [];
@@ -324,6 +334,7 @@ export namespace DisplayUtils {
 			lockToggle,
 			rejoinCooldownPeriod,
 			rejoinGracePeriod,
+			requireMessageToJoin,
 			roleInQueueId,
 			roleOnPullId,
 		} = queue;
@@ -376,6 +387,10 @@ export namespace DisplayUtils {
 
 		if (roleOnPullId) {
 			descriptionParts.push(`- Members are assigned the ${roleMention(roleOnPullId)} role when pulled from queue.`);
+		}
+
+		if (requireMessageToJoin) {
+			descriptionParts.push("- A message is required to join the queue.");
 		}
 
 		if (schedules.size) {

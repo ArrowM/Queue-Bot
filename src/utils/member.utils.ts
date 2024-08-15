@@ -291,17 +291,21 @@ export namespace MemberUtils {
 		return new EmbedBuilder()
 			.setTitle(queueMention(queue))
 			.setColor(queue.color)
-			.setDescription(await DisplayUtils.createMemberDisplayLine(store, member, position));
+			.setDescription(await DisplayUtils.createMemberDisplayLine(store, member, position) ?? "Member not found");
 	}
 
 	export async function describePulledMembers(store: Store, queue: DbQueue, pulledMembers: DbMember[], reason: MemberRemovalReason) {
 		const pulledMembersOfQueue = pulledMembers.filter(member => member.queueId === queue.id);
-		const membersStr = await membersMention(store, pulledMembersOfQueue);
+		const membersStr = (await membersMention(store, pulledMembersOfQueue))
+			.map(mention => `- ${mention}`)
+			.join("\n");
+
 		let description = "";
 		if (queue.pullMessage) {
 			description += `> ${queue.pullMessage}\n\n`;
 		}
 		description += pulledMembersOfQueue.length ? `${upperFirst(reason)} from queue:\n${membersStr}` : `No members were ${reason} from queue.`;
+
 		return { embeds: [new EmbedBuilder().setTitle(queueMention(queue)).setColor(queue.color).setDescription(description)] };
 	}
 

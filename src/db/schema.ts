@@ -62,6 +62,7 @@ export const QUEUE_TABLE = sqliteTable("queue", ({
 	pullMessageDisplayType: text("pull_message_display_type").$type<PullMessageDisplayType>().notNull().default(PullMessageDisplayType.Private),
 	rejoinCooldownPeriod: integer("rejoin_cooldown_period").$type<bigint>().notNull().default(0 as any),
 	rejoinGracePeriod: integer("rejoin_grace_period").$type<bigint>().notNull().default(0 as any),
+	requireMessageToJoin: integer("require_message_to_join", { mode: "boolean" }).default(false),
 	roleInQueueId: text("role_in_queue_id").$type<Snowflake>(),
 	roleOnPullId: text("role_on_pull_id").$type<Snowflake>(),
 	size: integer("size").$type<bigint>(),
