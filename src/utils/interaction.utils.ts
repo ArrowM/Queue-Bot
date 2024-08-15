@@ -78,11 +78,7 @@ export namespace InteractionUtils {
 			// nothing
 		}
 		finally {
-			// Cleanup messages
-			await Promise.all([
-				confirmation?.deleteReply(),
-				inter.editReply({ components: [] }).catch(() => null),
-			]);
+			await inter.editReply({ components: [] }).catch(() => null);
 		}
 
 		return confirmation?.customId === "confirm";

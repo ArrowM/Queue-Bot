@@ -234,7 +234,7 @@ export namespace DisplayUtils {
 		rightPadding = 0
 	) {
 		const mentions = await membersMention(store, members);
-		return mentions.map((mention, position) => formatMemberDisplayLine(mention, position, rightPadding));
+		return mentions.map((mention, position) => formatMemberDisplayLine(mention, position + 1, rightPadding));
 	}
 
 	export async function createMemberDisplayLine(
