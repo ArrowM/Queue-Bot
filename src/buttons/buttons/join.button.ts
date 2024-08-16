@@ -9,6 +9,7 @@ import { queueMention } from "../../utils/string.utils.ts";
 
 export class JoinButton extends EveryoneButton {
 	static readonly ID = "join";
+	deferResponse = false;
 
 	customId = JoinButton.ID;
 	label = "Join";
@@ -26,6 +27,7 @@ export class JoinButton extends EveryoneButton {
 			await inter.respond({
 				content: `Joined the ${queueMention(queue)} queue.`,
 				embeds: [await MemberUtils.getMemberDisplayLine(inter.store, queue, inter.member.id)],
+				ephemeral: true,
 			}, true);
 		}
 	}

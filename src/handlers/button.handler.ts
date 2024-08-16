@@ -15,10 +15,12 @@ export class ButtonHandler implements Handler {
 	}
 
 	async handle() {
-		// await this.inter.deferReply({ ephemeral: true });
-
 		const button = BUTTONS.get(this.inter.customId);
 		if (button) {
+			if (button.deferResponse) {
+				await this.inter.deferReply({ ephemeral: true });
+			}
+
 			this.inter.respond = (message: InteractionReplyOptions | string, log = false) => InteractionUtils.respond(this.inter, button.adminOnly, message, log);
 
 			if (button.adminOnly) {

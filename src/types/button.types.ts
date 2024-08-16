@@ -8,10 +8,12 @@ export interface Button {
 	style: ButtonStyle;
 	handle: (inter: ButtonInteraction) => Promise<void>;
 	adminOnly: boolean;
+	deferResponse: boolean;
 }
 
 abstract class ButtonBase implements Button {
 	readonly adminOnly: boolean;
+	deferResponse = true;
 
 	abstract customId: string;
 	abstract label: string;
