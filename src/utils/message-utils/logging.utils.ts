@@ -10,12 +10,7 @@ export namespace LoggingUtils {
 	export async function log(store: Store, isAdmin: boolean, originalMessage: Loggable) {
 		const { logChannelId, logScope } = store.dbGuild();
 		// required fields check
-		if (
-			!logChannelId ||
-			!logScope ||
-			!originalMessage ||
-			(originalMessage instanceof Message && logChannelId === originalMessage.channelId)
-		) return;
+		if (!(logChannelId && logScope && originalMessage)) return;
 		// scope check
 		if (![Scope.Admin, Scope.All].includes(logScope) && isAdmin) return;
 		if (![Scope.NonAdmin, Scope.All].includes(logScope) && !isAdmin) return;

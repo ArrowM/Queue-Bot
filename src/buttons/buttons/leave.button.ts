@@ -16,13 +16,13 @@ export class LeaveButton extends EveryoneButton {
 
 	async handle(inter: ButtonInteraction) {
 		const { queue } = await ButtonUtils.getButtonContext(inter);
-		await MemberUtils.deleteMembers({
+		const deletedMembers = await MemberUtils.deleteMembers({
 			store: inter.store,
 			queues: [queue],
 			reason: MemberRemovalReason.Left,
 			by: { userId: inter.member.id },
 		});
 
-		await inter.respond(`Left the ${queueMention(queue)} queue.`, true);
+		await inter.respond(`Left the ${queueMention(queue)} queue.`, deletedMembers.length > 0);
 	}
 }

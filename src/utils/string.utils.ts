@@ -31,7 +31,7 @@ export function queueMention(queue: DbQueue): string {
 		if (queue.autopullToggle) badges.push("🔁");
 		if (queue.voiceOnlyToggle) badges.push("🔊");
 	}
-	return (badges.length ? `${badges.join(" ")}` : "") + bold(escapeMarkdown(queue.name));
+	return (badges.length ? `${badges.join(" ")} ` : "") + bold(escapeMarkdown(queue.name));
 }
 
 export function queuesMention(queues: ArrayOrCollection<bigint, DbQueue>): string {

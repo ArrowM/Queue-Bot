@@ -38,7 +38,9 @@ export namespace InteractionUtils {
 				response = await (await interaction.reply(message)).fetch();
 			}
 
-			if (log) {
+			const logChannelId = inter.store.dbGuild().logChannelId;
+			const isAlreadySentToLogChannel = !inter.ephemeral && logChannelId && response.channel.id === logChannelId;
+			if (log && !isAlreadySentToLogChannel) {
 				await LoggingUtils.log(inter.store, isAdmin, response);
 			}
 
