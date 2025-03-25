@@ -351,8 +351,8 @@ export class QueuesCommand extends AdminCommand {
 			return;
 		}
 
-		const deletedQueue = inter.store.deleteQueue({ id: queue.id });
+		inter.store.deleteQueue({ id: queue.id });
 
-		await inter.respond(`Deleted the ${queueMention(deletedQueue)} queue.`, true);
+		await inter.respond(`Deleted the ${queueMention(queue)} queue.`, true);
 	}
 }

@@ -121,7 +121,10 @@ export namespace ClientHandler {
 		for (const queue of queuesToCheckForAutopull) {
 			if (queue.autopullToggle && queue.voiceDestinationChannelId) {
 				const destinationChannel = await store.jsChannel(queue.voiceDestinationChannelId) as VoiceChannel | StageChannel;
-				if (destinationChannel && !destinationChannel.userLimit || destinationChannel.members.size < destinationChannel.userLimit) {
+				if (
+					destinationChannel &&
+					(!destinationChannel.userLimit || destinationChannel.members.size < destinationChannel.userLimit)
+				) {
 					// Auto pull
 					await MemberUtils.deleteMembers({
 						store,
