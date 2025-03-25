@@ -100,7 +100,7 @@ export class QueuesCommand extends AdminCommand {
 		const descriptionMessage = describeTable({
 			store: inter.store,
 			table: QUEUE_TABLE,
-			tableLabel: "Queues",
+			tableLabel: "Queue",
 			hiddenProperties: ["name"],
 			queueIdProperty: "id",
 			valueFormatters: {
