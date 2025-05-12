@@ -12,7 +12,7 @@ export class TimezoneOption extends CustomOption {
 
 	getAutocompletions = TimezoneOption.getAutocompletions;
 
-	// force return type to be String
+	// force return type to be string
 	get(inter: AutocompleteInteraction | SlashInteraction) {
 		return super.get(inter) as Promise<string>;
 	}
@@ -22,32 +22,24 @@ export class TimezoneOption extends CustomOption {
 	}
 
 	static async getAutocompletions(options: AutoCompleteOptions): Promise<UIOption[]> {
+		const filtered = LOWER_TIMEZONES.filter(tz => tz.includes(options.lowerSearchText));
+		let sampled: string[] = [];
 
-		const filteredTimezones = LOWER_TIMEZONES.filter(tz => tz.includes(options.lowerSearchText));
-		let sampledTimezones: string[];
-
-		if (filteredTimezones.length < MAX_SELECT_MENU_OPTIONS) {
-			sampledTimezones = filteredTimezones;
+		if (filtered.length < MAX_SELECT_MENU_OPTIONS) {
+			sampled = filtered;
 		}
-		else {
-			sampledTimezones = [];
-			const groupedFilteredTimezones = groupBy(filteredTimezones, (timezone) => timezone.split("/")[0]);
-			let i = 0;
-			while (sampledTimezones.length < MAX_SELECT_MENU_OPTIONS) {
-				for (const suggestionGroup of Object.values(groupedFilteredTimezones)) {
-					const suggestion = suggestionGroup[i];
-					if (suggestion) {
-						sampledTimezones.push(suggestion);
-						if (sampledTimezones.length === MAX_SELECT_MENU_OPTIONS) {
-							break;
-						}
-					}
+ 		else {
+			const groups = groupBy(filtered, tz => tz.split("/")[0]);
+			for (let i = 0; sampled.length < MAX_SELECT_MENU_OPTIONS; i++) {
+				for (const group of Object.values(groups)) {
+					const tz = group[i];
+					if (tz) sampled.push(tz);
+					if (sampled.length === MAX_SELECT_MENU_OPTIONS) break;
 				}
-				i++;
 			}
 		}
 
-		return sampledTimezones
+		return sampled
 			.sort((a, b) => a.localeCompare(b))
 			.map(tz => ({ name: tz, value: tz }));
 	}

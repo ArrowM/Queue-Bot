@@ -14,23 +14,31 @@ export const CLIENT = new DiscordClient({
 		// Required for DisplayUpdateType.LatestMessage
 		GatewayIntentBits.GuildMessages,
 	],
-	// Disable caching for unused features
 	makeCache: Options.cacheWithLimits({
 		...Options.DefaultMakeCacheSettings,
-		GuildMessageManager: {
-			maxSize: 3,
+		GuildMessageManager: 50,
+		MessageManager: 50,
+		GuildTextThreadManager: 50,
+		GuildMemberManager: {
+			maxSize: 250,
 			keepOverLimit: member => member.id === member.client.user.id,
 		},
+		// Disable caching for unused features
 		ReactionManager: 0,
 		ReactionUserManager: 0,
 		GuildStickerManager: 0,
 		GuildScheduledEventManager: 0,
+		ThreadManager: 0,
 	}),
 	sweepers: {
 		...Options.DefaultSweeperSettings,
 		messages: {
 			interval: 3_600, // Every hour.
-			lifetime: 7_200, // Remove messages older than 2 hours.
+			lifetime: 3_600, // Remove messages older than 1 hour.
+		},
+		threads: {
+			interval: 3_600, // Every hour.
+			lifetime: 3_600, // Remove threads older than 1 hour.
 		},
 	},
 	shards: "auto",
