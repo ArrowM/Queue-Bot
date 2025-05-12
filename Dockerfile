@@ -1,6 +1,6 @@
 # ---- Base ----
 # if current-alpine is not working, try node:22-alpine
-FROM node:current-alpine AS base
+FROM node:23-alpine AS base
 
 WORKDIR /app
 
@@ -11,9 +11,8 @@ COPY package*.json ./
 FROM base AS dependencies
 
 # Install npm dependencies
-RUN apk add --no-cache python3 make g++ \
-    && npm ci \
-    && apk del python3 make g++
+
+RUN npm ci
 
 # ---- Production ----
 FROM dependencies AS production
