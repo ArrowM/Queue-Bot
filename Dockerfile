@@ -11,10 +11,6 @@ COPY package*.json ./
 FROM base AS dependencies
 
 # Install npm dependencies
-RUN apk add --no-cache python3 make g++ \
-    && npm ci \
-    && apk del python3 make g++
-
 RUN npm ci
 
 # ---- Production ----
