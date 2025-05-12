@@ -29,7 +29,6 @@
     "drizzle-kit": "^0.22.1",
     "drizzle-orm": "^0.31.4",
     "lodash-es": "^4.17.21",
-    "moize": "^6.1.6",
     "moment-timezone": "^0.5.45",
     "node-cron": "^3.0.3",
     "topgg-autoposter": "^2.0.2"

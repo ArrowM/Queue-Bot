@@ -1,5 +1,4 @@
 import { groupBy } from "lodash-es";
-import moize from "moize";
 
 import { MAX_SELECT_MENU_OPTIONS, type UIOption } from "../../types/handler.types.ts";
 import type { AutocompleteInteraction, SlashInteraction } from "../../types/interaction.types.ts";
@@ -22,8 +21,9 @@ export class TimezoneOption extends CustomOption {
 		return inter.options.getString(TimezoneOption.ID);
 	}
 
-	static getCachedAutocompleteSuggestions = moize((lowerSearchText: string): UIOption[] => {
-		const filteredTimezones = LOWER_TIMEZONES.filter(tz => tz.includes(lowerSearchText));
+	static async getAutocompletions(options: AutoCompleteOptions): Promise<UIOption[]> {
+
+		const filteredTimezones = LOWER_TIMEZONES.filter(tz => tz.includes(options.lowerSearchText));
 		let sampledTimezones: string[];
 
 		if (filteredTimezones.length < MAX_SELECT_MENU_OPTIONS) {
@@ -50,9 +50,5 @@ export class TimezoneOption extends CustomOption {
 		return sampledTimezones
 			.sort((a, b) => a.localeCompare(b))
 			.map(tz => ({ name: tz, value: tz }));
-	}, { maxSize: 500 });
-
-	static async getAutocompletions(options: AutoCompleteOptions): Promise<UIOption[]> {
-		return TimezoneOption.getCachedAutocompleteSuggestions(options.lowerSearchText);
 	}
 }
