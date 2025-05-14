@@ -21,7 +21,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "11.9.1",
     "cronstrue": "^2.48.0",
     "csv-parser": "^3.0.0",
     "date-fns": "^4.1.0",
