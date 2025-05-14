@@ -53,8 +53,8 @@ export const CLIENT = new DiscordClient({
 	sweepers: {
 		...Options.DefaultSweeperSettings,
 		messages: {
-			interval: 1_800, // Every half hour.
-			lifetime: 1_800, // Remove messages older than half an hour.
+			interval: 36_000, // Every 10 hours.
+			lifetime: 36_000, // Remove messages older than 10 hours.
 		},
 	},
 	shards: "auto",
