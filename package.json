@@ -21,13 +21,13 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^11.10.0",
     "cronstrue": "^2.48.0",
     "csv-parser": "^3.0.0",
     "date-fns": "^4.1.0",
     "discord.js": "^14.14.1",
-    "drizzle-kit": "^0.22.1",
-    "drizzle-orm": "^0.31.4",
+    "drizzle-kit": "^0.31.1",
+    "drizzle-orm": "^0.43.1",
     "lodash-es": "^4.17.21",
     "moment-timezone": "^0.5.45",
     "node-cron": "^3.0.3",
