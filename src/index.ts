@@ -22,16 +22,15 @@ async function calculateShardCount() {
 	const rest = new REST({ version: "10" }).setToken(token);
 
 	try {
-		// We don't need the currentBot variable, so let's remove it
-		// Just get the guilds directly
+		// Get guilds data from Discord API
 		const guildsData = await rest.get("/users/@me/guilds") as any[];
-		const guildCount = guildsData.length;
 
+		// Calculate total guilds
+		const guildCount = guildsData.length;
 		console.log(`Bot is in ${guildCount} guilds`);
 
 		// Calculate shard count (1 shard per 1500 guilds)
 		const shardCount = Math.max(1, Math.ceil(guildCount / 1500));
-
 		console.log(`Using ${shardCount} shards (1 per 1500 guilds)`);
 		return shardCount;
 	}
