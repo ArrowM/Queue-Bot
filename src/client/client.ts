@@ -27,7 +27,7 @@ export const CLIENT = new DiscordClient({
 		GuildMessageManager: {
 			maxSize: 0,
 			keepOverLimit: (value: Message<true>, _key: string, collection: LimitedCollection<string, Message<true>>) => {
-				if (value.author.id !== value.client.user?.id) {
+				if (value.author == null || value.client?.user == null || value.author.id !== value.client.user.id) {
 					return false;
 				}
 				if (collection.size > 5) {
