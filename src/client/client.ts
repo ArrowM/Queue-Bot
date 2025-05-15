@@ -21,7 +21,7 @@ export const CLIENT = new DiscordClient({
 			keepOverLimit: user => user.id === user.client.user.id,
 		},
 		GuildMemberManager: {
-			maxSize: 0,
+			maxSize: 50,
 			keepOverLimit: member => member.user.id === member.client.user.id,
 		},
 		GuildMessageManager: {
