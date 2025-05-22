@@ -38,10 +38,12 @@ export class SelectMenuTransactor {
 			return this.userResponse.values;
 		}
 		catch {
-			await this.inter.editReply({
-				content: "Confirmation not received within 1 minute, cancelling",
-				components: [],
-			});
+			if ("editReply" in this.inter) {
+				await this.inter.editReply({
+					content: "Confirmation not received within 1 minute, cancelling",
+					components: [],
+				});
+			}
 		}
 	}
 

@@ -40,7 +40,7 @@ export class PullCommand extends AdminCommand {
 			queues,
 			reason: MemberRemovalReason.Pulled,
 			by: { userIds: members?.map((member) => member.userId), count },
-			messageChannelId: inter.channel.id,
+			messageChannelId: inter.channel?.id,
 			force: true,
 		});
 	}

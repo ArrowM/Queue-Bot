@@ -30,7 +30,7 @@ export const CLIENT = new DiscordClient({
 				if (value.author == null || value.client?.user == null || value.author.id !== value.client.user.id) {
 					return false;
 				}
-				if (collection.size > 5) {
+				if (collection.size >= 3) {
 					collection.delete(collection.firstKey());
 				}
 				return true;
