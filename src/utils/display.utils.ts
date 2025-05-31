@@ -523,7 +523,7 @@ export namespace DisplayUtils {
 
 		return {
 			embeds,
-			components: buttons.length
+			components: buttons?.length
 				? [new ActionRowBuilder<ButtonBuilder>().addComponents(buttons).toJSON()]
 				: [],
 		};
