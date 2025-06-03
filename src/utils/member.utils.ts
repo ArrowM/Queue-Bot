@@ -165,6 +165,7 @@ export namespace MemberUtils {
 						LoggingUtils.log(store, true, sentMessage).catch(() => null);
 						link = sentMessage?.url;
 					}
+					await store.inter.respond(messageToSend, true);
 				}
 				else if (queue.pullMessageDisplayType === PullMessageDisplayType.Private) {
 					if (store.inter) {
