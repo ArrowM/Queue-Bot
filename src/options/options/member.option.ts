@@ -30,7 +30,7 @@ export class MemberOption extends CustomOption {
 	static findMember(members: Collection<bigint, DbMember>, idString: string): DbMember {
 		let member: DbMember | undefined;
 		try {
-			member = members.get(BigInt(idString));
+			member = members.get(BigInt(idString)) ?? members.find(member => member.userId === idString);
 		}
 		catch {
 			member = null;
