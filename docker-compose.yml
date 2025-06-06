@@ -9,6 +9,7 @@ services:
     container_name: queue-bot
     restart: always
     logging:
+      driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
