@@ -21,7 +21,7 @@ export const CLIENT = new DiscordClient({
 			keepOverLimit: user => user.id === user.client.user.id,
 		},
 		GuildMemberManager: {
-			maxSize: 100,
+			maxSize: 1000,
 			keepOverLimit: member => member.user.id === member.client.user.id,
 		},
 		GuildMessageManager: {
@@ -30,7 +30,7 @@ export const CLIENT = new DiscordClient({
 				if (value.author == null || value.client?.user == null || value.author.id !== value.client.user.id) {
 					return false;
 				}
-				if (collection.size >= 3) {
+				if (collection.size >= 10) {
 					collection.delete(collection.firstKey());
 				}
 				return true;
