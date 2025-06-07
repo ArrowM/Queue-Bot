@@ -20,6 +20,7 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/ArrowM/Queue-Bot
+cd Queue-Bot
 ```
 
 Create a Discord bot application and invite it to your server.
