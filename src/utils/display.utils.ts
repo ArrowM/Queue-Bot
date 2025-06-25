@@ -448,11 +448,11 @@ export namespace DisplayUtils {
 
 			// Queue rules
 			if (queue.rejoinCooldownPeriod) {
-				parts.push(`- After being pulled, you must wait ${timeMention(queue.rejoinCooldownPeriod)} to requeue.`);
+				parts.push(`- After being pulled, you must wait ${bold(timeMention(queue.rejoinCooldownPeriod))} to requeue.`);
 			}
 
 			if (queue.rejoinGracePeriod) {
-				parts.push(`- Rejoin within ${timeMention(queue.rejoinGracePeriod)} of leaving to reclaim your spot.`);
+				parts.push(`- Rejoin within ${bold(timeMention(queue.rejoinGracePeriod))} of leaving to reclaim your spot.`);
 			}
 		}
 

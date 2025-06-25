@@ -123,7 +123,7 @@ export function timeMention(seconds: bigint) {
 		str += `${numSecondsRemainder} second${numSecondsRemainder === 1 ? "" : "s"}`;
 	}
 
-	return bold(str);
+	return str;
 }
 
 export function memberNameMention(member: { nickname?: string, displayName?: string }) {
@@ -167,7 +167,7 @@ export function describeTable<T extends object>(options: {
 		let value = (entry as any)[property];
 
 		if (property === "subjectId") {
-			value = (entry as any).isRole ? roleMention(value) : userMention(value);
+			return (entry as any).isRole ? roleMention(value) : userMention(value);
 		}
 
 		const valueFormatter = valueFormatters[property];
@@ -175,12 +175,7 @@ export function describeTable<T extends object>(options: {
 			value = valueFormatter(value);
 		}
 
-		if (property === "subjectId" || valueFormatter) {
-			return value;
-		}
-		else {
-			return formatter(value);
-		}
+		return formatter(value);
 	}
 
 	function formatEntryDescriptionLines(entry: T): string[] {

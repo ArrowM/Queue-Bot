@@ -1,4 +1,15 @@
-import { channelMention, Collection, EmbedBuilder, GuildMember, type GuildTextBasedChannel, Role, roleMention, type Snowflake, userMention } from "discord.js";
+import {
+	bold,
+	channelMention,
+	Collection,
+	EmbedBuilder,
+	GuildMember,
+	type GuildTextBasedChannel,
+	Role,
+	roleMention,
+	type Snowflake,
+	userMention,
+} from "discord.js";
 import { compact, isNil, shuffle, upperFirst } from "lodash-es";
 
 import { db } from "../db/db.ts";
@@ -44,6 +55,7 @@ export namespace MemberUtils {
 					else if (mentionable instanceof Role) {
 						const role = await store.jsRole(mentionable.id);
 						if (!role) continue;
+						await store.inter.respond("WARNING: Due to restrictions in Discord's API, some members belonging to this role may be missed.");
 						for (const queue of queues.values()) {
 							for (const jsMember of role.members.values()) {
 								inserted.push(
@@ -461,7 +473,7 @@ export namespace MemberUtils {
 					message: "You are currently in a cooldown period and cannot rejoin the queue",
 					embeds: [
 						new EmbedBuilder()
-							.setDescription(`You can rejoin the queue in ${timeMention(msCooldownRemaining / 1000n)}.`),
+							.setDescription(`You can rejoin the queue in ${bold(timeMention(msCooldownRemaining / 1000n))}.`),
 					],
 				});
 			}
