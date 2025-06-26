@@ -2,9 +2,9 @@ import { type Collection, SlashCommandBuilder } from "discord.js";
 import { compact } from "lodash-es";
 
 import type { DbQueue } from "../../db/schema.ts";
+import { UserOption } from "../../options/base-option.ts";
 import { DmMemberOption } from "../../options/options/dm-member.option.ts";
 import { MembersOption } from "../../options/options/members.option.ts";
-import { MentionableOption } from "../../options/options/mentionable.option.ts";
 import { MessageOption } from "../../options/options/message.option.ts";
 import { QueuesOption } from "../../options/options/queues.option.ts";
 import { AdminCommand } from "../../types/command.types.ts";
@@ -73,28 +73,28 @@ export class MembersCommand extends AdminCommand {
 
 	static readonly ADD_OPTIONS = {
 		queues: new QueuesOption({ required: true, description: "Queue(s) to add members to" }),
-		mentionable1: new MentionableOption({ id: "mentionable_1", required: true, description: "User or role to add" }),
-		mentionable2: new MentionableOption({ id: "mentionable_2", description: "User or role to add" }),
-		mentionable3: new MentionableOption({ id: "mentionable_3", description: "User or role to add" }),
-		mentionable4: new MentionableOption({ id: "mentionable_4", description: "User or role to add" }),
-		mentionable5: new MentionableOption({ id: "mentionable_5", description: "User or role to add" }),
+		user1: new UserOption({ id: "user_1", required: true, description: "User to add" }),
+		user2: new UserOption({ id: "user_2", description: "User to add" }),
+		user3: new UserOption({ id: "user_3", description: "User to add" }),
+		user4: new UserOption({ id: "user_4", description: "User to add" }),
+		user5: new UserOption({ id: "user_5", description: "User to add" }),
 		dmMember: new DmMemberOption({ description: "Whether to directly message the member(s)" }),
 	};
 
 	static async members_add(inter: SlashInteraction) {
 		const queues = await MembersCommand.ADD_OPTIONS.queues.get(inter);
-		const mentionables = compact([
-			MembersCommand.ADD_OPTIONS.mentionable1.get(inter),
-			MembersCommand.ADD_OPTIONS.mentionable2.get(inter),
-			MembersCommand.ADD_OPTIONS.mentionable3.get(inter),
-			MembersCommand.ADD_OPTIONS.mentionable4.get(inter),
-			MembersCommand.ADD_OPTIONS.mentionable5.get(inter),
+		const users = compact([
+			MembersCommand.ADD_OPTIONS.user1.get(inter),
+			MembersCommand.ADD_OPTIONS.user2.get(inter),
+			MembersCommand.ADD_OPTIONS.user3.get(inter),
+			MembersCommand.ADD_OPTIONS.user4.get(inter),
+			MembersCommand.ADD_OPTIONS.user5.get(inter),
 		]);
 		const dmMember = MembersCommand.ADD_OPTIONS.dmMember.get(inter);
 
-		await MemberUtils.insertMentionables({
+		await MemberUtils.insertUsers({
 			store: inter.store,
-			mentionables,
+			users,
 			queues,
 			force: true,
 			dmMember,

@@ -5,7 +5,6 @@ import {
 	EmbedBuilder,
 	GuildMember,
 	type GuildTextBasedChannel,
-	Role,
 	roleMention,
 	type Snowflake,
 	userMention,
@@ -20,7 +19,6 @@ import { MemberRemovalReason, PullMessageDisplayType } from "../types/db.types.t
 import type { MemberDeleteBy } from "../types/member.types.ts";
 import type { ArrayOrCollection } from "../types/misc.types.ts";
 import { NotificationAction } from "../types/notification.types.ts";
-import type { Mentionable } from "../types/parsing.types.ts";
 import { BlacklistUtils } from "./blacklist.utils.ts";
 import { DisplayUtils } from "./display.utils.ts";
 import { CustomError, NotOnQueueWhitelistError, OnQueueBlacklistError, QueueFullError, QueueLockedError } from "./error.utils.ts";
@@ -32,37 +30,26 @@ import { membersMention, queueMention, queuesMention, timeMention, usersMention 
 import { WhitelistUtils } from "./whitelist.utils.ts";
 
 export namespace MemberUtils {
-	export async function insertMentionables(options: {
+	export async function insertUsers(options: {
 		store: Store,
-		mentionables: Mentionable[],
+		users: { id: Snowflake }[],
 		queues: Collection<bigint, DbQueue>,
 		force?: boolean,
 		dmMember?: boolean,
 	}) {
-		const { store, mentionables, queues, force, dmMember } = options;
+		const { store, users, queues, force, dmMember } = options;
 
 		const insertedMembers = compact(
 			await db.transaction(async () => {
 				const inserted = [];
-				for (const mentionable of mentionables) {
-					if (mentionable instanceof GuildMember) {
-						for (const queue of queues.values()) {
-							inserted.push(
-								await insertMemberInternal({ store, queue, jsMember: mentionable, force })
-							);
-						}
-					}
-					else if (mentionable instanceof Role) {
-						const role = await store.jsRole(mentionable.id);
-						if (!role) continue;
-						await store.inter.respond("WARNING: Due to restrictions in Discord's API, some members belonging to this role may be missed.");
-						for (const queue of queues.values()) {
-							for (const jsMember of role.members.values()) {
-								inserted.push(
-									await insertMemberInternal({ store, queue, jsMember, force })
-								);
-							}
-						}
+				for (const user of users) {
+					const jsMember = await store.jsMember(user.id);
+					if (!jsMember) continue;
+
+					for (const queue of queues.values()) {
+						inserted.push(
+							await insertMemberInternal({ store, queue, jsMember, force })
+						);
 					}
 				}
 				return inserted;
