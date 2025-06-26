@@ -1,5 +1,5 @@
 import cronstrue from "cronstrue";
-import { channelMention, type Collection, EmbedBuilder, inlineCode, SlashCommandBuilder } from "discord.js";
+import { channelMention, type Collection, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { findKey, isNil, omitBy } from "lodash-es";
 
@@ -95,7 +95,7 @@ export class ScheduleCommand extends AdminCommand {
 			entryLabelProperty: "command",
 			entries: [...schedules.values()],
 			valueFormatters: {
-				cron: (cron) => `${inlineCode(cron)} (${cronstrue.toString(cron)})`,
+				cron: (cron) => `${cron} (${cronstrue.toString(cron)})`,
 				messageChannelId: id => channelMention(id),
 			},
 		});

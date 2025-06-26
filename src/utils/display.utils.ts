@@ -200,7 +200,7 @@ export namespace DisplayUtils {
 
 			let lastMessage: Message | null = null;
 			if (display.lastMessageId) {
-				lastMessage = await channel.messages.fetch(display.lastMessageId).catch(() => null as unknown as Message);
+				lastMessage = await channel.messages.fetch(display.lastMessageId).catch(() => null);
 			}
 
 			const updateType = updateTypeOverride ?? queue.displayUpdateType;
