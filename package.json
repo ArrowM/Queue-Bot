@@ -28,7 +28,7 @@
     "discord.js": "^14.14.1",
     "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.43.1",
-    "lodash-es": "^4.17.21",
+    "lodash-es": "^4.17.23",
     "moment-timezone": "^0.5.45",
     "node-cron": "^3.0.3",
     "topgg-autoposter": "^2.0.2"
