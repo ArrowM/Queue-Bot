@@ -69,6 +69,9 @@ export const QUEUE_TABLE = sqliteTable("queue", ({
 	timestampType: text("time_display_type").$type<TimestampType>().default(TimestampType.Off),
 	voiceDestinationChannelId: text("voice_destination_channel_id").$type<Snowflake>(),
 	voiceOnlyToggle: integer("voice_only_toggle", { mode: "boolean" }).notNull().default(false),
+	gamePresenceToggle: integer("game_presence_toggle", { mode: "boolean" }).notNull().default(false),
+	gamePresenceName: text("game_presence_name"),
+	memberTimeout: integer("member_timeout").$type<bigint>().notNull().default(0n),
 }),
 (table) => ({
 	unq: unique().on(table.name, table.guildId),

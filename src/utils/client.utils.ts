@@ -1,8 +1,11 @@
 import * as fs from "node:fs";
 
 import {
+	ActionRowBuilder,
 	ActivityType,
 	ApplicationCommand,
+	ButtonBuilder,
+	ButtonStyle,
 	type Collection,
 	type DiscordAPIError,
 	type GuildResolvable,
@@ -18,8 +21,11 @@ import { CLIENT } from "../client/client.ts";
 import { COMMANDS } from "../commands/commands.loader.ts";
 import { Queries } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
-import { Color, DisplayUpdateType } from "../types/db.types.ts";
+import { ClientHandler } from "../handlers/client.handler.ts";
+import { Color, DisplayUpdateType, MemberRemovalReason } from "../types/db.types.ts";
 import { DisplayUtils } from "./display.utils.ts";
+import { MemberUtils } from "./member.utils.ts";
+import { isGameNameMatch } from "./misc.utils.ts";
 
 export namespace ClientUtils {
 	// indexed by `id`
@@ -153,5 +159,162 @@ export namespace ClientUtils {
 			// rate limit
 			await new Promise(resolve => setTimeout(resolve, 500));
 		}
+	}
+
+	export function startPresencePolling() {
+		setInterval(async () => {
+			try {
+				const guilds = CLIENT.guilds.cache;
+				for (const guild of guilds.values()) {
+					const store = new Store(guild);
+					const activeQueues = store.dbQueues().filter(queue => queue.gamePresenceToggle);
+					if (!activeQueues.size) continue;
+
+					const activeQueueIds = new Set(activeQueues.map(q => q.id));
+					const queuedMembers = store.dbMembers().filter(m => activeQueueIds.has(m.queueId));
+					if (!queuedMembers.size) continue;
+
+					const uniqueUserIds = [...new Set(queuedMembers.map(m => m.userId))];
+
+					for (const userId of uniqueUserIds) {
+						let jsMember = guild.members.cache.get(userId);
+						let presence = ClientHandler.LIVE_PRESENCES.get(userId) ?? guild.presences.cache.get(userId) ?? jsMember?.presence;
+
+						if (!presence) {
+							jsMember = await guild.members.fetch({ user: userId, withPresences: true }).catch(() => null) ?? jsMember;
+							presence = jsMember?.presence;
+							if (presence) {
+								ClientHandler.LIVE_PRESENCES.set(userId, presence);
+							}
+						}
+
+						const memberTag = jsMember?.user?.tag ?? jsMember?.user?.username ?? userId;
+
+						if (!presence) {
+							console.log(`[DEBUG PRESENCE POLL] Presence data for ${memberTag} is pending/uncached from Discord. Skipping kick safety check.`);
+							continue;
+						}
+
+						const activities = presence.activities ?? [];
+						const isOffline = presence.status === "offline";
+						const activityNames = activities.map(a => `${ActivityType[a.type] ?? a.type}: "${a.name}"`).join(", ") || "none";
+
+						console.log(`[DEBUG PRESENCE POLL] User: ${memberTag} | Status: ${presence.status} | Activities: [${activityNames}]`);
+
+						const userQueues = activeQueues.filter(q => queuedMembers.some(m => m.userId === userId && m.queueId === q.id));
+
+						for (const queue of userQueues.values()) {
+							const gameName = queue.gamePresenceName?.trim();
+							let stillPlaying = false;
+
+							if (!isOffline && activities.length > 0) {
+								if (gameName) {
+									stillPlaying = activities.some(activity =>
+										isGameNameMatch(activity.name, gameName)
+									);
+								}
+								else {
+									stillPlaying = activities.some(activity => activity.type === ActivityType.Playing || activity.type === ActivityType.Competing);
+								}
+							}
+
+							if (stillPlaying) {
+								const matched = activities.filter(a => isGameNameMatch(a.name, gameName ?? ""));
+								console.log(`[DEBUG PRESENCE POLL] User ${memberTag} IS playing matching game for queue "${queue.name}". Activity JSON:`, JSON.stringify(matched));
+							}
+							else {
+								console.log(`[DEBUG PRESENCE POLL] Game OFF detected for ${memberTag} in queue "${queue.name}" (filter: "${gameName || 'any'}"). Removing member...`);
+								await MemberUtils.deleteMembers({
+									store,
+									queues: [queue],
+									reason: MemberRemovalReason.Left,
+									by: { userId },
+								}).catch(() => null);
+							}
+						}
+					}
+				}
+			}
+			catch (e) {
+				// silent error catch
+			}
+		}, 10_000);
+	}
+
+	export const WARNED_MEMBER_TIMEOUTS = new Set<string>();
+
+	export function startMemberTimeoutChecker() {
+		setInterval(async () => {
+			try {
+				const guilds = CLIENT.guilds.cache;
+				for (const guild of guilds.values()) {
+					const store = new Store(guild);
+					const timeoutQueues = store.dbQueues().filter(queue => Boolean(queue.memberTimeout && queue.memberTimeout > 0n));
+					if (!timeoutQueues.size) continue;
+
+					for (const queue of timeoutQueues.values()) {
+						const timeoutMinutes = Number(queue.memberTimeout);
+						if (timeoutMinutes <= 0) continue;
+
+						const timeoutMs = timeoutMinutes * 60 * 1000;
+						const warningMs = Math.max(0, (timeoutMinutes - 10) * 60 * 1000);
+						const members = store.dbMembers().filter(m => m.queueId === queue.id);
+
+						for (const member of members.values()) {
+							const now = Date.now();
+							const joinTimeMs = Number(member.joinTime);
+							const elapsedMs = now - joinTimeMs;
+							const key = `${queue.id}_${member.userId}`;
+
+							// Check Expiration first
+							if (elapsedMs >= timeoutMs) {
+								WARNED_MEMBER_TIMEOUTS.delete(key);
+
+								console.log(`[DEBUG TIMEOUT] Member ${member.userId} expired in queue "${queue.name}" after ${timeoutMinutes}m. Auto-removing...`);
+
+								await MemberUtils.deleteMembers({
+									store,
+									queues: [queue],
+									reason: MemberRemovalReason.Expired,
+									by: { userId: member.userId },
+								}).catch(() => null);
+
+								const jsMember = await guild.members.fetch(member.userId).catch(() => null);
+								await jsMember?.send({
+									content: `⏳ You were automatically removed from the **${queue.name}** queue because your ${timeoutMinutes}-minute queue timer expired.`,
+								}).catch(() => null);
+
+								continue;
+							}
+
+							// Check Warning (10 minutes prior to expiration)
+							if (elapsedMs >= warningMs && !WARNED_MEMBER_TIMEOUTS.has(key)) {
+								WARNED_MEMBER_TIMEOUTS.add(key);
+
+								const remainingMinutes = Math.max(1, Math.ceil((timeoutMs - elapsedMs) / 60000));
+								console.log(`[DEBUG TIMEOUT] Sending 10-minute warning DM to member ${member.userId} for queue "${queue.name}".`);
+
+								const jsMember = await guild.members.fetch(member.userId).catch(() => null);
+								if (jsMember) {
+									const renewButton = new ButtonBuilder()
+										.setCustomId(`renew:${queue.id}`)
+										.setLabel("🔄 Renew Queue Timer")
+										.setStyle(ButtonStyle.Primary);
+									const row = new ActionRowBuilder<ButtonBuilder>().addComponents(renewButton);
+
+									await jsMember.send({
+										content: `⚠️ You will be automatically removed from the **${queue.name}** queue in ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}. Click below if you want to renew your timer!`,
+										components: [row],
+									}).catch(() => null);
+								}
+							}
+						}
+					}
+				}
+			}
+			catch (e) {
+				// silent catch
+			}
+		}, 15_000); // Check every 15 seconds
 	}
 }

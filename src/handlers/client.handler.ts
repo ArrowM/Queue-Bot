@@ -1,4 +1,5 @@
 import {
+	ActivityType,
 	type DMChannel,
 	type Guild,
 	type GuildMember,
@@ -6,6 +7,7 @@ import {
 	type Message,
 	type NonThreadGuildBasedChannel,
 	type PartialGuildMember,
+	type Presence,
 	Role,
 	StageChannel,
 	VoiceChannel,
@@ -13,16 +15,20 @@ import {
 } from "discord.js";
 import { compact, concat, shuffle } from "lodash-es";
 
+import { CLIENT } from "../client/client.ts";
 import { Queries } from "../db/queries.ts";
 import { Store } from "../db/store.ts";
 import { MemberRemovalReason } from "../types/db.types.ts";
 import { DisplayUtils } from "../utils/display.utils.ts";
 import { MemberUtils } from "../utils/member.utils.ts";
+import { isGameNameMatch } from "../utils/misc.utils.ts";
 import { QueueUtils } from "../utils/queue.utils.ts";
 import { InteractionHandler } from "./interaction.handler.ts";
 import { MessageHandler } from "./message.handler.ts";
 
 export namespace ClientHandler {
+	export const LIVE_PRESENCES = new Map<Snowflake, Presence>();
+
 	export function handleGuildDelete(guild: Guild) {
 		try {
 			Queries.deleteGuild({ guildId: guild.id });
@@ -35,6 +41,25 @@ export namespace ClientHandler {
 	export async function handleInteraction(inter: Interaction) {
 		if (inter.guild) {
 			await new InteractionHandler(inter).handle();
+		}
+		else if (inter.isButton()) {
+			const customId = inter.customId;
+			if (customId?.startsWith("renew:")) {
+				const queueId = BigInt(customId.split(":")[1]);
+				const queue = Queries.selectAllQueues().find(q => q.id === queueId);
+				if (queue) {
+					const guild = await CLIENT.guilds.fetch(queue.guildId).catch(() => null);
+					if (guild) {
+						Object.defineProperty(inter, "guild", { value: guild, configurable: true, writable: true });
+						Object.defineProperty(inter, "guildId", { value: queue.guildId, configurable: true, writable: true });
+						await new InteractionHandler(inter).handle();
+						return;
+					}
+				}
+			}
+			if ("reply" in inter) {
+				await inter.reply({ content: "This interaction is no longer valid.", ephemeral: true }).catch(() => null);
+			}
 		}
 		else if ("reply" in inter) {
 			await inter.reply("This command can only be used in servers").catch(() => null);
@@ -133,6 +158,68 @@ export namespace ClientHandler {
 						by: { count: 1 },
 					}).catch(() => null);
 				}
+			}
+		}
+	}
+
+	export async function handlePresenceUpdate(oldPresence: Presence | null, newPresence: Presence) {
+		if (!newPresence) return;
+		const guild = newPresence.guild ?? oldPresence?.guild;
+		const userId = newPresence.userId ?? oldPresence?.userId;
+		if (!guild || !userId) return;
+
+		LIVE_PRESENCES.set(userId, newPresence);
+
+		const username = newPresence?.user?.tag ?? newPresence?.user?.username ?? userId;
+		const activities = newPresence?.activities ?? [];
+		const isOffline = newPresence?.status === "offline";
+		const activityNames = activities.map(a => `${ActivityType[a.type] ?? a.type}: "${a.name}"`).join(", ") || "No active activities";
+
+		console.log(`[DEBUG PRESENCE EVENT] Update for ${username} (Status: ${newPresence?.status ?? "unknown"}) | Activities: [${activityNames}]`);
+
+		const store = new Store(guild);
+		const members = store.dbMembers().filter(member => member.userId === userId);
+		if (!members.size) return;
+
+		const memberQueueIds = new Set(members.map(m => m.queueId));
+		const queues = store.dbQueues().filter(queue => queue.gamePresenceToggle && memberQueueIds.has(queue.id));
+		if (!queues.size) return;
+
+		for (const queue of queues.values()) {
+			const gameName = queue.gamePresenceName?.trim();
+			let stillPlaying = false;
+			let matchedActivity = "";
+
+			if (!isOffline && activities.length > 0) {
+				if (gameName) {
+					const match = activities.find(activity =>
+						isGameNameMatch(activity.name, gameName)
+					);
+					if (match) {
+						stillPlaying = true;
+						matchedActivity = match.name;
+					}
+				}
+				else {
+					const match = activities.find(activity => activity.type === ActivityType.Playing || activity.type === ActivityType.Competing);
+					if (match) {
+						stillPlaying = true;
+						matchedActivity = match.name;
+					}
+				}
+			}
+
+			if (stillPlaying) {
+				console.log(`[DEBUG PRESENCE] User ${username} is actively playing "${matchedActivity}" matching filter "${gameName || 'any'}" for queue "${queue.name}".`);
+			}
+			else {
+				console.log(`[DEBUG PRESENCE] Game OFF / Not playing for ${username} (Target filter: "${gameName || 'any'}"). Automatically removing user from queue "${queue.name}"...`);
+				await MemberUtils.deleteMembers({
+					store,
+					queues: [queue],
+					reason: MemberRemovalReason.Left,
+					by: { userId },
+				}).catch(() => null);
 			}
 		}
 	}

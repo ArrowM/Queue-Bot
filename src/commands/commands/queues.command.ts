@@ -13,6 +13,7 @@ import { HeaderOption } from "../../options/options/header.option.ts";
 import { InlineToggleOption } from "../../options/options/inline-toggle.option.ts";
 import { LockToggleOption } from "../../options/options/lock-toggle.option.ts";
 import { MemberDisplayTypeOption } from "../../options/options/member-display-type.option.ts";
+import { MemberTimeoutOption } from "../../options/options/member-timeout.option.ts";
 import { NameOption } from "../../options/options/name.option.ts";
 import { PullBatchSizeOption } from "../../options/options/pull-batch-size.option.ts";
 import { PullMessageOption } from "../../options/options/pull-message.option.ts";
@@ -144,6 +145,7 @@ export class QueuesCommand extends AdminCommand {
 		timestampType: new TimestampTypeOption({ description: "Format of timestamps on displays" }),
 		voiceOnlyToggle: new VoiceOnlyToggleOption({ description: "Toggle whether queue is restricted to members in source voice channel" }),
 		voiceDestinationChannel: new VoiceDestinationChannelOption({ description: "Voice channel to move members to when they are pulled" }),
+		memberTimeout: new MemberTimeoutOption({ description: "# of minutes a member can remain in queue before timing out (0 = off)" }),
 	};
 
 	static async queues_add(inter: SlashInteraction) {
@@ -173,6 +175,7 @@ export class QueuesCommand extends AdminCommand {
 				timestampType: QueuesCommand.ADD_OPTIONS.timestampType.get(inter),
 				voiceOnlyToggle: QueuesCommand.ADD_OPTIONS.voiceOnlyToggle.get(inter),
 				voiceDestinationChannelId: QueuesCommand.ADD_OPTIONS.voiceDestinationChannel.get(inter)?.id,
+				memberTimeout: QueuesCommand.ADD_OPTIONS.memberTimeout.get(inter) !== undefined ? BigInt(QueuesCommand.ADD_OPTIONS.memberTimeout.get(inter)!) : undefined,
 			}, isNil),
 		};
 
@@ -212,10 +215,12 @@ export class QueuesCommand extends AdminCommand {
 		timestampType: new TimestampTypeOption({ description: "How to display timestamps" }),
 		voiceOnlyToggle: new VoiceOnlyToggleOption({ description: "Toggle whether queue is restricted to members in source voice channel" }),
 		voiceDestinationChannel: new VoiceDestinationChannelOption({ description: "Voice channel to move members to when they are pulled" }),
+		memberTimeout: new MemberTimeoutOption({ description: "# of minutes a member can remain in queue before timing out (0 = off)" }),
 	};
 
 	static async queues_set(inter: SlashInteraction) {
 		const queues = await QueuesCommand.SET_OPTIONS.queues.get(inter);
+
 		const update = omitBy({
 			autopullToggle: QueuesCommand.SET_OPTIONS.autopullToggle.get(inter),
 			badgeToggle: QueuesCommand.SET_OPTIONS.badgeToggle.get(inter),
@@ -240,6 +245,7 @@ export class QueuesCommand extends AdminCommand {
 			timestampType: QueuesCommand.SET_OPTIONS.timestampType.get(inter),
 			voiceOnlyToggle: QueuesCommand.SET_OPTIONS.voiceOnlyToggle.get(inter),
 			voiceDestinationChannelId: QueuesCommand.SET_OPTIONS.voiceDestinationChannel.get(inter)?.id,
+			memberTimeout: QueuesCommand.SET_OPTIONS.memberTimeout.get(inter) !== undefined ? BigInt(QueuesCommand.SET_OPTIONS.memberTimeout.get(inter)!) : undefined,
 		}, isNil);
 
 		if (update.voiceOnlyToggle) {
@@ -305,6 +311,7 @@ export class QueuesCommand extends AdminCommand {
 			{ name: TimestampTypeOption.ID, value: QUEUE_TABLE.timestampType.name },
 			{ name: VoiceOnlyToggleOption.ID, value: QUEUE_TABLE.voiceOnlyToggle.name },
 			{ name: VoiceDestinationChannelOption.ID, value: QUEUE_TABLE.voiceDestinationChannelId.name },
+			{ name: MemberTimeoutOption.ID, value: QUEUE_TABLE.memberTimeout.name },
 		];
 		const selectMenuTransactor = new SelectMenuTransactor(inter);
 		const propertiesToReset = await selectMenuTransactor.sendAndReceive("Queue properties to reset", selectMenuOptions) ?? [];

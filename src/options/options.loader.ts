@@ -17,6 +17,7 @@ import { DisplayUpdateTypeOption } from "./options/display-update-type.option.ts
 import { DisplaysOption } from "./options/displays.option.ts";
 import { DmMemberOption } from "./options/dm-member.option.ts";
 import { DmOnPullToggleOption } from "./options/dm-on-pull-toggle.option.ts";
+import { GamePresenceOption } from "./options/game-presence.option.ts";
 import { HeaderOption } from "./options/header.option.ts";
 import { InlineToggleOption } from "./options/inline-toggle.option.ts";
 import { JoinSyncToggleOption } from "./options/join-sync-toggle.option.ts";
@@ -27,6 +28,7 @@ import { LogScopeOption } from "./options/log-scope.option.ts";
 import { MemberOption } from "./options/member.option.ts";
 import { MemberDisplayTypeOption } from "./options/member-display-type.option.ts";
 import { MembersOption } from "./options/members.option.ts";
+import { MemberTimeoutOption } from "./options/member-timeout.option.ts";
 import { MentionableOption } from "./options/mentionable.option.ts";
 import { MessageOption } from "./options/message.option.ts";
 import { MessageChannelOption } from "./options/message-channel.option.ts";
@@ -76,6 +78,7 @@ export const OPTIONS = new Collection<string, BaseOption>([
 	[DisplayUpdateTypeOption.ID, new DisplayUpdateTypeOption()],
 	[DmOnPullToggleOption.ID, new DmOnPullToggleOption()],
 	[DmMemberOption.ID, new DmMemberOption()],
+	[GamePresenceOption.ID, new GamePresenceOption()],
 	[HeaderOption.ID, new HeaderOption()],
 	[InlineToggleOption.ID, new InlineToggleOption()],
 	[JoinSyncToggleOption.ID, new JoinSyncToggleOption()],
@@ -86,6 +89,7 @@ export const OPTIONS = new Collection<string, BaseOption>([
 	[MemberOption.ID, new MemberOption()],
 	[MemberDisplayTypeOption.ID, new MemberDisplayTypeOption()],
 	[MembersOption.ID, new MembersOption()],
+	[MemberTimeoutOption.ID, new MemberTimeoutOption()],
 	[MentionableOption.ID, new MentionableOption()],
 	[MessageChannelOption.ID, new MessageChannelOption()],
 	[MessageOption.ID, new MessageOption()],

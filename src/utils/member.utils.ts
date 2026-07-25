@@ -135,6 +135,10 @@ export namespace MemberUtils {
 		async function deleteMembersAndNotify(queue: DbQueue, userIds: Snowflake[], reason: MemberRemovalReason) {
 			const deleted: DbMember[] = compact(userIds.map(userId => store.deleteMember({ queueId: queue.id, userId }, reason)));
 
+			if (deleted.length > 0) {
+				console.log(`[DEBUG QUEUE] Member(s) [IDs: ${deleted.map(m => m.userId).join(", ")}] REMOVED from queue "${queue.name}" (Reason: ${reason})`);
+			}
+
 			userIds.forEach(userId => modifyMemberRoles(store, userId, queue.roleInQueueId, "remove").catch(() => null));
 
 			// Pull members to the destination channel if they are in a voice channel
@@ -408,6 +412,8 @@ export namespace MemberUtils {
 			priorityOrder,
 			positionTime,
 		});
+
+		console.log(`[DEBUG QUEUE] Member ${jsMember.user.tag} (${jsMember.id}) JOINED queue "${queue.name}"`);
 
 		await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
 

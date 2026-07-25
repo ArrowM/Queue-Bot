@@ -44,3 +44,21 @@ export function BigIntSafe(value: any) {
 export function formatFileDate(date: Date) {
 	return date.toISOString().slice(0, -5).replace("T", "__").replace(/\D/g, "_");
 }
+
+export function isGameNameMatch(activityName: string, filterName: string): boolean {
+	if (!filterName || !activityName) return false;
+
+	const normActivity = activityName.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+	const normFilter = filterName.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+
+	if (normActivity.includes(normFilter) || normFilter.includes(normActivity)) {
+		return true;
+	}
+
+	const filterTokens = normFilter.split(" ").filter(Boolean);
+	if (filterTokens.length > 0) {
+		return filterTokens.every(token => normActivity.includes(token));
+	}
+
+	return false;
+}

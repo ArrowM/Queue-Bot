@@ -18,5 +18,7 @@ export namespace ClientListeners {
 		CLIENT.on(Events.ChannelDelete, ClientHandler.handleChannelDelete);
 
 		CLIENT.on(Events.VoiceStateUpdate, ClientHandler.handleVoiceStateUpdate);
+
+		// CLIENT.on(Events.PresenceUpdate, ClientHandler.handlePresenceUpdate);
 	}
 }

@@ -69,6 +69,7 @@ export enum MemberRemovalReason {
 	Kicked = "kicked",
 	Pulled = "pulled",
 	NotFound = "not found",
+	Expired = "expired",
 }
 
 export enum PullMessageDisplayType {

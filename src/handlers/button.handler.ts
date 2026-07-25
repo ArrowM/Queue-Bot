@@ -15,7 +15,8 @@ export class ButtonHandler implements Handler {
 	}
 
 	async handle() {
-		const button = BUTTONS.get(this.inter.customId);
+		const buttonKey = this.inter.customId.split(":")[0];
+		const button = BUTTONS.get(buttonKey) ?? BUTTONS.get(this.inter.customId);
 		if (button) {
 			if (button.deferResponse) {
 				await this.inter.deferReply({ ephemeral: true });

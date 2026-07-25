@@ -13,6 +13,9 @@ export const CLIENT = new DiscordClient({
 		GatewayIntentBits.GuildVoiceStates,
 		// Required for DisplayUpdateType.LatestMessage
 		GatewayIntentBits.GuildMessages,
+		// Required for game activity / presence updates
+		GatewayIntentBits.GuildPresences,
+		GatewayIntentBits.GuildMembers,
 	],
 	makeCache: Options.cacheWithLimits({
 		...Options.DefaultMakeCacheSettings,
@@ -36,6 +39,7 @@ export const CLIENT = new DiscordClient({
 				return true;
 			},
 		},
+		PresenceManager: 1000,
 		// Disable caching for unused features
 		BaseGuildEmojiManager: 0,
 		GuildEmojiManager: 0,
@@ -48,7 +52,6 @@ export const CLIENT = new DiscordClient({
 		GuildStickerManager: 0,
 		GuildScheduledEventManager: 0,
 		ThreadManager: 0,
-		PresenceManager: 0,
 	}),
 	sweepers: {
 		...Options.DefaultSweeperSettings,
@@ -89,6 +92,10 @@ export namespace Client {
 			ClientUtils.checkForOfflineVoiceChanges();
 
 			ClientUtils.checkForPatchNotes();
+
+			// ClientUtils.startPresencePolling();
+
+			ClientUtils.startMemberTimeoutChecker();
 		}
 		catch (e) {
 			const { message, stack } = e as Error;
