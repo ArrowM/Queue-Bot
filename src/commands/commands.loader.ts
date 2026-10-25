@@ -4,6 +4,7 @@ import type { Command } from "../types/command.types.ts";
 import { AdminsCommand } from "./commands/admins.command.ts";
 import { BlacklistCommand } from "./commands/blacklist.command.ts";
 import { ClearCommand } from "./commands/clear.command.ts";
+import { DeleteMyDataCommand } from "./commands/delete-my-data.command.ts";
 import { DisplaysCommand } from "./commands/displays.command.ts";
 import { HelpCommand } from "./commands/help.command.ts";
 import { JoinCommand } from "./commands/join.command.ts";
@@ -26,6 +27,7 @@ export const COMMANDS = new Collection<string, Command>([
 	[AdminsCommand.ID, new AdminsCommand()],
 	[BlacklistCommand.ID, new BlacklistCommand()],
 	[ClearCommand.ID, new ClearCommand()],
+	[DeleteMyDataCommand.ID, new DeleteMyDataCommand()],
 	[DisplaysCommand.ID, new DisplaysCommand()],
 	[HelpCommand.ID, new HelpCommand()],
 	[JoinCommand.ID, new JoinCommand()],

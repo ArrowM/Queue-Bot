@@ -229,6 +229,10 @@ We will only keep your personal information for as long as it is necessary for t
 
 
 
+Records of users who have left a queue are automatically deleted after 30 days, and database backups are automatically deleted after 7 days.
+
+
+
 When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymize such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible.
 
 
@@ -547,6 +551,6 @@ United States
 
 
 
-You have the right to request access to the personal information we collect from you, details about how we have processed it, correct inaccuracies, or delete your personal information. You may also have the right to withdraw your consent to our processing of your personal information. These rights may be limited in some circumstances by applicable law. To request to review, update, or delete your personal information, please visit: [Discord support server](https://discord.gg/RbmfnP3).
+You have the right to request access to the personal information we collect from you, details about how we have processed it, correct inaccuracies, or delete your personal information. You may also have the right to withdraw your consent to our processing of your personal information. These rights may be limited in some circumstances by applicable law. To request to review, update, or delete your personal information, you can run the `/delete-my-data` command in any server with Queue Bot to immediately and permanently delete all of your data, or visit the [Discord support server](https://discord.gg/RbmfnP3).
 
 ul { list-style-type: square; } ul > li > ul { list-style-type: circle; } ul > li > ul > li > ul { list-style-type: square; } ol li { font-family: Arial ; }

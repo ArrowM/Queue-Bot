@@ -5,6 +5,8 @@ import { Color } from "../../types/db.types.ts";
 import type { SlashInteraction } from "../../types/interaction.types.ts";
 import { commandMention } from "../../utils/string.utils.ts";
 
+const PRIVACY_POLICY_URL = "https://github.com/ArrowM/Queue-Bot/blob/master/docs/legal/privacy-policy.md";
+
 export class HelpCommand extends EveryoneCommand {
 	static readonly ID = "help";
 
@@ -63,7 +65,7 @@ export class HelpCommand extends EveryoneCommand {
 					},
 					{
 						name: "\u200b",
-						value: "[Consider supporting the bot 💖](https://www.buymeacoffee.com/Arroww)",
+						value: `[Consider supporting the bot 💖](https://www.buymeacoffee.com/Arroww) | [Privacy Policy](${PRIVACY_POLICY_URL})`,
 					}),
 			],
 		});
@@ -102,8 +104,12 @@ export class HelpCommand extends EveryoneCommand {
 						value: "Show queue(s)",
 					},
 					{
+						name: commandMention("delete-my-data"),
+						value: "Permanently delete all of your data",
+					},
+					{
 						name: "\u200b",
-						value: "[Consider supporting the bot 💖](https://www.buymeacoffee.com/Arroww)",
+						value: `[Consider supporting the bot 💖](https://www.buymeacoffee.com/Arroww) | [Privacy Policy](${PRIVACY_POLICY_URL})`,
 					}),
 			],
 		});
@@ -182,7 +188,7 @@ export class HelpCommand extends EveryoneCommand {
 					},
 					{
 						name: "\u200b",
-						value: "[Consider supporting the bot 💖](https://www.buymeacoffee.com/Arroww)",
+						value: `[Consider supporting the bot 💖](https://www.buymeacoffee.com/Arroww) | [Privacy Policy](${PRIVACY_POLICY_URL})`,
 					}),
 			],
 		});
