@@ -9,6 +9,9 @@ COPY package*.json ./
 # ---- Dependencies ----
 FROM base AS dependencies
 
+# Build tools for native modules (better-sqlite3) when no prebuilt binary is available
+RUN apk add --no-cache python3 make g++
+
 # Install npm dependencies
 RUN npm ci
 
