@@ -39,22 +39,27 @@ export namespace MemberUtils {
 	}) {
 		const { store, users, queues, force, dmMember } = options;
 
-		const insertedMembers = compact(
-			await db.transaction(async () => {
-				const inserted = [];
-				for (const user of users) {
-					const jsMember = await store.jsMember(user.id);
-					if (!jsMember) continue;
+		const jsMembers: GuildMember[] = [];
+		for (const user of users) {
+			const jsMember = await store.jsMember(user.id);
+			if (jsMember) jsMembers.push(jsMember);
+		}
 
-					for (const queue of queues.values()) {
-						inserted.push(
-							await insertMemberInternal({ store, queue, jsMember, force })
-						);
-					}
+		const inserted = db.transaction(() => {
+			const results: { jsMember: GuildMember, queue: DbQueue, member: DbMember }[] = [];
+			for (const jsMember of jsMembers) {
+				for (const queue of queues.values()) {
+					results.push({ jsMember, queue, member: insertMemberInternal({ store, queue, jsMember, force }) });
 				}
-				return inserted;
-			})
-		);
+			}
+			return results;
+		});
+
+		for (const { jsMember, queue } of inserted) {
+			await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
+		}
+
+		const insertedMembers = compact(inserted.map(({ member }) => member));
 
 		DisplayUtils.requestDisplaysUpdate({
 			store,
@@ -85,13 +90,13 @@ export namespace MemberUtils {
 		message?: string,
 		force?: boolean,
 	}) {
-		return await db.transaction(async () => {
-			const insertedMember = await insertMemberInternal(options);
+		const insertedMember = db.transaction(() => insertMemberInternal(options));
 
-			DisplayUtils.requestDisplayUpdate({ store: options.store, queueId: options.queue.id });
+		await modifyMemberRoles(options.store, options.jsMember.id, options.queue.roleInQueueId, "add");
 
-			return insertedMember;
-		});
+		DisplayUtils.requestDisplayUpdate({ store: options.store, queueId: options.queue.id });
+
+		return insertedMember;
 	}
 
 	export function updateMembers(options: {
@@ -132,9 +137,7 @@ export namespace MemberUtils {
 		const { userId, userIds, roleId, count } = by ?? {} as any;
 		const deletedMembers: DbMember[] = [];
 
-		async function deleteMembersAndNotify(queue: DbQueue, userIds: Snowflake[], reason: MemberRemovalReason) {
-			const deleted: DbMember[] = compact(userIds.map(userId => store.deleteMember({ queueId: queue.id, userId }, reason)));
-
+		async function notifyDeleted(queue: DbQueue, userIds: Snowflake[], deleted: DbMember[], reason: MemberRemovalReason) {
 			userIds.forEach(userId => modifyMemberRoles(store, userId, queue.roleInQueueId, "remove").catch(() => null));
 
 			// Pull members to the destination channel if they are in a voice channel
@@ -188,35 +191,41 @@ export namespace MemberUtils {
 			}
 
 			DisplayUtils.requestDisplayUpdate({ store, queueId: queue.id });
-
-			deletedMembers.push(...deleted);
 		}
 
-		await db.transaction(async () => {
-			if (!isNil(userId) || !isNil(userIds)) {
-				const ids: Snowflake[] = !isNil(userId) ? [userId] : userIds;
-				for (const queue of queues) {
-					await deleteMembersAndNotify(queue, ids, reason);
+		const roleMemberIds: Snowflake[] | undefined = (isNil(userId) && isNil(userIds) && !isNil(roleId))
+			? (await store.guild.roles.fetch(roleId)).members.map(member => member.id)
+			: undefined;
+
+		// Database changes happen synchronously in one transaction; notifications are sent afterwards
+		const deletions = db.transaction(() => {
+			const results: { queue: DbQueue, userIds: Snowflake[], deleted: DbMember[] }[] = [];
+			for (const queue of queues) {
+				let ids: Snowflake[];
+				if (!isNil(userId) || !isNil(userIds)) {
+					ids = !isNil(userId) ? [userId] : userIds;
 				}
-			}
-			else if (!isNil(roleId)) {
-				const jsMembers = (await store.guild.roles.fetch(roleId)).members;
-				for (const queue of queues) {
-					await deleteMembersAndNotify(queue, jsMembers.map(member => member.id), reason);
+				else if (roleMemberIds) {
+					ids = roleMemberIds;
 				}
-			}
-			else {
-				for (const queue of queues) {
+				else {
 					const numToPull = Number(count ?? queue.pullBatchSize);
 					const members = [...store.dbMembers().filter(member => member.queueId === queue.id).values()];
 					if (!force && members.length && (members.length < numToPull)) {
 						throw new Error("Not enough members to pull");
 					}
-					const userIdsToPull = members.slice(0, numToPull).map(member => member.userId);
-					await deleteMembersAndNotify(queue, userIdsToPull, reason);
+					ids = members.slice(0, numToPull).map(member => member.userId);
 				}
+				const deleted: DbMember[] = compact(ids.map(id => store.deleteMember({ queueId: queue.id, userId: id }, reason)));
+				results.push({ queue, userIds: ids, deleted });
 			}
+			return results;
 		});
+
+		for (const { queue, userIds, deleted } of deletions) {
+			await notifyDeleted(queue, userIds, deleted, reason);
+			deletedMembers.push(...deleted);
+		}
 
 		return deletedMembers;
 	}
@@ -263,7 +272,7 @@ export namespace MemberUtils {
 	}
 
 	export async function shuffleMembers(store: Store, queue: DbQueue, messageChannelId: Snowflake) {
-		return db.transaction(async () => {
+		const members = db.transaction(() => {
 			const members = store.dbMembers().filter(member => member.queueId === queue.id);
 			const shuffledPositionTimes = shuffle(members.map(member => member.positionTime));
 
@@ -274,16 +283,18 @@ export namespace MemberUtils {
 				queueId: queue.id,
 			});
 
-			if (messageChannelId) {
-				const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
-				if (messageChannel) {
-					const message = await messageChannel?.send(`Shuffled the ${queueMention(queue)} queue.`).catch(() => null);
-					LoggingUtils.log(store, true, message).catch(() => null);
-				}
-			}
-
 			return members;
 		});
+
+		if (messageChannelId) {
+			const messageChannel = await store.jsChannel(messageChannelId) as GuildTextBasedChannel;
+			if (messageChannel) {
+				const message = await messageChannel?.send(`Shuffled the ${queueMention(queue)} queue.`).catch(() => null);
+				LoggingUtils.log(store, true, message).catch(() => null);
+			}
+		}
+
+		return members;
 	}
 
 	export async function getMemberDisplayLine(store: Store, queue: DbQueue, userId: Snowflake) {
@@ -363,7 +374,7 @@ export namespace MemberUtils {
 	// 												 Helpers
 	// ====================================================================
 
-	async function insertMemberInternal(options: {
+	function insertMemberInternal(options: {
 		store: Store,
 		queue: DbQueue,
 		jsMember: GuildMember,
@@ -400,7 +411,7 @@ export namespace MemberUtils {
 			}
 		}
 
-		const insertedMember = store.insertMember({
+		return store.insertMember({
 			guildId: store.guild.id,
 			queueId: queue.id,
 			userId: jsMember.id,
@@ -408,10 +419,6 @@ export namespace MemberUtils {
 			priorityOrder,
 			positionTime,
 		});
-
-		await modifyMemberRoles(store, jsMember.id, queue.roleInQueueId, "add");
-
-		return insertedMember;
 	}
 
 	function verifyMemberEligibility(store: Store, queue: DbQueue, jsMember: GuildMember, archivedMember: DbArchivedMember) {

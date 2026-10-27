@@ -10,30 +10,27 @@ import { map } from "./misc.utils.ts";
 
 export namespace QueueUtils {
 	export async function insertQueue(store: Store, queue: NewQueue) {
-		return await db.transaction(async () => {
-			const insertedQueue = store.insertQueue(queue);
+		const insertedQueue = db.transaction(() => store.insertQueue(queue));
 
-			if (queue?.roleInQueueId) {
-				await QueueUtils.setRoleInQueue(store, [insertedQueue]);
-			}
+		if (queue?.roleInQueueId) {
+			await QueueUtils.setRoleInQueue(store, [insertedQueue]);
+		}
 
-			return { insertedQueue };
-		});
+		return { insertedQueue };
 	}
 
 	export async function updateQueues(store: Store, queues: ArrayOrCollection<bigint, DbQueue>, update: Partial<DbQueue>) {
-		return await db.transaction(async () => {
-			const updatedQueues = compact(map(queues, queue => store.updateQueue({ id: queue.id, ...update })));
-			const updatedQueueIds = updatedQueues.map(queue => queue.id);
-
-			DisplayUtils.requestDisplaysUpdate({ store, queueIds: updatedQueueIds });
-
-			if (update.roleInQueueId) {
-				await QueueUtils.setRoleInQueue(store, updatedQueues);
-			}
-
-			return { updatedQueues };
+		const updatedQueues = db.transaction(() => {
+			const updated = compact(map(queues, queue => store.updateQueue({ id: queue.id, ...update })));
+			DisplayUtils.requestDisplaysUpdate({ store, queueIds: updated.map(queue => queue.id) });
+			return updated;
 		});
+
+		if (update.roleInQueueId) {
+			await QueueUtils.setRoleInQueue(store, updatedQueues);
+		}
+
+		return { updatedQueues };
 	}
 
 	export async function setRoleInQueue(store: Store, queues: ArrayOrCollection<bigint, DbQueue>) {

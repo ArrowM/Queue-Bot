@@ -141,18 +141,15 @@ function deleteOldArchivedMembers() {
 
 async function deleteDeadGuilds() {
 	const oneMonthAgo = BigInt(subMonths(new Date(), 1).getTime());
-	// Start a transaction
-	await db.transaction(async () => {
-		const oldGuilds = db.select()
-			.from(GUILD_TABLE)
-			.where(
-				lt(GUILD_TABLE.lastUpdateTime, oneMonthAgo)
-			)
-			.all();
-		for (const guild of oldGuilds) {
-			await ClientUtils.getGuild(guild.guildId);
-		}
-	});
+	const oldGuilds = db.select()
+		.from(GUILD_TABLE)
+		.where(
+			lt(GUILD_TABLE.lastUpdateTime, oneMonthAgo)
+		)
+		.all();
+	for (const guild of oldGuilds) {
+		await ClientUtils.getGuild(guild.guildId);
+	}
 }
 
 function logStats() {
